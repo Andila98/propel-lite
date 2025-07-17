@@ -55,7 +55,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 >
                   <LogIn className="h-4 w-4" />
-                  Login
+                  Logout
                 </Link>
             </div>
         </div>
@@ -101,7 +101,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       )}
                     >
                       <LogIn className="h-4 w-4" />
-                      Login
+                      Logout
                     </Link>
                 </div>
             </SheetContent>

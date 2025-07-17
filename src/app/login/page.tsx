@@ -27,13 +27,13 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, you'd have auth logic here.
-    // We'll simulate a successful login.
+    // We'll simulate a successful login and redirect to onboarding for new users.
     if (email && password) {
        toast({
         title: "Login Successful",
-        description: "Redirecting to your dashboard...",
+        description: "Redirecting to onboarding...",
       });
-      router.push('/');
+      router.push('/onboarding/welcome');
     } else {
       toast({
         title: "Login Failed",
