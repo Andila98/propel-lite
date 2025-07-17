@@ -1,5 +1,5 @@
 
-import type { Property, Tenant } from './types';
+import type { Property, Tenant, PropertyManager, ActivityItem } from './types';
 
 export const mockProperties: Property[] = [
   {
@@ -62,4 +62,42 @@ export const mockTenants: Tenant[] = [
         { date: '2024-03-15', amount: 3500, method: 'Check' },
     ]
   },
+];
+
+export const mockPropertyManagers: PropertyManager[] = [
+    {
+        id: 'pm1',
+        name: 'Charles Davis',
+        email: 'charles.d@propertymgmt.com',
+        phone: '(555) 123-4567',
+        avatarUrl: 'https://placehold.co/100x100.png'
+    },
+    {
+        id: 'pm2',
+        name: 'Diana Miller',
+        email: 'diana.m@propertymgmt.com',
+        phone: '(555) 987-6543',
+        avatarUrl: 'https://placehold.co/100x100.png'
+    }
+];
+
+export const mockActivities: ActivityItem[] = [
+    {
+        id: 'a1',
+        type: 'new-tenant',
+        description: 'Charlie Brown moved into 123 Ocean View, Apt 4B.',
+        date: '2 days ago'
+    },
+    {
+        id: 'a2',
+        type: 'rent-paid',
+        description: 'Alice Johnson paid rent for 123 Ocean View.',
+        date: '4 days ago'
+    },
+    {
+        id: 'a3',
+        type: 'lease-ending',
+        description: 'Lease for Bob Williams at 456 Maple Street is ending soon.',
+        date: '1 week ago'
+    }
 ];

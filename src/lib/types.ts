@@ -20,3 +20,18 @@ export interface Tenant {
   rentStatus: 'Paid' | 'Overdue';
   paymentHistory: { date: string; amount: number; method: string }[];
 }
+
+export interface PropertyManager {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    avatarUrl: string;
+}
+
+export interface ActivityItem {
+    id: string;
+    type: 'new-tenant' | 'rent-paid' | 'lease-ending';
+    description: string;
+    date: string;
+}

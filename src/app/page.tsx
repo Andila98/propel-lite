@@ -1,10 +1,11 @@
-import { Home, Users, Banknote, Building2 } from 'lucide-react';
+import { Home, Users, Banknote, Building2, UserCheck, Activity } from 'lucide-react';
 import Image from 'next/image';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription
 } from '@/components/ui/card';
 import {
   Table,
@@ -15,12 +16,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { mockProperties, mockTenants } from '@/lib/mock-data';
-import type { Property, Tenant } from '@/lib/types';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { mockProperties, mockTenants, mockPropertyManagers, mockActivities } from '@/lib/mock-data';
+import type { Property, Tenant, PropertyManager, ActivityItem } from '@/lib/types';
 
 export default function DashboardPage() {
   const properties = mockProperties;
   const tenants = mockTenants;
+  const managers = mockPropertyManagers;
+  const activities = mockActivities;
 
   const totalRent = properties.reduce((acc, p) => acc + p.rent, 0);
   const occupiedProperties = tenants.map(t => t.propertyId);
@@ -85,8 +89,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Properties</CardTitle>
           </CardHeader>
@@ -94,12 +98,33 @@ export default function DashboardPage() {
             <PropertyTable properties={properties} tenants={tenants} />
           </CardContent>
         </Card>
-        <Card>
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              Latest updates on your properties and tenants.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RecentActivities activities={activities} />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+         <Card>
           <CardHeader>
             <CardTitle>Tenants</CardTitle>
           </CardHeader>
           <CardContent>
             <TenantTable tenants={tenants} properties={properties} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Property Managers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PropertyManagerList managers={managers} />
           </CardContent>
         </Card>
       </div>
@@ -115,7 +140,7 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
         <TableRow>
           <TableHead className="w-[80px]">Image</TableHead>
           <TableHead>Address</TableHead>
-          <TableHead>Details</TableHead>
+          <TableHead>Type</TableHead>
           <TableHead>Rent</TableHead>
           <TableHead>Status</TableHead>
         </TableRow>
@@ -133,8 +158,8 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
                 data-ai-hint="apartment building"
               />
             </TableCell>
-            <TableCell>{prop.address}</TableCell>
-            <TableCell>{prop.bedrooms}bd / {prop.bathrooms}ba</TableCell>
+            <TableCell className="font-medium">{prop.address}</TableCell>
+            <TableCell className="capitalize">{prop.propertyType}</TableCell>
             <TableCell>${prop.rent.toLocaleString()}</TableCell>
             <TableCell>
               {isOccupied(prop.id) ? (
@@ -177,5 +202,49 @@ function TenantTable({ tenants, properties }: { tenants: Tenant[], properties: P
         ))}
       </TableBody>
     </Table>
+  );
+}
+
+
+function PropertyManagerList({ managers }: { managers: PropertyManager[] }) {
+  return (
+    <div className="space-y-6">
+      {managers.map((manager) => (
+        <div key={manager.id} className="flex items-center">
+          <Avatar className="h-9 w-9">
+             <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
+            <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="ml-4 space-y-1">
+            <p className="text-sm font-medium leading-none">{manager.name}</p>
+            <p className="text-sm text-muted-foreground">{manager.email}</p>
+          </div>
+          <div className="ml-auto font-medium">{manager.phone}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RecentActivities({ activities }: { activities: ActivityItem[] }) {
+  const ICONS: { [key: string]: React.ReactElement } = {
+    'new-tenant': <UserCheck className="h-4 w-4" />,
+    'rent-paid': <Banknote className="h-4 w-4" />,
+    'lease-ending': <Home className="h-4 w-4" />,
+  };
+  return (
+     <div className="space-y-4">
+      {activities.map((activity) => (
+        <div key={activity.id} className="flex items-start">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+             {ICONS[activity.type]}
+          </div>
+          <div className="ml-4 flex-1">
+            <p className="text-sm">{activity.description}</p>
+            <p className="text-xs text-muted-foreground">{activity.date}</p>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
