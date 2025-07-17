@@ -12,13 +12,13 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { PropertyManager } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
 
 export function PropertyManagerTable({ managers }: { managers: PropertyManager[] }) {
   const router = useRouter();
 
   const handleRowClick = (managerId: string) => {
-    // router.push(`/property-managers/${managerId}`);
-    // TODO: Implement manager detail page
+    router.push(`/property-managers/${managerId}`);
   };
 
   return (
@@ -28,6 +28,7 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Phone</TableHead>
+          <TableHead className="text-right">Properties Managed</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -39,11 +40,14 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
                   <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
                   <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span>{manager.name}</span>
+                <span className="font-medium">{manager.name}</span>
               </div>
             </TableCell>
             <TableCell>{manager.email}</TableCell>
             <TableCell>{manager.phone}</TableCell>
+            <TableCell className="text-right">
+                <Badge variant="outline">{manager.propertiesManaged.length}</Badge>
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

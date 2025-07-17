@@ -38,6 +38,7 @@ export interface PropertyManager {
     email: string;
     phone: string;
     avatarUrl: string;
+    propertiesManaged: string[];
 }
 
 export interface ActivityItem {
