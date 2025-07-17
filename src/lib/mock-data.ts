@@ -1,5 +1,13 @@
 
-import type { Property, Tenant, PropertyManager, ActivityItem } from './types';
+import type { Property, Tenant, PropertyManager, ActivityItem, Unit } from './types';
+
+const apartmentUnits: Unit[] = [
+    { unitType: 'one-bedroom', rent: 2600, squareFootage: 750, isAvailable: false },
+    { unitType: 'one-bedroom', rent: 2650, squareFootage: 760, isAvailable: true },
+    { unitType: 'two-bedroom', rent: 3200, squareFootage: 1050, isAvailable: true },
+    { unitType: 'studio', rent: 2100, squareFootage: 500, isAvailable: true },
+]
+
 
 export const mockProperties: Property[] = [
   {
@@ -10,8 +18,9 @@ export const mockProperties: Property[] = [
     bedrooms: 2,
     bathrooms: 2,
     rent: 2800,
-    imageUrl: 'https://placehold.co/400x400.png',
-    description: 'A beautiful apartment with a stunning ocean view, recently renovated kitchen, and spacious living area.'
+    imageUrl: 'https://placehold.co/800x500.png',
+    description: 'A beautiful apartment with a stunning ocean view, recently renovated kitchen, and spacious living area. Located in a high-demand area with access to a community pool and gym.',
+    units: apartmentUnits
   },
   {
     id: 'p2',
@@ -21,8 +30,8 @@ export const mockProperties: Property[] = [
     bedrooms: 3,
     bathrooms: 2.5,
     rent: 3500,
-    imageUrl: 'https://placehold.co/400x400.png',
-    description: 'Charming single-family home with a large backyard, perfect for families. Located in a quiet, friendly neighborhood.'
+    imageUrl: 'https://placehold.co/800x500.png',
+    description: 'Charming single-family home with a large backyard, perfect for families. Located in a quiet, friendly neighborhood with excellent schools nearby. Features a two-car garage and a recently updated master bathroom.'
   },
   {
     id: 'p3',
@@ -32,8 +41,8 @@ export const mockProperties: Property[] = [
     bedrooms: 1,
     bathrooms: 1,
     rent: 2100,
-    imageUrl: 'https://placehold.co/400x400.png',
-    description: 'Modern loft in the heart of the city. Features high ceilings, large windows, and access to a rooftop pool.'
+    imageUrl: 'https://placehold.co/800x500.png',
+    description: 'Modern loft in the heart of the city. Features high ceilings, large windows, and access to a rooftop pool and lounge area. Walking distance to popular restaurants and entertainment venues.'
   },
 ];
 

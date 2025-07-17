@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockProperties, mockTenants, mockPropertyManagers, mockActivities } from '@/lib/mock-data';
 import type { Property, Tenant, PropertyManager, ActivityItem } from '@/lib/types';
+import { PropertyTable } from '@/components/property-table';
 
 export default function DashboardPage() {
   const properties = mockProperties;
@@ -104,7 +105,7 @@ export default function DashboardPage() {
             <CardTitle>Properties</CardTitle>
           </CardHeader>
           <CardContent>
-            <PropertyTable properties={properties} tenants={tenants} />
+            <PropertyTable properties={properties.slice(0, 5)} tenants={tenants} />
           </CardContent>
         </Card>
         <Card className="lg:col-span-3">
@@ -138,49 +139,6 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
-  );
-}
-
-function PropertyTable({ properties, tenants }: { properties: Property[], tenants: Tenant[] }) {
-  const isOccupied = (propertyId: string) => tenants.some(t => t.propertyId === propertyId);
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[80px]">Image</TableHead>
-          <TableHead>Address</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Rent</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {properties.map((prop) => (
-          <TableRow key={prop.id}>
-            <TableCell>
-              <Image
-                src={prop.imageUrl}
-                alt={prop.address}
-                width={50}
-                height={50}
-                className="rounded-md object-cover"
-                data-ai-hint="apartment building"
-              />
-            </TableCell>
-            <TableCell className="font-medium">{prop.address}</TableCell>
-            <TableCell className="capitalize">{prop.propertyType}</TableCell>
-            <TableCell>${prop.rent.toLocaleString()}</TableCell>
-            <TableCell>
-              {isOccupied(prop.id) ? (
-                <Badge variant="secondary">Occupied</Badge>
-              ) : (
-                <Badge variant="outline">Vacant</Badge>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
   );
 }
 

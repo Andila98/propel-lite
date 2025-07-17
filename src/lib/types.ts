@@ -1,4 +1,12 @@
 
+
+export interface Unit {
+  unitType: 'one-bedroom' | 'two-bedroom' | 'three-bedroom' | 'bedsitter' | 'studio';
+  rent: number;
+  squareFootage: number;
+  isAvailable: boolean;
+}
+
 export interface Property {
   id: string;
   address: string;
@@ -9,6 +17,7 @@ export interface Property {
   rent: number;
   imageUrl: string;
   description: string;
+  units?: Unit[];
 }
 
 export interface Tenant {
