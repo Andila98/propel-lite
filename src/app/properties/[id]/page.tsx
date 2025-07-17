@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -73,6 +73,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             <Tabs defaultValue="overview">
                 <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="gallery">Gallery</TabsTrigger>
                     <TabsTrigger value="occupancy">Occupancy</TabsTrigger>
                     {property.propertyType === 'apartment' && <TabsTrigger value="units">Units</TabsTrigger>}
                 </TabsList>
@@ -114,6 +115,37 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="gallery" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Photo Gallery</CardTitle>
+                            <CardDescription>A collection of images for this property.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {property.gallery && property.gallery.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {property.gallery.map((url, index) => (
+                                        <div key={index} className="overflow-hidden rounded-lg">
+                                            <Image
+                                                src={url}
+                                                alt={`Property image ${index + 1}`}
+                                                width={400}
+                                                height={300}
+                                                className="w-full h-full object-cover aspect-video transition-transform hover:scale-105"
+                                                data-ai-hint="apartment interior"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-48 border-2 border-dashed rounded-lg">
+                                    <Camera className="h-8 w-8 mb-2" />
+                                    <p>No gallery images have been added for this property yet.</p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>

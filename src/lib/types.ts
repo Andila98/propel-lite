@@ -18,6 +18,7 @@ export interface Property {
   imageUrl: string;
   description: string;
   units?: Unit[];
+  gallery?: string[];
 }
 
 export interface Tenant {

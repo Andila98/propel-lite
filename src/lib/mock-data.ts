@@ -20,7 +20,13 @@ export const mockProperties: Property[] = [
     rent: 2800,
     imageUrl: 'https://placehold.co/800x500.png',
     description: 'A beautiful apartment with a stunning ocean view, recently renovated kitchen, and spacious living area. Located in a high-demand area with access to a community pool and gym.',
-    units: apartmentUnits
+    units: apartmentUnits,
+    gallery: [
+        'https://placehold.co/600x400.png',
+        'https://placehold.co/600x400.png',
+        'https://placehold.co/600x400.png',
+        'https://placehold.co/600x400.png'
+    ]
   },
   {
     id: 'p2',
@@ -31,7 +37,12 @@ export const mockProperties: Property[] = [
     bathrooms: 2.5,
     rent: 3500,
     imageUrl: 'https://placehold.co/800x500.png',
-    description: 'Charming single-family home with a large backyard, perfect for families. Located in a quiet, friendly neighborhood with excellent schools nearby. Features a two-car garage and a recently updated master bathroom.'
+    description: 'Charming single-family home with a large backyard, perfect for families. Located in a quiet, friendly neighborhood with excellent schools nearby. Features a two-car garage and a recently updated master bathroom.',
+    gallery: [
+        'https://placehold.co/600x400.png',
+        'https://placehold.co/600x400.png',
+        'https://placehold.co/600x400.png'
+    ]
   },
   {
     id: 'p3',
