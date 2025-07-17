@@ -23,6 +23,7 @@ export interface Property {
 export interface Tenant {
   id: string;
   name: string;
+  email: string;
   propertyId: string;
   leaseStartDate: string;
   leaseEndDate: string;

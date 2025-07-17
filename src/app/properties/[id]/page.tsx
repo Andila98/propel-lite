@@ -30,6 +30,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const property = mockProperties.find((p) => p.id === params.id);
@@ -124,15 +125,26 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                             </CardHeader>
                             <CardContent>
                             {tenant ? (
-                                <div className="space-y-2">
-                                <p className="font-semibold">{tenant.name}</p>
-                                <p className="text-sm text-muted-foreground">Lease: {tenant.leaseStartDate} to {tenant.leaseEndDate}</p>
-                                <div className="flex items-center gap-2">
-                                    <span>Rent Status:</span>
-                                    <Badge variant={tenant.rentStatus === 'Paid' ? 'default' : 'destructive'}>
-                                    {tenant.rentStatus}
-                                    </Badge>
-                                </div>
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-4">
+                                    <Avatar className="h-12 w-12">
+                                      <AvatarImage src={tenant.avatarUrl} alt={tenant.name} data-ai-hint="person portrait" />
+                                      <AvatarFallback>{tenant.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="font-semibold">{tenant.name}</p>
+                                      <p className="text-sm text-muted-foreground">{tenant.email}</p>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Lease: {tenant.leaseStartDate} to {tenant.leaseEndDate}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span>Rent Status:</span>
+                                        <Badge variant={tenant.rentStatus === 'Paid' ? 'default' : 'destructive'}>
+                                        {tenant.rentStatus}
+                                        </Badge>
+                                    </div>
+                                  </div>
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground">This property is currently vacant.</p>

@@ -50,6 +50,7 @@ export const mockTenants: Tenant[] = [
   {
     id: 't1',
     name: 'Alice Johnson',
+    email: 'alice.j@example.com',
     propertyId: 'p1',
     leaseStartDate: '2023-08-01',
     leaseEndDate: '2024-07-31',
@@ -63,6 +64,7 @@ export const mockTenants: Tenant[] = [
   {
     id: 't2',
     name: 'Bob Williams',
+    email: 'bob.w@example.com',
     propertyId: 'p2',
     leaseStartDate: '2023-06-15',
     leaseEndDate: '2024-06-14',
