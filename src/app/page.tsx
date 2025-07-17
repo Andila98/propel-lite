@@ -10,7 +10,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription
+  CardDescription,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -24,7 +25,6 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockProperties, mockTenants, mockPropertyManagers, mockActivities } from '@/lib/mock-data';
 import type { Property, Tenant, PropertyManager, ActivityItem } from '@/lib/types';
-import { PropertyTable } from '@/components/property-table';
 import { TenantTable } from '@/components/tenant-table';
 import { cn } from '@/lib/utils';
 import {
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
 import React from 'react';
+import { BedDouble, Bath } from 'lucide-react';
 
 export default function DashboardPage() {
   const properties = mockProperties;
@@ -113,10 +114,11 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Properties</CardTitle>
+            <CardTitle>Properties Showcase</CardTitle>
+            <CardDescription>A look at your managed properties.</CardDescription>
           </CardHeader>
           <CardContent>
-            <PropertyTable properties={properties.slice(0, 5)} tenants={tenants} />
+            <PropertiesCarousel properties={properties} />
           </CardContent>
         </Card>
         <Card className="lg:col-span-3">
@@ -150,6 +152,61 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function PropertiesCarousel({ properties }: { properties: Property[] }) {
+  const plugin = React.useRef(
+    Autoplay({ delay: 4000, stopOnInteraction: true })
+  )
+
+  return (
+    <Carousel 
+      opts={{ loop: true }}
+      plugins={[plugin.current]}
+      className="w-full"
+      onMouseEnter={plugin.current.stop}
+      onMouseLeave={plugin.current.reset}
+     >
+      <CarouselContent>
+        {properties.map((property) => (
+          <CarouselItem key={property.id}>
+              <Card className="overflow-hidden group">
+                <Link href={`/properties/${property.id}`} className="block">
+                  <div className="relative h-64 w-full">
+                    <Image
+                      src={property.imageUrl}
+                      alt={property.address}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                      data-ai-hint="apartment building"
+                    />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  </div>
+                  <CardHeader className="absolute bottom-0 text-white">
+                    <CardTitle className="text-xl">{property.address}</CardTitle>
+                    <CardDescription className="text-primary-foreground/80 capitalize">{property.propertyType}</CardDescription>
+                  </CardHeader>
+                </Link>
+                <CardFooter className="bg-muted/50 p-4 flex justify-between text-sm">
+                   <div className="flex items-center gap-2">
+                        <BedDouble className="h-4 w-4 text-muted-foreground" />
+                        <span>{property.bedrooms} Beds</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Bath className="h-4 w-4 text-muted-foreground" />
+                        <span>{property.bathrooms} Baths</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                         <Banknote className="h-4 w-4 text-muted-foreground" />
+                         <span>${property.rent.toLocaleString()}/mo</span>
+                    </div>
+                </CardFooter>
+              </Card>
+          </CarouselItem>
+        ))}
+      </CarouselContent>
+    </Carousel>
   );
 }
 
