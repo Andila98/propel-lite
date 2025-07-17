@@ -86,7 +86,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/tenants">
+        <Link href="/payments">
             <Card className="bg-primary/90 text-primary-foreground hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Rent</CardTitle>
