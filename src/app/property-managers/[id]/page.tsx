@@ -1,8 +1,11 @@
 
+"use client";
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { mockPropertyManagers, mockProperties } from '@/lib/mock-data';
-import type { Property } from '@/lib/types';
+import type { Property, PropertyManager } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,7 +17,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
-import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function PropertyManagerDetailPage({ params }: { params: { id: string } }) {
   const manager = mockPropertyManagers.find((m) => m.id === params.id);
@@ -22,8 +31,16 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
   if (!manager) {
     notFound();
   }
+
+  const [accessLevel, setAccessLevel] = useState(manager.accessLevel);
   
   const managedProperties = mockProperties.filter(p => manager.propertiesManaged.includes(p.id));
+
+  const handleAccessLevelChange = (newLevel: "Admin" | "Standard") => {
+    // In a real app, you would also make an API call to save this change.
+    setAccessLevel(newLevel);
+    // You could show a toast notification here to confirm the change.
+  };
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -47,7 +64,7 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Details</CardTitle>
@@ -63,11 +80,17 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
               </div>
               <div className="flex items-center gap-3">
                 <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                <div className="text-sm">
+                <div className="text-sm flex items-center gap-2">
                   <span>Access Level: </span>
-                  <Badge variant={manager.accessLevel === 'Admin' ? 'default' : 'secondary'}>
-                    {manager.accessLevel}
-                  </Badge>
+                   <Select value={accessLevel} onValueChange={handleAccessLevelChange}>
+                        <SelectTrigger className="w-[120px] h-8">
+                            <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Admin">Admin</SelectItem>
+                            <SelectItem value="Standard">Standard</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
               </div>
             </CardContent>
@@ -79,7 +102,7 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
                 <CardHeader>
                     <CardTitle>Managed Properties</CardTitle>
                     <CardDescription>Properties assigned to {manager.name}.</CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent>
                     <PropertyTable properties={managedProperties} tenants={[]} />
                 </CardContent>
