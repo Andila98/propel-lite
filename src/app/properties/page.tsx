@@ -26,7 +26,7 @@ export default function PropertiesPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Properties</h2>
         {currentUserRole === 'Full Manager' && (
-          <Link href="/onboarding/add-property">
+          <Link href="/properties/add">
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" /> Add Property
             </Button>
