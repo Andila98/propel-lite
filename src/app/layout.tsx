@@ -8,7 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 
 const metadata: Metadata = {
-  title: 'Propel Lite',
+  title: 'RentEase',
   description: 'Streamlined Property Management',
 };
 

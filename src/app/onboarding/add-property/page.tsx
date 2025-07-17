@@ -49,10 +49,10 @@ export default function AddPropertyPage() {
   return (
     <div className="container mx-auto flex max-w-2xl flex-col items-center justify-center p-4">
       <div className="w-full space-y-4">
-        <Progress value={33} className="w-full" />
+        <Progress value={50} className="w-full" />
         <Card>
           <CardHeader>
-            <CardTitle>Step 1: Add Your First Property</CardTitle>
+            <CardTitle>Step 2: Add Your First Property</CardTitle>
             <CardDescription>Let's start by adding details about one of your properties.</CardDescription>
           </CardHeader>
           <CardContent>

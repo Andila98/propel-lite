@@ -26,7 +26,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <PropelLiteLogo className="h-6 w-6" />
-              <span className="">Propel Lite</span>
+              <span className="">RentEase</span>
             </Link>
           </div>
           <div className="flex-1">
@@ -76,7 +76,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   className="flex items-center gap-2 text-lg font-semibold mb-4"
                 >
                   <PropelLiteLogo className="h-6 w-6" />
-                  <span>Propel Lite</span>
+                  <span>RentEase</span>
                 </Link>
                 {navItems.map(({ href, label, icon: Icon }) => (
                   <Link
@@ -108,7 +108,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </Sheet>
            <div className="flex items-center gap-2 font-semibold">
               <PropelLiteLogo className="h-6 w-6" />
-              <span className="">Propel Lite</span>
+              <span className="">RentEase</span>
             </div>
         </header>
         <main className="flex flex-1 flex-col gap-4 bg-background">

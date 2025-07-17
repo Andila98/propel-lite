@@ -11,7 +11,7 @@ export default function OnboardingLayout({
       <header className="flex h-16 items-center justify-center border-b px-4 md:px-6">
         <div className="flex items-center gap-2 font-semibold">
           <PropelLiteLogo className="h-8 w-8" />
-          <span className="text-xl">Propel Lite Onboarding</span>
+          <span className="text-xl">RentEase Onboarding</span>
         </div>
       </header>
       <main className="flex-1">

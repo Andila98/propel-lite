@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Rocket, User, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function WelcomePage() {
 
   const handleContinue = () => {
     if (role === 'landlord') {
-      router.push('/onboarding/add-property');
+      router.push('/onboarding/landlord-welcome');
     } else if (role === 'tenant') {
       // For now, tenant onboarding can lead to a simplified portal or complete page.
       // We will redirect to the tenant portal for this example.
@@ -38,55 +39,58 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="container mx-auto flex h-full max-w-2xl items-center justify-center p-4">
-      <Card className="w-full text-center">
-        <CardHeader>
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Rocket className="h-8 w-8" />
-          </div>
-          <CardTitle className="text-3xl">Welcome to Propel Lite!</CardTitle>
-          <CardDescription className="text-lg">
-            Let's get your account set up. First, tell us who you are.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <RadioGroup 
-            onValueChange={(value: 'landlord' | 'tenant') => setRole(value)}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            <Label 
-              htmlFor="landlord"
-              className={cn(
-                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
-                role === 'landlord' && "border-primary",
-                "cursor-pointer"
-              )}
+    <div className="container mx-auto flex h-full max-w-2xl flex-col items-center justify-center p-4">
+      <div className="w-full space-y-4">
+        <Progress value={0} className="w-full" />
+        <Card className="w-full text-center">
+          <CardHeader>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Rocket className="h-8 w-8" />
+            </div>
+            <CardTitle className="text-3xl">Welcome to RentEase!</CardTitle>
+            <CardDescription className="text-lg">
+              Let's get your account set up. First, tell us who you are.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <RadioGroup 
+              onValueChange={(value: 'landlord' | 'tenant') => setRole(value)}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
-              <RadioGroupItem value="landlord" id="landlord" className="sr-only" />
-              <Building className="mb-3 h-8 w-8" />
-              <span className="font-bold">I'm a Landlord</span>
-              <span className="text-sm text-muted-foreground">I want to manage my properties.</span>
-            </Label>
-            <Label
-              htmlFor="tenant"
-              className={cn(
-                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
-                role === 'tenant' && "border-primary",
-                "cursor-pointer"
-              )}
-            >
-              <RadioGroupItem value="tenant" id="tenant" className="sr-only" />
-              <User className="mb-3 h-8 w-8" />
-              <span className="font-bold">I'm a Tenant</span>
-              <span className="text-sm text-muted-foreground">I want to view my lease and pay rent.</span>
-            </Label>
-          </RadioGroup>
-          
-          <Button size="lg" onClick={handleContinue} disabled={!role}>
-            Continue
-          </Button>
-        </CardContent>
-      </Card>
+              <Label 
+                htmlFor="landlord"
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                  role === 'landlord' && "border-primary",
+                  "cursor-pointer"
+                )}
+              >
+                <RadioGroupItem value="landlord" id="landlord" className="sr-only" />
+                <Building className="mb-3 h-8 w-8" />
+                <span className="font-bold">I'm a Landlord</span>
+                <span className="text-sm text-muted-foreground">I want to manage my properties.</span>
+              </Label>
+              <Label
+                htmlFor="tenant"
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                  role === 'tenant' && "border-primary",
+                  "cursor-pointer"
+                )}
+              >
+                <RadioGroupItem value="tenant" id="tenant" className="sr-only" />
+                <User className="mb-3 h-8 w-8" />
+                <span className="font-bold">I'm a Tenant</span>
+                <span className="text-sm text-muted-foreground">I want to view my lease and pay rent.</span>
+              </Label>
+            </RadioGroup>
+            
+            <Button size="lg" onClick={handleContinue} disabled={!role}>
+              Continue
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -46,10 +46,10 @@ export default function AddTenantPage() {
   return (
     <div className="container mx-auto flex max-w-2xl flex-col items-center justify-center p-4">
       <div className="w-full space-y-4">
-        <Progress value={66} className="w-full" />
+        <Progress value={75} className="w-full" />
         <Card>
           <CardHeader>
-            <CardTitle>Step 2: Add a Tenant</CardTitle>
+            <CardTitle>Step 3: Add a Tenant</CardTitle>
             <CardDescription>Now, add the tenant for the property you just created.</CardDescription>
           </CardHeader>
           <CardContent>
