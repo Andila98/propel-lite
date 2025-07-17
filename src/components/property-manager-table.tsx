@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { PropertyManager } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export function PropertyManagerTable({ managers }: { managers: PropertyManager[] }) {
   const router = useRouter();
@@ -27,7 +28,7 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
-          <TableHead>Phone</TableHead>
+          <TableHead>Access Level</TableHead>
           <TableHead className="text-right">Properties Managed</TableHead>
         </TableRow>
       </TableHeader>
@@ -44,7 +45,11 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
               </div>
             </TableCell>
             <TableCell>{manager.email}</TableCell>
-            <TableCell>{manager.phone}</TableCell>
+            <TableCell>
+              <Badge variant={manager.accessLevel === 'Admin' ? 'default' : 'secondary'}>
+                {manager.accessLevel}
+              </Badge>
+            </TableCell>
             <TableCell className="text-right">
                 <Badge variant="outline">{manager.propertiesManaged.length}</Badge>
             </TableCell>

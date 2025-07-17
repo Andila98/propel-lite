@@ -12,8 +12,9 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Mail, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
+import { Badge } from '@/components/ui/badge';
 
 export default function PropertyManagerDetailPage({ params }: { params: { id: string } }) {
   const manager = mockPropertyManagers.find((m) => m.id === params.id);
@@ -49,7 +50,7 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
+              <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
@@ -59,6 +60,15 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
                <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{manager.phone}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                <div className="text-sm">
+                  <span>Access Level: </span>
+                  <Badge variant={manager.accessLevel === 'Admin' ? 'default' : 'secondary'}>
+                    {manager.accessLevel}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>

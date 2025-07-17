@@ -84,7 +84,8 @@ export const mockPropertyManagers: PropertyManager[] = [
         email: 'charles.d@propertymgmt.com',
         phone: '(555) 123-4567',
         avatarUrl: 'https://placehold.co/100x100.png',
-        propertiesManaged: ['p1', 'p3']
+        propertiesManaged: ['p1', 'p3'],
+        accessLevel: 'Admin',
     },
     {
         id: 'pm2',
@@ -92,7 +93,8 @@ export const mockPropertyManagers: PropertyManager[] = [
         email: 'diana.m@propertymgmt.com',
         phone: '(555) 987-6543',
         avatarUrl: 'https://placehold.co/100x100.png',
-        propertiesManaged: ['p2']
+        propertiesManaged: ['p2'],
+        accessLevel: 'Standard',
     }
 ];
 

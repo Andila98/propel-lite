@@ -39,6 +39,7 @@ export interface PropertyManager {
     phone: string;
     avatarUrl: string;
     propertiesManaged: string[];
+    accessLevel: 'Admin' | 'Standard';
 }
 
 export interface ActivityItem {
