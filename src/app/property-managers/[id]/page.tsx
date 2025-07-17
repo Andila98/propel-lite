@@ -44,7 +44,7 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-       <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <Link href="/property-managers">
           <Button variant="outline" size="icon" className="h-8 w-8">
             <ArrowLeft className="h-4 w-4" />
@@ -52,14 +52,14 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
           </Button>
         </Link>
         <div className="flex items-center gap-4">
-            <Avatar className="h-12 w-12">
-                <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
-                <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">{manager.name}</h2>
-                <p className="text-sm text-muted-foreground">Property Manager</p>
-            </div>
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
+            <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">{manager.name}</h2>
+            <p className="text-sm text-muted-foreground">Property Manager</p>
+          </div>
         </div>
       </div>
       
@@ -74,7 +74,7 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{manager.email}</span>
               </div>
-               <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{manager.phone}</span>
               </div>
@@ -82,15 +82,15 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
                 <ShieldCheck className="h-4 w-4 text-muted-foreground" />
                 <div className="text-sm flex items-center gap-2">
                   <span>Access Level: </span>
-                   <Select value={accessLevel} onValueChange={handleAccessLevelChange}>
-                        <SelectTrigger className="w-[120px] h-8">
-                            <SelectValue placeholder="Select level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="Standard">Standard</SelectItem>
-                        </SelectContent>
-                    </Select>
+                  <Select value={accessLevel} onValueChange={handleAccessLevelChange}>
+                    <SelectTrigger className="w-[120px] h-8">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Standard">Standard</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
@@ -98,15 +98,15 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
         </div>
 
         <div className="lg:col-span-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Managed Properties</CardTitle>
-                    <CardDescription>Properties assigned to {manager.name}.</CardDescription>
-                </Header>
-                <CardContent>
-                    <PropertyTable properties={managedProperties} tenants={[]} />
-                </CardContent>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Managed Properties</CardTitle>
+              <CardDescription>Properties assigned to {manager.name}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PropertyTable properties={managedProperties} tenants={[]} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
