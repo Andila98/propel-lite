@@ -24,6 +24,13 @@ import type { Property, Tenant, PropertyManager, ActivityItem } from '@/lib/type
 import { PropertyTable } from '@/components/property-table';
 import { TenantTable } from '@/components/tenant-table';
 import { cn } from '@/lib/utils';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 
 export default function DashboardPage() {
   const properties = mockProperties;
@@ -41,22 +48,20 @@ export default function DashboardPage() {
         <h2 className="text-3xl font-bold tracking-tight">Landlord Dashboard</h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Link href="/properties">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Properties
-              </CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{properties.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Managed properties
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Properties
+            </CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{properties.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Managed properties
+            </p>
+          </CardContent>
+        </Card>
         <Link href="/tenants">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -73,34 +78,30 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="#">
-           <Card className="bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Rent</CardTitle>
-              <Banknote className="h-4 w-4 text-primary-foreground/80" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${totalRent.toLocaleString()}</div>
-              <p className="text-xs text-primary-foreground/80">
-                Total expected monthly income
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="#">
-           <Card className="bg-primary/20 hover:bg-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
-              <Home className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">{occupancyRate.toFixed(0)}%</div>
-              <p className="text-xs text-muted-foreground">
-                Percentage of properties occupied
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Rent</CardTitle>
+            <Banknote className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalRent.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              Total expected monthly income
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+            <Home className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{occupancyRate.toFixed(0)}%</div>
+            <p className="text-xs text-muted-foreground">
+              Percentage of properties occupied
+            </p>
+          </CardContent>
+        </Card>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
@@ -132,16 +133,14 @@ export default function DashboardPage() {
             <TenantTable tenants={tenants} properties={properties} />
           </CardContent>
         </Card>
-        <Link href="/property-managers">
-            <Card className="hover:bg-card/90 hover:shadow-md transition-all h-full">
-              <CardHeader>
-                <CardTitle>Property Managers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PropertyManagerList managers={managers} />
-              </CardContent>
-            </Card>
-        </Link>
+        <Card>
+          <CardHeader>
+            <CardTitle>Property Managers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PropertyManagerList managers={managers} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -174,18 +173,28 @@ function RecentActivities({ activities }: { activities: ActivityItem[] }) {
     'lease-ending': <Home className="h-4 w-4" />,
   };
   return (
-     <div className="space-y-4">
-      {activities.map((activity) => (
-        <div key={activity.id} className="flex items-start">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
-             {ICONS[activity.type]}
-          </div>
-          <div className="ml-4 flex-1">
-            <p className="text-sm">{activity.description}</p>
-            <p className="text-xs text-muted-foreground">{activity.date}</p>
-          </div>
-        </div>
-      ))}
-    </div>
+     <Carousel className="w-full">
+      <CarouselContent>
+        {activities.map((activity) => (
+          <CarouselItem key={activity.id}>
+            <div className="p-1">
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center p-6 gap-4">
+                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                      {ICONS[activity.type]}
+                    </div>
+                  <div className="text-center">
+                    <p className="text-sm">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{activity.date}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </CarouselItem>
+        ))}
+      </CarouselContent>
+      <CarouselPrevious className="hidden sm:flex" />
+      <CarouselNext className="hidden sm:flex" />
+    </Carousel>
   );
 }
