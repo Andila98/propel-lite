@@ -36,7 +36,7 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
   
   const managedProperties = mockProperties.filter(p => manager.propertiesManaged.includes(p.id));
 
-  const handleAccessLevelChange = (newLevel: "Admin" | "Standard") => {
+  const handleAccessLevelChange = (newLevel: "Full Manager" | "Limited Staff") => {
     // In a real app, you would also make an API call to save this change.
     setAccessLevel(newLevel);
     // You could show a toast notification here to confirm the change.
@@ -83,12 +83,12 @@ export default function PropertyManagerDetailPage({ params }: { params: { id: st
                 <div className="text-sm flex items-center gap-2">
                   <span>Access Level: </span>
                   <Select value={accessLevel} onValueChange={handleAccessLevelChange}>
-                    <SelectTrigger className="w-[120px] h-8">
+                    <SelectTrigger className="w-[150px] h-8">
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Standard">Standard</SelectItem>
+                      <SelectItem value="Full Manager">Full Manager</SelectItem>
+                      <SelectItem value="Limited Staff">Limited Staff</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

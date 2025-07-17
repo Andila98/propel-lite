@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -10,20 +11,27 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { PropertyTable } from '@/components/property-table';
+import type { PropertyManager } from '@/lib/types';
 
 export default function PropertiesPage() {
   const properties = mockProperties;
   const tenants = mockTenants;
 
+  // In a real app, you'd get the current user's role from your auth context/session.
+  // We'll simulate a "Full Manager" role for demonstration.
+  const currentUserRole: PropertyManager['accessLevel'] = 'Full Manager';
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Properties</h2>
-        <Link href="/onboarding/add-property">
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Property
-          </Button>
-        </Link>
+        {currentUserRole === 'Full Manager' && (
+          <Link href="/onboarding/add-property">
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Property
+            </Button>
+          </Link>
+        )}
       </div>
       <Card>
         <CardHeader>

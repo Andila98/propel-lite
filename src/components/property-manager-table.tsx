@@ -46,7 +46,7 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
             </TableCell>
             <TableCell>{manager.email}</TableCell>
             <TableCell>
-              <Badge variant={manager.accessLevel === 'Admin' ? 'default' : 'secondary'}>
+              <Badge variant={manager.accessLevel === 'Full Manager' ? 'default' : 'secondary'}>
                 {manager.accessLevel}
               </Badge>
             </TableCell>

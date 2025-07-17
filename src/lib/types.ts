@@ -39,11 +39,11 @@ export interface PropertyManager {
     phone: string;
     avatarUrl: string;
     propertiesManaged: string[];
-    accessLevel: 'Admin' | 'Standard';
+    accessLevel: 'Full Manager' | 'Limited Staff';
 }
 
 export interface ActivityItem {
-    id: string;
+    id:string;
     type: 'new-tenant' | 'rent-paid' | 'lease-ending';
     description: string;
     date: string;
