@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, Square, BedDouble, Bath, Home } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft } from 'lucide-react';
 
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const property = mockProperties.find((p) => p.id === params.id);
@@ -34,9 +34,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <div className="flex flex-col space-y-2">
+      <div className="flex items-center gap-4">
         <Link href="/properties">
-          <Button variant="outline" size="sm">Back to Properties</Button>
+          <Button variant="outline" size="icon" className="h-8 w-8">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back to Properties</span>
+          </Button>
         </Link>
         <h2 className="text-3xl font-bold tracking-tight">{property.address}</h2>
       </div>
