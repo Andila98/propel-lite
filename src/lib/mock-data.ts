@@ -57,7 +57,8 @@ export const mockTenants: Tenant[] = [
     paymentHistory: [
       { date: '2024-05-01', amount: 2800, method: 'ACH' },
       { date: '2024-04-01', amount: 2800, method: 'ACH' },
-    ]
+    ],
+    avatarUrl: 'https://placehold.co/100x100.png'
   },
   {
     id: 't2',
@@ -69,7 +70,8 @@ export const mockTenants: Tenant[] = [
     paymentHistory: [
         { date: '2024-04-15', amount: 3500, method: 'Check' },
         { date: '2024-03-15', amount: 3500, method: 'Check' },
-    ]
+    ],
+    avatarUrl: 'https://placehold.co/100x100.png'
   },
 ];
 

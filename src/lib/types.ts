@@ -28,6 +28,7 @@ export interface Tenant {
   leaseEndDate: string;
   rentStatus: 'Paid' | 'Overdue';
   paymentHistory: { date: string; amount: number; method: string }[];
+  avatarUrl: string;
 }
 
 export interface PropertyManager {
