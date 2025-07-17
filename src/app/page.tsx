@@ -23,6 +23,7 @@ import { mockProperties, mockTenants, mockPropertyManagers, mockActivities } fro
 import type { Property, Tenant, PropertyManager, ActivityItem } from '@/lib/types';
 import { PropertyTable } from '@/components/property-table';
 import { TenantTable } from '@/components/tenant-table';
+import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const properties = mockProperties;
@@ -41,7 +42,7 @@ export default function DashboardPage() {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/properties">
-          <Card className="hover:bg-card/90 hover:shadow-md transition-all">
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Properties
@@ -57,7 +58,7 @@ export default function DashboardPage() {
           </Card>
         </Link>
         <Link href="/tenants">
-          <Card className="hover:bg-card/90 hover:shadow-md transition-all">
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Tenants
@@ -73,27 +74,27 @@ export default function DashboardPage() {
           </Card>
         </Link>
         <Link href="#">
-          <Card className="hover:bg-card/90 hover:shadow-md transition-all">
+           <Card className="bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Monthly Rent</CardTitle>
-              <Banknote className="h-4 w-4 text-muted-foreground" />
+              <Banknote className="h-4 w-4 text-primary-foreground/80" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${totalRent.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-primary-foreground/80">
                 Total expected monthly income
               </p>
             </CardContent>
           </Card>
         </Link>
         <Link href="#">
-          <Card className="hover:bg-card/90 hover:shadow-md transition-all">
+           <Card className="bg-primary/20 hover:bg-primary/30 hover:shadow-lg transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
               <Home className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{occupancyRate.toFixed(0)}%</div>
+              <div className="text-2xl font-bold text-primary">{occupancyRate.toFixed(0)}%</div>
               <p className="text-xs text-muted-foreground">
                 Percentage of properties occupied
               </p>
