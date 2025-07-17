@@ -1,4 +1,4 @@
-import { Home, Users, Banknote, Building2, UserCheck, Activity } from 'lucide-react';
+import { Home, Users, Banknote, Building2, UserCheck, Activity, UserCog } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -130,14 +130,16 @@ export default function DashboardPage() {
             <TenantTable tenants={tenants} properties={properties} />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Property Managers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PropertyManagerList managers={managers} />
-          </CardContent>
-        </Card>
+        <Link href="/property-managers">
+            <Card className="hover:bg-card/90 hover:shadow-md transition-all h-full">
+              <CardHeader>
+                <CardTitle>Property Managers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PropertyManagerList managers={managers} />
+              </CardContent>
+            </Card>
+        </Link>
       </div>
     </div>
   );
