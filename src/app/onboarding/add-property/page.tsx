@@ -28,6 +28,7 @@ const UnitSchema = z.object({
 
 const PropertyFormSchema = z.object({
   address: z.string().min(5, "Please enter a valid address."),
+  imageUrl: z.string().url("Please enter a valid image URL.").optional(),
   propertyType: z.enum(["apartment", "house", "bedsitter"], {
     required_error: "Please select a property type.",
   }),
@@ -44,6 +45,7 @@ export default function AddPropertyPage() {
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
       address: "",
+      imageUrl: "",
       units: [],
     },
   });
@@ -134,6 +136,11 @@ export default function AddPropertyPage() {
                       <Input id="address" {...register("address")} />
                       {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
                   </div>
+                   <div>
+                        <Label htmlFor="imageUrl">Image URL</Label>
+                        <Input id="imageUrl" {...register("imageUrl")} placeholder="https://placehold.co/800x500.png" />
+                        {errors.imageUrl && <p className="text-sm text-destructive mt-1">{errors.imageUrl.message}</p>}
+                    </div>
                   <div>
                       <Label>Property Type</Label>
                       <Controller
