@@ -1,3 +1,4 @@
+
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -5,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users } from "lucide-react"
+import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 
 const navItems = [
@@ -45,6 +46,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
           </div>
+            <div className="mt-auto p-4">
+                <Link
+                  href="/login"
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                     pathname === "/login" && "bg-muted text-primary"
+                  )}
+                >
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Link>
+            </div>
         </div>
       </div>
       <div className="flex flex-col">
@@ -79,6 +92,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 ))}
               </nav>
+                 <div className="mt-auto p-4">
+                    <Link
+                      href="/login"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                        pathname === "/login" && "bg-muted text-primary"
+                      )}
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Login
+                    </Link>
+                </div>
             </SheetContent>
           </Sheet>
            <div className="flex items-center gap-2 font-semibold">

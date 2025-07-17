@@ -1,9 +1,13 @@
+
+"use client";
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
+import { usePathname } from 'next/navigation';
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: 'Propel Lite',
   description: 'Streamlined Property Management',
 };
@@ -13,6 +17,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/login';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -24,9 +31,13 @@ export default function RootLayout({
         ></link>
       </head>
       <body>
-        <AppLayout>
-          {children}
-        </AppLayout>
+        {isLoginPage ? (
+          <div className="bg-background">{children}</div>
+        ) : (
+          <AppLayout>
+            {children}
+          </AppLayout>
+        )}
         <Toaster />
       </body>
     </html>
