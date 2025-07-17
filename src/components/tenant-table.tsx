@@ -1,3 +1,7 @@
+
+"use client";
+
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -11,9 +15,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Tenant, Property } from '@/lib/types';
 
 export function TenantTable({ tenants, properties }: { tenants: Tenant[], properties: Property[] }) {
+  const router = useRouter();
+
   const getPropertyAddress = (propertyId: string) => {
     return properties.find(p => p.id === propertyId)?.address || 'N/A';
   }
+
+  const handleRowClick = (tenantId: string) => {
+    router.push(`/tenants/${tenantId}`);
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -25,7 +36,7 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
       </TableHeader>
       <TableBody>
         {tenants.map((tenant) => (
-          <TableRow key={tenant.id}>
+          <TableRow key={tenant.id} onClick={() => handleRowClick(tenant.id)} className="cursor-pointer">
             <TableCell>
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
