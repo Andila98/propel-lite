@@ -73,6 +73,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="occupancy">Occupancy</TabsTrigger>
+                    {property.propertyType === 'apartment' && <TabsTrigger value="units">Units</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="overview" className="mt-4">
                     <Card>
@@ -138,19 +139,21 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                             )}
                             </CardContent>
                         </Card>
-                        {property.propertyType === 'apartment' && property.units && (
-                            <Card>
-                            <CardHeader>
-                                <CardTitle>Units</CardTitle>
-                                <CardDescription>Individual units within this property.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <UnitTable units={property.units} />
-                            </CardContent>
-                            </Card>
-                        )}
                     </div>
                 </TabsContent>
+                 {property.propertyType === 'apartment' && property.units && (
+                    <TabsContent value="units" className="mt-4">
+                        <Card>
+                        <CardHeader>
+                            <CardTitle>Units</CardTitle>
+                            <CardDescription>Individual units within this property.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <UnitTable units={property.units} />
+                        </CardContent>
+                        </Card>
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
       </div>
