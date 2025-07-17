@@ -45,7 +45,6 @@ export default function AddPropertyPage() {
     defaultValues: {
       address: "",
       units: [],
-      isAvailable: true,
     },
   });
 
@@ -90,7 +89,7 @@ export default function AddPropertyPage() {
         squareFootage: type === 'house' ? 1200 : 400,
         isAvailable: true,
       }];
-      replace(newUnits);
+      replace(newUnits as any);
     } else {
       replace([]);
     }
@@ -102,7 +101,7 @@ export default function AddPropertyPage() {
       title: "Property Added!",
       description: "Your property has been successfully saved.",
     });
-    router.push('/onboarding/add-tenant');
+    router.push('/onboarding/add-property-manager');
   };
   
   const addUnit = () => {
@@ -120,7 +119,7 @@ export default function AddPropertyPage() {
   return (
     <div className="container mx-auto flex max-w-4xl flex-col items-center justify-center p-4">
       <div className="w-full space-y-4">
-        <Progress value={50} className="w-full" />
+        <Progress value={40} className="w-full" />
         <Card>
           <CardHeader>
             <CardTitle>Step 2: Add Your First Property</CardTitle>
@@ -253,7 +252,7 @@ export default function AddPropertyPage() {
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={!propertyType}>Next: Add Tenant</Button>
+              <Button type="submit" className="w-full" disabled={!propertyType}>Next: Add Property Manager</Button>
             </form>
           </CardContent>
         </Card>

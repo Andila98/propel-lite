@@ -13,15 +13,14 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
-const TenantFormSchema = z.object({
+const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
   email: z.string().email("Please enter a valid email address."),
-  leaseStartDate: z.string().min(1, "Please select a start date"),
-  leaseEndDate: z.string().min(1, "Please select an end date"),
+  phone: z.string().min(10, "Please enter a valid phone number."),
 });
-type TenantFormValues = z.infer<typeof TenantFormSchema>;
+type PropertyManagerFormValues = z.infer<typeof PropertyManagerFormSchema>;
 
-export default function AddTenantPage() {
+export default function AddPropertyManagerPage() {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -29,61 +28,54 @@ export default function AddTenantPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<TenantFormValues>({
-    resolver: zodResolver(TenantFormSchema),
+  } = useForm<PropertyManagerFormValues>({
+    resolver: zodResolver(PropertyManagerFormSchema),
   });
 
-  const onSubmit = (data: TenantFormValues) => {
+  const onSubmit = (data: PropertyManagerFormValues) => {
     // In a real app, you'd save this to the database.
-    console.log("Tenant data:", data);
+    console.log("Property Manager data:", data);
     toast({
-      title: "Tenant Added!",
-      description: "The tenant has been successfully linked to your property.",
+      title: "Property Manager Added!",
+      description: "The property manager has been successfully added.",
     });
-    router.push('/onboarding/complete');
+    router.push('/onboarding/add-tenant');
   };
 
   return (
     <div className="container mx-auto flex max-w-2xl flex-col items-center justify-center p-4">
       <div className="w-full space-y-4">
-        <Progress value={80} className="w-full" />
+        <Progress value={60} className="w-full" />
         <Card>
           <CardHeader>
-            <CardTitle>Step 4: Add a Tenant</CardTitle>
-            <CardDescription>Now, add the tenant for the property you just created.</CardDescription>
+            <CardTitle>Step 3: Add a Property Manager</CardTitle>
+            <CardDescription>Enter the details of the property manager.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <Label htmlFor="name">Tenant Full Name</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <Input id="name" {...register("name")} />
                 {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
               </div>
 
               <div>
-                <Label htmlFor="email">Tenant Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" {...register("email")} />
                 {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="leaseStartDate">Lease Start Date</Label>
-                  <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />
-                  {errors.leaseStartDate && <p className="text-sm text-destructive mt-1">{errors.leaseStartDate.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="leaseEndDate">Lease End Date</Label>
-                  <Input id="leaseEndDate" type="date" {...register("leaseEndDate")} />
-                  {errors.leaseEndDate && <p className="text-sm text-destructive mt-1">{errors.leaseEndDate.message}</p>}
-                </div>
+              
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" type="tel" {...register("phone")} />
+                {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
               </div>
 
               <div className="flex justify-between">
-                <Link href="/onboarding/complete">
+                 <Link href="/onboarding/add-tenant">
                   <Button variant="link">Skip for now</Button>
                 </Link>
-                <Button type="submit">Finish Onboarding</Button>
+                <Button type="submit">Next: Add Tenant</Button>
               </div>
             </form>
           </CardContent>

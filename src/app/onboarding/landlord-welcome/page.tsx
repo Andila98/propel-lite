@@ -19,7 +19,7 @@ export default function LandlordWelcomePage() {
   return (
     <div className="container mx-auto flex h-full max-w-2xl flex-col items-center justify-center p-4">
       <div className="w-full space-y-4">
-        <Progress value={25} className="w-full" />
+        <Progress value={20} className="w-full" />
         <Card className="w-full text-center">
           <CardHeader>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
