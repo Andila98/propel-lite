@@ -1,4 +1,6 @@
 
+"use client";
+
 import { Home, Users, Banknote, Building2, UserCheck, Activity, UserCog } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,6 +33,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
+import React from 'react';
 
 export default function DashboardPage() {
   const properties = mockProperties;
@@ -48,22 +52,24 @@ export default function DashboardPage() {
         <h2 className="text-3xl font-bold tracking-tight">Landlord Dashboard</h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Properties
-            </CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{properties.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Managed properties
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/properties">
+          <Card className="hover:shadow-lg transition-shadow bg-background">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Properties
+              </CardTitle>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{properties.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Managed properties
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
         <Link href="/tenants">
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow bg-secondary/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Tenants
@@ -78,26 +84,26 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Card>
+        <Card className="bg-primary/90 text-primary-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Monthly Rent</CardTitle>
-            <Banknote className="h-4 w-4 text-muted-foreground" />
+            <Banknote className="h-4 w-4 text-primary-foreground/80" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalRent.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-primary-foreground/80">
               Total expected monthly income
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-primary text-primary-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
-            <Home className="h-4 w-4 text-muted-foreground" />
+            <Home className="h-4 w-4 text-primary-foreground/80" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{occupancyRate.toFixed(0)}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-primary-foreground/80">
               Percentage of properties occupied
             </p>
           </CardContent>
@@ -147,10 +153,15 @@ export default function DashboardPage() {
 }
 
 function PropertyManagerList({ managers }: { managers: PropertyManager[] }) {
+  const router = useRouter();
+
+  const handleRowClick = (managerId: string) => {
+    router.push(`/property-managers/${managerId}`);
+  };
   return (
     <div className="space-y-6">
       {managers.map((manager) => (
-        <div key={manager.id} className="flex items-center">
+        <div key={manager.id} className="flex items-center cursor-pointer" onClick={() => handleRowClick(manager.id)}>
           <Avatar className="h-9 w-9">
              <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
             <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
@@ -167,13 +178,22 @@ function PropertyManagerList({ managers }: { managers: PropertyManager[] }) {
 }
 
 function RecentActivities({ activities }: { activities: ActivityItem[] }) {
+  const plugin = React.useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: true })
+  )
+
   const ICONS: { [key: string]: React.ReactElement } = {
     'new-tenant': <UserCheck className="h-4 w-4" />,
     'rent-paid': <Banknote className="h-4 w-4" />,
     'lease-ending': <Home className="h-4 w-4" />,
   };
   return (
-     <Carousel className="w-full">
+     <Carousel 
+      plugins={[plugin.current]}
+      className="w-full"
+      onMouseEnter={plugin.current.stop}
+      onMouseLeave={plugin.current.reset}
+     >
       <CarouselContent>
         {activities.map((activity) => (
           <CarouselItem key={activity.id}>
@@ -193,8 +213,6 @@ function RecentActivities({ activities }: { activities: ActivityItem[] }) {
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="hidden sm:flex" />
-      <CarouselNext className="hidden sm:flex" />
     </Carousel>
   );
 }
