@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { mockPropertyManagers, mockProperties } from '@/lib/mock-data';
-import type { Property, PropertyManager } from '@/lib/types';
+import type { PropertyManager } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
