@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PropelLiteLogo } from '@/components/icons/logo';
+import { PropelLiteLogo, GoogleIcon, GithubIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,6 +42,13 @@ export default function LoginPage() {
       });
     }
   };
+  
+  const handleSocialLogin = (provider: string) => {
+     toast({
+        title: "Coming Soon!",
+        description: `${provider} login is not yet implemented.`,
+      });
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -75,14 +83,27 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+             <Button type="submit" className="w-full">Sign In</Button>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full">Sign In</Button>
-            <Button variant="link" size="sm" className="text-muted-foreground">
-              Forgot password?
-            </Button>
-          </CardFooter>
         </form>
+        
+        <div className="relative my-4">
+            <Separator />
+            <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">
+              OR
+            </span>
+        </div>
+          
+        <CardFooter className="flex flex-col gap-4">
+          <Button variant="outline" className="w-full" onClick={() => handleSocialLogin('Google')}>
+            <GoogleIcon className="mr-2 h-4 w-4" />
+            Sign in with Google
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => handleSocialLogin('GitHub')}>
+            <GithubIcon className="mr-2 h-4 w-4" />
+            Sign in with GitHub
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
