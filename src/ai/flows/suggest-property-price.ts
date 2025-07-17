@@ -1,3 +1,4 @@
+
 // src/ai/flows/suggest-property-price.ts
 'use server';
 
@@ -35,7 +36,8 @@ const SuggestPropertyPriceOutputSchema = z.object({
   overrideConsiderations: z
     .string()
     .describe(
-      'Factors that might warrant overriding the suggested price (e.g., exceptional views, recent renovations).'n    ),
+      'Factors that might warrant overriding the suggested price (e.g., exceptional views, recent renovations).'
+    ),
 });
 export type SuggestPropertyPriceOutput = z.infer<typeof SuggestPropertyPriceOutputSchema>;
 
