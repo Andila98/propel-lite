@@ -12,6 +12,7 @@ import { PropelLiteLogo } from "../icons/logo"
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/properties", label: "Properties", icon: Building },
+  { href: "/tenants", label: "Tenants", icon: Users },
   { href: "/price-suggestion", label: "Price Suggestion", icon: DollarSign },
   { href: "/smart-messaging", label: "Smart Messaging", icon: MessageCircle },
   { href: "/tenant-portal", label: "Tenant Portal", icon: Users },

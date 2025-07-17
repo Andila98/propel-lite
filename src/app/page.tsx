@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockProperties, mockTenants, mockPropertyManagers, mockActivities } from '@/lib/mock-data';
 import type { Property, Tenant, PropertyManager, ActivityItem } from '@/lib/types';
 import { PropertyTable } from '@/components/property-table';
+import { TenantTable } from '@/components/tenant-table';
 
 export default function DashboardPage() {
   const properties = mockProperties;
@@ -54,7 +55,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="#">
+        <Link href="/tenants">
           <Card className="hover:bg-card/90 hover:shadow-md transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -141,45 +142,6 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-function TenantTable({ tenants, properties }: { tenants: Tenant[], properties: Property[] }) {
-  const getPropertyAddress = (propertyId: string) => {
-    return properties.find(p => p.id === propertyId)?.address || 'N/A';
-  }
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Property</TableHead>
-          <TableHead>Rent Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {tenants.map((tenant) => (
-          <TableRow key={tenant.id}>
-            <TableCell>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={tenant.avatarUrl} alt={tenant.name} data-ai-hint="person portrait" />
-                  <AvatarFallback>{tenant.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span>{tenant.name}</span>
-              </div>
-            </TableCell>
-            <TableCell>{getPropertyAddress(tenant.propertyId)}</TableCell>
-            <TableCell>
-              <Badge variant={tenant.rentStatus === 'Paid' ? "default" : "destructive"}>
-                {tenant.rentStatus}
-              </Badge>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
 
 function PropertyManagerList({ managers }: { managers: PropertyManager[] }) {
   return (
