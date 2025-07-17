@@ -1,9 +1,11 @@
+
 import type { Property, Tenant } from './types';
 
 export const mockProperties: Property[] = [
   {
     id: 'p1',
     address: '123 Ocean View, Apt 4B',
+    propertyType: 'apartment',
     squareFootage: 1200,
     bedrooms: 2,
     bathrooms: 2,
@@ -14,6 +16,7 @@ export const mockProperties: Property[] = [
   {
     id: 'p2',
     address: '456 Maple Street',
+    propertyType: 'house',
     squareFootage: 1800,
     bedrooms: 3,
     bathrooms: 2.5,
@@ -24,6 +27,7 @@ export const mockProperties: Property[] = [
   {
     id: 'p3',
     address: '789 Downtown Lofts, #1205',
+    propertyType: 'bedsitter',
     squareFootage: 850,
     bedrooms: 1,
     bathrooms: 1,

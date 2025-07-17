@@ -2,7 +2,7 @@
 "use client"
 
 import { useRouter } from 'next/navigation';
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PropertyFormSchema = z.object({
   address: z.string().min(5, "Please enter a valid address."),
+  propertyType: z.enum(["apartment", "house", "bedsitter"], {
+    required_error: "Please select a property type.",
+  }),
   squareFootage: z.coerce.number().min(100, "Must be at least 100 sqft."),
   bedrooms: z.coerce.number().min(0, "Cannot be negative.").max(10, "Cannot be more than 10."),
   bathrooms: z.coerce.number().min(1, "Must have at least 1 bathroom.").max(10, "Cannot be more than 10."),
@@ -30,6 +34,7 @@ export default function AddPropertyPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<PropertyFormValues>({
     resolver: zodResolver(PropertyFormSchema),
@@ -57,12 +62,34 @@ export default function AddPropertyPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" {...register("address")} />
-                {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <Label htmlFor="address">Address</Label>
+                    <Input id="address" {...register("address")} />
+                    {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
+                  </div>
+                 <div>
+                    <Label>Property Type</Label>
+                    <Controller
+                        name="propertyType"
+                        control={control}
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a type..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="apartment">Apartment</SelectItem>
+                                <SelectItem value="house">House</SelectItem>
+                                <SelectItem value="bedsitter">Bedsitter</SelectItem>
+                            </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    {errors.propertyType && <p className="text-sm text-destructive mt-1">{errors.propertyType.message}</p>}
+                </div>
               </div>
-
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="rent">Monthly Rent ($)</Label>

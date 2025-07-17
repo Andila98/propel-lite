@@ -1,6 +1,8 @@
+
 export interface Property {
   id: string;
   address: string;
+  propertyType: 'apartment' | 'house' | 'bedsitter';
   squareFootage: number;
   bedrooms: number;
   bathrooms: number;
