@@ -1,7 +1,9 @@
 
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { mockProperties, mockTenants } from '@/lib/mock-data';
 import type { Property, Tenant, Unit } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -21,8 +23,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, FilePenLine, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -33,6 +47,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const { toast } = useToast();
   const property = mockProperties.find((p) => p.id === params.id);
   const tenant = mockTenants.find((t) => t.propertyId === params.id);
 
@@ -40,18 +56,57 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     notFound();
   }
 
+  const handleDelete = () => {
+    // In a real app, you would make an API call to delete the property.
+    console.log(`Deleting property: ${property.id}`);
+    toast({
+      title: "Property Deleted",
+      description: `The property at ${property.address} has been deleted.`,
+    });
+    router.push('/properties');
+  };
+
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <div className="flex items-center gap-4">
-        <Link href="/properties">
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to Properties</span>
-          </Button>
-        </Link>
-        <div>
-            <h2 className="text-3xl font-bold tracking-tight">{property.address}</h2>
-            <p className="text-sm text-muted-foreground capitalize">{property.propertyType}</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+            <Link href="/properties">
+            <Button variant="outline" size="icon" className="h-8 w-8">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only">Back to Properties</span>
+            </Button>
+            </Link>
+            <div>
+                <h2 className="text-3xl font-bold tracking-tight">{property.address}</h2>
+                <p className="text-sm text-muted-foreground capitalize">{property.propertyType}</p>
+            </div>
+        </div>
+        <div className="flex items-center gap-2">
+            <Link href={`/properties/${property.id}/edit`}>
+                 <Button variant="outline">
+                    <FilePenLine className="mr-2 h-4 w-4" /> Edit
+                </Button>
+            </Link>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the
+                        property and all associated data.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
       </div>
         
