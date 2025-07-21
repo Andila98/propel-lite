@@ -229,7 +229,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                                           <SelectContent>
                                             <SelectItem value="studio">Studio</SelectItem>
                                             <SelectItem value="bedsitter">Bedsitter</SelectItem>
-                                            <SelectItem value="one-bedroom">One Bedroom</item>
+                                            <SelectItem value="one-bedroom">One Bedroom</SelectItem>
                                             <SelectItem value="two-bedroom">Two Bedroom</SelectItem>
                                             <SelectItem value="three-bedroom">Three Bedroom</SelectItem>
                                           </SelectContent>
