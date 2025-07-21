@@ -41,9 +41,8 @@ type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 export default function EditPropertyPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { id } = params;
 
-  const propertyToEdit = mockProperties.find(p => p.id === id);
+  const propertyToEdit = mockProperties.find(p => p.id === params.id);
 
   if (!propertyToEdit) {
     return notFound();
@@ -117,7 +116,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
       title: "Property Updated!",
       description: "Your property has been successfully saved.",
     });
-    router.push(`/properties/${id}`);
+    router.push(`/properties/${params.id}`);
   };
   
   const addUnit = () => {
@@ -134,7 +133,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center gap-4">
-            <Link href={`/properties/${id}`}>
+            <Link href={`/properties/${params.id}`}>
                 <Button variant="outline" size="icon" className="h-8 w-8">
                     <ArrowLeft className="h-4 w-4" />
                     <span className="sr-only">Back to Property</span>
@@ -230,7 +229,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                                           <SelectContent>
                                             <SelectItem value="studio">Studio</SelectItem>
                                             <SelectItem value="bedsitter">Bedsitter</SelectItem>
-                                            <SelectItem value="one-bedroom">One Bedroom</SelectItem>
+                                            <SelectItem value="one-bedroom">One Bedroom</item>
                                             <SelectItem value="two-bedroom">Two Bedroom</SelectItem>
                                             <SelectItem value="three-bedroom">Three Bedroom</SelectItem>
                                           </SelectContent>
@@ -316,5 +315,3 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     </div>
   );
 }
-
-    
