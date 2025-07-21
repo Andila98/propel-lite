@@ -49,8 +49,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const property = mockProperties.find((p) => p.id === params.id);
-  const tenant = mockTenants.find((t) => t.propertyId === params.id);
+  const { id } = params;
+  const property = mockProperties.find((p) => p.id === id);
+  const tenant = mockTenants.find((t) => t.propertyId === id);
 
   if (!property) {
     notFound();
