@@ -43,7 +43,7 @@ export default function TenantPortalPage() {
           <CardContent className="grid gap-4">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Monthly Rent</span>
-              <span>${property.rent.toLocaleString()}</span>
+              <span>Ksh{property.rent.toLocaleString()}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease Start</span>
@@ -81,7 +81,7 @@ export default function TenantPortalPage() {
                 {tenant.paymentHistory.map((payment, index) => (
                   <TableRow key={index}>
                     <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
-                    <TableCell>${payment.amount.toLocaleString()}</TableCell>
+                    <TableCell>Ksh{payment.amount.toLocaleString()}</TableCell>
                     <TableCell>{payment.method}</TableCell>
                   </TableRow>
                 ))}

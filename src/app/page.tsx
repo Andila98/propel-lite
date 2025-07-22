@@ -97,7 +97,7 @@ export default function DashboardPage() {
                 <Banknote className="h-4 w-4 text-primary-foreground/80" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">${totalRent.toLocaleString()}</div>
+                <div className="text-2xl font-bold">Ksh{totalRent.toLocaleString()}</div>
                 <p className="text-xs text-primary-foreground/80">
                 Total expected monthly income
                 </p>
@@ -205,7 +205,7 @@ function PropertiesCarousel({ properties }: { properties: Property[] }) {
                     </div>
                     <div className="flex items-center gap-2">
                          <Banknote className="h-4 w-4 text-muted-foreground" />
-                         <span>${property.rent.toLocaleString()}/mo</span>
+                         <span>Ksh{property.rent.toLocaleString()}/mo</span>
                     </div>
                 </CardFooter>
               </Card>

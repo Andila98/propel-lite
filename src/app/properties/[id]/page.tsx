@@ -160,7 +160,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                                <span>Rent: <span className="font-semibold">${property.rent.toLocaleString()}/mo</span></span>
+                                                <span>Rent: <span className="font-semibold">Ksh{property.rent.toLocaleString()}/mo</span></span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Square className="h-4 w-4 text-muted-foreground" />
@@ -282,7 +282,7 @@ function UnitTable({ units }: { units: Unit[] }) {
         {units.map((unit, index) => (
           <TableRow key={index}>
             <TableCell className="capitalize font-medium">{unit.unitType.replace('-', ' ')}</TableCell>
-            <TableCell>${unit.rent.toLocaleString()}</TableCell>
+            <TableCell>Ksh{unit.rent.toLocaleString()}</TableCell>
             <TableCell>
               {unit.isAvailable ? (
                 <Badge variant="outline">Available</Badge>
@@ -296,5 +296,3 @@ function UnitTable({ units }: { units: Unit[] }) {
     </Table>
   );
 }
-
-    

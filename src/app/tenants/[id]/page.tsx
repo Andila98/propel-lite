@@ -80,7 +80,7 @@ export default function TenantDetailPage({ params }: { params: { id: string } })
                 </div>
                  <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Monthly Rent</span>
-                    <span className="font-medium">${property.rent.toLocaleString()}</span>
+                    <span className="font-medium">Ksh{property.rent.toLocaleString()}</span>
                 </div>
                  <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Rent Status</span>
@@ -111,7 +111,7 @@ export default function TenantDetailPage({ params }: { params: { id: string } })
                             {tenant.paymentHistory.map((payment, index) => (
                                 <TableRow key={index}>
                                     <TableCell>{payment.date}</TableCell>
-                                    <TableCell>${payment.amount.toLocaleString()}</TableCell>
+                                    <TableCell>Ksh{payment.amount.toLocaleString()}</TableCell>
                                     <TableCell>{payment.method}</TableCell>
                                 </TableRow>
                             ))}

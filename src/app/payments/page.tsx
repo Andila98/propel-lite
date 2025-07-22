@@ -67,7 +67,7 @@ export default function PaymentsPage() {
                     </Link>
                   </TableCell>
                   <TableCell>{payment.method}</TableCell>
-                  <TableCell className="text-right font-medium">${payment.amount.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-medium">Ksh{payment.amount.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

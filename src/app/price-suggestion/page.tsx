@@ -100,7 +100,7 @@ export default function PriceSuggestionPage() {
 
               <div>
                 <Label htmlFor="marketData">Market Data</Label>
-                <Textarea id="marketData" placeholder="e.g., Average rent for 2-beds in this zip is $2500. Similar units listed for $2600-2900..." {...register("marketData")} />
+                <Textarea id="marketData" placeholder="e.g., Average rent for 2-beds in this zip is 250000 Ksh. Similar units listed for 260000-290000 Ksh..." {...register("marketData")} />
                 {errors.marketData && <p className="text-sm text-destructive mt-1">{errors.marketData.message}</p>}
               </div>
 
@@ -128,7 +128,7 @@ export default function PriceSuggestionPage() {
                 <>
                   <div>
                     <Label>Suggested Monthly Rent</Label>
-                    <p className="text-4xl font-bold text-primary">${result.suggestedPrice?.toLocaleString()}</p>
+                    <p className="text-4xl font-bold text-primary">Ksh{result.suggestedPrice?.toLocaleString()}</p>
                   </div>
                   <div>
                     <Label>Reasoning</Label>

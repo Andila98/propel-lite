@@ -22,7 +22,7 @@ const UnitSchema = z.object({
   unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
     required_error: "Please select a unit type.",
   }),
-  rent: z.coerce.number().min(100, "Rent must be at least $100."),
+  rent: z.coerce.number().min(100, "Rent must be at least 100 Ksh."),
   squareFootage: z.coerce.number().min(100, "Must be at least 100 sqft."),
   isAvailable: z.boolean().default(true),
 });
@@ -238,7 +238,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                                     />
                                   </div>
                                   <div>
-                                    <Label htmlFor={`units.${index}.rent`}>Monthly Rent ($)</Label>
+                                    <Label htmlFor={`units.${index}.rent`}>Monthly Rent (Ksh)</Label>
                                     <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
                                   </div>
                                   <div>
