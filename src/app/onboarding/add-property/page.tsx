@@ -1,8 +1,9 @@
 
 "use client"
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, Controller, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Image from 'next/image';
@@ -15,8 +16,9 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
-import { PlusCircle, Trash2, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const UnitSchema = z.object({
   unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
@@ -29,7 +31,6 @@ const UnitSchema = z.object({
 
 const PropertyFormSchema = z.object({
   address: z.string().min(5, "Please enter a valid address."),
-  imageUrl: z.string().url("Please enter a valid image URL.").optional().or(z.literal('')),
   propertyType: z.enum(["apartment", "house", "bedsitter"], {
     required_error: "Please select a property type.",
   }),
@@ -41,12 +42,14 @@ type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 export default function AddPropertyPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
       address: "",
-      imageUrl: "",
       units: [],
     },
   });
@@ -60,7 +63,15 @@ export default function AddPropertyPage() {
 
   const propertyType = watch("propertyType");
   const numberOfUnits = watch("numberOfUnits");
-  const watchedImageUrl = watch("imageUrl");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
 
   const handleUnitGeneration = (num: number) => {
     if (isNaN(num) || num < 1) {
@@ -99,13 +110,43 @@ export default function AddPropertyPage() {
     }
   };
 
-  const onSubmit = (data: PropertyFormValues) => {
-    console.log("Property data:", data);
-    toast({
-      title: "Property Added!",
-      description: "Your property has been successfully saved.",
-    });
-    router.push('/onboarding/add-property-manager');
+  const onSubmit = async (data: PropertyFormValues) => {
+    setLoading(true);
+    if (!imageFile) {
+        toast({
+            title: "Image required",
+            description: "Please select an image for the property.",
+            variant: "destructive"
+        });
+        setLoading(false);
+        return;
+    }
+    
+    try {
+      const fileRef = ref(storage, `properties/${Date.now()}_${imageFile.name}`);
+      await uploadBytes(fileRef, imageFile);
+      const downloadURL = await getDownloadURL(fileRef);
+
+      const propertyData = { ...data, imageUrl: downloadURL };
+      
+      console.log("Property data with image URL:", propertyData);
+      
+      toast({
+        title: "Property Added!",
+        description: "Your property has been successfully saved.",
+      });
+      router.push('/onboarding/add-property-manager');
+
+    } catch (err) {
+        console.error("Upload failed", err);
+        toast({
+            title: "Upload failed",
+            description: "There was an error uploading the property image.",
+            variant: "destructive"
+        });
+    } finally {
+        setLoading(false);
+    }
   };
   
   const addUnit = () => {
@@ -142,9 +183,8 @@ export default function AddPropertyPage() {
                                   {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
                               </div>
                                <div>
-                                    <Label htmlFor="imageUrl">Image URL</Label>
-                                    <Input id="imageUrl" {...register("imageUrl")} placeholder="https://placehold.co/800x500.png" />
-                                    {errors.imageUrl && <p className="text-sm text-destructive mt-1">{errors.imageUrl.message}</p>}
+                                    <Label htmlFor="imageFile">Property Image</Label>
+                                    <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
                                 </div>
                               <div>
                                   <Label>Property Type</Label>
@@ -274,9 +314,9 @@ export default function AddPropertyPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                {watchedImageUrl ? (
+                                {previewUrl ? (
                                     <Image
-                                        src={watchedImageUrl}
+                                        src={previewUrl}
                                         alt="Property Preview"
                                         width={800}
                                         height={500}
@@ -295,10 +335,15 @@ export default function AddPropertyPage() {
                 </div>
             </div>
             <div className="mt-8">
-              <Button type="submit" className="w-full lg:w-auto" disabled={!propertyType}>Next: Add Property Manager</Button>
+              <Button type="submit" className="w-full lg:w-auto" disabled={loading || !propertyType}>
+                 {loading ? <Loader2 className="animate-spin" /> : "Next: Add Property Manager"}
+              </Button>
             </div>
         </form>
       </div>
     </div>
   );
 }
+
+
+    
