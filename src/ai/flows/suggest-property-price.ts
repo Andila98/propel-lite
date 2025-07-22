@@ -44,6 +44,7 @@ export type SuggestPropertyPriceOutput = z.infer<typeof SuggestPropertyPriceOutp
 export async function suggestPropertyPrice(
   input: SuggestPropertyPriceInput
 ): Promise<SuggestPropertyPriceOutput> {
+  console.log("Backend: suggestPropertyPrice flow received input:", input);
   return suggestPropertyPriceFlow(input);
 }
 
@@ -77,3 +78,5 @@ const suggestPropertyPriceFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

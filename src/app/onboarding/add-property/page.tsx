@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +45,10 @@ export default function AddPropertyPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log("Add Property page mounted (Onboarding)");
+  }, []);
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(PropertyFormSchema),
@@ -111,6 +115,7 @@ export default function AddPropertyPage() {
   };
 
   const onSubmit = async (data: PropertyFormValues) => {
+    console.log("Frontend: Submitting property data from onboarding...", data);
     setLoading(true);
     if (!imageFile) {
         toast({
@@ -129,7 +134,7 @@ export default function AddPropertyPage() {
 
       const propertyData = { ...data, imageUrl: downloadURL };
       
-      console.log("Property data with image URL:", propertyData);
+      console.log("Frontend: Onboarding property data with image URL:", propertyData);
       
       toast({
         title: "Property Added!",
@@ -344,3 +349,5 @@ export default function AddPropertyPage() {
     </div>
   );
 }
+
+    

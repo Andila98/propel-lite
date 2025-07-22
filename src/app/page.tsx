@@ -35,7 +35,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BedDouble, Bath } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -43,6 +43,10 @@ export default function DashboardPage() {
   const tenants = mockTenants;
   const managers = mockPropertyManagers;
   const activities = mockActivities;
+
+  useEffect(() => {
+    console.log("Frontend: DashboardPage component mounted.");
+  }, []);
 
   const totalRent = properties.reduce((acc, p) => acc + p.rent, 0);
   const occupiedProperties = tenants.map(t => t.propertyId);
@@ -276,3 +280,5 @@ function RecentActivities({ activities }: { activities: ActivityItem[] }) {
     </Carousel>
   );
 }
+
+    

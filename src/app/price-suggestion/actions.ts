@@ -1,3 +1,4 @@
+
 "use server";
 import { suggestPropertyPrice, type SuggestPropertyPriceInput, type SuggestPropertyPriceOutput } from "@/ai/flows/suggest-property-price";
 import { z } from "zod";
@@ -18,9 +19,12 @@ export type PriceSuggestionState = SuggestPropertyPriceOutput & {
 export async function suggestPriceAction(
   input: SuggestPropertyPriceInput,
 ): Promise<PriceSuggestionState> {
+  console.log("Backend: suggestPriceAction server action received input:", input);
+
   const validatedFields = SuggestionFormSchema.safeParse(input);
 
   if (!validatedFields.success) {
+    console.error("Backend: Invalid form data.", validatedFields.error.flatten().fieldErrors);
     return {
       error: "Invalid form data.",
       suggestedPrice: 0,
@@ -31,9 +35,10 @@ export async function suggestPriceAction(
 
   try {
     const result = await suggestPropertyPrice(validatedFields.data);
+    console.log("Backend: AI suggestion result:", result);
     return result;
   } catch (error) {
-    console.error(error);
+    console.error("Backend: Failed to generate price suggestion.", error);
     return {
       error: "Failed to generate price suggestion.",
       suggestedPrice: 0,
@@ -42,3 +47,5 @@ export async function suggestPriceAction(
     };
   }
 }
+
+    
