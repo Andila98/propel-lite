@@ -320,7 +320,7 @@ export default function AddPropertyPage() {
                                         alt="Property Preview"
                                         width={800}
                                         height={500}
-                                        className="object-cover w-full h-full"
+                                        className="object-contain w-full h-full"
                                         data-ai-hint="apartment building"
                                     />
                                 ) : (
@@ -344,6 +344,3 @@ export default function AddPropertyPage() {
     </div>
   );
 }
-
-
-    
