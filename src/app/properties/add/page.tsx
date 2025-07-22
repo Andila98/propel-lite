@@ -128,13 +128,14 @@ export default function AddPropertyPage() {
     }
     
     try {
+      console.log("Frontend: Starting image upload to Firebase Storage...");
       const fileRef = ref(storage, `properties/${Date.now()}_${imageFile.name}`);
       await uploadBytes(fileRef, imageFile);
       const downloadURL = await getDownloadURL(fileRef);
+      console.log("Frontend: Image uploaded successfully. URL:", downloadURL);
 
       const propertyData = { ...data, imageUrl: downloadURL };
       
-      // In a real app, you'd save `propertyData` to Firestore here.
       console.log("Frontend: New property data with image URL:", propertyData);
 
       toast({
@@ -144,10 +145,10 @@ export default function AddPropertyPage() {
       router.push('/properties');
 
     } catch (err) {
-        console.error("Upload failed", err);
+        console.error("Frontend: Error during property creation or image upload:", err);
         toast({
-            title: "Upload failed",
-            description: "There was an error uploading the property image.",
+            title: "Upload Failed",
+            description: "There was an error saving your property. Please check the console for details and try again.",
             variant: "destructive"
         });
     } finally {

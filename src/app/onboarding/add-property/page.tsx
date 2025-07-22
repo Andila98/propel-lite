@@ -128,9 +128,11 @@ export default function AddPropertyPage() {
     }
     
     try {
+      console.log("Frontend: Starting image upload to Firebase Storage (Onboarding)...");
       const fileRef = ref(storage, `properties/${Date.now()}_${imageFile.name}`);
       await uploadBytes(fileRef, imageFile);
       const downloadURL = await getDownloadURL(fileRef);
+      console.log("Frontend: Image uploaded successfully. URL:", downloadURL);
 
       const propertyData = { ...data, imageUrl: downloadURL };
       
@@ -143,10 +145,10 @@ export default function AddPropertyPage() {
       router.push('/onboarding/add-property-manager');
 
     } catch (err) {
-        console.error("Upload failed", err);
+        console.error("Frontend: Error during onboarding property creation or image upload:", err);
         toast({
-            title: "Upload failed",
-            description: "There was an error uploading the property image.",
+            title: "Upload Failed",
+            description: "There was an error saving your property. Please check the console for details and try again.",
             variant: "destructive"
         });
     } finally {
@@ -349,5 +351,3 @@ export default function AddPropertyPage() {
     </div>
   );
 }
-
-    
