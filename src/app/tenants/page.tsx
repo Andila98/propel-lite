@@ -27,7 +27,7 @@ export default function TenantsPage() {
         <h2 className="text-3xl font-bold tracking-tight">Tenants</h2>
         {/* According to the permissions, Limited Staff have view-only access to tenants */}
         {currentUserRole === 'Full Manager' && (
-          <Link href="/onboarding/add-tenant">
+          <Link href="/tenants/add">
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" /> Add Tenant
             </Button>
