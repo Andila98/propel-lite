@@ -36,6 +36,12 @@ const getFolder = (mimetype: string) => {
   return 'others';
 };
 
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -46,7 +52,7 @@ export async function POST(req: NextRequest) {
     if (!file || !title || !propertyName) {
       return NextResponse.json(
         { error: 'Missing title, propertyName or media file.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -79,17 +85,24 @@ export async function POST(req: NextRequest) {
       title,
       propertyName,
       url: publicUrl,
-    });
+    }, { headers: corsHeaders });
   } catch (error: any) {
     console.error('Upload failed:', error);
     return NextResponse.json(
       { error: `Upload failed: ${error.message}` },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 // This is not needed for App Router but good practice to have if you have GET, etc.
 export async function GET() {
-    return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405 });
+    return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405, headers: corsHeaders });
 }
