@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { useRouter, notFound } from 'next/navigation';
+import { useRouter, notFound, useParams } from 'next/navigation';
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -40,10 +40,12 @@ const PropertyFormSchema = z.object({
 });
 type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 
-export default function EditPropertyPage({ params }: { params: { id: string } }) {
+export default function EditPropertyPage() {
   const router = useRouter();
+  const params = useParams();
   const { toast } = useToast();
-  const propertyToEdit = mockProperties.find(p => p.id === params.id);
+  const propertyId = params.id as string;
+  const propertyToEdit = mockProperties.find(p => p.id === propertyId);
   
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(PropertyFormSchema),
@@ -132,7 +134,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
       title: "Property Updated!",
       description: "Your property has been successfully saved.",
     });
-    router.push(`/properties/${params.id}`);
+    router.push(`/properties/${propertyId}`);
   };
   
   const addUnit = () => {
@@ -149,7 +151,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center gap-4">
-            <Link href={`/properties/${params.id}`}>
+            <Link href={`/properties/${propertyId}`}>
                 <Button variant="outline" size="icon" className="h-8 w-8">
                     <ArrowLeft className="h-4 w-4" />
                     <span className="sr-only">Back to Property</span>

@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { mockProperties, mockTenants } from '@/lib/mock-data';
 import type { Property, Tenant, Unit } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -47,17 +47,20 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEffect, useState } from 'react';
 
-export default function PropertyDetailPage({ params }: { params: { id: string } }) {
+export default function PropertyDetailPage() {
   const router = useRouter();
+  const params = useParams();
   const { toast } = useToast();
-  const property = mockProperties.find((p) => p.id === params.id);
-  const tenant = mockTenants.find((t) => t.propertyId === params.id);
+  const propertyId = params.id as string;
+  
+  const property = mockProperties.find((p) => p.id === propertyId);
+  const tenant = mockTenants.find((t) => t.propertyId === propertyId);
 
   useEffect(() => {
-    console.log(`Frontend: PropertyDetailPage mounted for property ID: ${params.id}`);
+    console.log(`Frontend: PropertyDetailPage mounted for property ID: ${propertyId}`);
     console.log("Frontend: Found property data:", property);
     console.log("Frontend: Found tenant data:", tenant);
-  }, [params.id, property, tenant]);
+  }, [propertyId, property, tenant]);
 
   if (!property) {
     return <div>Loading...</div>; // Or a proper not found component

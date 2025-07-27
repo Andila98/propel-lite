@@ -1,6 +1,8 @@
 
+"use client";
+
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { mockTenants, mockProperties } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,8 +26,10 @@ import { ArrowLeft, Mail, Phone, CalendarDays } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property } from '@/lib/types';
 
-export default function TenantDetailPage({ params }: { params: { id: string } }) {
-  const tenant = mockTenants.find((t) => t.id === params.id);
+export default function TenantDetailPage() {
+  const params = useParams();
+  const tenantId = params.id as string;
+  const tenant = mockTenants.find((t) => t.id === tenantId);
   const property = tenant ? mockProperties.find((p) => p.id === tenant.propertyId) : undefined;
 
   if (!tenant || !property) {

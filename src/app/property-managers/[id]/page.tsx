@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { mockPropertyManagers, mockProperties } from '@/lib/mock-data';
 import type { PropertyManager } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -25,8 +25,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export default function PropertyManagerDetailPage({ params }: { params: { id: string } }) {
-  const manager = mockPropertyManagers.find((m) => m.id === params.id);
+export default function PropertyManagerDetailPage() {
+  const params = useParams();
+  const managerId = params.id as string;
+  const manager = mockPropertyManagers.find((m) => m.id === managerId);
   const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
   
   useEffect(() => {
