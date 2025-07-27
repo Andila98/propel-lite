@@ -25,18 +25,8 @@ import { useState, useEffect } from 'react';
 import type { Tenant, Property } from '@/lib/types';
 
 export default function TenantDetailPage({ params }: { params: { id: string } }) {
-  const [tenant, setTenant] = useState<Tenant | undefined>(undefined);
-  const [property, setProperty] = useState<Property | undefined>(undefined);
-
-  useEffect(() => {
-    const foundTenant = mockTenants.find((t) => t.id === params.id);
-    setTenant(foundTenant);
-    if (foundTenant) {
-      const foundProperty = mockProperties.find((p) => p.id === foundTenant.propertyId);
-      setProperty(foundProperty);
-    }
-  }, [params.id]);
-
+  const tenant = mockTenants.find((t) => t.id === params.id);
+  const property = tenant ? mockProperties.find((p) => p.id === tenant.propertyId) : undefined;
 
   if (!tenant || !property) {
     return <div>Loading...</div>;

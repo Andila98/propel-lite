@@ -43,12 +43,7 @@ type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 export default function EditPropertyPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [propertyToEdit, setPropertyToEdit] = useState<Property | undefined>(undefined);
-
-  useEffect(() => {
-    const property = mockProperties.find(p => p.id === params.id);
-    setPropertyToEdit(property);
-  }, [params.id]);
+  const propertyToEdit = mockProperties.find(p => p.id === params.id);
   
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(PropertyFormSchema),

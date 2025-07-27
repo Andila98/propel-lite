@@ -26,13 +26,7 @@ import {
 } from '@/components/ui/select';
 
 export default function PropertyManagerDetailPage({ params }: { params: { id: string } }) {
-  const [manager, setManager] = useState<PropertyManager | undefined>(undefined);
-  
-  useEffect(() => {
-    const foundManager = mockPropertyManagers.find((m) => m.id === params.id);
-    setManager(foundManager);
-  }, [params.id]);
-
+  const manager = mockPropertyManagers.find((m) => m.id === params.id);
   const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
   
   useEffect(() => {
