@@ -3,11 +3,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 import multer from 'multer';
 import { db, bucket, admin } from '@/lib/firebase-admin';
 
+const MAX_FILE_SIZE_MB = 20;
+
 // Initialize multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5 MB limit
+    fileSize: MAX_FILE_SIZE_MB * 1024 * 1024, // 20 MB limit
   },
 });
 
@@ -36,6 +38,13 @@ const getFolder = (mimetype: string) => {
   return 'others';
 };
 
+const isValidFile = (file: File) => {
+  const allowedTypes = ["image/", "video/"];
+  const isAllowedType = allowedTypes.some(type => file.type.startsWith(type));
+  const isWithinSize = file.size <= MAX_FILE_SIZE_MB * 1024 * 1024;
+  return isAllowedType && isWithinSize;
+};
+
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -52,6 +61,13 @@ export async function POST(req: NextRequest) {
     if (!file || !title || !propertyName) {
       return NextResponse.json(
         { error: 'Missing title, propertyName or media file.' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    if (!isValidFile(file)) {
+      return NextResponse.json(
+        { error: `Invalid file. Must be an image or video and under ${MAX_FILE_SIZE_MB}MB.` },
         { status: 400, headers: corsHeaders }
       );
     }
