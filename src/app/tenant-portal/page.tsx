@@ -99,7 +99,7 @@ export default function TenantPortalPage() {
             <form className="space-y-4">
                 <div>
                     <Label htmlFor="issue-description">Description of Issue</Label>
-                    <Textarea id="issue-description" placeholder="e.g., The kitchen sink is leaking." rows={4} />
+                    <Textarea id="issue-description" name="issue-description" placeholder="e.g., The kitchen sink is leaking." rows={4} />
                 </div>
                 <Button>Submit Request</Button>
             </form>
