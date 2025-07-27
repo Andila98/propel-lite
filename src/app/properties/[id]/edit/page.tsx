@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { PlusCircle, Trash2, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { mockProperties } from '@/lib/mock-data';
 import type { Property } from '@/lib/types';
 
@@ -31,7 +31,6 @@ const UnitSchema = z.object({
 
 const PropertyFormSchema = z.object({
   address: z.string().min(5, "Please enter a valid address."),
-  imageUrl: z.string().url("Please enter a valid image URL.").optional().or(z.literal('')),
   propertyType: z.enum(["apartment", "house", "bedsitter"], {
     required_error: "Please select a property type.",
   }),
@@ -47,11 +46,14 @@ export default function EditPropertyPage() {
   const propertyId = params.id as string;
   const propertyToEdit = mockProperties.find(p => p.id === propertyId);
   
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(propertyToEdit?.imageUrl || null);
+  const [loading, setLoading] = useState(false);
+
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
       address: '',
-      imageUrl: '',
       propertyType: 'apartment',
       units: [],
       numberOfUnits: 0,
@@ -62,11 +64,11 @@ export default function EditPropertyPage() {
     if (propertyToEdit) {
       form.reset({
         address: propertyToEdit.address || "",
-        imageUrl: propertyToEdit.imageUrl || "",
         propertyType: propertyToEdit.propertyType,
         units: propertyToEdit.units || [],
         numberOfUnits: propertyToEdit.units?.length || 0,
       });
+      setPreviewUrl(propertyToEdit.imageUrl);
     }
   }, [propertyToEdit, form]);
 
@@ -80,13 +82,19 @@ export default function EditPropertyPage() {
 
   const propertyType = watch("propertyType");
   const numberOfUnits = watch("numberOfUnits");
-  const watchedImageUrl = watch("imageUrl");
-
+  
   if (!propertyToEdit) {
-    // You can return a loading state or a not found component
     return <div>Loading...</div>; 
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
 
   const handleUnitGeneration = (num: number) => {
     if (isNaN(num) || num < 1) {
@@ -128,13 +136,52 @@ export default function EditPropertyPage() {
     }
   };
 
-  const onSubmit = (data: PropertyFormValues) => {
-    console.log("Updated property data:", data);
-    toast({
-      title: "Property Updated!",
-      description: "Your property has been successfully saved.",
-    });
-    router.push(`/properties/${propertyId}`);
+  const onSubmit = async (data: PropertyFormValues) => {
+    setLoading(true);
+    let finalImageUrl = propertyToEdit?.imageUrl;
+
+    try {
+      if (imageFile) {
+        console.log("Frontend: Starting image upload via API...");
+        const formData = new FormData();
+        formData.append('media', imageFile);
+        formData.append('title', data.address);
+        formData.append('propertyName', data.address);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+        console.log("Frontend: Image uploaded successfully. URL:", result.url);
+        finalImageUrl = result.url;
+      }
+      
+      const updatedPropertyData = { ...data, imageUrl: finalImageUrl };
+      console.log("Frontend: Submitting updated property data:", updatedPropertyData);
+      
+      toast({
+        title: "Property Updated!",
+        description: "Your property has been successfully saved.",
+      });
+      router.push(`/properties/${propertyId}`);
+
+    } catch (err: any) {
+        console.error("Frontend: Error during property update or image upload:", err);
+        toast({
+            title: "Update Failed",
+            description: `There was an error saving your property: ${err.message}`,
+            variant: "destructive"
+        });
+    } finally {
+        setLoading(false);
+    }
   };
   
   const addUnit = () => {
@@ -173,11 +220,6 @@ export default function EditPropertyPage() {
                                   <Label htmlFor="address">Address</Label>
                                   <Input id="address" {...register("address")} />
                                   {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
-                              </div>
-                              <div>
-                                <Label htmlFor="imageUrl">Image URL</Label>
-                                <Input id="imageUrl" {...register("imageUrl")} placeholder="https://placehold.co/800x500.png" />
-                                {errors.imageUrl && <p className="text-sm text-destructive mt-1">{errors.imageUrl.message}</p>}
                               </div>
                               <div>
                                   <Label>Property Type</Label>
@@ -299,16 +341,27 @@ export default function EditPropertyPage() {
                       </CardContent>
                     </Card>
                 </div>
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-8">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Property Image</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div>
+                                <Label htmlFor="imageFile">Upload New Image</Label>
+                                <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
+                            </div>
+                        </CardContent>
+                    </Card>
                     <Card>
                         <CardHeader>
                             <CardTitle>Image Preview</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                {watchedImageUrl ? (
+                                {previewUrl ? (
                                     <Image
-                                        src={watchedImageUrl}
+                                        src={previewUrl}
                                         alt="Property Preview"
                                         width={800}
                                         height={500}
@@ -327,9 +380,13 @@ export default function EditPropertyPage() {
                 </div>
             </div>
             <div className="mt-8">
-                <Button type="submit" className="w-full lg:w-auto" disabled={!propertyType}>Save Changes</Button>
+                <Button type="submit" className="w-full lg:w-auto" disabled={loading || !propertyType}>
+                   {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
+                </Button>
             </div>
         </form>
     </div>
   );
 }
+
+    
