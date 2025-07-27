@@ -190,7 +190,7 @@ export default function AddPropertyPage() {
             <h2 className="text-3xl font-bold tracking-tight">Add New Property</h2>
         </div>
         <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-3">
                     <Card>
                       <CardHeader>

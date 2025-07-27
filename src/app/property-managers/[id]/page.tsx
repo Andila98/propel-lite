@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { mockPropertyManagers, mockProperties } from '@/lib/mock-data';
 import type { PropertyManager } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -70,7 +70,7 @@ export default function PropertyManagerDetailPage() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
@@ -119,3 +119,5 @@ export default function PropertyManagerDetailPage() {
     </div>
   );
 }
+
+    

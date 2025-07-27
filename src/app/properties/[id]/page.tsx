@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound, useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { mockProperties, mockTenants } from '@/lib/mock-data';
 import type { Property, Tenant, Unit } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -120,8 +120,8 @@ export default function PropertyDetailPage() {
         </div>
       </div>
         
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div className="md:col-span-3 lg:col-span-3">
              <Card className="overflow-hidden">
                 <Image
                     src={property.imageUrl}
@@ -134,7 +134,7 @@ export default function PropertyDetailPage() {
             </Card>
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="md:col-span-3 lg:col-span-5">
             <Tabs defaultValue="overview">
                 <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -298,3 +298,5 @@ function UnitTable({ units }: { units: Unit[] }) {
     </Table>
   );
 }
+
+    

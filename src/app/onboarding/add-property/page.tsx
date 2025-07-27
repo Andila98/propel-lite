@@ -184,7 +184,7 @@ export default function AddPropertyPage() {
       <div className="w-full space-y-4">
         <Progress value={40} className="w-full" />
         <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-3">
                     <Card>
                       <CardHeader>
@@ -362,3 +362,5 @@ export default function AddPropertyPage() {
     </div>
   );
 }
+
+    

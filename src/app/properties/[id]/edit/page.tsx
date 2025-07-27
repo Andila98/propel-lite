@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { useRouter, notFound, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -207,7 +207,7 @@ export default function EditPropertyPage() {
             <h2 className="text-3xl font-bold tracking-tight">Edit Property</h2>
         </div>
         <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-3">
                     <Card>
                       <CardHeader>
