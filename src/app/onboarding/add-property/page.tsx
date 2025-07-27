@@ -15,10 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
+import { Switch } from "@/components/ui/switch";
 import { PlusCircle, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const UnitSchema = z.object({
   unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
@@ -128,13 +126,26 @@ export default function AddPropertyPage() {
     }
     
     try {
-      console.log("Frontend: Starting image upload to Firebase Storage (Onboarding)...");
-      const fileRef = ref(storage, `properties/${Date.now()}_${imageFile.name}`);
-      await uploadBytes(fileRef, imageFile);
-      const downloadURL = await getDownloadURL(fileRef);
-      console.log("Frontend: Image uploaded successfully. URL:", downloadURL);
+      console.log("Frontend: Starting image upload via API (Onboarding)...");
+      const formData = new FormData();
+      formData.append('media', imageFile);
+      formData.append('title', data.address);
+      formData.append('propertyName', data.address);
 
-      const propertyData = { ...data, imageUrl: downloadURL };
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const result = await response.json();
+      console.log("Frontend: Image uploaded successfully. URL:", result.url);
+      
+      const propertyData = { ...data, imageUrl: result.url };
       
       console.log("Frontend: Onboarding property data with image URL:", propertyData);
       
@@ -144,11 +155,11 @@ export default function AddPropertyPage() {
       });
       router.push('/onboarding/add-property-manager');
 
-    } catch (err) {
+    } catch (err: any) {
         console.error("Frontend: Error during onboarding property creation or image upload:", err);
         toast({
             title: "Upload Failed",
-            description: "There was an error saving your property. Please check the console for details and try again.",
+            description: `There was an error saving your property: ${err.message}`,
             variant: "destructive"
         });
     } finally {
