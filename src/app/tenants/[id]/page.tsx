@@ -21,13 +21,25 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Mail, Phone, CalendarDays } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import type { Tenant, Property } from '@/lib/types';
 
 export default function TenantDetailPage({ params }: { params: { id: string } }) {
-  const tenant = mockTenants.find((t) => t.id === params.id);
-  const property = tenant ? mockProperties.find((p) => p.id === tenant.propertyId) : undefined;
+  const [tenant, setTenant] = useState<Tenant | undefined>(undefined);
+  const [property, setProperty] = useState<Property | undefined>(undefined);
+
+  useEffect(() => {
+    const foundTenant = mockTenants.find((t) => t.id === params.id);
+    setTenant(foundTenant);
+    if (foundTenant) {
+      const foundProperty = mockProperties.find((p) => p.id === foundTenant.propertyId);
+      setProperty(foundProperty);
+    }
+  }, [params.id]);
+
 
   if (!tenant || !property) {
-    notFound();
+    return <div>Loading...</div>;
   }
 
   return (

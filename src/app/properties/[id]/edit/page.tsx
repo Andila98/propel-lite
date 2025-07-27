@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState, useEffect } from 'react';
 import { useRouter, notFound } from 'next/navigation';
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { PlusCircle, Trash2, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { mockProperties } from '@/lib/mock-data';
+import type { Property } from '@/lib/types';
 
 const UnitSchema = z.object({
   unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
@@ -41,23 +43,36 @@ type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 export default function EditPropertyPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
+  const [propertyToEdit, setPropertyToEdit] = useState<Property | undefined>(undefined);
 
-  const propertyToEdit = mockProperties.find(p => p.id === params.id);
-
-  if (!propertyToEdit) {
-    return notFound();
-  }
-
+  useEffect(() => {
+    const property = mockProperties.find(p => p.id === params.id);
+    setPropertyToEdit(property);
+  }, [params.id]);
+  
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
-      address: propertyToEdit.address || "",
-      imageUrl: propertyToEdit.imageUrl || "",
-      propertyType: propertyToEdit.propertyType,
-      units: propertyToEdit.units || [],
-      numberOfUnits: propertyToEdit.units?.length || 0,
+      address: '',
+      imageUrl: '',
+      propertyType: 'apartment',
+      units: [],
+      numberOfUnits: 0,
     },
   });
+
+  useEffect(() => {
+    if (propertyToEdit) {
+      form.reset({
+        address: propertyToEdit.address || "",
+        imageUrl: propertyToEdit.imageUrl || "",
+        propertyType: propertyToEdit.propertyType,
+        units: propertyToEdit.units || [],
+        numberOfUnits: propertyToEdit.units?.length || 0,
+      });
+    }
+  }, [propertyToEdit, form]);
+
 
   const { register, control, handleSubmit, formState: { errors }, setValue, watch } = form;
 
@@ -69,6 +84,12 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   const propertyType = watch("propertyType");
   const numberOfUnits = watch("numberOfUnits");
   const watchedImageUrl = watch("imageUrl");
+
+  if (!propertyToEdit) {
+    // You can return a loading state or a not found component
+    return <div>Loading...</div>; 
+  }
+
 
   const handleUnitGeneration = (num: number) => {
     if (isNaN(num) || num < 1) {

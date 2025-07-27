@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { mockPropertyManagers, mockProperties } from '@/lib/mock-data';
@@ -26,13 +26,24 @@ import {
 } from '@/components/ui/select';
 
 export default function PropertyManagerDetailPage({ params }: { params: { id: string } }) {
-  const manager = mockPropertyManagers.find((m) => m.id === params.id);
+  const [manager, setManager] = useState<PropertyManager | undefined>(undefined);
+  
+  useEffect(() => {
+    const foundManager = mockPropertyManagers.find((m) => m.id === params.id);
+    setManager(foundManager);
+  }, [params.id]);
+
+  const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
+  
+  useEffect(() => {
+    if (manager) {
+      setAccessLevel(manager.accessLevel);
+    }
+  }, [manager]);
 
   if (!manager) {
-    notFound();
+    return <div>Loading...</div>;
   }
-
-  const [accessLevel, setAccessLevel] = useState(manager.accessLevel);
   
   const managedProperties = mockProperties.filter(p => manager.propertiesManaged.includes(p.id));
 

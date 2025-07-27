@@ -45,22 +45,26 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const property = mockProperties.find((p) => p.id === params.id);
-  const tenant = mockTenants.find((t) => t.propertyId === params.id);
+  const [property, setProperty] = useState<Property | undefined>(undefined);
+  const [tenant, setTenant] = useState<Tenant | undefined>(undefined);
 
   useEffect(() => {
     console.log(`Frontend: PropertyDetailPage mounted for property ID: ${params.id}`);
-    console.log("Frontend: Found property data:", property);
-    console.log("Frontend: Found tenant data:", tenant);
-  }, [params.id, property, tenant]);
+    const foundProperty = mockProperties.find((p) => p.id === params.id);
+    const foundTenant = mockTenants.find((t) => t.propertyId === params.id);
+    setProperty(foundProperty);
+    setTenant(foundTenant);
+    console.log("Frontend: Found property data:", foundProperty);
+    console.log("Frontend: Found tenant data:", foundTenant);
+  }, [params.id]);
 
   if (!property) {
-    notFound();
+    return <div>Loading...</div>; // Or a proper not found component
   }
 
   const handleDelete = () => {
