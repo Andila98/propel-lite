@@ -1,3 +1,4 @@
+
 "use client"
 import { useState } from 'react';
 import { useForm, type SubmitHandler } from "react-hook-form";
@@ -76,7 +77,7 @@ export default function PriceSuggestionPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <Label htmlFor="address">Address</Label>
-                <Input id="address" {...register("address")} />
+                <Input id="address" {...register("address")} autoComplete="street-address" />
                 {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
               </div>
 

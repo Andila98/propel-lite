@@ -69,13 +69,13 @@ export default function AddTenantPage() {
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>
                         <Label htmlFor="name">Tenant Full Name</Label>
-                        <Input id="name" {...register("name")} />
+                        <Input id="name" {...register("name")} autoComplete="name" />
                         {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
                     </div>
 
                     <div>
                         <Label htmlFor="email">Tenant Email</Label>
-                        <Input id="email" type="email" {...register("email")} />
+                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
                         {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
                     </div>
 

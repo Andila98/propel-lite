@@ -197,7 +197,7 @@ export default function AddPropertyPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                   <Label htmlFor="address">Address</Label>
-                                  <Input id="address" {...register("address")} />
+                                  <Input id="address" {...register("address")} autoComplete="street-address" />
                                   {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
                               </div>
                                <div>
@@ -362,5 +362,3 @@ export default function AddPropertyPage() {
     </div>
   );
 }
-
-    
