@@ -3,31 +3,21 @@ import { type NextRequest, NextResponse } from 'next/server';
 import multer from 'multer';
 import { db, bucket, admin } from '@/lib/firebase-admin';
 
+const MAX_FILE_SIZE_MB = 20;
+
 // Initialize multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: MAX_FILE_SIZE_MB * 1024 * 1024,
   },
 });
 
-// Helper to promisify multer
-const runMiddleware = (
-  req: NextRequest,
-  fn: (
-    req: any,
-    res: any,
-    callback: (result: any) => void
-  ) => void
-): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    fn(req, new Response(), (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
+const isValidFile = (file: File) => {
+  const allowedTypes = ["image/", "video/"];
+  const isAllowedType = allowedTypes.some(type => file.type.startsWith(type));
+  const isWithinSize = file.size <= MAX_FILE_SIZE_MB * 1024 * 1024;
+  return isAllowedType && isWithinSize;
 };
 
 const getFolder = (mimetype: string) => {
@@ -56,6 +46,13 @@ export async function POST(req: NextRequest) {
       );
     }
     
+    if (!isValidFile(file)) {
+      return NextResponse.json(
+        { error: "Invalid file type or size exceeds limit." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     
     const folder = getFolder(file.type);
