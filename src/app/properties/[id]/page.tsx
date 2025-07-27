@@ -50,15 +50,14 @@ import { useEffect } from 'react';
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { id } = params;
-  const property = mockProperties.find((p) => p.id === id);
-  const tenant = mockTenants.find((t) => t.propertyId === id);
+  const property = mockProperties.find((p) => p.id === params.id);
+  const tenant = mockTenants.find((t) => t.propertyId === params.id);
 
   useEffect(() => {
-    console.log(`Frontend: PropertyDetailPage mounted for property ID: ${id}`);
+    console.log(`Frontend: PropertyDetailPage mounted for property ID: ${params.id}`);
     console.log("Frontend: Found property data:", property);
     console.log("Frontend: Found tenant data:", tenant);
-  }, [id, property, tenant]);
+  }, [params.id, property, tenant]);
 
   if (!property) {
     notFound();
