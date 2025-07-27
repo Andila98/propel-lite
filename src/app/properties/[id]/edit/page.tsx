@@ -222,13 +222,13 @@ export default function EditPropertyPage() {
                                   {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
                               </div>
                               <div>
-                                  <Label>Property Type</Label>
+                                  <Label htmlFor="propertyType">Property Type</Label>
                                   <Controller
                                       name="propertyType"
                                       control={control}
                                       render={({ field }) => (
                                           <Select onValueChange={(value) => handlePropertyTypeChange(value)} defaultValue={field.value}>
-                                          <SelectTrigger>
+                                          <SelectTrigger id="propertyType">
                                               <SelectValue placeholder="Select a type..." />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -279,13 +279,13 @@ export default function EditPropertyPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                   <div>
-                                    <Label>Unit Type</Label>
+                                    <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
                                     <Controller
                                       name={`units.${index}.unitType`}
                                       control={control}
                                       render={({ field }) => (
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                          <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                                          <SelectTrigger id={`units.${index}.unitType`}><SelectValue placeholder="Select type..." /></SelectTrigger>
                                           <SelectContent>
                                             <SelectItem value="studio">Studio</SelectItem>
                                             <SelectItem value="bedsitter">Bedsitter</SelectItem>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -67,14 +68,14 @@ export default function SmartMessagingPage() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label>Tenant</Label>
+                <Label htmlFor="tenantId">Tenant</Label>
                 <Controller
                   name="tenantId"
                   control={control}
                   rules={{ required: true }}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <SelectTrigger><SelectValue placeholder="Select a tenant..." /></SelectTrigger>
+                      <SelectTrigger id="tenantId"><SelectValue placeholder="Select a tenant..." /></SelectTrigger>
                       <SelectContent>
                         {mockTenants.map(tenant => (
                           <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
@@ -86,14 +87,14 @@ export default function SmartMessagingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Message Type</Label>
+                <Label htmlFor="reminderType">Message Type</Label>
                  <Controller
                   name="reminderType"
                   control={control}
                   rules={{ required: true }}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <SelectTrigger><SelectValue placeholder="Select a message type..." /></SelectTrigger>
+                      <SelectTrigger id="reminderType"><SelectValue placeholder="Select a message type..." /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="rentDue">Rent Due Reminder</SelectItem>
                         <SelectItem value="latePayment">Late Payment Notice</SelectItem>
@@ -133,7 +134,7 @@ export default function SmartMessagingPage() {
                {loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
               {result?.messageContent && (
                 <div className="relative">
-                  <Textarea value={result.messageContent} readOnly rows={10} className="bg-background"/>
+                  <Textarea id="generated-message" value={result.messageContent} readOnly rows={10} className="bg-background"/>
                   <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={handleCopy}>
                     <ClipboardCopy className="h-4 w-4" />
                   </Button>

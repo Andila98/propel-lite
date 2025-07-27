@@ -80,13 +80,13 @@ export default function AddTenantPage() {
                     </div>
 
                     <div>
-                        <Label>Property</Label>
+                        <Label htmlFor="propertyId">Property</Label>
                         <Controller
                             name="propertyId"
                             control={control}
                             render={({ field }) => (
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger>
+                                <SelectTrigger id="propertyId">
                                     <SelectValue placeholder="Select a property..." />
                                 </SelectTrigger>
                                 <SelectContent>
