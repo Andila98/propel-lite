@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn, Building, UserCog, Banknote } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 
@@ -74,6 +74,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <nav className="grid gap-2 text-lg font-medium">
                 <Link
                   href="/"
