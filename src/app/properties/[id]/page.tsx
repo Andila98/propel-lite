@@ -222,7 +222,7 @@ export default function PropertyDetailPage() {
                             </CardHeader>
                             <CardContent>
                             {tenant ? (
-                                <div className="space-y-4">
+                                <Link href={`/tenants/${tenant.id}`} className="space-y-4 block hover:bg-muted/50 p-4 rounded-lg">
                                   <div className="flex items-center gap-4">
                                     <Avatar className="h-12 w-12">
                                       <AvatarImage src={tenant.avatarUrl} alt={tenant.name} data-ai-hint="person portrait" />
@@ -242,7 +242,7 @@ export default function PropertyDetailPage() {
                                         </Badge>
                                     </div>
                                   </div>
-                                </div>
+                                </Link>
                             ) : (
                                 <p className="text-sm text-muted-foreground">This property is currently vacant.</p>
                             )}
