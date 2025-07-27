@@ -77,7 +77,11 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
         </TableHeader>
         <TableBody>
           {tenants.map((tenant) => (
-            <TableRow key={tenant.id}>
+            <TableRow 
+                key={tenant.id} 
+                onClick={() => handleViewDetails(tenant.id)} 
+                className="cursor-pointer"
+            >
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
@@ -96,25 +100,29 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <Button 
+                        variant="ghost" 
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                       <span className="sr-only">Open menu</span>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => handleViewDetails(tenant.id)}>
+                    <DropdownMenuItem onClick={(e) => {e.stopPropagation(); handleViewDetails(tenant.id)}}>
                       <Eye className="mr-2 h-4 w-4" />
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEdit(tenant.id)}>
+                    <DropdownMenuItem onClick={(e) => {e.stopPropagation(); handleEdit(tenant.id)}}>
                       <FilePenLine className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={() => setTenantToDelete(tenant)}
+                      onClick={(e) => {e.stopPropagation(); setTenantToDelete(tenant)}}
                     >
                        <Trash2 className="mr-2 h-4 w-4" />
                       Delete
