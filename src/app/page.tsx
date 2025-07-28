@@ -2,41 +2,36 @@
 "use client";
 
 import { Home, Users, Banknote, Building2, UserCheck, Activity, UserCog } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockProperties, mockTenants, mockPropertyManagers, mockActivities } from '@/lib/mock-data';
-import type { Property, Tenant, PropertyManager, ActivityItem } from '@/lib/types';
-import { TenantTable } from '@/components/tenant-table';
 import { cn } from '@/lib/utils';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel"
-import Autoplay from "embla-carousel-autoplay"
 import React, { useEffect } from 'react';
-import { BedDouble, Bath } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
+  ssr: false,
+  loading: () => <Skeleton className="h-80 w-full" />
+});
+const RecentActivities = dynamic(() => import('@/components/recent-activities').then(mod => mod.RecentActivities), { 
+  ssr: false,
+  loading: () => <Skeleton className="h-40 w-full" />
+});
+const TenantTable = dynamic(() => import('@/components/tenant-table').then(mod => mod.TenantTable), { 
+  ssr: false,
+  loading: () => <Skeleton className="h-64 w-full" />
+});
+const PropertyManagerList = dynamic(() => import('@/components/property-manager-list').then(mod => mod.PropertyManagerList), {
+  ssr: false,
+  loading: () => <Skeleton className="h-40 w-full" />
+});
 
 export default function DashboardPage() {
   const properties = mockProperties;
@@ -160,125 +155,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-function PropertiesCarousel({ properties }: { properties: Property[] }) {
-  const plugin = React.useRef(
-    Autoplay({ delay: 4000, stopOnInteraction: true })
-  )
-
-  return (
-    <Carousel 
-      opts={{ loop: true }}
-      plugins={[plugin.current]}
-      className="w-full"
-      onMouseEnter={plugin.current.stop}
-      onMouseLeave={plugin.current.reset}
-     >
-      <CarouselContent>
-        {properties.map((property) => (
-          <CarouselItem key={property.id}>
-              <Card className="overflow-hidden group">
-                <Link href={`/properties/${property.id}`} className="block">
-                  <div className="relative h-64 w-full">
-                    <Image
-                      src={property.imageUrl}
-                      alt={property.address}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
-                      data-ai-hint="apartment building"
-                    />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  </div>
-                  <CardHeader className="absolute bottom-0 text-white">
-                    <CardTitle className="text-xl">{property.address}</CardTitle>
-                    <CardDescription className="text-primary-foreground/80 capitalize">{property.propertyType}</CardDescription>
-                  </CardHeader>
-                </Link>
-                <CardFooter className="bg-muted/50 p-4 flex justify-between text-sm">
-                   <div className="flex items-center gap-2">
-                        <BedDouble className="h-4 w-4 text-muted-foreground" />
-                        <span>{property.bedrooms} Beds</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Bath className="h-4 w-4 text-muted-foreground" />
-                        <span>{property.bathrooms} Baths</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                         <Banknote className="h-4 w-4 text-muted-foreground" />
-                         <span>Ksh{property.rent.toLocaleString()}/mo</span>
-                    </div>
-                </CardFooter>
-              </Card>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-    </Carousel>
-  );
-}
-
-function PropertyManagerList({ managers }: { managers: PropertyManager[] }) {
-  const router = useRouter();
-
-  const handleRowClick = (managerId: string) => {
-    router.push(`/property-managers/${managerId}`);
-  };
-  return (
-    <div className="space-y-6">
-      {managers.map((manager) => (
-        <div key={manager.id} className="flex items-center cursor-pointer" onClick={() => handleRowClick(manager.id)}>
-          <Avatar className="h-9 w-9">
-             <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
-            <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div className="ml-4 space-y-1">
-            <p className="text-sm font-medium leading-none">{manager.name}</p>
-            <p className="text-sm text-muted-foreground">{manager.email}</p>
-          </div>
-          <div className="ml-auto font-medium">{manager.phone}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function RecentActivities({ activities }: { activities: ActivityItem[] }) {
-  const plugin = React.useRef(
-    Autoplay({ delay: 3000, stopOnInteraction: true })
-  )
-
-  const ICONS: { [key: string]: React.ReactElement } = {
-    'new-tenant': <UserCheck className="h-4 w-4" />,
-    'rent-paid': <Banknote className="h-4 w-4" />,
-    'lease-ending': <Home className="h-4 w-4" />,
-  };
-  return (
-     <Carousel 
-      plugins={[plugin.current]}
-      className="w-full"
-      onMouseEnter={plugin.current.stop}
-      onMouseLeave={plugin.current.reset}
-     >
-      <CarouselContent>
-        {activities.map((activity) => (
-          <CarouselItem key={activity.id}>
-            <div className="p-1">
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center p-6 gap-4">
-                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                      {ICONS[activity.type]}
-                    </div>
-                  <div className="text-center">
-                    <p className="text-sm">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{activity.date}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-    </Carousel>
-  );
-}
-
-    
