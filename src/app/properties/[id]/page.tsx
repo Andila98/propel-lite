@@ -4,8 +4,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { mockProperties, mockTenants } from '@/lib/mock-data';
-import type { Property, Tenant, Unit } from '@/lib/types';
+import { mockTenants } from '@/lib/mock-data';
+import type { Tenant, Unit } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,8 +35,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
-import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, FilePenLine, Trash2 } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, FilePenLine, Trash2, WifiOff } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -45,7 +44,8 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useEffect, useState } from 'react';
+import { useProperty } from '@/hooks/use-property';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PropertyDetailPage() {
   const router = useRouter();
@@ -53,17 +53,26 @@ export default function PropertyDetailPage() {
   const { toast } = useToast();
   const propertyId = params.id as string;
   
-  const property = mockProperties.find((p) => p.id === propertyId);
+  const { property, loading, error } = useProperty(propertyId);
+  // Fetch tenant associated with this property
   const tenant = mockTenants.find((t) => t.propertyId === propertyId);
 
-  useEffect(() => {
-    console.log(`Frontend: PropertyDetailPage mounted for property ID: ${propertyId}`);
-    console.log("Frontend: Found property data:", property);
-    console.log("Frontend: Found tenant data:", tenant);
-  }, [propertyId, property, tenant]);
+  if (loading) {
+    return <PropertyDetailSkeleton />;
+  }
+
+  if (error) {
+    return (
+        <div className="flex flex-col items-center justify-center h-64 text-center text-destructive">
+            <WifiOff className="h-8 w-8 mb-2" />
+            <p className="font-semibold">Failed to load property details</p>
+            <p className="text-sm">{error}</p>
+        </div>
+    );
+  }
 
   if (!property) {
-    return <div>Loading...</div>; // Or a proper not found component
+    return <div>Property not found.</div>;
   }
 
   const handleDelete = () => {
@@ -299,4 +308,31 @@ function UnitTable({ units }: { units: Unit[] }) {
   );
 }
 
-    
+function PropertyDetailSkeleton() {
+    return (
+        <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                    <div>
+                        <Skeleton className="h-8 w-64" />
+                        <Skeleton className="h-4 w-24 mt-2" />
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Skeleton className="h-9 w-24" />
+                    <Skeleton className="h-9 w-24" />
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <div className="md:col-span-3 lg:col-span-3">
+                    <Skeleton className="aspect-video w-full" />
+                </div>
+                <div className="md:col-span-3 lg:col-span-5">
+                    <Skeleton className="h-10 w-48" />
+                    <Skeleton className="h-96 w-full mt-4" />
+                </div>
+            </div>
+        </div>
+    )
+}

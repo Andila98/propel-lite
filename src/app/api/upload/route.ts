@@ -2,6 +2,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import multer from 'multer';
 import { db, bucket, admin } from '@/lib/firebase-admin';
+import type { Property, Unit } from '@/lib/types';
 
 const MAX_FILE_SIZE_MB = 20;
 
@@ -36,15 +37,16 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('media') as File | null;
-    const title = formData.get('title') as string | null;
-    const propertyName = formData.get('propertyName') as string | null;
+    const propertyDataString = formData.get('propertyData') as string | null;
 
-    if (!file || !title || !propertyName) {
+    if (!file || !propertyDataString) {
       return NextResponse.json(
-        { error: 'Missing title, propertyName or media file.' },
+        { error: 'Missing propertyData or media file.' },
         { status: 400, headers: corsHeaders }
       );
     }
+
+    const propertyData = JSON.parse(propertyDataString);
     
     if (!isValidFile(file)) {
       return NextResponse.json(
@@ -65,24 +67,42 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // We're using the public URL for simplicity here.
-    // For production apps, signed URLs are recommended for private content.
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
-    const docRef = await db.collection('mediaFiles').add({
-      title,
-      propertyName,
-      mediaType: folder,
-      mediaUrl: publicUrl,
+    // Now, save property data to Firestore
+    const totalRent = propertyData.units.reduce((acc: number, unit: Unit) => acc + unit.rent, 0);
+    const totalBedrooms = propertyData.units.reduce((acc: number, unit: Unit) => {
+        if (unit.unitType === 'one-bedroom') return acc + 1;
+        if (unit.unitType === 'two-bedroom') return acc + 2;
+        if (unit.unitType === 'three-bedroom') return acc + 3;
+        return acc;
+    }, 0);
+     const totalBathrooms = propertyData.units.reduce((acc: number, unit: Unit) => {
+        if (unit.unitType === 'one-bedroom' || unit.unitType === 'two-bedroom' || unit.unitType === 'three-bedroom') return acc + 1;
+        return acc;
+    }, 0);
+     const totalSquareFootage = propertyData.units.reduce((acc: number, unit: Unit) => acc + unit.squareFootage, 0);
+
+    const newProperty: Omit<Property, 'id'> = {
+      address: propertyData.address,
+      propertyType: propertyData.propertyType,
+      imageUrl: publicUrl,
+      rent: totalRent,
+      bedrooms: totalBedrooms,
+      bathrooms: totalBathrooms,
+      squareFootage: totalSquareFootage,
+      description: "Default description, please update.", // You might want to pass this from the form
+      units: propertyData.units,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    };
+
+    const docRef = await db.collection('properties').add(newProperty);
 
     return NextResponse.json({
       id: docRef.id,
-      title,
-      propertyName,
-      url: publicUrl,
+      ...newProperty,
     }, { headers: corsHeaders });
+
   } catch (error: any) {
     console.error('Upload failed:', error);
     return NextResponse.json(
@@ -101,5 +121,15 @@ export async function OPTIONS(request: NextRequest) {
 
 // This is not needed for App Router but good practice to have if you have GET, etc.
 export async function GET() {
-    return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405, headers: corsHeaders });
+    try {
+        const propertiesSnapshot = await db.collection('properties').orderBy('createdAt', 'desc').get();
+        const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return NextResponse.json(properties, { headers: corsHeaders });
+    } catch (error: any) {
+        console.error('Failed to fetch properties:', error);
+        return NextResponse.json(
+            { error: `Failed to fetch properties: ${error.message}` },
+            { status: 500, headers: corsHeaders }
+        );
+    }
 }

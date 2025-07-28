@@ -1,4 +1,5 @@
 
+import type { FieldValue } from 'firebase-admin/firestore';
 
 export interface Unit {
   unitType: 'one-bedroom' | 'two-bedroom' | 'three-bedroom' | 'bedsitter' | 'studio';
@@ -19,6 +20,7 @@ export interface Property {
   description: string;
   units?: Unit[];
   gallery?: string[];
+  createdAt?: FieldValue;
 }
 
 export interface Tenant {

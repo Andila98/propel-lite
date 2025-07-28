@@ -33,7 +33,7 @@ const PropertyFormSchema = z.object({
     required_error: "Please select a property type.",
   }),
   numberOfUnits: z.coerce.number().optional(),
-  units: z.array(UnitSchema).optional(),
+  units: z.array(UnitSchema).min(1, "Please add at least one unit."),
 });
 type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 
@@ -126,11 +126,10 @@ export default function AddPropertyPage() {
     }
     
     try {
-      console.log("Frontend: Starting image upload via API...");
+      console.log("Frontend: Starting property creation via API...");
       const formData = new FormData();
       formData.append('media', imageFile);
-      formData.append('title', data.address);
-      formData.append('propertyName', data.address);
+      formData.append('propertyData', JSON.stringify(data));
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -139,26 +138,22 @@ export default function AddPropertyPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+        throw new Error(errorData.error || 'Property creation failed');
       }
 
       const result = await response.json();
-      console.log("Frontend: Image uploaded successfully. URL:", result.url);
+      console.log("Frontend: Property created successfully:", result);
       
-      const propertyData = { ...data, imageUrl: result.url };
-      
-      console.log("Frontend: New property data with image URL:", propertyData);
-
       toast({
         title: "Property Added!",
-        description: "Your property has been successfully saved.",
+        description: "Your property has been successfully saved to Firestore.",
       });
       router.push('/properties');
 
     } catch (err: any) {
-        console.error("Frontend: Error during property creation or image upload:", err);
+        console.error("Frontend: Error during property creation:", err);
         toast({
-            title: "Upload Failed",
+            title: "Creation Failed",
             description: `There was an error saving your property: ${err.message}`,
             variant: "destructive"
         });
@@ -320,7 +315,8 @@ export default function AddPropertyPage() {
                                     Add Another Unit
                                 </Button>
                             )}
-                        </div>
+                          </div>
+                          {errors.units && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
                       </CardContent>
                     </Card>
                 </div>
