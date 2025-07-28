@@ -96,7 +96,7 @@ export default function AddPropertyPage() {
       handleUnitGeneration(1);
     } else if (type === 'house' || type === 'bedsitter') {
       setValue("numberOfUnits", 1);
-      const unitTypeMap = {
+      const unitTypeMap: { [key: string]: 'three-bedroom' | 'bedsitter' } = {
         'house': 'three-bedroom',
         'bedsitter': 'bedsitter',
       };
