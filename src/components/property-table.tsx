@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -42,34 +41,37 @@ export function PropertyTable({ properties, tenants }: PropertyTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {properties.map((prop) => (
-          <TableRow 
-            key={prop.id} 
-            onClick={() => handleRowClick(prop.id)}
-            className="cursor-pointer"
-          >
-            <TableCell>
-              <Image
-                src={prop.imageUrl}
-                alt={prop.address}
-                width={50}
-                height={50}
-                className="rounded-md object-cover"
-                data-ai-hint="apartment building"
-              />
-            </TableCell>
-            <TableCell className="font-medium">{prop.address}</TableCell>
-            <TableCell className="capitalize">{prop.propertyType}</TableCell>
-            <TableCell>${prop.rent.toLocaleString()}</TableCell>
-            <TableCell>
-              {isOccupied(prop.id) ? (
-                <Badge variant="secondary">Occupied</Badge>
-              ) : (
-                <Badge variant="outline">Vacant</Badge>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
+        {properties.map((prop) => {
+          const propertyImage = prop.imageUrl.startsWith('http') ? prop.imageUrl : `${window.location.origin}${prop.imageUrl}`;
+          return (
+            <TableRow 
+              key={prop.id} 
+              onClick={() => handleRowClick(prop.id)}
+              className="cursor-pointer"
+            >
+              <TableCell>
+                <Image
+                  src={propertyImage}
+                  alt={prop.address}
+                  width={50}
+                  height={50}
+                  className="rounded-md object-cover"
+                  data-ai-hint="apartment building"
+                />
+              </TableCell>
+              <TableCell className="font-medium">{prop.address}</TableCell>
+              <TableCell className="capitalize">{prop.propertyType}</TableCell>
+              <TableCell>${prop.rent.toLocaleString()}</TableCell>
+              <TableCell>
+                {isOccupied(prop.id) ? (
+                  <Badge variant="secondary">Occupied</Badge>
+                ) : (
+                  <Badge variant="outline">Vacant</Badge>
+                )}
+              </TableCell>
+            </TableRow>
+          )
+        })}
       </TableBody>
     </Table>
   );

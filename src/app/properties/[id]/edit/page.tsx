@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -120,7 +119,7 @@ export default function EditPropertyPage() {
       }
     } else if (type === 'house' || type === 'bedsitter') {
       setValue("numberOfUnits", 1);
-      const unitTypeMap = {
+      const unitTypeMap: { [key: string]: 'three-bedroom' | 'bedsitter' } = {
         'house': 'three-bedroom',
         'bedsitter': 'bedsitter',
       };
@@ -144,9 +143,11 @@ export default function EditPropertyPage() {
       if (imageFile) {
         console.log("Frontend: Starting image upload via API...");
         const formData = new FormData();
+        const landlordId = "user_12345";
+        const propertyData = { ...data, landlordId, propertyId: propertyId };
+        
         formData.append('media', imageFile);
-        formData.append('title', data.address);
-        formData.append('propertyName', data.address);
+        formData.append('propertyData', JSON.stringify(propertyData));
 
         const response = await fetch('/api/upload', {
           method: 'POST',
@@ -159,8 +160,8 @@ export default function EditPropertyPage() {
         }
 
         const result = await response.json();
-        console.log("Frontend: Image uploaded successfully. URL:", result.url);
-        finalImageUrl = result.url;
+        console.log("Frontend: Image uploaded successfully. URL:", result.imageUrl);
+        finalImageUrl = result.imageUrl;
       }
       
       const updatedPropertyData = { ...data, imageUrl: finalImageUrl };

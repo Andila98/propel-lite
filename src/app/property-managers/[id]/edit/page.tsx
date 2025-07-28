@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -87,8 +86,10 @@ export default function EditPropertyManagerPage() {
             console.log("Frontend: Starting manager avatar upload...");
             const formData = new FormData();
             formData.append('media', imageFile);
-            formData.append('title', `${data.name}'s Avatar`);
-            formData.append('propertyName', 'avatars'); // Or a generic folder
+            // We pass a dummy propertyData object as the API expects it.
+            const propertyData = { title: `${data.name}'s Avatar` };
+            formData.append('propertyData', JSON.stringify(propertyData));
+
 
             const response = await fetch('/api/upload', {
                 method: 'POST',
@@ -101,8 +102,8 @@ export default function EditPropertyManagerPage() {
             }
 
             const result = await response.json();
-            console.log("Frontend: Avatar uploaded successfully. URL:", result.url);
-            finalAvatarUrl = result.url;
+            console.log("Frontend: Avatar uploaded successfully. URL:", result.imageUrl);
+            finalAvatarUrl = result.imageUrl;
         }
 
         const updatedManagerData = { ...data, avatarUrl: finalAvatarUrl };
@@ -125,6 +126,8 @@ export default function EditPropertyManagerPage() {
         setLoading(false);
     }
   };
+  
+  const avatarImage = previewUrl?.startsWith('http') ? previewUrl : (previewUrl ? `${window.location.origin}${previewUrl}` : null);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -147,8 +150,8 @@ export default function EditPropertyManagerPage() {
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                         <div className="flex flex-col items-center gap-4">
                             <Avatar className="h-24 w-24">
-                                {previewUrl ? (
-                                    <AvatarImage src={previewUrl} alt={managerToEdit.name} data-ai-hint="person portrait" />
+                                {avatarImage ? (
+                                    <AvatarImage src={avatarImage} alt={managerToEdit.name} data-ai-hint="person portrait" />
                                 ): (
                                     <AvatarFallback className="text-3xl">
                                         {getInitials(managerToEdit.name)}

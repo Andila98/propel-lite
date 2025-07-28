@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -85,6 +84,8 @@ export default function PropertyDetailPage() {
     router.push('/properties');
   };
 
+  const propertyImage = property.imageUrl.startsWith('http') ? property.imageUrl : `${window.location.origin}${property.imageUrl}`;
+
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between gap-4">
@@ -133,7 +134,7 @@ export default function PropertyDetailPage() {
         <div className="md:col-span-3 lg:col-span-3">
              <Card className="overflow-hidden">
                 <Image
-                    src={property.imageUrl}
+                    src={propertyImage}
                     alt={property.address}
                     width={800}
                     height={500}
