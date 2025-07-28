@@ -1,8 +1,9 @@
 
 "use client"
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { mockPropertyManagers } from '@/lib/mock-data';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -28,6 +30,10 @@ export default function EditPropertyManagerPage() {
   const { toast } = useToast();
   const managerId = params.id as string;
   const managerToEdit = mockPropertyManagers.find(t => t.id === managerId);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(managerToEdit?.avatarUrl || null);
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<PropertyManagerFormValues>({
     resolver: zodResolver(PropertyManagerFormSchema),
@@ -45,6 +51,7 @@ export default function EditPropertyManagerPage() {
         email: managerToEdit.email,
         phone: managerToEdit.phone,
       });
+      setPreviewUrl(managerToEdit.avatarUrl);
     }
   }, [managerToEdit, form]);
 
@@ -53,15 +60,70 @@ export default function EditPropertyManagerPage() {
   }
 
   const { register, handleSubmit, formState: { errors } } = form;
+  
+  const getInitials = (name: string) => {
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[1][0]}`;
+    }
+    return name.substring(0, 2);
+  };
 
-  const onSubmit = (data: PropertyManagerFormValues) => {
-    // In a real app, you'd save this to the database.
-    console.log("Updated Manager data:", data);
-    toast({
-      title: "Manager Updated!",
-      description: "The manager's information has been successfully saved.",
-    });
-    router.push(`/property-managers/${managerId}`);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const onSubmit = async (data: PropertyManagerFormValues) => {
+    setLoading(true);
+    let finalAvatarUrl = managerToEdit?.avatarUrl;
+
+    try {
+        if (imageFile) {
+            console.log("Frontend: Starting manager avatar upload...");
+            const formData = new FormData();
+            formData.append('media', imageFile);
+            formData.append('title', `${data.name}'s Avatar`);
+            formData.append('propertyName', 'avatars'); // Or a generic folder
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const result = await response.json();
+            console.log("Frontend: Avatar uploaded successfully. URL:", result.url);
+            finalAvatarUrl = result.url;
+        }
+
+        const updatedManagerData = { ...data, avatarUrl: finalAvatarUrl };
+        console.log("Updated Manager data:", updatedManagerData);
+        
+        toast({
+        title: "Manager Updated!",
+        description: "The manager's information has been successfully saved.",
+        });
+        router.push(`/property-managers/${managerId}`);
+
+    } catch (err: any) {
+        console.error("Frontend: Error during manager update or avatar upload:", err);
+        toast({
+            title: "Update Failed",
+            description: `There was an error saving the manager: ${err.message}`,
+            variant: "destructive"
+        });
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -82,7 +144,23 @@ export default function EditPropertyManagerPage() {
                     <CardDescription>Modify the details for {managerToEdit.name}.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="flex flex-col items-center gap-4">
+                            <Avatar className="h-24 w-24">
+                                {previewUrl ? (
+                                    <AvatarImage src={previewUrl} alt={managerToEdit.name} data-ai-hint="person portrait" />
+                                ): (
+                                    <AvatarFallback className="text-3xl">
+                                        {getInitials(managerToEdit.name)}
+                                    </AvatarFallback>
+                                )}
+                            </Avatar>
+                             <div className="grid w-full max-w-sm items-center gap-1.5">
+                                <Label htmlFor="picture">Profile Picture</Label>
+                                <Input id="picture" type="file" accept="image/*" onChange={handleFileChange} />
+                            </div>
+                        </div>
+
                       <div>
                         <Label htmlFor="name">Full Name</Label>
                         <Input id="name" {...register("name")} autoComplete="name" />
@@ -102,7 +180,9 @@ export default function EditPropertyManagerPage() {
                       </div>
 
                       <div className="flex justify-end pt-4">
-                          <Button type="submit">Save Changes</Button>
+                          <Button type="submit" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
+                          </Button>
                       </div>
                     </form>
                 </CardContent>
