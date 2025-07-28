@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { mockPropertyManagers, mockProperties } from '@/lib/mock-data';
 import type { PropertyManager } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, ShieldCheck, FilePenLine, Trash2 } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
 import {
   Select,
@@ -24,9 +24,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function PropertyManagerDetailPage() {
+  const router = useRouter();
   const params = useParams();
+  const { toast } = useToast();
   const managerId = params.id as string;
   const manager = mockPropertyManagers.find((m) => m.id === managerId);
   const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
@@ -46,27 +60,67 @@ export default function PropertyManagerDetailPage() {
   const handleAccessLevelChange = (newLevel: "Full Manager" | "Limited Staff") => {
     // In a real app, you would also make an API call to save this change.
     setAccessLevel(newLevel);
-    // You could show a toast notification here to confirm the change.
+    toast({
+      title: "Access Level Updated",
+      description: `${manager.name}'s access level has been set to ${newLevel}.`
+    });
+  };
+
+  const handleDelete = () => {
+    console.log(`Deleting manager: ${manager.id}`);
+    toast({
+      title: "Manager Deleted",
+      description: `${manager.name} has been removed from your records.`,
+    });
+    router.push('/property-managers');
   };
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <div className="flex items-center gap-4">
-        <Link href="/property-managers">
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to Managers</span>
-          </Button>
-        </Link>
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
-            <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">{manager.name}</h2>
-            <p className="text-sm text-muted-foreground">Property Manager</p>
+          <Link href="/property-managers">
+            <Button variant="outline" size="icon" className="h-8 w-8">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="sr-only">Back to Managers</span>
+            </Button>
+          </Link>
+          <div className="flex items-center gap-4">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={manager.avatarUrl} alt={manager.name} data-ai-hint="person portrait" />
+              <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">{manager.name}</h2>
+              <p className="text-sm text-muted-foreground">Property Manager</p>
+            </div>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+            <Link href={`/property-managers/${manager.id}/edit`}>
+                 <Button variant="outline">
+                    <FilePenLine className="mr-2 h-4 w-4" /> Edit
+                </Button>
+            </Link>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete this manager and all associated data.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
       </div>
       
@@ -90,7 +144,7 @@ export default function PropertyManagerDetailPage() {
                 <div className="text-sm flex items-center gap-2">
                   <span>Access Level: </span>
                   <Select value={accessLevel} onValueChange={handleAccessLevelChange}>
-                    <SelectTrigger className="w-[150px] h-8">
+                    <SelectTrigger className="w-[150px] h-8" id="access-level-select">
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
                     <SelectContent>
@@ -119,5 +173,3 @@ export default function PropertyManagerDetailPage() {
     </div>
   );
 }
-
-    
