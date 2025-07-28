@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
 import { PlusCircle, Trash2, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 const UnitSchema = z.object({
   unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
@@ -32,6 +33,7 @@ const PropertyFormSchema = z.object({
   propertyType: z.enum(["apartment", "house", "bedsitter"], {
     required_error: "Please select a property type.",
   }),
+  description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
   numberOfUnits: z.coerce.number().optional(),
   units: z.array(UnitSchema).min(1, "Please add at least one unit."),
 });
@@ -52,6 +54,7 @@ export default function AddPropertyPage() {
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
       address: "",
+      description: "",
       units: [],
     },
   });
@@ -208,7 +211,7 @@ export default function AddPropertyPage() {
                                       name="propertyType"
                                       control={control}
                                       render={({ field }) => (
-                                          <Select onValueChange={(value) => handlePropertyTypeChange(value)} defaultValue={field.value}>
+                                          <Select onValueChange={(value) => { field.onChange(value); handlePropertyTypeChange(value); }} defaultValue={field.value}>
                                           <SelectTrigger id="propertyType">
                                               <SelectValue placeholder="Select a type..." />
                                           </SelectTrigger>
@@ -222,6 +225,12 @@ export default function AddPropertyPage() {
                                   />
                                   {errors.propertyType && <p className="text-sm text-destructive mt-1">{errors.propertyType.message}</p>}
                               </div>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="description">Property Description</Label>
+                                <Textarea id="description" {...register("description")} placeholder="e.g., A beautiful apartment with stunning views..." />
+                                {errors.description && <p className="text-sm text-destructive mt-1">{errors.description.message}</p>}
                             </div>
 
                             {propertyType === "apartment" && (

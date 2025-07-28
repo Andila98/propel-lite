@@ -1,9 +1,11 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import multer from 'multer';
 import { db, admin } from '@/lib/firebase-admin';
 import type { Property, Unit } from '@/lib/types';
 import path from 'path';
 import fs from 'fs';
+import { z } from 'zod';
 
 const uploadDir = path.join(process.cwd(), 'public/uploads');
 
@@ -26,6 +28,23 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Zod Schemas for server-side validation
+const UnitSchema = z.object({
+  unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"]),
+  rent: z.coerce.number().min(100),
+  squareFootage: z.coerce.number().min(100),
+  isAvailable: z.boolean().default(true),
+});
+
+const PropertyFormSchema = z.object({
+  address: z.string().min(5),
+  propertyType: z.enum(["apartment", "house", "bedsitter"]),
+  description: z.string().min(10, "Description must be at least 10 characters long."),
+  units: z.array(UnitSchema).min(1),
+  landlordId: z.string(), // Assuming landlordId is passed from the client
+});
+
+
 const runMiddleware = (req: any, res: any, fn: any) => {
   return new Promise((resolve, reject) => {
     fn(req, res, (result: any) => {
@@ -37,20 +56,28 @@ const runMiddleware = (req: any, res: any, fn: any) => {
   });
 };
 
+export async function OPTIONS(req: NextRequest) {
+    const res = new NextResponse(null, {
+        status: 204,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
+    return res;
+}
+
+
 export async function POST(req: NextRequest) {
   const res = new NextResponse();
 
   try {
-    // Because Next.js's request object is a stream, we need to convert it to something multer can handle.
-    // We can't use the standard `req` and `res` from Express/Node directly in App Router.
-    // This approach uses a middleware runner to adapt multer for Next.js App Router.
-    
     const tempReq: any = req;
     const tempRes: any = res;
 
     await runMiddleware(tempReq, tempRes, upload.single('media'));
 
-    // After multer has run, the file will be on tempReq.file
     const file = tempReq.file;
     const propertyDataString = tempReq.body.propertyData;
 
@@ -60,39 +87,54 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const propertyData = JSON.parse(propertyDataString);
     
-    // The public URL will be a local path
+    let propertyData;
+    try {
+        propertyData = JSON.parse(propertyDataString);
+    } catch(e) {
+        return NextResponse.json({ error: 'Invalid propertyData JSON.' }, { status: 400 });
+    }
+
+    // Server-side validation
+    const validationResult = PropertyFormSchema.safeParse(propertyData);
+    if (!validationResult.success) {
+        console.error("Server-side validation failed:", validationResult.error.flatten().fieldErrors);
+        return NextResponse.json(
+            { error: 'Invalid property data.', details: validationResult.error.flatten().fieldErrors },
+            { status: 400 }
+        );
+    }
+
+    const validatedData = validationResult.data;
+    
     const publicUrl = `/uploads/${file.filename}`;
 
-    // Now, save property data to Firestore
-    const totalRent = propertyData.units.reduce((acc: number, unit: Unit) => acc + (unit.rent || 0), 0);
-    const totalBedrooms = propertyData.units.reduce((acc: number, unit: Unit) => {
+    const totalRent = validatedData.units.reduce((acc: number, unit: Unit) => acc + (unit.rent || 0), 0);
+    const totalBedrooms = validatedData.units.reduce((acc: number, unit: Unit) => {
         const type = unit.unitType;
         if (type === 'one-bedroom') return acc + 1;
         if (type === 'two-bedroom') return acc + 2;
         if (type === 'three-bedroom') return acc + 3;
         return acc;
     }, 0);
-     const totalBathrooms = propertyData.units.reduce((acc: number, unit: Unit) => {
+     const totalBathrooms = validatedData.units.reduce((acc: number, unit: Unit) => {
         const type = unit.unitType;
         if (type === 'one-bedroom' || type === 'two-bedroom' || type === 'three-bedroom') return acc + 1;
         return acc;
     }, 0);
-     const totalSquareFootage = propertyData.units.reduce((acc: number, unit: Unit) => acc + (unit.squareFootage || 0), 0);
+     const totalSquareFootage = validatedData.units.reduce((acc: number, unit: Unit) => acc + (unit.squareFootage || 0), 0);
 
     const newProperty: Omit<Property, 'id'> = {
-      address: propertyData.address,
-      propertyType: propertyData.propertyType,
+      address: validatedData.address,
+      propertyType: validatedData.propertyType,
       imageUrl: publicUrl,
       rent: totalRent,
       bedrooms: totalBedrooms,
       bathrooms: totalBathrooms,
       squareFootage: totalSquareFootage,
-      description: "Default description, please update.",
-      units: propertyData.units,
-      landlordId: propertyData.landlordId,
+      description: validatedData.description,
+      units: validatedData.units,
+      landlordId: validatedData.landlordId,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -101,7 +143,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       id: docRef.id,
       ...newProperty,
-      imageUrl: publicUrl, // ensure local URL is returned
+      imageUrl: publicUrl,
     });
 
   } catch (error: any) {
