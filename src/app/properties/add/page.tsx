@@ -128,8 +128,11 @@ export default function AddPropertyPage() {
     try {
       console.log("Frontend: Starting property creation via API...");
       const formData = new FormData();
+      const landlordId = "user_12345"; // In a real app, get this from auth state
+      const propertyData = { ...data, landlordId };
+
       formData.append('media', imageFile);
-      formData.append('propertyData', JSON.stringify(data));
+      formData.append('propertyData', JSON.stringify(propertyData));
 
       const response = await fetch('/api/upload', {
         method: 'POST',

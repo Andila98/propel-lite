@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
       squareFootage: totalSquareFootage,
       description: "Default description, please update.", // You might want to pass this from the form
       units: propertyData.units,
+      landlordId: propertyData.landlordId,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 

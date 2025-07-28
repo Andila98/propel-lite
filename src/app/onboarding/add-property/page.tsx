@@ -128,9 +128,11 @@ export default function AddPropertyPage() {
     try {
       console.log("Frontend: Starting image upload via API (Onboarding)...");
       const formData = new FormData();
+      const landlordId = "user_12345"; // In a real app, get this from auth state
+      const propertyData = { ...data, landlordId };
+
       formData.append('media', imageFile);
-      formData.append('title', data.address);
-      formData.append('propertyName', data.address);
+      formData.append('propertyData', JSON.stringify(propertyData));
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -143,11 +145,9 @@ export default function AddPropertyPage() {
       }
 
       const result = await response.json();
-      console.log("Frontend: Image uploaded successfully. URL:", result.url);
+      console.log("Frontend: Image uploaded successfully. URL:", result.imageUrl);
       
-      const propertyData = { ...data, imageUrl: result.url };
-      
-      console.log("Frontend: Onboarding property data with image URL:", propertyData);
+      console.log("Frontend: Onboarding property data with image URL:", result);
       
       toast({
         title: "Property Added!",

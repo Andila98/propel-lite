@@ -21,6 +21,7 @@ export interface Property {
   units?: Unit[];
   gallery?: string[];
   createdAt?: FieldValue;
+  landlordId?: string;
 }
 
 export interface Tenant {
