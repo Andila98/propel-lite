@@ -39,9 +39,9 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function PropertyManagerDetailPage() {
   const router = useRouter();
-  const params = useParams();
+  const { id } = useParams();
   const { toast } = useToast();
-  const managerId = params.id as string;
+  const managerId = id as string;
   const manager = mockPropertyManagers.find((m) => m.id === managerId);
   const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
   

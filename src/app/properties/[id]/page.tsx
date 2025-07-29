@@ -49,9 +49,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PropertyDetailPage() {
   const router = useRouter();
-  const params = useParams();
+  const { id } = useParams();
   const { toast } = useToast();
-  const propertyId = params.id as string;
+  const propertyId = id as string;
   
   const { property, loading, error } = useProperty(propertyId);
   // Fetch tenant associated with this property

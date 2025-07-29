@@ -40,9 +40,9 @@ import type { Tenant, Property } from '@/lib/types';
 
 export default function TenantDetailPage() {
   const router = useRouter();
-  const params = useParams();
+  const { id } = useParams();
   const { toast } = useToast();
-  const tenantId = params.id as string;
+  const tenantId = id as string;
   const tenant = mockTenants.find((t) => t.id === tenantId);
   const property = tenant ? mockProperties.find((p) => p.id === tenant.propertyId) : undefined;
 

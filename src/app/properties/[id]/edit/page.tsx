@@ -41,9 +41,9 @@ type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 
 export default function EditPropertyPage() {
   const router = useRouter();
-  const params = useParams();
+  const { id } = useParams();
   const { toast } = useToast();
-  const propertyId = params.id as string;
+  const propertyId = id as string;
   const propertyToEdit = mockProperties.find(p => p.id === propertyId);
   
   const [imageFile, setImageFile] = useState<File | null>(null);

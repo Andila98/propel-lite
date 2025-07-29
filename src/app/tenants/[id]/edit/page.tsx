@@ -27,9 +27,9 @@ type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
 export default function EditTenantPage() {
   const router = useRouter();
-  const params = useParams();
+  const { id } = useParams();
   const { toast } = useToast();
-  const tenantId = params.id as string;
+  const tenantId = id as string;
   const tenantToEdit = mockTenants.find(t => t.id === tenantId);
   const properties = mockProperties;
 

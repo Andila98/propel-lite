@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -25,9 +26,9 @@ type PropertyManagerFormValues = z.infer<typeof PropertyManagerFormSchema>;
 
 export default function EditPropertyManagerPage() {
   const router = useRouter();
-  const params = useParams();
+  const { id } = useParams();
   const { toast } = useToast();
-  const managerId = params.id as string;
+  const managerId = id as string;
   const managerToEdit = mockPropertyManagers.find(t => t.id === managerId);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
