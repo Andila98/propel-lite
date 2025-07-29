@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
     const propertyDataString = tempReq.body.propertyData;
 
     if (!file || !propertyDataString) {
+      console.error("API Error: Missing propertyData or media file.");
       return NextResponse.json(
         { error: 'Missing propertyData or media file.' },
         { status: 400 }
@@ -92,13 +93,14 @@ export async function POST(req: NextRequest) {
     try {
         propertyData = JSON.parse(propertyDataString);
     } catch(e) {
+        console.error("API Error: Invalid propertyData JSON.", e);
         return NextResponse.json({ error: 'Invalid propertyData JSON.' }, { status: 400 });
     }
 
     // Server-side validation
     const validationResult = PropertyFormSchema.safeParse(propertyData);
     if (!validationResult.success) {
-        console.error("Server-side validation failed:", validationResult.error.flatten().fieldErrors);
+        console.error("API Error: Server-side validation failed:", validationResult.error.flatten().fieldErrors);
         return NextResponse.json(
             { error: 'Invalid property data.', details: validationResult.error.flatten().fieldErrors },
             { status: 400 }
@@ -139,6 +141,7 @@ export async function POST(req: NextRequest) {
     };
 
     const docRef = await db.collection('properties').add(newProperty);
+    console.log("API Info: Successfully created property with ID:", docRef.id);
 
     return NextResponse.json({
       id: docRef.id,
@@ -147,7 +150,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Upload failed:', error);
+    console.error('API Error: Upload failed:', error);
     return NextResponse.json(
       { error: `Upload failed: ${error.message}` },
       { status: 500 }
@@ -161,7 +164,7 @@ export async function GET() {
         const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(properties);
     } catch (error: any) {
-        console.error('Failed to fetch properties:', error);
+        console.error('API Error: Failed to fetch properties:', error);
         return NextResponse.json(
             { error: `Failed to fetch properties: ${error.message}` },
             { status: 500 }

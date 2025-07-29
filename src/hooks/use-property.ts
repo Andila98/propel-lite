@@ -12,9 +12,11 @@ export function useProperty(propertyId: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log(`Hook: useProperty mounting for propertyId: ${propertyId}`);
     if (!propertyId) {
         setLoading(false);
         setError("No property ID provided.");
+        console.warn("Hook Warn: useProperty called without a propertyId.");
         return;
     }
 
@@ -23,21 +25,27 @@ export function useProperty(propertyId: string) {
     const unsubscribe = onSnapshot(docRef, 
       (docSnap) => {
         if (docSnap.exists()) {
-          setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+          const fetchedProperty = { id: docSnap.id, ...docSnap.data() } as Property;
+          setProperty(fetchedProperty);
+          console.log(`Hook: Successfully fetched property:`, fetchedProperty);
         } else {
           setError("Property not found.");
           setProperty(null);
+          console.warn(`Hook Warn: Property with id ${propertyId} not found.`);
         }
         setLoading(false);
       },
       (err) => {
-        console.error("Failed to fetch property:", err);
+        console.error(`Hook Error: Failed to fetch property ${propertyId}:`, err);
         setError("Failed to connect to the database. Please check your connection.");
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      console.log(`Hook: useProperty unmounting for propertyId: ${propertyId}`);
+      unsubscribe();
+    }
   }, [propertyId]);
 
   return { property, loading, error };

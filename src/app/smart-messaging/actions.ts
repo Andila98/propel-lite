@@ -12,14 +12,17 @@ export async function generateMessageAction(input: {
   reminderType: 'rentDue' | 'latePayment' | 'maintenance';
 }): Promise<GenerateMessageState> {
   const { tenantId, reminderType } = input;
+  console.log("Backend: generateMessageAction called with input:", input);
 
   const tenant = mockTenants.find(t => t.id === tenantId);
   if (!tenant) {
+    console.error(`Backend Error: Tenant not found for ID: ${tenantId}`);
     return { error: "Tenant not found.", messageContent: "" };
   }
 
   const property = mockProperties.find(p => p.id === tenant.propertyId);
   if (!property) {
+    console.error(`Backend Error: Property not found for tenant with ID: ${tenantId}`);
     return { error: "Property not found for this tenant.", messageContent: "" };
   }
   
@@ -33,12 +36,14 @@ export async function generateMessageAction(input: {
   };
 
   try {
+    console.log("Backend: Calling generateMessageContent flow with:", aiInput);
     const result = await generateMessageContent(aiInput);
+    console.log("Backend: Message content generated successfully.");
     return result;
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Backend: Failed to generate message content:", error);
     return {
-      error: "Failed to generate message content.",
+      error: `Failed to generate message content: ${error.message}`,
       messageContent: "",
     };
   }

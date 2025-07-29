@@ -63,10 +63,11 @@ export default function PropertyDetailPage() {
 
   if (error) {
     return (
-        <div className="flex flex-col items-center justify-center h-64 text-center text-destructive">
-            <WifiOff className="h-8 w-8 mb-2" />
-            <p className="font-semibold">Failed to load property details</p>
-            <p className="text-sm">{error}</p>
+        <div className="flex flex-col items-center justify-center h-64 text-center text-destructive p-4">
+            <WifiOff className="h-12 w-12 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Failed to Load Property</h3>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button onClick={() => router.push('/properties')} className="mt-4">Go to Properties</Button>
         </div>
     );
   }

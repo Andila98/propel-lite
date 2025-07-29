@@ -144,6 +144,7 @@ export default function AddPropertyPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Frontend Error: Property creation failed with status", response.status, errorData);
         throw new Error(errorData.error || 'Property creation failed');
       }
 
@@ -152,7 +153,7 @@ export default function AddPropertyPage() {
       
       toast({
         title: "Property Added!",
-        description: "Your property has been successfully saved to Firestore.",
+        description: "Your property has been successfully saved.",
       });
       router.push('/properties');
 

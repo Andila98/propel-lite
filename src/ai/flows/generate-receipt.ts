@@ -67,14 +67,24 @@ const generateReceiptFlow = ai.defineFlow(
     outputSchema: GenerateReceiptOutputSchema,
   },
   async (input) => {
+    console.log("Backend: generateReceiptFlow received input:", input);
     const tenant = mockTenants.find(t => t.id === input.tenantId);
-    if (!tenant) throw new Error('Tenant not found');
+    if (!tenant) {
+        console.error(`Tenant not found for id: ${input.tenantId}`);
+        throw new Error('Tenant not found');
+    }
     
     const payment = tenant.paymentHistory.find(p => p.id === input.paymentId);
-    if (!payment) throw new Error('Payment not found');
+    if (!payment) {
+        console.error(`Payment not found for id: ${input.paymentId}`);
+        throw new Error('Payment not found');
+    }
     
     const property = mockProperties.find(p => p.id === tenant.propertyId);
-    if (!property) throw new Error('Property not found');
+    if (!property) {
+        console.error(`Property not found for id: ${tenant.propertyId}`);
+        throw new Error('Property not found');
+    }
 
     const promptInput = {
         tenantName: tenant.name,
@@ -85,7 +95,12 @@ const generateReceiptFlow = ai.defineFlow(
         currentDate: new Date().toISOString().split('T')[0],
     };
 
-    const {output} = await prompt(promptInput);
-    return output!;
+    try {
+        const {output} = await prompt(promptInput);
+        return output!;
+    } catch(error) {
+        console.error("Backend: Error executing generateReceiptPrompt:", error);
+        throw new Error("Failed to generate receipt from AI prompt.");
+    }
   }
 );

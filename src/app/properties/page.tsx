@@ -15,8 +15,10 @@ import { PropertyTable } from '@/components/property-table';
 import type { PropertyManager } from '@/lib/types';
 import { useProperties } from '@/hooks/use-properties';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 export default function PropertiesPage() {
+  const router = useRouter();
   const { properties, loading, error } = useProperties();
   const { tenants } = { tenants: [] }; // You might want to fetch tenants from Firestore too
 
@@ -31,16 +33,16 @@ export default function PropertiesPage() {
 
     if (error) {
       return (
-        <div className="flex flex-col items-center justify-center h-40 text-center text-destructive">
-            <WifiOff className="h-8 w-8 mb-2" />
-            <p className="font-semibold">Failed to load properties</p>
-            <p className="text-sm">{error}</p>
+        <div className="flex flex-col items-center justify-center h-40 text-center text-destructive p-4">
+            <WifiOff className="h-12 w-12 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Failed to Load Properties</h3>
+            <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       );
     }
     
     if (properties.length === 0) {
-        return <p className="text-center text-muted-foreground">No properties found. Add your first one!</p>
+        return <p className="text-center text-muted-foreground py-10">No properties found. Add your first one!</p>
     }
 
     return <PropertyTable properties={properties} tenants={tenants} />;

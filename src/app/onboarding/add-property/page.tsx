@@ -144,6 +144,7 @@ export default function AddPropertyPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Frontend Error: Upload failed with status", response.status, errorData);
         throw new Error(errorData.error || 'Upload failed');
       }
 

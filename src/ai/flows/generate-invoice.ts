@@ -75,10 +75,12 @@ const generateInvoiceFlow = ai.defineFlow(
     outputSchema: GenerateInvoiceOutputSchema,
   },
   async (input) => {
+    console.log("Backend: generateInvoiceFlow received input:", input);
     const tenant = mockTenants.find(t => t.id === input.tenantId);
     const property = mockProperties.find(p => p.id === input.propertyId);
 
     if (!tenant || !property) {
+      console.error(`Tenant or Property not found for tenantId: ${input.tenantId}, propertyId: ${input.propertyId}`);
       throw new Error('Tenant or Property not found');
     }
 
@@ -90,7 +92,12 @@ const generateInvoiceFlow = ai.defineFlow(
         currentDate: new Date().toISOString().split('T')[0],
     };
 
-    const {output} = await prompt(promptInput);
-    return output!;
+    try {
+        const {output} = await prompt(promptInput);
+        return output!;
+    } catch (error) {
+        console.error("Backend: Error executing generateInvoicePrompt:", error);
+        throw new Error("Failed to generate invoice from AI prompt.");
+    }
   }
 );

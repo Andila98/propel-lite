@@ -9,11 +9,13 @@ export interface ReceiptState {
 }
 
 export async function getReceiptAction(input: GenerateReceiptInput): Promise<ReceiptState> {
+  console.log("Frontend: getReceiptAction called with input:", input);
   try {
     const result = await generateReceipt(input);
+    console.log("Frontend: Receipt generated successfully:", result);
     return { receipt: result };
   } catch (error: any) {
-    console.error("Failed to generate receipt:", error);
+    console.error("Frontend: Failed to generate receipt:", error);
     return {
       error: `Failed to generate receipt: ${error.message}`,
     };

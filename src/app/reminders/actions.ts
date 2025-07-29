@@ -27,12 +27,17 @@ export interface ScheduleReminderState {
 export async function scheduleReminderAction(
   values: ScheduleReminderFormValues
 ): Promise<ScheduleReminderState> {
-  console.log("Scheduling reminder with values:", values);
-  // In a real app, you would save this to a database and have a cron job process it.
-  // For now, we'll just log it and return a success message.
-  return {
-    successMessage: `Reminder scheduled for ${values.tenantId} on ${values.scheduledFor}.`,
-  };
+  try {
+    console.log("Scheduling reminder with values:", values);
+    // In a real app, you would save this to a database and have a cron job process it.
+    // For now, we'll just log it and return a success message.
+    return {
+      successMessage: `Reminder scheduled for ${values.tenantId} on ${values.scheduledFor}.`,
+    };
+  } catch (error: any) {
+    console.error("Backend: Error in scheduleReminderAction", error);
+    return { error: `Failed to schedule reminder: ${error.message}` };
+  }
 }
 
 
@@ -44,11 +49,13 @@ export async function getReminderSuggestionAction(input: {
 
   const tenant = mockTenants.find(t => t.id === tenantId);
   if (!tenant) {
+    console.error(`Backend: Tenant not found for ID: ${tenantId}`);
     return { error: "Tenant not found." };
   }
 
   const property = mockProperties.find(p => p.id === tenant.propertyId);
   if (!property) {
+    console.error(`Backend: Property not found for tenant ID: ${tenantId}`);
     return { error: "Property not found for this tenant." };
   }
   
@@ -62,6 +69,7 @@ export async function getReminderSuggestionAction(input: {
   };
 
   try {
+    console.log("Backend: Generating message content for:", input);
     const messageResult = await generateMessageContent(messageInput);
 
     let invoiceResult: GenerateInvoiceOutput | undefined = undefined;
@@ -71,14 +79,15 @@ export async function getReminderSuggestionAction(input: {
             propertyId: property.id,
             dueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
         };
+        console.log("Backend: Generating invoice for:", invoiceInput);
         invoiceResult = await generateInvoice(invoiceInput);
     }
     
     return { suggestion: messageResult, invoice: invoiceResult };
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Backend: Failed to generate AI suggestions:", error);
     return {
-      error: "Failed to generate AI suggestions.",
+      error: `Failed to generate AI suggestions: ${error.message}`,
     };
   }
 }
@@ -90,6 +99,7 @@ export async function getScheduleSuggestionAction(input: {
     const { tenantId, reminderType } = input;
     const tenant = mockTenants.find(t => t.id === tenantId);
      if (!tenant) {
+        console.error(`Backend: Tenant not found for ID: ${tenantId}`);
         return { error: "Tenant not found." };
     }
     const scheduleInput: GenerateReminderScheduleInput = {
@@ -98,12 +108,13 @@ export async function getScheduleSuggestionAction(input: {
         rentDueDate: 1, // Assuming rent is due on the 1st
     };
      try {
+        console.log("Backend: Generating schedule suggestion for:", scheduleInput);
         const scheduleResult = await generateReminderSchedule(scheduleInput);
         return { suggestion: scheduleResult };
-    } catch (error) {
-        console.error(error);
+    } catch (error: any) {
+        console.error("Backend: Failed to generate schedule suggestion:", error);
         return {
-            error: "Failed to generate schedule suggestion.",
+            error: `Failed to generate schedule suggestion: ${error.message}`,
         };
     }
 }

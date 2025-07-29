@@ -12,6 +12,7 @@ export function useProperties() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("Hook: useProperties is mounting and fetching data.");
     const q = query(propertiesCollection, orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, 
@@ -22,16 +23,20 @@ export function useProperties() {
         });
         setProperties(props);
         setLoading(false);
+        console.log("Hook: Successfully fetched and set properties.", props.length);
       },
       (err) => {
-        console.error("Failed to fetch properties:", err);
+        console.error("Hook Error: Failed to fetch properties from Firestore:", err);
         setError("Failed to connect to the database. Please check your connection and try again.");
         setLoading(false);
       }
     );
 
     // Cleanup subscription on unmount
-    return () => unsubscribe();
+    return () => {
+        console.log("Hook: useProperties is unmounting.");
+        unsubscribe();
+    }
   }, []);
 
   return { properties, loading, error };
