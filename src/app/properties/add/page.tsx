@@ -250,6 +250,43 @@ export default function AddPropertyPage() {
                         )}
                       </CardContent>
                     </Card>
+                    <div className="space-y-6 lg:hidden">
+                      <Card>
+                          <CardHeader>
+                              <CardTitle>Property Image</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                              <div>
+                                  <Label htmlFor="imageFile">Upload Image</Label>
+                                  <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
+                              </div>
+                          </CardContent>
+                      </Card>
+                      <Card>
+                          <CardHeader>
+                              <CardTitle>Image Preview</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                  {previewUrl ? (
+                                      <Image
+                                          src={previewUrl}
+                                          alt="Property Preview"
+                                          width={800}
+                                          height={500}
+                                          className="object-contain w-full h-full"
+                                          data-ai-hint="apartment building"
+                                      />
+                                  ) : (
+                                      <div className="text-muted-foreground flex flex-col items-center">
+                                          <ImageIcon className="h-12 w-12" />
+                                          <p>Image preview will appear here</p>
+                                      </div>
+                                  )}
+                              </div>
+                          </CardContent>
+                      </Card>
+                    </div>
                     <div className="space-y-6">
                         {(propertyType && fields.length > 0) && <Separator />}
                         {fields.map((field, index) => (
@@ -326,15 +363,15 @@ export default function AddPropertyPage() {
                         {errors.units && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
                     </div>
                 </div>
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-2 space-y-8 hidden lg:block">
                      <Card>
                         <CardHeader>
                             <CardTitle>Property Image</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div>
-                                <Label htmlFor="imageFile">Upload Image</Label>
-                                <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
+                                <Label htmlFor="imageFileDesktop">Upload Image</Label>
+                                <Input id="imageFileDesktop" type="file" accept="image/*" onChange={handleFileChange} />
                             </div>
                         </CardContent>
                     </Card>

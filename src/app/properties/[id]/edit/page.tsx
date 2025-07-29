@@ -210,7 +210,7 @@ export default function EditPropertyPage() {
         </div>
         <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                <div className="lg:col-span-3">
+                <div className="lg:col-span-3 space-y-6">
                     <Card>
                       <CardHeader>
                         <CardDescription>Update the details for your property.</CardDescription>
@@ -262,96 +262,132 @@ export default function EditPropertyPage() {
                                 </div>
                             )}
                         </div>
-                        
-                        {(propertyType && fields.length > 0) && <Separator />}
-
-                        <div className="space-y-6">
-                            {fields.map((field, index) => (
-                              <div key={field.id} className="space-y-4 rounded-lg border p-4 relative">
-                                <div className="flex justify-between items-center">
-                                  <Label className="text-lg font-medium">
-                                    {propertyType === 'apartment' ? `Unit ${index + 1}` : 'Unit Details'}
-                                  </Label>
-                                  {propertyType === 'apartment' && (
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                  <div>
-                                    <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
-                                    <Controller
-                                      name={`units.${index}.unitType`}
-                                      control={control}
-                                      render={({ field }) => (
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                          <SelectTrigger id={`units.${index}.unitType`}><SelectValue placeholder="Select type..." /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="studio">Studio</SelectItem>
-                                            <SelectItem value="bedsitter">Bedsitter</SelectItem>
-                                            <SelectItem value="one-bedroom">One Bedroom</SelectItem>
-                                            <SelectItem value="two-bedroom">Two Bedroom</SelectItem>
-                                            <SelectItem value="three-bedroom">Three Bedroom</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      )}
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor={`units.${index}.rent`}>Monthly Rent (Ksh)</Label>
-                                    <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor={`units.${index}.squareFootage`}>Square Footage</Label>
-                                    <Input id={`units.${index}.squareFootage`} type="number" {...register(`units.${index}.squareFootage`)} />
-                                  </div>
-                                  <div className="flex flex-col justify-center space-y-2 pt-6">
-                                    <div className="flex items-center space-x-2">
-                                       <Controller
-                                        name={`units.${index}.isAvailable`}
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Switch
-                                                id={`units.${index}.isAvailable`}
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        )}
-                                        />
-                                      <Label htmlFor={`units.${index}.isAvailable`}>Available</Label>
-                                    </div>
-                                  </div>
-                                </div>
-                                 {errors.units?.[index] && (
-                                    <div className="text-sm text-destructive mt-2">
-                                       {errors.units[index]?.unitType && <p>{errors.units[index]?.unitType?.message}</p>}
-                                       {errors.units[index]?.rent && <p>{errors.units[index]?.rent?.message}</p>}
-                                       {errors.units[index]?.squareFootage && <p>{errors.units[index]?.squareFootage?.message}</p>}
-                                    </div>
-                                  )}
-                              </div>
-                            ))}
-                             {propertyType === 'apartment' && (
-                                <Button type="button" variant="outline" onClick={addUnit}>
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Add Another Unit
-                                </Button>
-                            )}
-                        </div>
                       </CardContent>
                     </Card>
+                    <div className="space-y-6 lg:hidden">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Property Image</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div>
+                                    <Label htmlFor="imageFile">Upload New Image</Label>
+                                    <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Image Preview</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                    {previewUrl ? (
+                                        <Image
+                                            src={previewUrl}
+                                            alt="Property Preview"
+                                            width={800}
+                                            height={500}
+                                            className="object-contain w-full h-full"
+                                            data-ai-hint="apartment building"
+                                        />
+                                    ) : (
+                                        <div className="text-muted-foreground flex flex-col items-center">
+                                            <ImageIcon className="h-12 w-12" />
+                                            <p>Image preview will appear here</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="space-y-6">
+                        {(propertyType && fields.length > 0) && <Separator />}
+                        {fields.map((field, index) => (
+                          <div key={field.id} className="space-y-4 rounded-lg border p-4 relative">
+                            <div className="flex justify-between items-center">
+                              <Label className="text-lg font-medium">
+                                {propertyType === 'apartment' ? `Unit ${index + 1}` : 'Unit Details'}
+                              </Label>
+                              {propertyType === 'apartment' && (
+                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                              <div>
+                                <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
+                                <Controller
+                                  name={`units.${index}.unitType`}
+                                  control={control}
+                                  render={({ field }) => (
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <SelectTrigger id={`units.${index}.unitType`}><SelectValue placeholder="Select type..." /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="studio">Studio</SelectItem>
+                                        <SelectItem value="bedsitter">Bedsitter</SelectItem>
+                                        <SelectItem value="one-bedroom">One Bedroom</SelectItem>
+                                        <SelectItem value="two-bedroom">Two Bedroom</SelectItem>
+                                        <SelectItem value="three-bedroom">Three Bedroom</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor={`units.${index}.rent`}>Monthly Rent (Ksh)</Label>
+                                <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
+                              </div>
+                              <div>
+                                <Label htmlFor={`units.${index}.squareFootage`}>Square Footage</Label>
+                                <Input id={`units.${index}.squareFootage`} type="number" {...register(`units.${index}.squareFootage`)} />
+                              </div>
+                              <div className="flex flex-col justify-center space-y-2 pt-6">
+                                <div className="flex items-center space-x-2">
+                                   <Controller
+                                    name={`units.${index}.isAvailable`}
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Switch
+                                            id={`units.${index}.isAvailable`}
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    )}
+                                    />
+                                  <Label htmlFor={`units.${index}.isAvailable`}>Available</Label>
+                                </div>
+                              </div>
+                            </div>
+                             {errors.units?.[index] && (
+                                <div className="text-sm text-destructive mt-2">
+                                   {errors.units[index]?.unitType && <p>{errors.units[index]?.unitType?.message}</p>}
+                                   {errors.units[index]?.rent && <p>{errors.units[index]?.rent?.message}</p>}
+                                   {errors.units[index]?.squareFootage && <p>{errors.units[index]?.squareFootage?.message}</p>}
+                                </div>
+                              )}
+                          </div>
+                        ))}
+                         {propertyType === 'apartment' && (
+                            <Button type="button" variant="outline" onClick={addUnit}>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Add Another Unit
+                            </Button>
+                        )}
+                    </div>
                 </div>
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-2 space-y-8 hidden lg:block">
                      <Card>
                         <CardHeader>
                             <CardTitle>Property Image</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div>
-                                <Label htmlFor="imageFile">Upload New Image</Label>
-                                <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
+                                <Label htmlFor="imageFileDesktop">Upload New Image</Label>
+                                <Input id="imageFileDesktop" type="file" accept="image/*" onChange={handleFileChange} />
                             </div>
                         </CardContent>
                     </Card>
