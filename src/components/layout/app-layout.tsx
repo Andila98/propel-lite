@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft } from "lucide-react"
+import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft, Settings } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 import {
   Sidebar,
@@ -35,6 +35,7 @@ const aiTools = [
 ]
 
 const utilityPages = [
+    { href: "/settings", label: "Settings", icon: Settings },
     { href: "/tenant-portal", label: "Tenant Portal", icon: Users },
     { href: "/login", label: "Logout", icon: LogIn },
 ]
@@ -96,7 +97,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 md:px-6 sticky top-0 z-30">
+        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sticky top-0 z-30 md:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="flex w-full items-center justify-center md:hidden">
             <Link
