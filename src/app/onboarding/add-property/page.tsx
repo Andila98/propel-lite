@@ -187,7 +187,7 @@ export default function AddPropertyPage() {
       <div className="w-full space-y-4">
         <Progress value={40} className="w-full" />
         <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-3">
                     <Card>
                       <CardHeader>
@@ -198,7 +198,7 @@ export default function AddPropertyPage() {
                         <div className="space-y-6">
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
+                              <div className="md:col-span-2">
                                   <Label htmlFor="address">Address</Label>
                                   <Input id="address" {...register("address")} autoComplete="street-address" />
                                   {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
@@ -362,7 +362,7 @@ export default function AddPropertyPage() {
                 </div>
             </div>
             <div className="mt-8">
-              <Button type="submit" className="w-full lg:w-auto" disabled={loading || !propertyType}>
+              <Button type="submit" className="w-full md:w-auto" disabled={loading || !propertyType}>
                  {loading ? <Loader2 className="animate-spin" /> : "Next: Add Property Manager"}
               </Button>
             </div>

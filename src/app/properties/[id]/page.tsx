@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -88,7 +89,7 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
             <Link href="/properties">
             <Button variant="outline" size="icon" className="h-8 w-8">
@@ -97,7 +98,7 @@ export default function PropertyDetailPage() {
             </Button>
             </Link>
             <div>
-                <h2 className="text-3xl font-bold tracking-tight">{property.address}</h2>
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{property.address}</h2>
                 <p className="text-sm text-muted-foreground capitalize">{property.propertyType}</p>
             </div>
         </div>
@@ -130,8 +131,8 @@ export default function PropertyDetailPage() {
         </div>
       </div>
         
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        <div className="md:col-span-3 lg:col-span-3">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
              <Card className="overflow-hidden">
                 <Image
                     src={propertyImage}
@@ -144,9 +145,9 @@ export default function PropertyDetailPage() {
             </Card>
         </div>
 
-        <div className="md:col-span-3 lg:col-span-5">
+        <div className="lg:col-span-5">
             <Tabs defaultValue="overview">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="gallery">Gallery</TabsTrigger>
                     <TabsTrigger value="occupancy">Occupancy</TabsTrigger>
@@ -165,7 +166,7 @@ export default function PropertyDetailPage() {
                                 <AccordionItem value="item-2">
                                     <AccordionTrigger className="text-lg font-semibold">Key Features</AccordionTrigger>
                                     <AccordionContent>
-                                        <div className="grid grid-cols-2 gap-4 text-sm pt-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm pt-2">
                                             <div className="flex items-center gap-2">
                                                 <Home className="h-4 w-4 text-muted-foreground" />
                                                 <span>Type: <span className="font-semibold capitalize">{property.propertyType}</span></span>
@@ -216,7 +217,7 @@ export default function PropertyDetailPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-48 border-2 border-dashed rounded-lg">
+                                <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-48 border-2 border-dashed rounded-lg p-4">
                                     <Camera className="h-8 w-8 mb-2" />
                                     <p>No gallery images have been added for this property yet.</p>
                                 </div>
@@ -325,11 +326,11 @@ function PropertyDetailSkeleton() {
                     <Skeleton className="h-9 w-24" />
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                <div className="md:col-span-3 lg:col-span-3">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-3">
                     <Skeleton className="aspect-video w-full" />
                 </div>
-                <div className="md:col-span-3 lg:col-span-5">
+                <div className="lg:col-span-5">
                     <Skeleton className="h-10 w-48" />
                     <Skeleton className="h-96 w-full mt-4" />
                 </div>

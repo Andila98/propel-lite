@@ -81,7 +81,7 @@ export default function PriceSuggestionPage() {
                 {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="squareFootage">Square Footage</Label>
                   <Input id="squareFootage" type="number" {...register("squareFootage")} />

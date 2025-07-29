@@ -191,7 +191,7 @@ export default function AddPropertyPage() {
             <h2 className="text-3xl font-bold tracking-tight">Add New Property</h2>
         </div>
         <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-3">
                     <Card>
                       <CardHeader>
@@ -200,7 +200,7 @@ export default function AddPropertyPage() {
                       <CardContent className="space-y-6">
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
+                              <div className="md:col-span-2">
                                   <Label htmlFor="address">Address</Label>
                                   <Input id="address" {...register("address")} autoComplete="street-address" />
                                   {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
@@ -267,7 +267,7 @@ export default function AddPropertyPage() {
                                   )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                   <div>
                                     <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
                                     <Controller

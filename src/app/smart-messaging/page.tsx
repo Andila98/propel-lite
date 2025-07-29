@@ -125,16 +125,16 @@ export default function SmartMessagingPage() {
         </Card>
 
         <div className="space-y-4">
-          <Card className="min-h-[400px]">
+          <Card className="min-h-[400px] flex flex-col">
             <CardHeader>
               <CardTitle>Generated Message</CardTitle>
               <CardDescription>Review and copy the AI-generated message content.</CardDescription>
             </CardHeader>
-            <CardContent>
-               {loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+            <CardContent className="flex-grow flex flex-col">
+               {loading && <div className="flex justify-center items-center flex-grow"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
               {result?.messageContent && (
-                <div className="relative">
-                  <Textarea id="generated-message" value={result.messageContent} readOnly rows={10} className="bg-background"/>
+                <div className="relative flex-grow">
+                  <Textarea id="generated-message" value={result.messageContent} readOnly rows={10} className="bg-background h-full resize-none"/>
                   <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={handleCopy}>
                     <ClipboardCopy className="h-4 w-4" />
                   </Button>

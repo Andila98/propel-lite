@@ -55,7 +55,7 @@ export default function WelcomePage() {
           <CardContent className="space-y-6">
             <RadioGroup 
               onValueChange={(value: 'landlord' | 'tenant') => setRole(value)}
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
             >
               <Label 
                 htmlFor="landlord"

@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -35,7 +36,7 @@ export default function TenantPortalPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-3 xl:col-span-1">
           <CardHeader>
             <CardTitle>Lease Details</CardTitle>
             <CardDescription>{property.address}</CardDescription>
@@ -63,7 +64,7 @@ export default function TenantPortalPage() {
           </CardFooter>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-3 xl:col-span-2">
           <CardHeader>
             <CardTitle>Payment History</CardTitle>
             <CardDescription>Your recent transaction records.</CardDescription>
