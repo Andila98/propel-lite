@@ -19,6 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Invoice } from '@/components/invoice';
+import type { GenerateInvoiceOutput } from '@/ai/flows/generate-invoice';
 
 const ScheduleReminderFormSchema = z.object({
   tenantId: z.string().min(1, "Tenant is required."),
@@ -31,6 +33,8 @@ export default function RemindersPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [suggestionResult, setSuggestionResult] = useState<ScheduleReminderState | null>(null);
+  const [scheduleSuggestion, setScheduleSuggestion] = useState<any>(null);
+  const [invoice, setInvoice] = useState<GenerateInvoiceOutput | null>(null);
   const [finalResult, setFinalResult] = useState<ScheduleReminderState | null>(null);
 
   const form = useForm<ScheduleReminderFormValues>({
@@ -50,6 +54,7 @@ export default function RemindersPage() {
         if (tenantId && reminderType) {
             setLoading(true);
             setSuggestionResult(null);
+            setInvoice(null);
             
             const messagePromise = getReminderSuggestionAction({ tenantId, reminderType });
             const schedulePromise = getScheduleSuggestionAction({ tenantId, reminderType });
@@ -58,12 +63,16 @@ export default function RemindersPage() {
 
             if (messageRes.suggestion?.messageContent) {
                 setValue('message', messageRes.suggestion.messageContent);
+                setSuggestionResult(messageRes);
+            }
+            if (messageRes.invoice) {
+              setInvoice(messageRes.invoice);
             }
             if (scheduleRes.suggestion?.reminderDate) {
                 setValue('scheduledFor', new Date(scheduleRes.suggestion.reminderDate));
+                setScheduleSuggestion(scheduleRes.suggestion)
             }
             
-            setSuggestionResult(scheduleRes);
             setLoading(false);
         }
     };
@@ -84,6 +93,9 @@ export default function RemindersPage() {
       toast({ title: "Success!", description: res.successMessage });
       setFinalResult(res);
       form.reset();
+      setInvoice(null);
+      setSuggestionResult(null);
+      setScheduleSuggestion(null);
     }
     setLoading(false);
   };
@@ -94,8 +106,8 @@ export default function RemindersPage() {
         <h2 className="text-3xl font-bold tracking-tight">Automated Reminders</h2>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
+        <Card className="md:col-span-2 lg:col-span-3">
           <CardHeader>
             <CardTitle>Schedule a Reminder</CardTitle>
             <CardDescription>Let AI help you draft and schedule reminders for your tenants.</CardDescription>
@@ -171,7 +183,7 @@ export default function RemindersPage() {
                     </Popover>
                     )}
                 />
-                 {suggestionResult?.suggestion?.reasoning && <p className="text-xs text-muted-foreground mt-1">AI Suggestion: {suggestionResult.suggestion.reasoning}</p>}
+                 {scheduleSuggestion?.reasoning && <p className="text-xs text-muted-foreground mt-1">AI Suggestion: {scheduleSuggestion.reasoning}</p>}
                  {form.formState.errors.scheduledFor && <p className="text-sm text-destructive mt-1">{form.formState.errors.scheduledFor.message}</p>}
               </div>
 
@@ -194,14 +206,28 @@ export default function RemindersPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="md:col-span-2 lg:col-span-2 space-y-4">
           <Card className="min-h-[400px]">
             <CardHeader>
-              <CardTitle>Confirmation</CardTitle>
-              <CardDescription>A confirmation will appear here once you schedule a reminder.</CardDescription>
+              <CardTitle>AI Preview</CardTitle>
+              <CardDescription>A confirmation or generated content will appear here.</CardDescription>
             </CardHeader>
             <CardContent>
                 {loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                
+                {invoice && reminderType === 'rentDue' && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Generated Invoice</h3>
+                    <Invoice invoice={invoice} />
+                  </div>
+                )}
+
+                {!loading && !invoice && !finalResult && (
+                    <div className="text-center text-muted-foreground pt-10">
+                        <p>Select a tenant and reminder type to see AI suggestions.</p>
+                    </div>
+                )}
+                
                 {finalResult?.successMessage && (
                     <div className="text-center text-green-600 space-y-4">
                         <CheckCircle className="h-16 w-16 mx-auto" />

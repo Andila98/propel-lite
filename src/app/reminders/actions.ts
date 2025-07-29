@@ -3,6 +3,7 @@
 
 import { generateMessageContent, type GenerateMessageContentInput } from "@/ai/flows/generate-message-content";
 import { generateReminderSchedule, type GenerateReminderScheduleInput } from "@/ai/flows/generate-reminder-schedule";
+import { generateInvoice, type GenerateInvoiceInput, type GenerateInvoiceOutput } from "@/ai/flows/generate-invoice";
 import { mockProperties, mockTenants } from "@/lib/mock-data";
 import { z } from "zod";
 
@@ -19,6 +20,7 @@ export interface ScheduleReminderState {
     suggestion?: {
         messageContent: string;
     };
+    invoice?: GenerateInvoiceOutput;
 }
 
 
@@ -61,11 +63,22 @@ export async function getReminderSuggestionAction(input: {
 
   try {
     const messageResult = await generateMessageContent(messageInput);
-    return { suggestion: messageResult };
+
+    let invoiceResult: GenerateInvoiceOutput | undefined = undefined;
+    if (reminderType === 'rentDue') {
+        const invoiceInput: GenerateInvoiceInput = {
+            tenantId: tenant.id,
+            propertyId: property.id,
+            dueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+        };
+        invoiceResult = await generateInvoice(invoiceInput);
+    }
+    
+    return { suggestion: messageResult, invoice: invoiceResult };
   } catch (error) {
     console.error(error);
     return {
-      error: "Failed to generate message content.",
+      error: "Failed to generate AI suggestions.",
     };
   }
 }
