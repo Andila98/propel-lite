@@ -24,6 +24,13 @@ export interface Property {
   landlordId?: string;
 }
 
+export interface Payment {
+  id: string;
+  date: string;
+  amount: number;
+  method: string;
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -32,7 +39,7 @@ export interface Tenant {
   leaseStartDate: string;
   leaseEndDate: string;
   rentStatus: 'Paid' | 'Overdue';
-  paymentHistory: { date: string; amount: number; method: string }[];
+  paymentHistory: Payment[];
   avatarUrl: string;
 }
 

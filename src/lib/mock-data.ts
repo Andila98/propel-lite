@@ -67,8 +67,8 @@ export const mockTenants: Tenant[] = [
     leaseEndDate: '2024-07-31',
     rentStatus: 'Paid',
     paymentHistory: [
-      { date: '2024-05-01', amount: 2800, method: 'ACH' },
-      { date: '2024-04-01', amount: 2800, method: 'ACH' },
+      { id: 'pay1', date: '2024-05-01', amount: 2800, method: 'ACH' },
+      { id: 'pay2', date: '2024-04-01', amount: 2800, method: 'ACH' },
     ],
     avatarUrl: 'https://placehold.co/100x100.png'
   },
@@ -81,8 +81,8 @@ export const mockTenants: Tenant[] = [
     leaseEndDate: '2024-06-14',
     rentStatus: 'Overdue',
     paymentHistory: [
-        { date: '2024-04-15', amount: 3500, method: 'Check' },
-        { date: '2024-03-15', amount: 3500, method: 'Check' },
+        { id: 'pay3', date: '2024-04-15', amount: 3500, method: 'Check' },
+        { id: 'pay4', date: '2024-03-15', amount: 3500, method: 'Check' },
     ],
     avatarUrl: 'https://placehold.co/100x100.png'
   },
