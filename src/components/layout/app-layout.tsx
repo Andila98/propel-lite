@@ -65,10 +65,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6 md:hidden">
+        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6 md:sticky md:top-0 md:z-10">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0">
+              <Button variant="outline" size="icon" className="shrink-0 md:hidden">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
@@ -97,26 +97,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 ))}
               </nav>
-                 <div className="mt-auto p-4">
+                 <div className="mt-auto">
                     <Link
                       href="/login"
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                        pathname === "/login" && "bg-muted text-primary"
+                        "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
+                        pathname === "/login" && "bg-muted text-foreground"
                       )}
                     >
-                      <LogIn className="h-4 w-4" />
+                      <LogIn className="h-5 w-5" />
                       Logout
                     </Link>
                 </div>
             </SheetContent>
           </Sheet>
-           <div className="flex items-center gap-2 font-semibold">
+           <div className="hidden md:flex items-center gap-2 font-semibold">
               <PropelLiteLogo className="h-6 w-6" />
               <span className="">RentEase</span>
             </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 bg-background">
+        <main className="flex flex-1 flex-col bg-background">
           {children}
         </main>
       </div>
