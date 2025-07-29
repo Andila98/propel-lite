@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
@@ -18,26 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
 import { PlusCircle, Trash2, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-
-const UnitSchema = z.object({
-  unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
-    required_error: "Please select a unit type.",
-  }),
-  rent: z.coerce.number().min(100, "Rent must be at least 100 Ksh."),
-  squareFootage: z.coerce.number().min(100, "Must be at least 100 sqft."),
-  isAvailable: z.boolean().default(true),
-});
-
-const PropertyFormSchema = z.object({
-  address: z.string().min(5, "Please enter a valid address."),
-  propertyType: z.enum(["apartment", "house", "bedsitter"], {
-    required_error: "Please select a property type.",
-  }),
-  description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
-  numberOfUnits: z.coerce.number().optional(),
-  units: z.array(UnitSchema).min(1, "Please add at least one unit."),
-});
-type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
+import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 
 export default function AddPropertyPage() {
   const router = useRouter();
@@ -293,9 +273,9 @@ export default function AddPropertyPage() {
                         {fields.map((field, index) => (
                           <Card key={field.id} className="p-4">
                             <div className="flex justify-between items-center mb-4">
-                              <Label className="text-lg font-medium">
+                              <h4 className="text-lg font-medium">
                                 {propertyType === 'apartment' ? `Unit ${index + 1}` : 'Unit Details'}
-                              </Label>
+                              </h4>
                               {propertyType === 'apartment' && (
                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
                                   <Trash2 className="h-4 w-4" />

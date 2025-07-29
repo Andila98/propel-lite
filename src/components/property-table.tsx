@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -41,9 +42,7 @@ export function PropertyTable({ properties, tenants }: PropertyTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {properties.map((prop) => {
-          const propertyImage = prop.imageUrl.startsWith('http') ? prop.imageUrl : `${window.location.origin}${prop.imageUrl}`;
-          return (
+        {properties.map((prop) => (
             <TableRow 
               key={prop.id} 
               onClick={() => handleRowClick(prop.id)}
@@ -51,7 +50,7 @@ export function PropertyTable({ properties, tenants }: PropertyTableProps) {
             >
               <TableCell>
                 <Image
-                  src={propertyImage}
+                  src={prop.imageUrl}
                   alt={prop.address}
                   width={50}
                   height={50}
@@ -61,7 +60,7 @@ export function PropertyTable({ properties, tenants }: PropertyTableProps) {
               </TableCell>
               <TableCell className="font-medium">{prop.address}</TableCell>
               <TableCell className="capitalize">{prop.propertyType}</TableCell>
-              <TableCell>${prop.rent.toLocaleString()}</TableCell>
+              <TableCell>Ksh{prop.rent.toLocaleString()}</TableCell>
               <TableCell>
                 {isOccupied(prop.id) ? (
                   <Badge variant="secondary">Occupied</Badge>
@@ -71,7 +70,7 @@ export function PropertyTable({ properties, tenants }: PropertyTableProps) {
               </TableCell>
             </TableRow>
           )
-        })}
+        )}
       </TableBody>
     </Table>
   );

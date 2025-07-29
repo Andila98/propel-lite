@@ -5,7 +5,7 @@ import { db, admin } from '@/lib/firebase-admin';
 import type { Property, Unit } from '@/lib/types';
 import path from 'path';
 import fs from 'fs';
-import { z } from 'zod';
+import { PropertyFormSchema } from '@/lib/schemas';
 
 const uploadDir = path.join(process.cwd(), 'public/media');
 
@@ -27,23 +27,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
-// Zod Schemas for server-side validation
-const UnitSchema = z.object({
-  unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"]),
-  rent: z.coerce.number().min(100),
-  squareFootage: z.coerce.number().min(100),
-  isAvailable: z.boolean().default(true),
-});
-
-const PropertyFormSchema = z.object({
-  address: z.string().min(5),
-  propertyType: z.enum(["apartment", "house", "bedsitter"]),
-  description: z.string().min(10, "Description must be at least 10 characters long."),
-  units: z.array(UnitSchema).min(1),
-  landlordId: z.string(), // Assuming landlordId is passed from the client
-});
-
 
 const runMiddleware = (req: any, res: any, fn: any) => {
   return new Promise((resolve, reject) => {
