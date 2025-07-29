@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/components/ui/sheet"
-import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn, Building, UserCog, Banknote } from "lucide-react"
+import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn, Building, UserCog, Banknote, CalendarClock } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 
 const navItems = [
@@ -17,6 +17,7 @@ const navItems = [
   { href: "/property-managers", label: "Managers", icon: UserCog },
   { href: "/price-suggestion", label: "Price Suggestion", icon: DollarSign },
   { href: "/smart-messaging", label: "Smart Messaging", icon: MessageCircle },
+  { href: "/reminders", label: "Reminders", icon: CalendarClock },
   { href: "/tenant-portal", label: "Tenant Portal", icon: Users },
 ];
 
@@ -65,7 +66,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6 lg:h-[60px] sticky top-0 z-30">
+        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 lg:h-[60px] sticky top-0 z-30">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -73,7 +74,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col p-0">
+            <SheetContent side="left" className="flex flex-col p-0 sm:max-w-xs">
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <div className="flex h-14 items-center border-b px-4">
                  <Link

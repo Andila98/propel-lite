@@ -10,9 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { mockTenants, mockProperties } from '@/lib/mock-data';
+import { mockTenants } from '@/lib/mock-data';
 import { generateMessageAction, type GenerateMessageState } from './actions';
-import type { Tenant, Property } from '@/lib/types';
 
 type MessageFormValues = {
   tenantId: string;
@@ -27,8 +26,6 @@ export default function SmartMessagingPage() {
   const { handleSubmit, control, watch } = useForm<MessageFormValues>();
   
   const selectedTenantId = watch('tenantId');
-  const selectedTenant = mockTenants.find(t => t.id === selectedTenantId);
-  const selectedProperty = selectedTenant ? mockProperties.find(p => p.id === selectedTenant.propertyId) : null;
 
   const onSubmit = async (data: MessageFormValues) => {
     setLoading(true);
@@ -104,19 +101,7 @@ export default function SmartMessagingPage() {
                   )}
                 />
               </div>
-
-              {selectedTenant && selectedProperty && (
-                <Card className="bg-muted/50">
-                  <CardHeader><CardTitle className="text-base">Contextual Data</CardTitle></CardHeader>
-                  <CardContent className="text-sm text-muted-foreground space-y-1">
-                    <p><strong>Tenant:</strong> {selectedTenant.name}</p>
-                    <p><strong>Property:</strong> {selectedProperty.address}</p>
-                    <p><strong>Rent:</strong> ${selectedProperty.rent.toLocaleString()}</p>
-                    <p><strong>Status:</strong> {selectedTenant.rentStatus}</p>
-                  </CardContent>
-                </Card>
-              )}
-
+              
               <Button type="submit" disabled={loading || !selectedTenantId} className="w-full">
                 {loading ? <Loader2 className="animate-spin" /> : <><Wand2 className="mr-2 h-4 w-4" /> Generate Message</>}
               </Button>
