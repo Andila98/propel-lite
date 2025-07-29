@@ -48,11 +48,11 @@ export default function DashboardPage() {
   const occupancyRate = (occupiedProperties.length / properties.length) * 100;
 
   return (
-    <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8">
+    <div className="flex flex-1 flex-col space-y-4 p-4 sm:p-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Landlord Dashboard</h2>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/properties">
           <Card className="hover:shadow-lg transition-shadow bg-background">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
