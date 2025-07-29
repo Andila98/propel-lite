@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn, Building, UserCog, Banknote } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 
@@ -33,7 +33,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="">RentEase</span>
             </Link>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               {navItems.map(({ href, label, icon: Icon }) => (
                 <Link
@@ -65,7 +65,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6 md:sticky md:top-0 md:z-10">
+        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6 lg:h-[60px] sticky top-0 z-30">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -73,47 +73,57 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
+            <SheetContent side="left" className="flex flex-col p-0">
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-              <nav className="grid gap-2 text-lg font-medium">
-                <Link
-                  href="/"
-                  className="flex items-center gap-2 text-lg font-semibold mb-4"
-                >
-                  <PropelLiteLogo className="h-6 w-6" />
-                  <span>RentEase</span>
-                </Link>
-                {navItems.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-                      pathname === href && "bg-muted text-foreground"
-                    )}
+              <div className="flex h-14 items-center border-b px-4">
+                 <Link
+                    href="/"
+                    className="flex items-center gap-2 font-semibold"
                   >
-                    <Icon className="h-5 w-5" />
-                    {label}
+                    <PropelLiteLogo className="h-6 w-6" />
+                    <span>RentEase</span>
                   </Link>
+              </div>
+              <nav className="grid gap-2 text-base font-medium p-4">
+                {navItems.map(({ href, label, icon: Icon }) => (
+                 <SheetClose asChild key={href}>
+                    <Link
+                        href={href}
+                        className={cn(
+                        "flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
+                        pathname === href && "bg-muted text-foreground"
+                        )}
+                    >
+                        <Icon className="h-5 w-5" />
+                        {label}
+                    </Link>
+                 </SheetClose>
                 ))}
               </nav>
-                 <div className="mt-auto">
-                    <Link
-                      href="/login"
-                      className={cn(
-                        "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-                        pathname === "/login" && "bg-muted text-foreground"
-                      )}
-                    >
-                      <LogIn className="h-5 w-5" />
-                      Logout
-                    </Link>
+                 <div className="mt-auto border-t p-4">
+                    <SheetClose asChild>
+                        <Link
+                        href="/login"
+                        className={cn(
+                            "flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
+                            pathname === "/login" && "bg-muted text-foreground"
+                        )}
+                        >
+                        <LogIn className="h-5 w-5" />
+                        Logout
+                        </Link>
+                    </SheetClose>
                 </div>
             </SheetContent>
           </Sheet>
-           <div className="hidden md:flex items-center gap-2 font-semibold">
-              <PropelLiteLogo className="h-6 w-6" />
-              <span className="">RentEase</span>
+           <div className="flex w-full items-center justify-center md:hidden">
+              <Link
+                href="/"
+                className="flex items-center gap-2 font-semibold"
+              >
+                <PropelLiteLogo className="h-6 w-6" />
+                <span className="text-lg">RentEase</span>
+              </Link>
             </div>
         </header>
         <main className="flex flex-1 flex-col bg-background">

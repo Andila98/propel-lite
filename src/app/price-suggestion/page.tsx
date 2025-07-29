@@ -62,9 +62,9 @@ export default function PriceSuggestionPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">AI Price Suggestion</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">AI Price Suggestion</h2>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
@@ -129,7 +129,7 @@ export default function PriceSuggestionPage() {
                 <>
                   <div>
                     <Label>Suggested Monthly Rent</Label>
-                    <p className="text-4xl font-bold text-primary">Ksh{result.suggestedPrice?.toLocaleString()}</p>
+                    <p className="text-3xl sm:text-4xl font-bold text-primary">Ksh{result.suggestedPrice?.toLocaleString()}</p>
                   </div>
                   <div>
                     <Label>Reasoning</Label>

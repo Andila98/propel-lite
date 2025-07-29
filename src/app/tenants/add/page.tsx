@@ -49,7 +49,7 @@ export default function AddTenantPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-6">
        <div className="flex items-center gap-4">
             <Link href="/tenants">
                 <Button variant="outline" size="icon" className="h-8 w-8">
@@ -57,7 +57,7 @@ export default function AddTenantPage() {
                     <span className="sr-only">Back to Tenants</span>
                 </Button>
             </Link>
-            <h2 className="text-3xl font-bold tracking-tight">Add New Tenant</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Add New Tenant</h2>
         </div>
         <div className="flex justify-center">
             <Card className="w-full max-w-2xl">
@@ -100,7 +100,7 @@ export default function AddTenantPage() {
                          {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                         <Label htmlFor="leaseStartDate">Lease Start Date</Label>
                         <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />

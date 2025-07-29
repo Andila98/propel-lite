@@ -66,7 +66,7 @@ export default function AddTenantPage() {
                 {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="leaseStartDate">Lease Start Date</Label>
                   <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />
@@ -79,7 +79,7 @@ export default function AddTenantPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <Link href="/onboarding/complete">
                   <Button variant="link">Skip for now</Button>
                 </Link>

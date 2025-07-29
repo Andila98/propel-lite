@@ -30,7 +30,7 @@ export default function RootLayout({
           rel="stylesheet"
         ></link>
       </head>
-      <body>
+      <body className="bg-background">
         {isAuthPage ? (
           <div className="bg-background">{children}</div>
         ) : (

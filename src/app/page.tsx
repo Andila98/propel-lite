@@ -45,12 +45,12 @@ export default function DashboardPage() {
 
   const totalRent = properties.reduce((acc, p) => acc + p.rent, 0);
   const occupiedProperties = tenants.map(t => t.propertyId);
-  const occupancyRate = (occupiedProperties.length / properties.length) * 100;
+  const occupancyRate = properties.length > 0 ? (occupiedProperties.length / properties.length) * 100 : 0;
 
   return (
-    <div className="flex flex-1 flex-col space-y-4 p-4 sm:p-6 md:p-8">
+    <div className="flex flex-1 flex-col space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Landlord Dashboard</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Landlord Dashboard</h2>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/properties">
