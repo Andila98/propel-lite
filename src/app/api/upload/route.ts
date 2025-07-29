@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
 
-const uploadDir = path.join(process.cwd(), 'public/uploads');
+const uploadDir = path.join(process.cwd(), 'public/media');
 
 // Ensure the upload directory exists
 if (!fs.existsSync(uploadDir)) {
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     const validatedData = validationResult.data;
     
-    const publicUrl = `/uploads/${file.filename}`;
+    const publicUrl = `/media/${file.filename}`;
 
     const totalRent = validatedData.units.reduce((acc: number, unit: Unit) => acc + (unit.rent || 0), 0);
     const totalBedrooms = validatedData.units.reduce((acc: number, unit: Unit) => {
