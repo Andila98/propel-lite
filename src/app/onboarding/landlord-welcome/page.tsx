@@ -17,7 +17,7 @@ export default function LandlordWelcomePage() {
   };
 
   return (
-    <div className="flex-1 p-4 md:p-8">
+    <div className="container mx-auto p-4 md:p-8">
       <div className="mx-auto max-w-2xl space-y-4">
         <Progress value={20} className="w-full" />
         <Card className="w-full text-center">
@@ -40,5 +40,7 @@ export default function LandlordWelcomePage() {
     </div>
   );
 }
+
+    
 
     

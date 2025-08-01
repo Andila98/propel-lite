@@ -53,12 +53,12 @@ export default function AddPropertyManagerPage() {
             </Link>
             <h2 className="text-3xl font-bold tracking-tight">Add New Manager</h2>
         </div>
-        <Card>
+        <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardDescription>Enter the details of the new property manager.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <Label htmlFor="name">Full Name</Label>
                 <Input id="name" {...register("name")} autoComplete="name" />
@@ -86,5 +86,7 @@ export default function AddPropertyManagerPage() {
     </div>
   );
 }
+
+    
 
     

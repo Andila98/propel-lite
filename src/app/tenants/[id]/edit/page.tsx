@@ -80,13 +80,13 @@ export default function EditTenantPage() {
             </Link>
             <h2 className="text-3xl font-bold tracking-tight">Edit Tenant</h2>
         </div>
-        <Card className="w-full">
+        <Card className="max-w-2xl mx-auto">
             <CardHeader>
                 <CardTitle>Update Tenant Information</CardTitle>
                 <CardDescription>Modify the details for {tenantToEdit.name}.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
@@ -142,5 +142,7 @@ export default function EditTenantPage() {
     </div>
   );
 }
+
+    
 
     

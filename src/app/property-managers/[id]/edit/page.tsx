@@ -141,13 +141,13 @@ export default function EditPropertyManagerPage() {
             </Link>
             <h2 className="text-3xl font-bold tracking-tight">Edit Manager</h2>
         </div>
-        <Card className="w-full">
+        <Card className="max-w-2xl mx-auto">
             <CardHeader>
                 <CardTitle>Update Manager Information</CardTitle>
                 <CardDescription>Modify the details for {managerToEdit.name}.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <div className="flex flex-col items-center gap-4 sm:flex-row">
                         <Avatar className="h-24 w-24">
                             {avatarImage ? (
@@ -193,5 +193,7 @@ export default function EditPropertyManagerPage() {
     </div>
   );
 }
+
+    
 
     

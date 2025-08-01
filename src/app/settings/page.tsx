@@ -76,7 +76,7 @@ export default function SettingsPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
       </div>
-      <Card>
+      <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle>Payment Methods</CardTitle>
           <CardDescription>
@@ -84,7 +84,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-4xl">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {/* M-Pesa Section */}
             <div className="space-y-4 p-6 border rounded-lg">
                 <div className="flex items-center justify-between">
@@ -157,5 +157,7 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
 
     
