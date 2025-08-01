@@ -17,8 +17,8 @@ export default function LandlordWelcomePage() {
   };
 
   return (
-    <div className="container mx-auto flex h-full max-w-2xl flex-col items-center justify-center p-4">
-      <div className="w-full space-y-4">
+    <div className="flex-1 p-4 md:p-8">
+      <div className="mx-auto max-w-2xl space-y-4">
         <Progress value={20} className="w-full" />
         <Card className="w-full text-center">
           <CardHeader>
@@ -40,3 +40,5 @@ export default function LandlordWelcomePage() {
     </div>
   );
 }
+
+    

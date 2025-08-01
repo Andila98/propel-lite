@@ -164,8 +164,8 @@ export default function AddPropertyPage() {
 
 
   return (
-    <div className="container mx-auto flex max-w-4xl flex-col items-center justify-center p-4">
-      <div className="w-full space-y-4">
+    <div className="flex-1 p-4 md:p-8">
+      <div className="mx-auto max-w-4xl space-y-4">
         <Progress value={40} className="w-full" />
         <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -353,3 +353,5 @@ export default function AddPropertyPage() {
     </div>
   );
 }
+
+    

@@ -43,8 +43,8 @@ export default function AddPropertyManagerPage() {
   };
 
   return (
-    <div className="container mx-auto flex max-w-2xl flex-col items-center justify-center p-4">
-      <div className="w-full space-y-4">
+    <div className="flex-1 p-4 md:p-8">
+      <div className="mx-auto max-w-2xl space-y-4">
         <Progress value={60} className="w-full" />
         <Card>
           <CardHeader>
@@ -84,3 +84,5 @@ export default function AddPropertyManagerPage() {
     </div>
   );
 }
+
+    

@@ -53,38 +53,38 @@ export default function AddPropertyManagerPage() {
             </Link>
             <h2 className="text-3xl font-bold tracking-tight">Add New Manager</h2>
         </div>
-        <div className="flex justify-center">
-            <Card className="w-full max-w-2xl">
-              <CardHeader>
-                <CardDescription>Enter the details of the new property manager.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" {...register("name")} autoComplete="name" />
-                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
-                  </div>
+        <Card>
+          <CardHeader>
+            <CardDescription>Enter the details of the new property manager.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+              <div>
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" {...register("name")} autoComplete="name" />
+                {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+              </div>
 
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                    {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
-                    {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
-                  </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+              </div>
+              
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
+                {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+              </div>
 
-                  <div className="flex justify-end pt-4">
-                    <Button type="submit">Add Manager</Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-        </div>
+              <div className="flex justify-end pt-4">
+                <Button type="submit">Add Manager</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
     </div>
   );
 }
+
+    

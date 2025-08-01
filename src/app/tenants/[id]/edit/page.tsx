@@ -80,67 +80,67 @@ export default function EditTenantPage() {
             </Link>
             <h2 className="text-3xl font-bold tracking-tight">Edit Tenant</h2>
         </div>
-        <div className="flex justify-center">
-            <Card className="w-full max-w-2xl">
-                <CardHeader>
-                    <CardTitle>Update Tenant Information</CardTitle>
-                    <CardDescription>Modify the details for {tenantToEdit.name}.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Card className="w-full">
+            <CardHeader>
+                <CardTitle>Update Tenant Information</CardTitle>
+                <CardDescription>Modify the details for {tenantToEdit.name}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+                <div>
+                    <Label htmlFor="name">Tenant Full Name</Label>
+                    <Input id="name" {...register("name")} autoComplete="name" />
+                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                </div>
+
+                <div>
+                    <Label htmlFor="email">Tenant Email</Label>
+                    <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                    {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                </div>
+
+                <div>
+                    <Label htmlFor="propertyId">Property</Label>
+                    <Controller
+                        name="propertyId"
+                        control={control}
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger id="propertyId">
+                                <SelectValue placeholder="Select a property..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {properties.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        )}
+                    />
+                     {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <Label htmlFor="name">Tenant Full Name</Label>
-                        <Input id="name" {...register("name")} autoComplete="name" />
-                        {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                    <Label htmlFor="leaseStartDate">Lease Start Date</Label>
+                    <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />
+                    {errors.leaseStartDate && <p className="text-sm text-destructive mt-1">{errors.leaseStartDate.message}</p>}
                     </div>
-
                     <div>
-                        <Label htmlFor="email">Tenant Email</Label>
-                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                    <Label htmlFor="leaseEndDate">Lease End Date</Label>
+                    <Input id="leaseEndDate" type="date" {...register("leaseEndDate")} />
+                    {errors.leaseEndDate && <p className="text-sm text-destructive mt-1">{errors.leaseEndDate.message}</p>}
                     </div>
+                </div>
 
-                    <div>
-                        <Label htmlFor="propertyId">Property</Label>
-                        <Controller
-                            name="propertyId"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger id="propertyId">
-                                    <SelectValue placeholder="Select a property..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {properties.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                            )}
-                        />
-                         {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                        <Label htmlFor="leaseStartDate">Lease Start Date</Label>
-                        <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />
-                        {errors.leaseStartDate && <p className="text-sm text-destructive mt-1">{errors.leaseStartDate.message}</p>}
-                        </div>
-                        <div>
-                        <Label htmlFor="leaseEndDate">Lease End Date</Label>
-                        <Input id="leaseEndDate" type="date" {...register("leaseEndDate")} />
-                        {errors.leaseEndDate && <p className="text-sm text-destructive mt-1">{errors.leaseEndDate.message}</p>}
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                        <Button type="submit">Save Changes</Button>
-                    </div>
-                    </form>
-                </CardContent>
-            </Card>
-      </div>
+                <div className="flex justify-end pt-4">
+                    <Button type="submit">Save Changes</Button>
+                </div>
+                </form>
+            </CardContent>
+        </Card>
     </div>
   );
 }
+
+    

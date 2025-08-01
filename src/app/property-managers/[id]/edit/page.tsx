@@ -141,57 +141,57 @@ export default function EditPropertyManagerPage() {
             </Link>
             <h2 className="text-3xl font-bold tracking-tight">Edit Manager</h2>
         </div>
-        <div className="flex justify-center">
-            <Card className="w-full max-w-2xl">
-                <CardHeader>
-                    <CardTitle>Update Manager Information</CardTitle>
-                    <CardDescription>Modify the details for {managerToEdit.name}.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="flex flex-col items-center gap-4">
-                            <Avatar className="h-24 w-24">
-                                {avatarImage ? (
-                                    <AvatarImage src={avatarImage} alt={managerToEdit.name} data-ai-hint="person portrait" />
-                                ): (
-                                    <AvatarFallback className="text-3xl">
-                                        {getInitials(managerToEdit.name)}
-                                    </AvatarFallback>
-                                )}
-                            </Avatar>
-                             <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label htmlFor="picture">Profile Picture</Label>
-                                <Input id="picture" type="file" accept="image/*" onChange={handleFileChange} />
-                            </div>
+        <Card className="w-full">
+            <CardHeader>
+                <CardTitle>Update Manager Information</CardTitle>
+                <CardDescription>Modify the details for {managerToEdit.name}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+                    <div className="flex flex-col items-center gap-4 sm:flex-row">
+                        <Avatar className="h-24 w-24">
+                            {avatarImage ? (
+                                <AvatarImage src={avatarImage} alt={managerToEdit.name} data-ai-hint="person portrait" />
+                            ): (
+                                <AvatarFallback className="text-3xl">
+                                    {getInitials(managerToEdit.name)}
+                                </AvatarFallback>
+                            )}
+                        </Avatar>
+                         <div className="grid w-full max-w-sm items-center gap-1.5">
+                            <Label htmlFor="picture">Profile Picture</Label>
+                            <Input id="picture" type="file" accept="image/*" onChange={handleFileChange} />
                         </div>
+                    </div>
 
-                      <div>
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input id="name" {...register("name")} autoComplete="name" />
-                        {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
-                      </div>
+                  <div>
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" {...register("name")} autoComplete="name" />
+                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                  </div>
 
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
-                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
-                      </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                    {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
+                    {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                  </div>
 
-                      <div className="flex justify-end pt-4">
-                          <Button type="submit" disabled={loading}>
-                            {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
-                          </Button>
-                      </div>
-                    </form>
-                </CardContent>
-            </Card>
-      </div>
+                  <div className="flex justify-end pt-4">
+                      <Button type="submit" disabled={loading}>
+                        {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
+                      </Button>
+                  </div>
+                </form>
+            </CardContent>
+        </Card>
     </div>
   );
 }
+
+    
