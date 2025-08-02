@@ -18,6 +18,6 @@ export const PropertyFormSchema = z.object({
   description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
   numberOfUnits: z.coerce.number().optional(),
   units: z.array(UnitSchema).min(1, "Please add at least one unit."),
-  landlordId: z.string().optional(),
+  landlordId: z.string().optional(), // Should be set on the server
 });
 export type PropertyFormValues = z.infer<typeof PropertyFormSchema>;

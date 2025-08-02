@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       squareFootage: totalSquareFootage,
       description: validatedData.description,
       units: validatedData.units,
-      landlordId: validatedData.landlordId,
+      landlordId: "user_12345", // Mock landlordId
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
