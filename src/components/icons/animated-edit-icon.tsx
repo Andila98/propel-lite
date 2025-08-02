@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from 'react';
 import { useEffect } from 'react';
 
 // Define the type for the custom element
