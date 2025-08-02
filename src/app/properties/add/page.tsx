@@ -87,7 +87,7 @@ export default function AddPropertyPage() {
       };
       const newUnits = [{
         unitType: unitTypeMap[type],
-        rent: 1500,
+        rent: type === 'house' ? 3500 : 1500,
         squareFootage: type === 'house' ? 1200 : 400,
         isAvailable: true,
       }];
@@ -124,13 +124,14 @@ export default function AddPropertyPage() {
         body: formData,
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Frontend Error: Property creation failed with status", response.status, errorData);
-        throw new Error(errorData.error || 'Property creation failed');
+        console.error("Frontend Error: Property creation failed with status", response.status, result);
+        const errorDetails = result.details ? Object.values(result.details).flat().join(', ') : result.error;
+        throw new Error(errorDetails || 'Property creation failed');
       }
 
-      const result = await response.json();
       console.log("Frontend: Property created successfully:", result);
       
       toast({
@@ -229,6 +230,7 @@ export default function AddPropertyPage() {
                                         handleUnitGeneration(num);
                                     }}
                                 />
+                                {errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{errors.numberOfUnits.message}</p>}
                             </div>
                         )}
                       </CardContent>
@@ -343,7 +345,7 @@ export default function AddPropertyPage() {
                                 Add Another Unit
                             </Button>
                         )}
-                        {errors.units && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
+                        {errors.units && typeof errors.units.message === 'string' && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
                     </div>
                 </div>
                 <div className="lg:col-span-2 space-y-8 hidden lg:block">

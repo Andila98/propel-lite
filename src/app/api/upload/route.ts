@@ -6,6 +6,7 @@ import type { Property, Unit } from '@/lib/types';
 import path from 'path';
 import fs from 'fs';
 import { PropertyFormSchema } from '@/lib/schemas';
+import { randomBytes } from 'crypto';
 
 const uploadDir = path.join(process.cwd(), 'public/media');
 
@@ -20,8 +21,9 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
+    const randomSuffix = randomBytes(8).toString('hex');
     const fileExtension = path.extname(file.originalname);
-    const fileName = `${Date.now()}${fileExtension}`;
+    const fileName = `${Date.now()}-${randomSuffix}${fileExtension}`;
     cb(null, fileName);
   },
 });

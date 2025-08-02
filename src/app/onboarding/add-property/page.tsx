@@ -123,14 +123,13 @@ export default function AddPropertyPage() {
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Frontend Error: Upload failed with status", response.status, errorData);
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
       const result = await response.json();
-      console.log("Frontend: Image uploaded successfully. URL:", result.imageUrl);
+
+      if (!response.ok) {
+        console.error("Frontend Error: Upload failed with status", response.status, result);
+        const errorDetails = result.details ? Object.values(result.details).flat().join(', ') : result.error;
+        throw new Error(errorDetails || 'Upload failed');
+      }
       
       console.log("Frontend: Onboarding property data with image URL:", result);
       
@@ -262,6 +261,7 @@ export default function AddPropertyPage() {
                                         handleUnitGeneration(num);
                                     }}
                                 />
+                                 {errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{errors.numberOfUnits.message}</p>}
                             </CardContent>
                         </Card>
                     )}
@@ -327,9 +327,7 @@ export default function AddPropertyPage() {
                             </div>
                              {errors.units?.[index] && (
                                 <div className="text-sm text-destructive mt-2">
-                                   {errors.units[index]?.unitType && <p>{errors.units[index]?.unitType?.message}</p>}
-                                   {errors.units[index]?.rent && <p>{errors.units[index]?.rent?.message}</p>}
-                                   {errors.units[index]?.squareFootage && <p>{errors.units[index]?.squareFootage?.message}</p>}
+                                   {Object.values(errors.units[index]).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
                                 </div>
                               )}
                           </Card>
@@ -340,7 +338,7 @@ export default function AddPropertyPage() {
                                 Add Another Unit
                             </Button>
                         )}
-                        {errors.units && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
+                        {errors.units && typeof errors.units.message === 'string' && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
                     </div>
                 </div>
             </div>
