@@ -19,6 +19,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from "@/components/ui/sidebar"
+import { AnimatedRemindersIcon } from "../icons/animated-reminders-icon"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -31,7 +32,7 @@ const navItems = [
 const aiTools = [
   { href: "/price-suggestion", label: "Price Suggestion", icon: DollarSign },
   { href: "/smart-messaging", label: "Smart Messaging", icon: MessageCircle },
-  { href: "/reminders", label: "Reminders", icon: CalendarClock },
+  { href: "/reminders", label: "Reminders", icon: AnimatedRemindersIcon },
 ]
 
 const utilityPages = [
