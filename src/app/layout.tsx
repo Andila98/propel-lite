@@ -30,7 +30,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         ></link>
-        <script src="https://animatedicons.co/scripts/embed-animated-icons.js"></script>
+        
       </head>
       <body className="bg-background">
         {isAuthPage ? (
