@@ -33,8 +33,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye, FilePenLine, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Eye, FilePenLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
 
 export function PropertyManagerTable({ managers }: { managers: PropertyManager[] }) {
   const router = useRouter();
@@ -120,7 +121,7 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
                       className="text-destructive"
                       onClick={(e) => {e.stopPropagation(); setManagerToDelete(manager)}}
                     >
-                       <Trash2 className="mr-2 h-4 w-4" />
+                       <AnimatedDeleteIcon />
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>

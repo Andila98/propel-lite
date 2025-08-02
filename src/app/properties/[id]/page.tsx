@@ -35,7 +35,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, Trash2, WifiOff } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, WifiOff } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -47,6 +47,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProperty } from '@/hooks/use-property';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
+import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 
 export default function PropertyDetailPage() {
   const router = useRouter();
@@ -113,7 +114,7 @@ export default function PropertyDetailPage() {
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        <AnimatedDeleteIcon /> Delete
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

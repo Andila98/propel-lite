@@ -34,10 +34,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Mail, Phone, CalendarDays, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, CalendarDays } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
+import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 
 export default function TenantDetailPage() {
   const router = useRouter();
@@ -90,7 +91,7 @@ export default function TenantDetailPage() {
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        <AnimatedDeleteIcon /> Delete
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

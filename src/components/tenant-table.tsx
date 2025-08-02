@@ -32,9 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye, FilePenLine, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Eye, FilePenLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Tenant, Property } from '@/lib/types';
+import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
 
 export function TenantTable({ tenants, properties }: { tenants: Tenant[], properties: Property[] }) {
   const router = useRouter();
@@ -124,7 +125,7 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
                       className="text-destructive"
                       onClick={(e) => {e.stopPropagation(); setTenantToDelete(tenant)}}
                     >
-                       <Trash2 className="mr-2 h-4 w-4" />
+                       <AnimatedDeleteIcon />
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>

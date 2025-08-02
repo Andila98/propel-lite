@@ -15,7 +15,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Mail, Phone, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
 import {
   Select,
@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
+import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 
 export default function PropertyManagerDetailPage() {
   const router = useRouter();
@@ -106,7 +107,7 @@ export default function PropertyManagerDetailPage() {
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        <AnimatedDeleteIcon /> Delete
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

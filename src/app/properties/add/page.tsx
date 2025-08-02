@@ -15,9 +15,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Trash2, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
+import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 
 export default function AddPropertyPage() {
   const router = useRouter();
@@ -278,7 +279,7 @@ export default function AddPropertyPage() {
                               </h4>
                               {propertyType === 'apartment' && (
                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
-                                  <Trash2 className="h-4 w-4" />
+                                  <AnimatedDeleteIcon />
                                 </Button>
                               )}
                             </div>
