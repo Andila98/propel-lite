@@ -33,9 +33,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye, FilePenLine } from 'lucide-react';
+import { MoreHorizontal, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
+import { AnimatedEditIcon } from './icons/animated-edit-icon';
 
 export function PropertyManagerTable({ managers }: { managers: PropertyManager[] }) {
   const router = useRouter();
@@ -113,7 +114,7 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
                       View Details
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={(e) => {e.stopPropagation(); handleEdit(manager.id)}}>
-                      <FilePenLine className="mr-2 h-4 w-4" />
+                      <AnimatedEditIcon />
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
