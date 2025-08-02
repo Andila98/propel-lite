@@ -35,7 +35,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, FilePenLine, Trash2, WifiOff } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, Trash2, WifiOff } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -46,6 +46,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProperty } from '@/hooks/use-property';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 
 export default function PropertyDetailPage() {
   const router = useRouter();
@@ -106,7 +107,7 @@ export default function PropertyDetailPage() {
         <div className="flex items-center gap-2">
             <Link href={`/properties/${property.id}/edit`}>
                  <Button variant="outline">
-                    <FilePenLine className="mr-2 h-4 w-4" /> Edit
+                    <AnimatedEditIcon /> Edit
                 </Button>
             </Link>
             <AlertDialog>

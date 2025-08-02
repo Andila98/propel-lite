@@ -15,7 +15,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Mail, Phone, ShieldCheck, FilePenLine, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, ShieldCheck, Trash2 } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
 import {
   Select,
@@ -36,6 +36,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 
 export default function PropertyManagerDetailPage() {
   const router = useRouter();
@@ -99,7 +100,7 @@ export default function PropertyManagerDetailPage() {
         <div className="flex items-center gap-2">
             <Link href={`/property-managers/${manager.id}/edit`}>
                  <Button variant="outline">
-                    <FilePenLine className="mr-2 h-4 w-4" /> Edit
+                    <AnimatedEditIcon /> Edit
                 </Button>
             </Link>
             <AlertDialog>
