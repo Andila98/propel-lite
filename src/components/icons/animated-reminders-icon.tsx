@@ -34,7 +34,7 @@ export function AnimatedRemindersIcon() {
   return (
     <div style={{ width: '16px', height: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
       <animated-icons
-        src="https://animatedicons.co/get-icon?name=alarm&style=minimalistic&token=86e24606-25f0-4663-82ff-3e5f49d4e5f7"
+        src="https://animatedicons.co/get-icon?name=bell&style=minimalistic&token=c1352b7b-2e14-4124-b8fd-a064d7e44225"
         trigger="hover"
         attributes='{"variationThumbColour":"#536DFE","variationName":"Two Tone","variationNumber":2,"numberOfGroups":2,"backgroundIsGroup":false,"strokeWidth":1,"defaultColours":{"group-1":"#000000","group-2":"#536DFE","background":"#FFFFFF"}}'
         height="16"
