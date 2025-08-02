@@ -48,6 +48,7 @@ import { useProperty } from '@/hooks/use-property';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
+import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 
 export default function PropertyDetailPage() {
   const router = useRouter();
@@ -96,7 +97,7 @@ export default function PropertyDetailPage() {
         <div className="flex items-center gap-4">
             <Link href="/properties">
             <Button variant="outline" size="icon" className="h-8 w-8">
-                <ArrowLeft className="h-4 w-4" />
+                <AnimatedBackIcon />
                 <span className="sr-only">Back to Properties</span>
             </Button>
             </Link>

@@ -15,7 +15,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { Mail, Phone, ShieldCheck } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
 import {
   Select,
@@ -38,6 +38,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
+import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 
 export default function PropertyManagerDetailPage() {
   const router = useRouter();
@@ -83,7 +84,7 @@ export default function PropertyManagerDetailPage() {
         <div className="flex items-center gap-4">
           <Link href="/property-managers">
             <Button variant="outline" size="icon" className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
+              <AnimatedBackIcon />
               <span className="sr-only">Back to Managers</span>
             </Button>
           </Link>

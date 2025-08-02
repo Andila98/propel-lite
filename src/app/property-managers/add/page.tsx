@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -47,7 +47,7 @@ export default function AddPropertyManagerPage() {
        <div className="flex items-center gap-4">
             <Link href="/property-managers">
                 <Button variant="outline" size="icon" className="h-8 w-8">
-                    <ArrowLeft className="h-4 w-4" />
+                    <AnimatedBackIcon />
                     <span className="sr-only">Back to Property Managers</span>
                 </Button>
             </Link>
@@ -86,7 +86,3 @@ export default function AddPropertyManagerPage() {
     </div>
   );
 }
-
-    
-
-    

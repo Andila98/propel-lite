@@ -15,10 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
+import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 
 export default function AddPropertyPage() {
   const router = useRouter();
@@ -166,7 +167,7 @@ export default function AddPropertyPage() {
         <div className="flex items-center gap-4">
             <Link href="/properties">
                 <Button variant="outline" size="icon" className="h-8 w-8">
-                    <ArrowLeft className="h-4 w-4" />
+                    <AnimatedBackIcon />
                     <span className="sr-only">Back to Properties</span>
                 </Button>
             </Link>

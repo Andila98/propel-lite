@@ -34,11 +34,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Mail, Phone, CalendarDays } from 'lucide-react';
+import { Mail, Phone, CalendarDays } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
+import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 
 export default function TenantDetailPage() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function TenantDetailPage() {
         <div className="flex items-center gap-4">
           <Link href="/tenants">
             <Button variant="outline" size="icon" className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
+              <AnimatedBackIcon />
               <span className="sr-only">Back to Tenants</span>
             </Button>
           </Link>
