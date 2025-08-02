@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Home, Users, Banknote, Building2, UserCheck, Activity, UserCog } from 'lucide-react';
+import { Home, Banknote, Building2, UserCheck, Activity, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import {
   Card,
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AnimatedUsersIcon } from '@/components/icons/animated-users-icon';
 
 const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
   ssr: false,
@@ -75,7 +76,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium">
                 Total Tenants
               </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <AnimatedUsersIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{tenants.length}</div>

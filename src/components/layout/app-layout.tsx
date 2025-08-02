@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Menu, LayoutDashboard, DollarSign, MessageCircle, Users, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft, Settings } from "lucide-react"
+import { Menu, LayoutDashboard, DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft, Settings } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 import {
   Sidebar,
@@ -18,11 +18,12 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from "@/components/ui/sidebar"
+import { AnimatedUsersIcon } from "../icons/animated-users-icon"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/properties", label: "Properties", icon: Building },
-  { href: "/tenants", label: "Tenants", icon: Users },
+  { href: "/tenants", label: "Tenants", icon: AnimatedUsersIcon },
   { href: "/payments", label: "Payments", icon: Banknote },
   { href: "/property-managers", label: "Managers", icon: UserCog },
 ];
@@ -35,7 +36,7 @@ const aiTools = [
 
 const utilityPages = [
     { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/tenant-portal", label: "Tenant Portal", icon: Users },
+    { href: "/tenant-portal", label: "Tenant Portal", icon: AnimatedUsersIcon },
     { href: "/login", label: "Logout", icon: LogIn },
 ]
 
