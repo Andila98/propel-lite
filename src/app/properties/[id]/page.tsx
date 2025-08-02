@@ -35,7 +35,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Square, BedDouble, Bath, Home, ArrowLeft, Camera, WifiOff } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, Camera, WifiOff } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,

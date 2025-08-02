@@ -16,11 +16,14 @@ import type { PropertyManager } from '@/lib/types';
 import { useProperties } from '@/hooks/use-properties';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
+import { mockTenants } from '@/lib/mock-data';
 
 export default function PropertiesPage() {
   const router = useRouter();
   const { properties, loading, error } = useProperties();
-  const { tenants } = { tenants: [] }; // You might want to fetch tenants from Firestore too
+  
+  // In a real app, you'd fetch tenants from Firestore too
+  const tenants = mockTenants; 
 
   // In a real app, you'd get the current user's role from your auth context/session.
   // We'll simulate a "Full Manager" role for demonstration.

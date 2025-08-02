@@ -2,8 +2,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { Property } from '@/lib/types';
 
 export function useProperty(propertyId: string) {
@@ -12,40 +10,34 @@ export function useProperty(propertyId: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log(`Hook: useProperty mounting for propertyId: ${propertyId}`);
     if (!propertyId) {
-        setLoading(false);
-        setError("No property ID provided.");
-        console.warn("Hook Warn: useProperty called without a propertyId.");
-        return;
+      setLoading(false);
+      setError("No property ID provided.");
+      return;
     }
-
-    const docRef = doc(db, 'properties', propertyId);
-
-    const unsubscribe = onSnapshot(docRef, 
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const fetchedProperty = { id: docSnap.id, ...docSnap.data() } as Property;
-          setProperty(fetchedProperty);
-          console.log(`Hook: Successfully fetched property:`, fetchedProperty);
-        } else {
-          setError("Property not found.");
-          setProperty(null);
-          console.warn(`Hook Warn: Property with id ${propertyId} not found.`);
+    
+    const fetchProperty = async () => {
+        try {
+            console.log(`Hook: useProperty fetching data for propertyId: ${propertyId}`);
+            const response = await fetch(`/api/properties/${propertyId}`);
+            if (!response.ok) {
+                if(response.status === 404) {
+                    throw new Error("Property not found.");
+                }
+                throw new Error('Failed to fetch property details.');
+            }
+            const data = await response.json();
+            setProperty(data);
+            console.log(`Hook: Successfully fetched property:`, data);
+        } catch (err: any) {
+             console.error(`Hook Error: Failed to fetch property ${propertyId}:`, err);
+            setError(err.message || "An unknown error occurred.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-      },
-      (err) => {
-        console.error(`Hook Error: Failed to fetch property ${propertyId}:`, err);
-        setError("Failed to connect to the database. Please check your connection.");
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      console.log(`Hook: useProperty unmounting for propertyId: ${propertyId}`);
-      unsubscribe();
     }
+
+    fetchProperty();
   }, [propertyId]);
 
   return { property, loading, error };

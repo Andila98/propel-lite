@@ -46,7 +46,7 @@ export async function OPTIONS(req: NextRequest) {
         status: 204,
         headers: {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
     });
@@ -141,18 +141,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-    try {
-        const propertiesSnapshot = await db.collection('properties').orderBy('createdAt', 'desc').get();
-        const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        return NextResponse.json(properties);
-    } catch (error: any) {
-        console.error('API Error: Failed to fetch properties:', error);
-        return NextResponse.json(
-            { error: `Failed to fetch properties: ${error.message}` },
-            { status: 500 }
-        );
-    }
 }
