@@ -7,6 +7,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 import Script from 'next/script';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const metadata: Metadata = {
   title: 'RentEase',
@@ -33,14 +34,21 @@ export default function RootLayout({
         
       </head>
       <body className="bg-background">
-        {isAuthPage ? (
-          <div className="bg-background">{children}</div>
-        ) : (
-          <AppLayout>
-            {children}
-          </AppLayout>
-        )}
-        <Toaster />
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            {isAuthPage ? (
+            <div className="bg-background">{children}</div>
+            ) : (
+            <AppLayout>
+                {children}
+            </AppLayout>
+            )}
+            <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

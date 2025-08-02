@@ -19,6 +19,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar"
 import { AnimatedUsersIcon } from "../icons/animated-users-icon"
+import { ThemeToggle } from "../theme-toggle"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -99,14 +100,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sticky top-0 z-30 md:px-6">
           <SidebarTrigger className="md:hidden" />
-          <div className="flex w-full items-center justify-center md:hidden">
-            <Link
-              href="/"
-              className="flex items-center gap-2 font-semibold"
-            >
-              <PropelLiteLogo className="h-6 w-6" />
-              <span className="text-lg">RentEase</span>
-            </Link>
+          <div className="flex w-full items-center justify-end">
+            <ThemeToggle />
           </div>
         </header>
         <main className="flex flex-1 flex-col bg-background">
