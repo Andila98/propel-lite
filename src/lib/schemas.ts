@@ -1,6 +1,11 @@
 
 import { z } from "zod";
 
+export const DocumentSchema = z.object({
+  name: z.string(),
+  url: z.string().url(),
+});
+
 export const UnitSchema = z.object({
   unitNumber: z.string().min(1, "Unit number is required."),
   unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
@@ -9,6 +14,8 @@ export const UnitSchema = z.object({
   rent: z.coerce.number().positive("Rent must be a positive number."),
   squareFootage: z.coerce.number().positive("Square footage must be a positive number."),
   isAvailable: z.boolean().default(true),
+  gallery: z.array(z.string().url()).optional(),
+  documents: z.array(DocumentSchema).optional(),
 });
 
 export const PropertyFormSchema = z.object({

@@ -15,13 +15,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Image as ImageIcon, Loader2, Upload } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, Loader2, Upload, Paperclip } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import Papa from 'papaparse';
 import type { Unit } from '@/lib/types';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function AddPropertyPage() {
   const router = useRouter();
@@ -403,12 +404,26 @@ export default function AddPropertyPage() {
                                   <Label htmlFor={`units.${index}.isAvailable`}>Available</Label>
                                 </div>
                             </div>
+                            <Collapsible className="mt-4">
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="link" className="p-0 h-auto">
+                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Images/Documents
+                                    </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="space-y-4 pt-4">
+                                     <div>
+                                        <Label htmlFor={`unit-gallery-${index}`}>Unit Images</Label>
+                                        <Input id={`unit-gallery-${index}`} type="file" multiple accept="image/*" />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor={`unit-docs-${index}`}>Unit Documents</Label>
+                                        <Input id={`unit-docs-${index}`} type="file" multiple accept=".pdf,.doc,.docx" />
+                                    </div>
+                                </CollapsibleContent>
+                            </Collapsible>
                              {errors.units?.[index] && (
                                 <div className="text-sm text-destructive mt-2">
-                                   {errors.units[index]?.unitNumber && <p>{errors.units[index]?.unitNumber?.message}</p>}
-                                   {errors.units[index]?.unitType && <p>{errors.units[index]?.unitType?.message}</p>}
-                                   {errors.units[index]?.rent && <p>{errors.units[index]?.rent?.message}</p>}
-                                   {errors.units[index]?.squareFootage && <p>{errors.units[index]?.squareFootage?.message}</p>}
+                                   {Object.values(errors.units[index]).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
                                 </div>
                               )}
                           </Card>
