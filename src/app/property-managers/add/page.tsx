@@ -14,8 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { permissionLabels, type Permission } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building, ShieldCheck } from 'lucide-react';
+import { Building, Info, ShieldCheck } from 'lucide-react';
 import { useProperties } from '@/hooks/use-properties';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
@@ -65,6 +66,7 @@ export default function AddPropertyManagerPage() {
   };
 
   return (
+    <TooltipProvider>
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="flex items-center gap-4">
             <Link href="/property-managers">
@@ -105,7 +107,17 @@ export default function AddPropertyManagerPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Permissions</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Permissions</CardTitle>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                            <p className="max-w-xs">Define what actions this manager is allowed to perform across the properties they are assigned to.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                     <CardDescription>Select the permissions for this manager.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -135,7 +147,17 @@ export default function AddPropertyManagerPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> Assigned Properties</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> Assigned Properties</CardTitle>
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                            <p className="max-w-xs">Grant this manager access to specific properties. They will only be able to see and manage the properties you select here.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                     <CardDescription>Select which properties this manager can access.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -173,5 +195,6 @@ export default function AddPropertyManagerPage() {
             </div>
         </form>
     </div>
+    </TooltipProvider>
   );
 }

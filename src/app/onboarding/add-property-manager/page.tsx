@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { useOnboardingForm } from '@/hooks/use-onboarding-form';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -45,43 +47,55 @@ export default function AddPropertyManagerPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="mx-auto max-w-2xl space-y-4">
-        <Progress value={60} className="w-full" />
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 3: Add a Property Manager</CardTitle>
-            <CardDescription>Enter the details of the property manager. Your progress is saved automatically.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" {...register("name")} autoComplete="name" />
-                {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+      <TooltipProvider>
+        <div className="mx-auto max-w-2xl space-y-4">
+          <Progress value={60} className="w-full" />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle>Step 3: Add a Property Manager</CardTitle>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">A Property Manager can be a staff member or anyone you authorize to help manage your properties. You can set their permissions later.</p>
+                    </TooltipContent>
+                  </Tooltip>
               </div>
+              <CardDescription>Enter the details of the property manager. Your progress is saved automatically.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" {...register("name")} autoComplete="name" />
+                  {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                </div>
 
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
-              </div>
-              
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
-                {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
-              </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                  {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                </div>
+                
+                <div>
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
+                  {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                </div>
 
-              <div className="flex justify-between">
-                 <Link href="/onboarding/add-tenant">
-                  <Button variant="link">Skip for now</Button>
-                </Link>
-                <Button type="submit">Next: Add Tenant</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="flex justify-between">
+                  <Link href="/onboarding/add-tenant">
+                    <Button variant="link">Skip for now</Button>
+                  </Link>
+                  <Button type="submit">Next: Add Tenant</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </TooltipProvider>
     </div>
   );
 }

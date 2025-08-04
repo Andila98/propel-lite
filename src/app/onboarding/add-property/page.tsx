@@ -15,7 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Image as ImageIcon, Loader2, Upload } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, Loader2, Upload, Info } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
@@ -23,6 +23,7 @@ import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 import Papa from 'papaparse';
 import type { Unit } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function AddPropertyPage() {
   const router = useRouter();
@@ -235,6 +236,7 @@ export default function AddPropertyPage() {
 
 
   return (
+    <TooltipProvider>
     <div className="container mx-auto p-4 md:p-8">
       <div className="mx-auto max-w-4xl space-y-4">
         <Progress value={40} className="w-full" />
@@ -259,7 +261,21 @@ export default function AddPropertyPage() {
                                     <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
                                 </div>
                               <div>
+                                <div className="flex items-center gap-2">
                                   <Label htmlFor="propertyType">Property Type</Label>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <ul className="list-disc list-inside">
+                                        <li><b>Apartment:</b> A building with multiple, separate residential units.</li>
+                                        <li><b>House:</b> A single, standalone residential building.</li>
+                                        <li><b>Bedsitter:</b> A single-room unit combining bedroom and living area.</li>
+                                      </ul>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
                                   <Controller
                                       name="propertyType"
                                       control={control}
@@ -337,7 +353,17 @@ export default function AddPropertyPage() {
                     {propertyType === "apartment" && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Apartment Units</CardTitle>
+                                <div className="flex items-center gap-2">
+                                  <CardTitle>Apartment Units</CardTitle>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">Define the individual residential spaces within the apartment building. Each unit has its own details like rent and type.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
                                 <CardDescription>Define the number of units or upload a CSV.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -361,7 +387,17 @@ export default function AddPropertyPage() {
                                     <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">OR</span>
                                 </div>
                                  <div>
-                                    <Label htmlFor="csvFile">Upload Units (CSV)</Label>
+                                    <div className="flex items-center gap-2">
+                                      <Label htmlFor="csvFile">Upload Units (CSV)</Label>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">The CSV file must contain the headers: <br /> `unitNumber`, `unitType`, `rent`, `squareFootage`, `isAvailable`.</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         <Input id="csvFile" type="file" accept=".csv" onChange={handleCsvUpload} />
                                         <Button type="button" variant="outline" size="icon" asChild>
@@ -481,5 +517,6 @@ export default function AddPropertyPage() {
         </form>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
