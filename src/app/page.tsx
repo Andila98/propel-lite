@@ -11,11 +11,15 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedUsersIcon } from '@/components/icons/animated-users-icon';
 import { useProperties } from '@/hooks/use-properties';
+import { Button } from '@/components/ui/button';
+import { mockTenants } from '@/lib/mock-data';
+import type { Payment } from '@/lib/types';
+import { startOfWeek, startOfMonth, startOfQuarter, isWithinInterval, subDays } from 'date-fns';
 
 const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
   ssr: false,
@@ -36,13 +40,46 @@ const PropertyManagerList = dynamic(() => import('@/components/property-manager-
 
 export default function DashboardPage() {
   const { properties, loading: propertiesLoading } = useProperties();
-  const tenants = []; // Replace with useTenants hook later
+  const [timeFilter, setTimeFilter] = useState('month');
+  const tenants = mockTenants; // Replace with useTenants hook later
   const managers = []; // Replace with useManagers hook later
   const activities = []; // Replace with useActivities hook later
   
   useEffect(() => {
     console.log("Frontend: DashboardPage component mounted.");
   }, []);
+
+  const allPayments: Payment[] = useMemo(() => 
+      tenants.flatMap(tenant => tenant.paymentHistory),
+    [tenants]
+  );
+
+  const filteredRevenue = useMemo(() => {
+    const now = new Date();
+    let interval: Interval;
+
+    switch (timeFilter) {
+      case 'week':
+        interval = { start: startOfWeek(now), end: now };
+        break;
+      case 'quarter':
+        interval = { start: startOfQuarter(now), end: now };
+        break;
+      case 'month':
+      default:
+        interval = { start: startOfMonth(now), end: now };
+        break;
+    }
+
+    return allPayments.reduce((acc, payment) => {
+        const paymentDate = new Date(payment.date);
+        if (isWithinInterval(paymentDate, interval)) {
+            return acc + payment.amount;
+        }
+        return acc;
+    }, 0);
+  }, [allPayments, timeFilter]);
+
 
   const totalRent = properties.reduce((acc, p) => acc + p.rent, 0);
   const occupiedProperties = tenants.map(t => t.propertyId);
@@ -86,20 +123,22 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/payments">
-            <Card className="bg-primary/90 text-primary-foreground hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monthly Rent</CardTitle>
-                <Banknote className="h-4 w-4 text-primary-foreground/80" />
-            </CardHeader>
-            <CardContent>
-                 {propertiesLoading ? <Skeleton className="h-7 w-24"/> : <div className="text-2xl font-bold">Ksh{totalRent.toLocaleString()}</div>}
-                <p className="text-xs text-primary-foreground/80">
-                Total expected monthly income
-                </p>
-            </CardContent>
-            </Card>
-        </Link>
+        
+        <Card className="bg-primary/90 text-primary-foreground hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <Banknote className="h-4 w-4 text-primary-foreground/80" />
+          </CardHeader>
+          <CardContent>
+               <div className="text-2xl font-bold">Ksh{filteredRevenue.toLocaleString()}</div>
+              <div className="flex gap-2 text-xs text-primary-foreground/80 mt-2">
+                <Button size="sm" variant={timeFilter === 'week' ? 'secondary' : 'ghost'} onClick={() => setTimeFilter('week')} className="h-6 px-2 text-xs">Week</Button>
+                <Button size="sm" variant={timeFilter === 'month' ? 'secondary' : 'ghost'} onClick={() => setTimeFilter('month')} className="h-6 px-2 text-xs">Month</Button>
+                <Button size="sm" variant={timeFilter === 'quarter' ? 'secondary' : 'ghost'} onClick={() => setTimeFilter('quarter')} className="h-6 px-2 text-xs">Quarter</Button>
+              </div>
+          </CardContent>
+        </Card>
+
         <Card className="bg-primary text-primary-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
@@ -156,3 +195,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
