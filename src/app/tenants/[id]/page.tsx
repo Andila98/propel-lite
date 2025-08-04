@@ -136,6 +136,22 @@ export default function TenantDetailPage() {
     return <Badge variant={statusMap[status]}>{status}</Badge>;
   }
 
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+      return new Date(dateString).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: 'UTC' // Explicitly use UTC to avoid timezone shifts
+      });
+  }
+
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
        <div className="flex items-center justify-between gap-4">
@@ -220,11 +236,11 @@ export default function TenantDetailPage() {
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Lease Period</span>
-                        <span className="font-medium">{tenant.leaseStartDate} to {tenant.leaseEndDate}</span>
+                        <span className="font-medium">{formatDate(tenant.leaseStartDate)} to {formatDate(tenant.leaseEndDate)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
-                        <span className="font-medium">Ksh{property.rent.toLocaleString()}</span>
+                        <span className="font-medium">{formatCurrency(property.rent, property.currency)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Rent Status</span>
@@ -254,13 +270,13 @@ export default function TenantDetailPage() {
                             <TableBody>
                                 {tenant.paymentHistory.map((payment, index) => (
                                     <TableRow key={index}>
-                                        <TableCell>{payment.date}</TableCell>
+                                        <TableCell>{formatDate(payment.date)}</TableCell>
                                         <TableCell>
                                             <Badge variant={payment.type === 'Rent' ? 'default' : 'secondary'}>
                                                 {payment.type}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>Ksh{payment.amount.toLocaleString()}</TableCell>
+                                        <TableCell>{formatCurrency(payment.amount, property.currency)}</TableCell>
                                         <TableCell>{payment.method}</TableCell>
                                     </TableRow>
                                 ))}

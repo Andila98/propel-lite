@@ -23,6 +23,7 @@ export interface Property {
   bedrooms: number;
   bathrooms: number;
   rent: number;
+  currency: string; // e.g., 'KES', 'USD'
   imageUrl: string;
   description: string;
   units?: Unit[];

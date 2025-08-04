@@ -29,6 +29,7 @@ const GenerateReceiptOutputSchema = z.object({
   paymentMethod: z.string().describe('The method of payment (e.g., ACH, Credit Card).'),
   amountPaid: z.number().describe('The amount paid.'),
   notes: z.string().describe('Any additional notes or comments, like "Thank you for your payment."'),
+  currency: z.string().describe("The currency symbol (e.g., '$', '€', 'Ksh')."),
 });
 export type GenerateReceiptOutput = z.infer<typeof GenerateReceiptOutputSchema>;
 
@@ -45,6 +46,7 @@ const prompt = ai.definePrompt({
       paymentMethod: z.string(),
       amountPaid: z.number(),
       currentDate: z.string(),
+      currency: z.string(),
   })},
   output: {schema: GenerateReceiptOutputSchema},
   prompt: `You are a receipt-generating assistant for a property management company.
@@ -56,10 +58,12 @@ const prompt = ai.definePrompt({
   - Amount Paid: {{{amountPaid}}}
   - Payment Date: {{{paymentDate}}}
   - Payment Method: {{{paymentMethod}}}
+  - Currency: {{{currency}}}
 
   Follow these rules:
   1. Create a unique receipt number starting with 'RCPT-' followed by the year and a 3-digit number (e.g., RCPT-2024-001).
-  2. Include a brief, friendly note, such as "Thank you for your payment."
+  2. The currency must be {{{currency}}}.
+  3. Include a brief, friendly note, such as "Thank you for your payment."
   `,
 });
 
@@ -98,6 +102,7 @@ const generateReceiptFlow = ai.defineFlow(
         paymentMethod: payment.method,
         amountPaid: payment.amount,
         currentDate: new Date().toISOString().split('T')[0],
+        currency: property.currency || 'Ksh',
     };
 
     try {

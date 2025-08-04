@@ -68,6 +68,13 @@ export default function PropertyDetailPage() {
   // Fetch tenant associated with this property
   const tenant = mockTenants.find((t) => t.propertyId === propertyId);
 
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
+
   if (loading) {
     return <PropertyDetailSkeleton />;
   }
@@ -185,7 +192,7 @@ export default function PropertyDetailPage() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                                <span>Rent: <span className="font-semibold">Ksh{property.rent.toLocaleString()}/mo</span></span>
+                                                <span>Rent: <span className="font-semibold">{formatCurrency(property.rent, property.currency)}/mo</span></span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Square className="h-4 w-4 text-muted-foreground" />
@@ -257,7 +264,7 @@ export default function PropertyDetailPage() {
                                     </div>
                                   </div>
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Lease: {tenant.leaseStartDate} to {tenant.leaseEndDate}</p>
+                                    <p className="text-sm text-muted-foreground">Lease: {new Date(tenant.leaseStartDate).toLocaleDateString()} to {new Date(tenant.leaseEndDate).toLocaleDateString()}</p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span>Rent Status:</span>
                                         <Badge variant={tenant.rentStatus === 'Paid' ? 'default' : 'destructive'}>
@@ -281,7 +288,7 @@ export default function PropertyDetailPage() {
                             <CardDescription>Individual units within this property.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <UnitTable units={property.units} />
+                            <UnitTable units={property.units} currency={property.currency} />
                         </CardContent>
                         </Card>
                     </TabsContent>
@@ -293,104 +300,113 @@ export default function PropertyDetailPage() {
   );
 }
 
-function UnitTable({ units }: { units: Unit[] }) {
+function UnitTable({ units, currency }: { units: Unit[], currency: string }) {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Unit #</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Rent</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Details</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {units.map((unit, index) => (
-            <TableRow key={index}>
-              <TableCell className="font-medium">{unit.unitNumber}</TableCell>
-              <TableCell className="capitalize">{unit.unitType.replace('-', ' ')}</TableCell>
-              <TableCell>Ksh{unit.rent.toLocaleString()}</TableCell>
-              <TableCell>
-                {unit.isAvailable ? (
-                  <Badge variant="outline">Available</Badge>
-                ) : (
-                  <Badge variant="secondary">Occupied</Badge>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => setSelectedUnit(unit)}>
-                    <Eye className="h-4 w-4" />
-                    <span className="sr-only">View Details</span>
-                  </Button>
-                </DialogTrigger>
-              </TableCell>
+      <Dialog>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Unit #</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Rent</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Details</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Unit {selectedUnit?.unitNumber} Details</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Tabs defaultValue="gallery">
-            <TabsList>
-              <TabsTrigger value="gallery">Gallery</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
-            </TabsList>
-            <TabsContent value="gallery" className="mt-4">
-              {selectedUnit?.gallery && selectedUnit.gallery.length > 0 ? (
-                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {selectedUnit.gallery.map((url, index) => (
-                        <div key={index} className="overflow-hidden rounded-lg">
-                            <Image
-                                src={url}
-                                alt={`Unit image ${index + 1}`}
-                                width={200}
-                                height={150}
-                                className="w-full h-full object-cover aspect-video"
-                                data-ai-hint="unit interior"
-                            />
-                        </div>
-                    ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-40 border-2 border-dashed rounded-lg">
-                  <GalleryIcon className="h-8 w-8 mb-2" />
-                  <p>No gallery images for this unit.</p>
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="documents" className="mt-4">
-               {selectedUnit?.documents && selectedUnit.documents.length > 0 ? (
-                 <ul className="space-y-2">
-                    {selectedUnit.documents.map((doc, index) => (
-                        <li key={index} className="flex items-center justify-between p-2 rounded-md border">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            <span>{doc.name}</span>
+          </TableHeader>
+          <TableBody>
+            {units.map((unit, index) => (
+              <TableRow key={index}>
+                <TableCell className="font-medium">{unit.unitNumber}</TableCell>
+                <TableCell className="capitalize">{unit.unitType.replace('-', ' ')}</TableCell>
+                <TableCell>{formatCurrency(unit.rent, currency)}</TableCell>
+                <TableCell>
+                  {unit.isAvailable ? (
+                    <Badge variant="outline">Available</Badge>
+                  ) : (
+                    <Badge variant="secondary">Occupied</Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedUnit(unit)}>
+                      <Eye className="h-4 w-4" />
+                      <span className="sr-only">View Details</span>
+                    </Button>
+                  </DialogTrigger>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Unit {selectedUnit?.unitNumber} Details</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Tabs defaultValue="gallery">
+              <TabsList>
+                <TabsTrigger value="gallery">Gallery</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+              </TabsList>
+              <TabsContent value="gallery" className="mt-4">
+                {selectedUnit?.gallery && selectedUnit.gallery.length > 0 ? (
+                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {selectedUnit.gallery.map((url, index) => (
+                          <div key={index} className="overflow-hidden rounded-lg">
+                              <Image
+                                  src={url}
+                                  alt={`Unit image ${index + 1}`}
+                                  width={200}
+                                  height={150}
+                                  className="w-full h-full object-cover aspect-video"
+                                  data-ai-hint="unit interior"
+                              />
                           </div>
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={doc.url} target="_blank" rel="noopener noreferrer">Download</a>
-                          </Button>
-                        </li>
-                    ))}
-                </ul>
-              ) : (
-                 <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-40 border-2 border-dashed rounded-lg">
-                  <FileText className="h-8 w-8 mb-2" />
-                  <p>No documents uploaded for this unit.</p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </DialogContent>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-40 border-2 border-dashed rounded-lg">
+                    <GalleryIcon className="h-8 w-8 mb-2" />
+                    <p>No gallery images for this unit.</p>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="documents" className="mt-4">
+                 {selectedUnit?.documents && selectedUnit.documents.length > 0 ? (
+                   <ul className="space-y-2">
+                      {selectedUnit.documents.map((doc, index) => (
+                          <li key={index} className="flex items-center justify-between p-2 rounded-md border">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              <span>{doc.name}</span>
+                            </div>
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={doc.url} target="_blank" rel="noopener noreferrer">Download</a>
+                            </Button>
+                          </li>
+                      ))}
+                  </ul>
+                ) : (
+                   <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-40 border-2 border-dashed rounded-lg">
+                    <FileText className="h-8 w-8 mb-2" />
+                    <p>No documents uploaded for this unit.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

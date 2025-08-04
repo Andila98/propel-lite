@@ -10,6 +10,22 @@ interface ReceiptProps {
 }
 
 export function Receipt({ receipt }: ReceiptProps) {
+  const formatCurrency = (amount: number, currencyCode: string) => {
+      return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: currencyCode,
+      }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC'
+    });
+  }
+
   return (
     <Card className="text-sm border-dashed">
       <CardHeader>
@@ -24,7 +40,7 @@ export function Receipt({ receipt }: ReceiptProps) {
             </div>
             <div className="flex justify-between">
                 <span>Payment Date:</span>
-                <span className="font-medium">{new Date(receipt.paymentDate).toLocaleDateString()}</span>
+                <span className="font-medium">{formatDate(receipt.paymentDate)}</span>
             </div>
              <div className="flex justify-between">
                 <span>Payment Method:</span>
@@ -34,7 +50,7 @@ export function Receipt({ receipt }: ReceiptProps) {
         <Separator />
         <div className="flex justify-between font-semibold text-lg">
             <span>Amount Paid</span>
-            <span>Ksh{receipt.amountPaid.toLocaleString()}</span>
+            <span>{formatCurrency(receipt.amountPaid, receipt.currency)}</span>
         </div>
         <Separator />
       </CardContent>

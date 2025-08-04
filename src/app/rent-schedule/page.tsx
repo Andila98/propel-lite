@@ -17,10 +17,10 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import type { Tenant } from '@/lib/types';
+import type { Tenant, Property } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type TenantWithProperty = Tenant & { propertyAddress?: string, balance: number };
+type TenantWithDetails = Tenant & { propertyAddress?: string; propertyCurrency?: string; balance: number };
 
 export default function RentSchedulePage() {
   const { tenants, loading: tenantsLoading } = useTenants();
@@ -30,10 +30,17 @@ export default function RentSchedulePage() {
 
   const rentDueDate = 1; // Assuming rent is due on the 1st of the month
 
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
+
   const rentStatusByDay = useMemo(() => {
     if (tenantsLoading || propertiesLoading) return {};
 
-    const statuses: Record<string, TenantWithProperty[]> = {};
+    const statuses: Record<string, TenantWithDetails[]> = {};
     const interval = { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
 
     eachDayOfInterval(interval).forEach(day => {
@@ -66,6 +73,7 @@ export default function RentSchedulePage() {
                     ...tenant, 
                     rentStatus: status, // Override status based on calculation
                     propertyAddress: property?.address,
+                    propertyCurrency: property?.currency,
                     balance
                 });
             });
@@ -179,7 +187,7 @@ export default function RentSchedulePage() {
                             <div className="text-right">
                                 {renderStatusPill(tenant.rentStatus)}
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Balance: Ksh{tenant.balance.toLocaleString()}
+                                    Balance: {formatCurrency(tenant.balance, tenant.propertyCurrency)}
                                 </p>
                             </div>
                           </li>

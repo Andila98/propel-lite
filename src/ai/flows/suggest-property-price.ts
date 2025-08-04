@@ -38,6 +38,7 @@ const SuggestPropertyPriceOutputSchema = z.object({
     .describe(
       'Factors that might warrant overriding the suggested price (e.g., exceptional views, recent renovations).'
     ),
+    currency: z.string().describe("The currency for the suggested price (e.g., 'USD', 'KES', 'EUR')."),
 });
 export type SuggestPropertyPriceOutput = z.infer<typeof SuggestPropertyPriceOutputSchema>;
 
@@ -63,7 +64,9 @@ const prompt = ai.definePrompt({
   Property Description: {{{propertyDescription}}}
   Market Data: {{{marketData}}}
 
-  Output the suggested price, reasoning, and override considerations in a structured format.
+  The local currency is Kenyan Shillings (KES). All price suggestions should be in KES.
+  
+  Output the suggested price, reasoning, override considerations, and currency in a structured format.
   `,
 });
 
@@ -78,5 +81,3 @@ const suggestPropertyPriceFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

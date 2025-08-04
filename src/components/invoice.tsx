@@ -11,6 +11,22 @@ interface InvoiceProps {
 }
 
 export function Invoice({ invoice }: InvoiceProps) {
+    const formatCurrency = (amount: number, currencyCode: string) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currencyCode,
+        }).format(amount);
+    };
+    
+    const formatDate = (dateString: string) => {
+      return new Date(dateString).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: 'UTC'
+      });
+    }
+
   return (
     <Card className="text-sm">
       <CardHeader>
@@ -25,11 +41,11 @@ export function Invoice({ invoice }: InvoiceProps) {
             </div>
             <div className="flex justify-between">
                 <span>Invoice Date:</span>
-                <span className="font-medium">{new Date(invoice.invoiceDate).toLocaleDateString()}</span>
+                <span className="font-medium">{formatDate(invoice.invoiceDate)}</span>
             </div>
             <div className="flex justify-between">
                 <span>Due Date:</span>
-                <span className="font-medium">{new Date(invoice.dueDate).toLocaleDateString()}</span>
+                <span className="font-medium">{formatDate(invoice.dueDate)}</span>
             </div>
         </div>
         <Separator />
@@ -44,7 +60,7 @@ export function Invoice({ invoice }: InvoiceProps) {
             {invoice.items.map((item, index) => (
               <TableRow key={index}>
                 <TableCell>{item.description}</TableCell>
-                <TableCell className="text-right">Ksh{item.amount.toLocaleString()}</TableCell>
+                <TableCell className="text-right">{formatCurrency(item.amount, invoice.currency)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -54,7 +70,7 @@ export function Invoice({ invoice }: InvoiceProps) {
              <div className="grid gap-2 w-full sm:w-1/2">
                 <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>Ksh{invoice.totalAmount.toLocaleString()}</span>
+                    <span>{formatCurrency(invoice.totalAmount, invoice.currency)}</span>
                 </div>
             </div>
         </div>

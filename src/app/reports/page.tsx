@@ -38,6 +38,13 @@ export default function ReportsPage() {
     }
     setLoading(false);
   };
+  
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -108,7 +115,7 @@ export default function ReportsPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div>
                                 <p className="text-xs text-muted-foreground">Total Revenue</p>
-                                <p className="text-lg font-bold">Ksh{result.report.totalRevenue.toLocaleString()}</p>
+                                <p className="text-lg font-bold">{formatCurrency(result.report.totalRevenue)}</p>
                             </div>
                             <div>
                                 <p className="text-xs text-muted-foreground">Occupancy</p>

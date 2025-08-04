@@ -35,6 +35,13 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
 
   const isOccupied = (propertyId: string) =>
     tenants.some((t) => t.propertyId === propertyId);
+    
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
 
   const handleRowClick = (propertyId: string) => {
     router.push(`/properties/${propertyId}`);
@@ -70,7 +77,7 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
             </TableCell>
             <TableCell className="font-medium">{prop.address}</TableCell>
             <TableCell className="capitalize">{prop.propertyType}</TableCell>
-            <TableCell>Ksh{prop.rent.toLocaleString()}</TableCell>
+            <TableCell>{formatCurrency(prop.rent, prop.currency)}</TableCell>
             <TableCell>
               {isOccupied(prop.id) ? (
                 <Badge variant="secondary">Occupied</Badge>
@@ -169,5 +176,3 @@ export default function PropertiesPage() {
     </div>
   );
 }
-
-    

@@ -24,6 +24,15 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
   const plugin = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
   )
+  
+  const formatCurrency = (amount: number, currencyCode: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
     <Carousel 
@@ -64,7 +73,7 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
                     </div>
                     <div className="flex items-center gap-2">
                          <Banknote className="h-4 w-4 text-muted-foreground" />
-                         <span>Ksh{property.rent.toLocaleString()}/mo</span>
+                         <span>{formatCurrency(property.rent, property.currency)}/mo</span>
                     </div>
                 </CardFooter>
               </Card>

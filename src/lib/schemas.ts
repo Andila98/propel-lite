@@ -23,6 +23,7 @@ export const PropertyFormSchema = z.object({
   propertyType: z.enum(["apartment", "house", "bedsitter"], {
     required_error: "Please select a property type.",
   }),
+  currency: z.string().min(3, "Currency is required.").max(3, "Currency code should be 3 letters."),
   description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
   numberOfUnits: z.coerce.number().optional(),
   units: z.array(UnitSchema).min(1, "Please add at least one unit."),

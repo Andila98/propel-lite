@@ -40,6 +40,7 @@ export default function AddPropertyPage() {
     defaultValues: {
       address: "",
       description: "",
+      currency: "KES",
       units: [],
     },
   });
@@ -254,6 +255,25 @@ export default function AddPropertyPage() {
                               />
                               {errors.propertyType && <p className="text-sm text-destructive mt-1">{errors.propertyType.message}</p>}
                           </div>
+                           <div>
+                              <Label htmlFor="currency">Currency</Label>
+                              <Controller
+                                  name="currency"
+                                  control={control}
+                                  render={({ field }) => (
+                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <SelectTrigger id="currency">
+                                          <SelectValue placeholder="Select a currency..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                          <SelectItem value="KES">KES</SelectItem>
+                                          <SelectItem value="USD">USD</SelectItem>
+                                          <SelectItem value="EUR">EUR</SelectItem>
+                                      </SelectContent>
+                                      </Select>
+                                  )}
+                              />
+                          </div>
                         </div>
 
                         <div>
@@ -382,7 +402,7 @@ export default function AddPropertyPage() {
                                 />
                               </div>
                               <div>
-                                <Label htmlFor={`units.${index}.rent`}>Monthly Rent (Ksh)</Label>
+                                <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
                                 <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
                               </div>
                               <div>

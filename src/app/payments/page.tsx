@@ -72,7 +72,7 @@ export default function PaymentsPage() {
             tenantId: tenant.id,
             tenantName: tenant.name,
             propertyId: tenant.propertyId,
-            propertyName: properties.find(p => p.id === tenant.propertyId)?.address || 'N/A'
+            property: properties.find(p => p.id === tenant.propertyId)
         }))
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [tenants, properties]);
@@ -130,6 +130,15 @@ export default function PaymentsPage() {
 
     setLoading(false);
   }
+
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
   
   const renderSkeleton = () => (
      <Table>
@@ -199,7 +208,7 @@ export default function PaymentsPage() {
                                         <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                                     ))}
                                 </Pie>
-                            </PieChart>
+                           </PieChart>
                         </ChartContainer>
                     </CardContent>
                 </Card>
@@ -246,7 +255,7 @@ export default function PaymentsPage() {
                     </TableCell>
                     <TableCell>
                         <Link href={`/properties/${payment.propertyId}`} className="text-primary hover:underline">
-                            {payment.propertyName}
+                            {payment.property?.address || 'N/A'}
                         </Link>
                     </TableCell>
                     <TableCell>
@@ -254,7 +263,7 @@ export default function PaymentsPage() {
                             {payment.type}
                         </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-medium">Ksh{payment.amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(payment.amount, payment.property?.currency)}</TableCell>
                     <TableCell className="text-right">
                         <Button
                             variant="outline"
@@ -291,5 +300,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-
-    

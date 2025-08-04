@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const { properties, loading: propertiesLoading } = useProperties();
   const { tenants, loading: tenantsLoading } = useTenants();
   const [timeFilter, setTimeFilter] = useState('month');
-  const managers = []; // Replace with useManagers hook later
+  const managers = []; // Replace with useManagers hook
   
   useEffect(() => {
     console.log("Frontend: DashboardPage component mounted.");
@@ -107,10 +107,17 @@ export default function DashboardPage() {
     return { filteredRevenue: totalRevenue, topPerformer: topProperty };
   }, [allPayments, timeFilter, properties]);
 
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
 
   const totalRent = properties.reduce((acc, p) => acc + p.rent, 0);
   const occupiedProperties = tenants.map(t => t.propertyId);
   const occupancyRate = properties.length > 0 ? (occupiedProperties.length / properties.length) * 100 : 0;
+  const loading = propertiesLoading || tenantsLoading;
 
   return (
     <div className="flex flex-1 flex-col space-y-4 p-4 md:p-6">
@@ -157,7 +164,7 @@ export default function DashboardPage() {
               <Banknote className="h-4 w-4 text-primary-foreground/80" />
           </CardHeader>
           <CardContent>
-               <div className="text-2xl font-bold">Ksh{filteredRevenue.toLocaleString()}</div>
+               <div className="text-2xl font-bold">{formatCurrency(filteredRevenue)}</div>
               <div className="flex gap-2 text-xs text-primary-foreground/80 mt-2">
                 <Button size="sm" variant={timeFilter === 'week' ? 'secondary' : 'ghost'} onClick={() => setTimeFilter('week')} className="h-6 px-2 text-xs">Week</Button>
                 <Button size="sm" variant={timeFilter === 'month' ? 'secondary' : 'ghost'} onClick={() => setTimeFilter('month')} className="h-6 px-2 text-xs">Month</Button>
@@ -198,7 +205,7 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {propertiesLoading || tenantsLoading ? <Skeleton className="h-24 w-full" /> : (
+              {loading ? <Skeleton className="h-24 w-full" /> : (
                 topPerformer ? (
                   <Link href={`/properties/${topPerformer.id}`}>
                     <div className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
@@ -207,7 +214,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <p className="font-bold">{topPerformer.address}</p>
-                        <p className="text-lg font-semibold text-primary">Ksh{topPerformer.revenue.toLocaleString()}</p>
+                        <p className="text-lg font-semibold text-primary">{formatCurrency(topPerformer.revenue, topPerformer.currency)}</p>
                       </div>
                     </div>
                   </Link>

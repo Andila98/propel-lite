@@ -60,6 +60,13 @@ export default function PriceSuggestionPage() {
     }
     setLoading(false);
   };
+  
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6">
@@ -129,7 +136,9 @@ export default function PriceSuggestionPage() {
                 <>
                   <div>
                     <Label>Suggested Monthly Rent</Label>
-                    <p className="text-3xl sm:text-4xl font-bold text-primary">Ksh{result.suggestedPrice?.toLocaleString()}</p>
+                    <p className="text-3xl sm:text-4xl font-bold text-primary">
+                        {formatCurrency(result.suggestedPrice || 0, result.currency)}
+                    </p>
                   </div>
                   <div>
                     <Label>Reasoning</Label>

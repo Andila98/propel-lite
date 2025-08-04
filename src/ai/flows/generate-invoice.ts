@@ -35,6 +35,7 @@ const GenerateInvoiceOutputSchema = z.object({
   items: z.array(InvoiceItemSchema).describe('An array of line items for the invoice.'),
   totalAmount: z.number().describe('The total amount due.'),
   notes: z.string().describe('Any additional notes or comments for the tenant.'),
+  currency: z.string().describe("The currency symbol (e.g., '$', '€', 'Ksh')."),
 });
 export type GenerateInvoiceOutput = z.infer<typeof GenerateInvoiceOutputSchema>;
 
@@ -50,6 +51,7 @@ const prompt = ai.definePrompt({
       rentAmount: z.number(),
       dueDate: z.string(),
       currentDate: z.string(),
+      currency: z.string(),
   })},
   output: {schema: GenerateInvoiceOutputSchema},
   prompt: `You are an invoicing assistant for a property management company.
@@ -59,6 +61,7 @@ const prompt = ai.definePrompt({
   - Tenant Name: {{{tenantName}}}
   - Property Address: {{{propertyAddress}}}
   - Rent Amount: {{{rentAmount}}}
+  - Currency: {{{currency}}}
   - Invoice Date: {{{currentDate}}}
   - Due Date: {{{dueDate}}}
 
@@ -66,7 +69,8 @@ const prompt = ai.definePrompt({
   1. Create a unique invoice number starting with 'INV-' followed by the year and a 3-digit number (e.g., INV-2024-001).
   2. The line items should include one item for 'Monthly Rent'.
   3. The total amount should be the sum of all line items.
-  4. Include a brief, friendly note, such as "Thank you for your timely payment. We appreciate having you as a tenant."
+  4. The currency must be {{{currency}}}.
+  5. Include a brief, friendly note, such as "Thank you for your timely payment. We appreciate having you as a tenant."
   `,
 });
 
@@ -96,6 +100,7 @@ const generateInvoiceFlow = ai.defineFlow(
         rentAmount: property.rent,
         dueDate: input.dueDate,
         currentDate: new Date().toISOString().split('T')[0],
+        currency: property.currency || 'Ksh',
     };
 
     try {
