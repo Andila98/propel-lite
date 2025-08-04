@@ -1,3 +1,4 @@
+
 // This file is machine-generated - edit with caution!
 'use server';
 /**
@@ -47,7 +48,7 @@ const prompt = ai.definePrompt({
 
   Please write a message that is clear, concise, and professional. Tailor the message to the specific reminder type.
 
-  For rentDue reminders, include the amount due and the due date.
+  For rentDue reminders, include the amount due and the due date. Crucially, end the message with the placeholder "[Pay Now]" so it can be replaced with a payment button.
   For latePayment notifications, express concern and inquire about the reason for the delay, while also stating late fee policies if applicable.
   For maintenance reminders, provide a heads up regarding the expected maintenance.
 
