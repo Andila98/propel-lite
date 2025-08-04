@@ -65,7 +65,8 @@ export default function AddPropertyPage() {
       replace([]);
       return;
     }
-    const newUnits = Array.from({ length: num }, () => ({
+    const newUnits = Array.from({ length: num }, (_, i) => ({
+      unitNumber: `Unit ${i + 1}`,
       unitType: "one-bedroom",
       rent: 1000,
       squareFootage: 500,
@@ -86,6 +87,7 @@ export default function AddPropertyPage() {
         'bedsitter': 'bedsitter',
       };
       const newUnits = [{
+        unitNumber: 'Main Unit',
         unitType: unitTypeMap[type],
         rent: type === 'house' ? 3500 : 1500,
         squareFootage: type === 'house' ? 1200 : 400,
@@ -154,6 +156,7 @@ export default function AddPropertyPage() {
   
   const addUnit = () => {
     append({
+        unitNumber: `Unit ${fields.length + 1}`,
         unitType: "one-bedroom",
         rent: 1000,
         squareFootage: 500,
@@ -278,7 +281,7 @@ export default function AddPropertyPage() {
                           <Card key={field.id} className="p-4">
                             <div className="flex justify-between items-center mb-4">
                               <h4 className="text-lg font-medium">
-                                {propertyType === 'apartment' ? `Unit ${index + 1}` : 'Unit Details'}
+                                {propertyType === 'apartment' ? `Unit Details` : 'Unit Details'}
                               </h4>
                               {propertyType === 'apartment' && (
                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
@@ -288,6 +291,10 @@ export default function AddPropertyPage() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor={`units.${index}.unitNumber`}>Unit Number</Label>
+                                <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
+                              </div>
                               <div>
                                 <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
                                 <Controller
@@ -311,7 +318,7 @@ export default function AddPropertyPage() {
                                 <Label htmlFor={`units.${index}.rent`}>Monthly Rent (Ksh)</Label>
                                 <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
                               </div>
-                              <div className="sm:col-span-2">
+                              <div>
                                 <Label htmlFor={`units.${index}.squareFootage`}>Square Footage</Label>
                                 <Input id={`units.${index}.squareFootage`} type="number" {...register(`units.${index}.squareFootage`)} />
                               </div>
@@ -332,6 +339,7 @@ export default function AddPropertyPage() {
                             </div>
                              {errors.units?.[index] && (
                                 <div className="text-sm text-destructive mt-2">
+                                   {errors.units[index]?.unitNumber && <p>{errors.units[index]?.unitNumber?.message}</p>}
                                    {errors.units[index]?.unitType && <p>{errors.units[index]?.unitType?.message}</p>}
                                    {errors.units[index]?.rent && <p>{errors.units[index]?.rent?.message}</p>}
                                    {errors.units[index]?.squareFootage && <p>{errors.units[index]?.squareFootage?.message}</p>}

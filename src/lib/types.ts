@@ -2,6 +2,7 @@
 import type { FieldValue } from 'firebase-admin/firestore';
 
 export interface Unit {
+  unitNumber: string;
   unitType: 'one-bedroom' | 'two-bedroom' | 'three-bedroom' | 'bedsitter' | 'studio';
   rent: number;
   squareFootage: number;

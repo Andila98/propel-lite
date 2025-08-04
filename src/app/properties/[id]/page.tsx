@@ -290,6 +290,7 @@ function UnitTable({ units }: { units: Unit[] }) {
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead>Unit #</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Rent</TableHead>
           <TableHead>Status</TableHead>
@@ -298,7 +299,8 @@ function UnitTable({ units }: { units: Unit[] }) {
       <TableBody>
         {units.map((unit, index) => (
           <TableRow key={index}>
-            <TableCell className="capitalize font-medium">{unit.unitType.replace('-', ' ')}</TableCell>
+            <TableCell className="font-medium">{unit.unitNumber}</TableCell>
+            <TableCell className="capitalize">{unit.unitType.replace('-', ' ')}</TableCell>
             <TableCell>Ksh{unit.rent.toLocaleString()}</TableCell>
             <TableCell>
               {unit.isAvailable ? (

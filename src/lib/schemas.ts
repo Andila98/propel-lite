@@ -2,6 +2,7 @@
 import { z } from "zod";
 
 export const UnitSchema = z.object({
+  unitNumber: z.string().min(1, "Unit number is required."),
   unitType: z.enum(["one-bedroom", "two-bedroom", "three-bedroom", "bedsitter", "studio"], {
     required_error: "Please select a unit type.",
   }),

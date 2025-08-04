@@ -2,10 +2,10 @@
 import type { Property, Tenant, PropertyManager, ActivityItem, Unit } from './types';
 
 const apartmentUnits: Unit[] = [
-    { unitType: 'one-bedroom', rent: 2600, squareFootage: 750, isAvailable: false },
-    { unitType: 'one-bedroom', rent: 2650, squareFootage: 760, isAvailable: true },
-    { unitType: 'two-bedroom', rent: 3200, squareFootage: 1050, isAvailable: true },
-    { unitType: 'studio', rent: 2100, squareFootage: 500, isAvailable: true },
+    { unitNumber: '101', unitType: 'one-bedroom', rent: 2600, squareFootage: 750, isAvailable: false },
+    { unitNumber: '102', unitType: 'one-bedroom', rent: 2650, squareFootage: 760, isAvailable: true },
+    { unitNumber: '201', unitType: 'two-bedroom', rent: 3200, squareFootage: 1050, isAvailable: true },
+    { unitNumber: 'P-1', unitType: 'studio', rent: 2100, squareFootage: 500, isAvailable: true },
 ]
 
 

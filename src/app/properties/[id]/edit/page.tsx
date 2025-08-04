@@ -87,6 +87,7 @@ export default function EditPropertyPage() {
     }
     const currentUnits = watch('units') || [];
     const newUnits = Array.from({ length: num }, (_, i) => currentUnits[i] || {
+      unitNumber: `Unit ${i + 1}`,
       unitType: "one-bedroom",
       rent: 1000,
       squareFootage: 500,
@@ -109,6 +110,7 @@ export default function EditPropertyPage() {
         'bedsitter': 'bedsitter',
       };
       const newUnits = [{
+        unitNumber: 'Main Unit',
         unitType: unitTypeMap[type],
         rent: 1500,
         squareFootage: type === 'house' ? 1200 : 400,
@@ -172,6 +174,7 @@ export default function EditPropertyPage() {
   
   const addUnit = () => {
     append({
+        unitNumber: `Unit ${fields.length + 1}`,
         unitType: "one-bedroom",
         rent: 1000,
         squareFootage: 500,
@@ -292,7 +295,7 @@ export default function EditPropertyPage() {
                           <div key={field.id} className="space-y-4 rounded-lg border p-4 relative">
                             <div className="flex justify-between items-center">
                               <h4 className="text-lg font-medium">
-                                {propertyType === 'apartment' ? `Unit ${index + 1}` : 'Unit Details'}
+                                {propertyType === 'apartment' ? `Unit Details` : 'Unit Details'}
                               </h4>
                               {propertyType === 'apartment' && (
                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
@@ -302,6 +305,10 @@ export default function EditPropertyPage() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                              <div>
+                                <Label htmlFor={`units.${index}.unitNumber`}>Unit Number</Label>
+                                <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
+                              </div>
                               <div>
                                 <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
                                 <Controller
@@ -348,6 +355,7 @@ export default function EditPropertyPage() {
                             </div>
                              {errors.units?.[index] && (
                                 <div className="text-sm text-destructive mt-2">
+                                   {errors.units[index]?.unitNumber && <p>{errors.units[index]?.unitNumber?.message}</p>}
                                    {errors.units[index]?.unitType && <p>{errors.units[index]?.unitType?.message}</p>}
                                    {errors.units[index]?.rent && <p>{errors.units[index]?.rent?.message}</p>}
                                    {errors.units[index]?.squareFootage && <p>{errors.units[index]?.squareFootage?.message}</p>}
