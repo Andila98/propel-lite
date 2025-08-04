@@ -69,6 +69,16 @@ export default function TenantDetailPage() {
     router.push('/tenants');
   };
 
+  const renderStatusBadge = (status: Tenant['rentStatus']) => {
+    const statusMap = {
+      'Paid': 'default',
+      'Overdue': 'destructive',
+      'Partially Paid': 'secondary',
+      'Advance': 'outline',
+    } as const;
+    return <Badge variant={statusMap[status]}>{status}</Badge>;
+  }
+
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
        <div className="flex items-center justify-between gap-4">
@@ -161,9 +171,7 @@ export default function TenantDetailPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Rent Status</span>
-                        <Badge variant={tenant.rentStatus === 'Paid' ? 'default' : 'destructive'}>
-                            {tenant.rentStatus}
-                        </Badge>
+                        {renderStatusBadge(tenant.rentStatus)}
                     </div>
                 </CardContent>
               </Card>
@@ -180,6 +188,7 @@ export default function TenantDetailPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Date</TableHead>
+                                    <TableHead>Type</TableHead>
                                     <TableHead>Amount</TableHead>
                                     <TableHead>Method</TableHead>
                                 </TableRow>
@@ -188,6 +197,11 @@ export default function TenantDetailPage() {
                                 {tenant.paymentHistory.map((payment, index) => (
                                     <TableRow key={index}>
                                         <TableCell>{payment.date}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={payment.type === 'Rent' ? 'default' : 'secondary'}>
+                                                {payment.type}
+                                            </Badge>
+                                        </TableCell>
                                         <TableCell>Ksh{payment.amount.toLocaleString()}</TableCell>
                                         <TableCell>{payment.method}</TableCell>
                                     </TableRow>
@@ -215,4 +229,3 @@ export default function TenantDetailPage() {
   );
 }
 
-    

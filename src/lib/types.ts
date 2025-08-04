@@ -37,6 +37,8 @@ export interface Payment {
   date: string;
   amount: number;
   method: string;
+  type: 'Rent' | 'Deposit' | 'Fee' | 'Other';
+  notes?: string;
 }
 
 export interface Message {
@@ -55,7 +57,7 @@ export interface Tenant {
   propertyId: string;
   leaseStartDate: string;
   leaseEndDate: string;
-  rentStatus: 'Paid' | 'Overdue';
+  rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance';
   paymentHistory: Payment[];
   avatarUrl: string;
 }

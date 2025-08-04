@@ -33,6 +33,8 @@ import { getReceiptAction, type ReceiptState } from './actions';
 import { Receipt } from '@/components/receipt';
 import { useTenants } from '@/hooks/use-tenants';
 import { useProperties } from '@/hooks/use-properties';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 export default function PaymentsPage() {
   const { toast } = useToast();
@@ -69,9 +71,53 @@ export default function PaymentsPage() {
 
     setLoading(false);
   }
+  
+  const renderSkeleton = () => (
+     <Table>
+        <TableHeader>
+            <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Tenant</TableHead>
+                <TableHead>Property</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {[...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                </TableRow>
+            ))}
+        </TableBody>
+    </Table>
+  );
 
   if (tenantsLoading || propertiesLoading) {
-      return <div>Loading...</div> // TODO: Add skeleton
+      return (
+        <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+            <div className="flex items-center justify-between space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight">Payments History</h2>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>All Transactions</CardTitle>
+                    <CardDescription>
+                        A chronological list of all payments received from tenants.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {renderSkeleton()}
+                </CardContent>
+            </Card>
+        </div>
+      )
   }
 
   return (
@@ -93,7 +139,7 @@ export default function PaymentsPage() {
                 <TableHead>Date</TableHead>
                 <TableHead>Tenant</TableHead>
                 <TableHead>Property</TableHead>
-                <TableHead>Method</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -112,7 +158,11 @@ export default function PaymentsPage() {
                         {payment.propertyName}
                     </Link>
                   </TableCell>
-                  <TableCell>{payment.method}</TableCell>
+                  <TableCell>
+                      <Badge variant={payment.type === 'Rent' ? 'default' : 'secondary'}>
+                        {payment.type}
+                      </Badge>
+                  </TableCell>
                   <TableCell className="text-right font-medium">Ksh{payment.amount.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Button
@@ -150,4 +200,3 @@ export default function PaymentsPage() {
   );
 }
 
-    

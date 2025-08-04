@@ -12,11 +12,15 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { useTenants } from '@/hooks/use-tenants';
 import { useProperties } from '@/hooks/use-properties';
-import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from 'date-fns';
+import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import type { Tenant } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+type TenantWithProperty = Tenant & { propertyAddress?: string, balance: number };
 
 export default function RentSchedulePage() {
   const { tenants, loading: tenantsLoading } = useTenants();
@@ -24,80 +28,176 @@ export default function RentSchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
-  const rentDueDate = 1; // Assuming rent is due on the 1st
+  const rentDueDate = 1; // Assuming rent is due on the 1st of the month
 
   const rentStatusByDay = useMemo(() => {
     if (tenantsLoading || propertiesLoading) return {};
 
-    const statuses: Record<string, { paid: any[], overdue: any[] }> = {};
+    const statuses: Record<string, TenantWithProperty[]> = {};
     const interval = { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
 
     eachDayOfInterval(interval).forEach(day => {
-      if (getDay(day) === rentDueDate) {
-        const dayKey = day.toISOString().split('T')[0];
-        statuses[dayKey] = { paid: [], overdue: [] };
+        // We only care about the due date, which we assume is the 1st
+        if (day.getDate() === rentDueDate) {
+            const dayKey = format(day, 'yyyy-MM-dd');
+            statuses[dayKey] = [];
 
-        tenants.forEach(tenant => {
-          const property = properties.find(p => p.id === tenant.propertyId);
-          if (tenant.rentStatus === 'Paid') {
-            statuses[dayKey].paid.push({ ...tenant, propertyAddress: property?.address });
-          } else {
-            statuses[dayKey].overdue.push({ ...tenant, propertyAddress: property?.address });
-          }
-        });
-      }
+            tenants.forEach(tenant => {
+                const property = properties.find(p => p.id === tenant.propertyId);
+                const rentAmount = property?.rent || 0;
+                
+                const paymentsThisMonth = tenant.paymentHistory
+                    .filter(p => {
+                        const paymentDate = new Date(p.date);
+                        return paymentDate.getMonth() === currentDate.getMonth() && paymentDate.getFullYear() === currentDate.getFullYear() && p.type === 'Rent';
+                    })
+                    .reduce((acc, p) => acc + p.amount, 0);
+
+                const balance = rentAmount - paymentsThisMonth;
+                
+                let status: Tenant['rentStatus'] = 'Overdue';
+                if (balance <= 0) {
+                    status = paymentsThisMonth > rentAmount ? 'Advance' : 'Paid';
+                } else if (paymentsThisMonth > 0 && balance > 0) {
+                    status = 'Partially Paid';
+                }
+
+                statuses[dayKey].push({ 
+                    ...tenant, 
+                    rentStatus: status, // Override status based on calculation
+                    propertyAddress: property?.address,
+                    balance
+                });
+            });
+        }
     });
 
     return statuses;
-  }, [tenants, properties, currentDate, tenantsLoading, propertiesLoading]);
+  }, [tenants, properties, currentDate, tenantsLoading, propertiesLoading, rentDueDate]);
 
   const modifiers = useMemo(() => {
-    const paidDays: Date[] = [];
-    const overdueDays: Date[] = [];
-    const upcomingDays: Date[] = [];
-
+    const modifiers: Record<string, Date[]> = {
+        paid: [],
+        overdue: [],
+        partiallyPaid: [],
+        advance: [],
+        due: [],
+    };
     for (const dayStr in rentStatusByDay) {
-        const day = new Date(dayStr);
-        const status = rentStatusByDay[dayStr];
-        if (status.overdue.length > 0) {
-            overdueDays.push(day);
-        } else if (status.paid.length > 0) {
-            paidDays.push(day);
-        } else {
-            upcomingDays.push(day);
+        const day = new Date(`${dayStr}T00:00:00`); // Ensure correct date object without timezone issues
+        const tenantsOnDay = rentStatusByDay[dayStr];
+        
+        const hasOverdue = tenantsOnDay.some(t => t.rentStatus === 'Overdue');
+        const hasPartiallyPaid = tenantsOnDay.some(t => t.rentStatus === 'Partially Paid');
+        const hasAdvance = tenantsOnDay.some(t => t.rentStatus === 'Advance');
+        const allPaid = tenantsOnDay.every(t => t.rentStatus === 'Paid' || t.rentStatus === 'Advance');
+        
+        modifiers.due.push(day);
+
+        if (hasOverdue) {
+            modifiers.overdue.push(day);
+        } else if (hasPartiallyPaid) {
+             modifiers.partiallyPaid.push(day);
+        } else if (hasAdvance) {
+            modifiers.advance.push(day);
+        } else if (allPaid && tenantsOnDay.length > 0) {
+             modifiers.paid.push(day);
         }
     }
     
-    return {
-      paid: paidDays,
-      overdue: overdueDays,
-      upcoming: upcomingDays,
-    };
+    return modifiers;
   }, [rentStatusByDay]);
 
   const modifiersStyles = {
-    paid: {
-      backgroundColor: 'var(--chart-1)',
-      color: 'white',
-    },
-    overdue: {
-      backgroundColor: 'var(--destructive)',
-      color: 'white',
-    },
-    upcoming: {
-      borderColor: 'var(--chart-2)',
-    },
-    selected: {
-        backgroundColor: 'var(--accent)',
-        color: 'var(--accent-foreground)',
-    }
+    paid: { backgroundColor: 'var(--chart-1)', color: 'white' },
+    overdue: { backgroundColor: 'var(--destructive)', color: 'white' },
+    partiallyPaid: { backgroundColor: 'var(--chart-4)', color: 'white' },
+    advance: { backgroundColor: 'var(--chart-2)', color: 'white' },
+    due: { borderColor: 'var(--primary)' },
+    selected: { backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }
   };
   
   const handleDayClick = (day: Date) => {
     setSelectedDay(day);
   };
   
-  const selectedDayStatus = selectedDay ? rentStatusByDay[selectedDay.toISOString().split('T')[0]] : null;
+  const selectedDayStatus = selectedDay ? rentStatusByDay[format(selectedDay, 'yyyy-MM-dd')] : null;
+
+  const renderStatusPill = (status: Tenant['rentStatus']) => {
+      const statusMap = {
+        'Paid': 'default',
+        'Overdue': 'destructive',
+        'Partially Paid': 'secondary',
+        'Advance': 'outline',
+      } as const;
+      return <Badge variant={statusMap[status]}>{status}</Badge>;
+  }
+
+  const renderContent = () => {
+    if (tenantsLoading || propertiesLoading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Skeleton className="h-[320px] w-full" />
+            <Skeleton className="h-[320px] w-full" />
+        </div>
+      );
+    }
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <Calendar
+                month={currentDate}
+                onMonthChange={setCurrentDate}
+                modifiers={modifiers}
+                modifiersClassNames={modifiersStyles}
+                onDayClick={handleDayClick}
+                selected={selectedDay}
+                className="rounded-md border"
+              />
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 text-sm">
+                  <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full" style={modifiersStyles.paid}></div> Paid</div>
+                  <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full" style={modifiersStyles.overdue}></div> Overdue</div>
+                  <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full" style={modifiersStyles.partiallyPaid}></div> Partial</div>
+                  <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full" style={modifiersStyles.advance}></div> Advance</div>
+                  <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full border" style={modifiersStyles.due}></div> Due Date</div>
+              </div>
+            </div>
+            <div className="border rounded-lg p-4 h-[350px] overflow-y-auto">
+              <h3 className="text-lg font-semibold mb-2">
+                {selectedDay ? `Status for ${format(selectedDay, 'PPP')}` : "Select a day to see details"}
+              </h3>
+              {selectedDayStatus ? (
+                <div className="space-y-4">
+                  {selectedDayStatus.length > 0 ? (
+                      <ul className="space-y-3">
+                        {selectedDayStatus.map(tenant => (
+                          <li key={tenant.id} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                            <div>
+                                <Link href={`/tenants/${tenant.id}`} className="font-medium hover:underline">{tenant.name}</Link>
+                                <p className="text-xs text-muted-foreground">{tenant.propertyAddress}</p>
+                            </div>
+                            <div className="text-right">
+                                {renderStatusPill(tenant.rentStatus)}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Balance: Ksh{tenant.balance.toLocaleString()}
+                                </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                  ) : (
+                    <p className="text-muted-foreground text-sm pt-4 text-center">No rent due on this day.</p>
+                  )}
+                </div>
+              ) : (
+                 <p className="text-muted-foreground text-sm pt-4 text-center">
+                    {selectedDay ? "No rent due on this day." : "Select a day from the calendar."}
+                </p>
+              )}
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -110,7 +210,7 @@ export default function RentSchedulePage() {
             <div>
               <CardTitle>Monthly Overview</CardTitle>
               <CardDescription>
-                Visualize monthly rent payment statuses for all tenants.
+                Visualize monthly rent payment statuses for all tenants. Rent is due on the 1st.
               </CardDescription>
             </div>
              <div className="flex items-center gap-2">
@@ -118,7 +218,7 @@ export default function RentSchedulePage() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-lg font-medium">
-                {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                {format(currentDate, 'MMMM yyyy')}
               </span>
               <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
                 <ChevronRight className="h-4 w-4" />
@@ -126,60 +226,8 @@ export default function RentSchedulePage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <Calendar
-                month={currentDate}
-                onMonthChange={setCurrentDate}
-                modifiers={modifiers}
-                modifiersStyles={modifiersStyles}
-                onDayClick={handleDayClick}
-                selected={selectedDay}
-              />
-              <div className="flex justify-center space-x-4 mt-4 text-sm">
-                  <div className="flex items-center gap-2"><div className="h-4 w-4 rounded-full" style={modifiersStyles.paid}></div> Paid</div>
-                  <div className="flex items-center gap-2"><div className="h-4 w-4 rounded-full" style={modifiersStyles.overdue}></div> Overdue</div>
-                  <div className="flex items-center gap-2"><div className="h-4 w-4 rounded-full border-2" style={modifiersStyles.upcoming}></div> Upcoming</div>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">
-                {selectedDay ? `Status for ${selectedDay.toLocaleDateString()}` : "Select a day to see details"}
-              </h3>
-              {selectedDayStatus && (
-                <div className="space-y-4">
-                  {selectedDayStatus.overdue.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-destructive">Overdue</h4>
-                      <ul className="space-y-2 mt-2">
-                        {selectedDayStatus.overdue.map(tenant => (
-                          <li key={tenant.id} className="flex justify-between items-center text-sm">
-                            <Link href={`/tenants/${tenant.id}`} className="hover:underline">{tenant.name}</Link>
-                            <Badge variant="destructive">Overdue</Badge>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                   {selectedDayStatus.paid.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-green-600">Paid</h4>
-                      <ul className="space-y-2 mt-2">
-                        {selectedDayStatus.paid.map(tenant => (
-                          <li key={tenant.id} className="flex justify-between items-center text-sm">
-                             <Link href={`/tenants/${tenant.id}`} className="hover:underline">{tenant.name}</Link>
-                            <Badge variant="default">Paid</Badge>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                   {(selectedDayStatus.paid.length === 0 && selectedDayStatus.overdue.length === 0) && (
-                      <p className="text-muted-foreground text-sm">No payment information for this day.</p>
-                   )}
-                </div>
-              )}
-            </div>
+        <CardContent>
+            {renderContent()}
         </CardContent>
       </Card>
     </div>
