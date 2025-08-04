@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, CalendarDays, MessageSquare } from 'lucide-react';
+import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
@@ -43,6 +43,63 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
 import { useTenant } from '@/hooks/use-tenant';
 import { useProperty } from '@/hooks/use-property';
+
+function SentimentAnalysis({ tenantId }: { tenantId: string }) {
+    const [sentiment, setSentiment] = useState<{ sentiment: string, summary: string } | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchSentiment = async () => {
+            if (!tenantId) return;
+            try {
+                const response = await fetch(`/api/tenants/${tenantId}/sentiment`);
+                const data = await response.json();
+                if (response.ok) {
+                    setSentiment(data);
+                } else {
+                    throw new Error(data.error || 'Failed to fetch sentiment');
+                }
+            } catch (error) {
+                console.error("Failed to fetch sentiment", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSentiment();
+    }, [tenantId]);
+
+    const sentimentIcon = {
+        'Positive': <Smile className="h-6 w-6 text-green-500" />,
+        'Neutral': <Meh className="h-6 w-6 text-yellow-500" />,
+        'Negative': <Frown className="h-6 w-6 text-red-500" />,
+    }[sentiment?.sentiment || 'Neutral']
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>AI Sentiment Analysis</CardTitle>
+                <CardDescription>Based on recent conversations.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {loading ? (
+                     <div className="flex justify-center items-center h-24">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : sentiment && (
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                           {sentimentIcon}
+                        </div>
+                        <div>
+                            <p className="font-semibold text-lg">{sentiment.sentiment}</p>
+                            <p className="text-sm text-muted-foreground">{sentiment.summary}</p>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
 
 export default function TenantDetailPage() {
   const router = useRouter();
@@ -139,7 +196,7 @@ export default function TenantDetailPage() {
         </TabsList>
         <TabsContent value="details" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Contact Information</CardTitle>
@@ -151,7 +208,7 @@ export default function TenantDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="mt-6">
+              <Card>
                 <CardHeader>
                   <CardTitle>Lease Details</CardTitle>
                   <CardDescription>
@@ -175,6 +232,7 @@ export default function TenantDetailPage() {
                     </div>
                 </CardContent>
               </Card>
+              <SentimentAnalysis tenantId={tenant.id} />
             </div>
 
             <div className="lg:col-span-2">
@@ -228,4 +286,3 @@ export default function TenantDetailPage() {
     </div>
   );
 }
-

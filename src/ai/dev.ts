@@ -1,3 +1,4 @@
+
 import { config } from 'dotenv';
 config();
 
@@ -8,3 +9,4 @@ import '@/ai/flows/generate-invoice.ts';
 import '@/ai/flows/generate-receipt.ts';
 import '@/ai/flows/prioritize-maintenance.ts';
 import '@/ai/flows/generate-monthly-report.ts';
+import '@/ai/flows/summarize-tenant-sentiment.ts';
