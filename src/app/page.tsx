@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Home, Banknote, Building2, UserCheck, Activity, UserCog } from 'lucide-react';
+import { Home, Banknote, Building2, UserCheck, Activity, UserCog, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import {
   Card,
@@ -18,7 +18,7 @@ import { AnimatedUsersIcon } from '@/components/icons/animated-users-icon';
 import { useProperties } from '@/hooks/use-properties';
 import { useTenants } from '@/hooks/use-tenants';
 import { Button } from '@/components/ui/button';
-import type { Payment, ActivityItem } from '@/lib/types';
+import type { Payment, ActivityItem, Property } from '@/lib/types';
 import { startOfWeek, startOfMonth, startOfQuarter, isWithinInterval, subDays } from 'date-fns';
 
 const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
@@ -55,12 +55,14 @@ export default function DashboardPage() {
     console.log("Frontend: DashboardPage component mounted.");
   }, []);
 
-  const allPayments: Payment[] = useMemo(() => 
-      tenants.flatMap(tenant => tenant.paymentHistory || []),
+  const allPayments: (Payment & { propertyId: string })[] = useMemo(() => 
+      tenants.flatMap(tenant => 
+        (tenant.paymentHistory || []).map(p => ({ ...p, propertyId: tenant.propertyId }))
+      ),
     [tenants]
   );
 
-  const filteredRevenue = useMemo(() => {
+  const { filteredRevenue, topPerformer } = useMemo(() => {
     const now = new Date();
     let interval: Interval;
 
@@ -77,14 +79,33 @@ export default function DashboardPage() {
         break;
     }
 
-    return allPayments.reduce((acc, payment) => {
+    const revenueByProperty: { [key: string]: number } = {};
+
+    const totalRevenue = allPayments.reduce((acc, payment) => {
         const paymentDate = new Date(payment.date);
         if (isWithinInterval(paymentDate, interval)) {
+            if (payment.propertyId) {
+                revenueByProperty[payment.propertyId] = (revenueByProperty[payment.propertyId] || 0) + payment.amount;
+            }
             return acc + payment.amount;
         }
         return acc;
     }, 0);
-  }, [allPayments, timeFilter]);
+
+    let topProperty: (Property & { revenue: number }) | null = null;
+    if (Object.keys(revenueByProperty).length > 0) {
+        const topPropertyId = Object.entries(revenueByProperty).sort((a, b) => b[1] - a[1])[0][0];
+        const propertyDetails = properties.find(p => p.id === topPropertyId);
+        if (propertyDetails) {
+            topProperty = {
+                ...propertyDetails,
+                revenue: revenueByProperty[topPropertyId]
+            }
+        }
+    }
+
+    return { filteredRevenue: totalRevenue, topPerformer: topProperty };
+  }, [allPayments, timeFilter, properties]);
 
 
   const totalRent = properties.reduce((acc, p) => acc + p.rent, 0);
@@ -168,17 +189,46 @@ export default function DashboardPage() {
             {propertiesLoading ? <Skeleton className="h-80 w-full" /> : <PropertiesCarousel properties={properties} />}
           </CardContent>
         </Card>
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>AI Anomaly Alerts</CardTitle>
-            <CardDescription>
-              Potential issues flagged by our AI.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentActivities activities={anomalyAlerts} />
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-3 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Performer</CardTitle>
+              <CardDescription>
+                Highest earning property this {timeFilter}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {propertiesLoading || tenantsLoading ? <Skeleton className="h-24 w-full" /> : (
+                topPerformer ? (
+                  <Link href={`/properties/${topPerformer.id}`}>
+                    <div className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400/20 text-yellow-500">
+                          <Trophy className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <p className="font-bold">{topPerformer.address}</p>
+                        <p className="text-lg font-semibold text-primary">Ksh{topPerformer.revenue.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="text-center text-muted-foreground p-4">No revenue data for this period.</div>
+                )
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Anomaly Alerts</CardTitle>
+              <CardDescription>
+                Potential issues flagged by our AI.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RecentActivities activities={anomalyAlerts} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
          <Card>
@@ -201,5 +251,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
