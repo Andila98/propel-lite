@@ -33,12 +33,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, CalendarDays } from 'lucide-react';
+import { Mail, Phone, CalendarDays, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChatThread } from '@/components/chat-thread';
 
 export default function TenantDetailPage() {
   const router = useRouter();
@@ -116,76 +118,98 @@ export default function TenantDetailPage() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{tenant.email}</span>
-              </div>
-            </CardContent>
-          </Card>
-           <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Lease Details</CardTitle>
-              <CardDescription>
-                <Link href={`/properties/${property.id}`} className="text-primary hover:underline">
-                    {property.address}
-                </Link>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Lease Period</span>
-                    <span className="font-medium">{tenant.leaseStartDate} to {tenant.leaseEndDate}</span>
-                </div>
-                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Monthly Rent</span>
-                    <span className="font-medium">Ksh{property.rent.toLocaleString()}</span>
-                </div>
-                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Rent Status</span>
-                    <Badge variant={tenant.rentStatus === 'Paid' ? 'default' : 'destructive'}>
-                        {tenant.rentStatus}
-                    </Badge>
-                </div>
-            </CardContent>
-          </Card>
-        </div>
+       <Tabs defaultValue="details">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="messages">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Messages
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="details" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Contact Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{tenant.email}</span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Lease Details</CardTitle>
+                  <CardDescription>
+                    <Link href={`/properties/${property.id}`} className="text-primary hover:underline">
+                        {property.address}
+                    </Link>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Lease Period</span>
+                        <span className="font-medium">{tenant.leaseStartDate} to {tenant.leaseEndDate}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Monthly Rent</span>
+                        <span className="font-medium">Ksh{property.rent.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Rent Status</span>
+                        <Badge variant={tenant.rentStatus === 'Paid' ? 'default' : 'destructive'}>
+                            {tenant.rentStatus}
+                        </Badge>
+                    </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        <div className="lg:col-span-2">
+            <div className="lg:col-span-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Payment History</CardTitle>
+                        <CardDescription>Recent payments from {tenant.name}.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Method</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {tenant.paymentHistory.map((payment, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>{payment.date}</TableCell>
+                                        <TableCell>Ksh{payment.amount.toLocaleString()}</TableCell>
+                                        <TableCell>{payment.method}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="messages" className="mt-4">
             <Card>
                 <CardHeader>
-                    <CardTitle>Payment History</CardTitle>
-                    <CardDescription>Recent payments from {tenant.name}.</CardDescription>
+                    <CardTitle>Conversation</CardTitle>
+                    <CardDescription>Direct messaging with {tenant.name}.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Method</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {tenant.paymentHistory.map((payment, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>{payment.date}</TableCell>
-                                    <TableCell>Ksh{payment.amount.toLocaleString()}</TableCell>
-                                    <TableCell>{payment.method}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <ChatThread tenantId={tenant.id} tenantName={tenant.name} />
                 </CardContent>
             </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

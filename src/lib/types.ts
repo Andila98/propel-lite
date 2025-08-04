@@ -39,6 +39,15 @@ export interface Payment {
   method: string;
 }
 
+export interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  timestamp: any; // Can be Date, Firestore Timestamp, or string
+  isRead?: boolean;
+}
+
 export interface Tenant {
   id: string;
   name: string;
