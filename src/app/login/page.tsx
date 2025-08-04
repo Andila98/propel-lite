@@ -23,23 +23,28 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('landlord@example.com');
   const [password, setPassword] = useState('password');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     // In a real app, you'd have auth logic here.
     // We'll simulate a successful login and redirect to onboarding for new users.
     if (email && password) {
        toast({
         title: "Login Successful",
-        description: "Redirecting to onboarding...",
+        description: "Redirecting to your dashboard...",
       });
-      router.push('/onboarding/welcome');
+      // A real app would check if the user is new and route to onboarding if so.
+      // For this prototype, we'll always go to the dashboard after the initial login.
+      router.push('/');
     } else {
       toast({
         title: "Login Failed",
         description: "Please enter email and password.",
         variant: "destructive",
       });
+       setIsLoading(false);
     }
   };
   
@@ -85,7 +90,9 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-             <Button type="submit" className="w-full">Sign In</Button>
+             <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Signing In..." : "Sign In"}
+             </Button>
           </CardContent>
         </form>
         
