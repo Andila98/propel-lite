@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/lib/types';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Mic, Phone } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatThreadProps {
   tenantId: string;
@@ -24,6 +25,7 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<FormValues>();
 
@@ -71,8 +73,19 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
 
     } catch (err: any) {
       console.error("Failed to send message:", err);
-      // Here you might want to show a toast notification
+      toast({
+          title: "Send Failed",
+          description: "Could not send the message. Please try again.",
+          variant: "destructive"
+      });
     }
+  };
+
+  const handleFeatureClick = (featureName: string) => {
+    toast({
+      title: "Coming Soon!",
+      description: `${featureName} integration is not yet available.`,
+    });
   };
 
   const landlordId = "user_12345"; // Mocked landlordId
@@ -107,17 +120,27 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
           ))}
         </div>
       </ScrollArea>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 flex gap-2">
-        <Input
-          {...register('content', { required: true })}
-          placeholder={`Message ${tenantName}...`}
-          autoComplete="off"
-          disabled={isSubmitting}
-        />
-        <Button type="submit" size="icon" disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+      <div className="mt-4 flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => handleFeatureClick('Voice note')}>
+            <Mic className="h-5 w-5" />
+            <span className="sr-only">Record voice note</span>
         </Button>
-      </form>
+         <Button variant="ghost" size="icon" onClick={() => handleFeatureClick('WhatsApp')}>
+            <Phone className="h-5 w-5" />
+            <span className="sr-only">Send WhatsApp message</span>
+        </Button>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex gap-2">
+            <Input
+            {...register('content', { required: true })}
+            placeholder={`Message ${tenantName}...`}
+            autoComplete="off"
+            disabled={isSubmitting}
+            />
+            <Button type="submit" size="icon" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+        </form>
+      </div>
     </div>
   );
 }
