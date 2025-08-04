@@ -6,11 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Rocket } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { clearOnboardingData } from '@/hooks/use-onboarding-form';
+import { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function LandlordWelcomePage() {
   const router = useRouter();
   // In a real app, you'd get the landlord's name from your auth context/session.
   const landlordName = "Alex"; 
+
+  useEffect(() => {
+    // Clear any partial onboarding data if the user lands here.
+    clearOnboardingData();
+  }, []);
 
   const handleContinue = () => {
     router.push('/onboarding/add-property');
@@ -27,13 +35,18 @@ export default function LandlordWelcomePage() {
             </div>
             <CardTitle className="text-3xl">Welcome to RentEase, {landlordName}!</CardTitle>
             <CardDescription className="text-lg text-muted-foreground px-6">
-              Let’s get your rental business set up — we’ll help you add properties, configure payments, and invite tenants.
+              Let’s get your rental business set up. You can add your properties manually or use our Quick Start to explore with sample data.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" onClick={handleContinue}>
               Let's Get Started
             </Button>
+             <Link href="/onboarding/complete">
+              <Button size="lg" variant="outline">
+                Quick Start
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
