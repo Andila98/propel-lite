@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Menu, DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft, Settings, LayoutDashboard, FileClock, CalendarCheck, Wrench } from "lucide-react"
+import { Menu, DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft, Settings, LayoutDashboard, FileClock, CalendarCheck, Wrench, BarChartHorizontal } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 import {
   Sidebar,
@@ -29,6 +29,7 @@ const navItems = [
   { href: "/payments", label: "Payments", icon: Banknote },
   { href: "/rent-schedule", label: "Rent Schedule", icon: CalendarCheck },
   { href: "/maintenance", label: "Maintenance", icon: Wrench },
+  { href: "/reports", label: "Reports", icon: BarChartHorizontal },
   { href: "/property-managers", label: "Managers", icon: UserCog },
   { href: "/audit-log", label: "Audit Log", icon: FileClock },
 ];
