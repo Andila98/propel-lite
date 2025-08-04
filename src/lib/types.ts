@@ -63,26 +63,26 @@ export interface Tenant {
 }
 
 export const permissionLabels: Record<string, string> = {
-  canEditProperties: "Edit Properties",
-  canDeleteProperties: "Delete Properties",
-  canAddTenants: "Add Tenants",
-  canEditTenants: "Edit Tenants",
-  canDeleteTenants: "Delete Tenants",
-  canViewPayments: "View Payments",
-  canManageManagers: "Manage Other Managers",
-  canManageSettings: "Access App Settings",
+  canEditProperties: "Edit property details",
+  canDeleteProperties: "Delete properties",
+  canAddTenants: "Add and assign tenants",
+  canEditTenants: "Edit tenant information",
+  canDeleteTenants: "Remove tenants",
+  canViewPayments: "View financial records and payments",
+  canManageManagers: "Add, edit, and remove other managers",
+  canManageSettings: "Access and modify application settings",
 };
 export type Permission = keyof typeof permissionLabels;
 
-
 export interface PropertyManager {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    avatarUrl: string;
-    propertiesManaged: string[];
-    permissions: Record<Permission, boolean>;
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatarUrl: string;
+  accessLevel: 'Full Manager' | 'Limited Staff';
+  propertiesManaged: string[];
+  permissions: Record<Permission, boolean>;
 }
 
 export interface ActivityItem {
