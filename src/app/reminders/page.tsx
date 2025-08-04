@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { Invoice } from '@/components/invoice';
 import type { GenerateInvoiceOutput } from '@/ai/flows/generate-invoice';
 import type { Tenant } from '@/lib/types';
+import { useTenants } from '@/hooks/use-tenants';
 
 const ScheduleReminderFormSchema = z.object({
   tenantId: z.string().min(1, "Tenant is required."),
@@ -36,12 +37,7 @@ export default function RemindersPage() {
   const [scheduleSuggestion, setScheduleSuggestion] = useState<any>(null);
   const [invoice, setInvoice] = useState<GenerateInvoiceOutput | null>(null);
   const [finalResult, setFinalResult] = useState<ScheduleReminderState | null>(null);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-
-  // In a real app, fetch tenants here
-  useEffect(() => {
-    // fetchTenants().then(setTenants);
-  }, []);
+  const { tenants } = useTenants();
 
   const form = useForm<ScheduleReminderFormValues>({
     resolver: zodResolver(ScheduleReminderFormSchema),
@@ -253,3 +249,5 @@ export default function RemindersPage() {
     </div>
   );
 }
+
+    

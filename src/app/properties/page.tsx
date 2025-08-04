@@ -15,6 +15,7 @@ import { PlusCircle, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import type { PropertyManager, Property, Tenant } from '@/lib/types';
 import { useProperties } from '@/hooks/use-properties';
+import { useTenants } from '@/hooks/use-tenants';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -86,10 +87,9 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
 
 export default function PropertiesPage() {
   const { properties, loading, error } = useProperties();
+  const { tenants, loading: tenantsLoading } = useTenants();
   const [searchTerm, setSearchTerm] = useState('');
   const [propertyTypeFilter, setPropertyTypeFilter] = useState('all');
-
-  const tenants = []; // Replace with useTenants hook
 
   const filteredProperties = useMemo(() => {
     return properties.filter(property => {
@@ -103,7 +103,7 @@ export default function PropertiesPage() {
   const currentUserRole: PropertyManager['accessLevel'] = 'Full Manager';
 
   const renderContent = () => {
-    if (loading) {
+    if (loading || tenantsLoading) {
       return <Skeleton className="h-[200px] w-full" />;
     }
 
@@ -169,3 +169,5 @@ export default function PropertiesPage() {
     </div>
   );
 }
+
+    

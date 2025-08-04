@@ -16,9 +16,9 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedUsersIcon } from '@/components/icons/animated-users-icon';
 import { useProperties } from '@/hooks/use-properties';
+import { useTenants } from '@/hooks/use-tenants';
 import { Button } from '@/components/ui/button';
-import { mockTenants } from '@/lib/mock-data';
-import type { Payment } from '@/lib/types';
+import type { Payment, ActivityItem } from '@/lib/types';
 import { startOfWeek, startOfMonth, startOfQuarter, isWithinInterval, subDays } from 'date-fns';
 
 const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
@@ -38,19 +38,25 @@ const PropertyManagerList = dynamic(() => import('@/components/property-manager-
   loading: () => <Skeleton className="h-40 w-full" />
 });
 
+// Mock data for AI Anomaly Alerts
+const anomalyAlerts: ActivityItem[] = [
+    { id: 'alert1', type: 'income-drop', description: "Property '123 Main St' income dropped 40% this month.", date: '2 days ago' },
+    { id: 'alert2', type: 'vacancy-rate', description: "Unusual vacancy rate (25%) compared to last quarter (10%).", date: '1 week ago' },
+    { id: 'alert3', type: 'income-drop', description: "Maintenance requests for '456 Oak Ave' are up 50% this month.", date: '3 days ago' },
+];
+
 export default function DashboardPage() {
   const { properties, loading: propertiesLoading } = useProperties();
+  const { tenants, loading: tenantsLoading } = useTenants();
   const [timeFilter, setTimeFilter] = useState('month');
-  const tenants = mockTenants; // Replace with useTenants hook later
   const managers = []; // Replace with useManagers hook later
-  const activities = []; // Replace with useActivities hook later
   
   useEffect(() => {
     console.log("Frontend: DashboardPage component mounted.");
   }, []);
 
   const allPayments: Payment[] = useMemo(() => 
-      tenants.flatMap(tenant => tenant.paymentHistory),
+      tenants.flatMap(tenant => tenant.paymentHistory || []),
     [tenants]
   );
 
@@ -116,7 +122,7 @@ export default function DashboardPage() {
               <AnimatedUsersIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{tenants.length}</div>
+              {tenantsLoading ? <Skeleton className="h-7 w-12"/> : <div className="text-2xl font-bold">{tenants.length}</div>}
               <p className="text-xs text-muted-foreground">
                 Across all properties
               </p>
@@ -164,13 +170,13 @@ export default function DashboardPage() {
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>AI Anomaly Alerts</CardTitle>
             <CardDescription>
-              Latest updates on your properties and tenants.
+              Potential issues flagged by our AI.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <RecentActivities activities={activities} />
+            <RecentActivities activities={anomalyAlerts} />
           </CardContent>
         </Card>
       </div>
@@ -180,7 +186,7 @@ export default function DashboardPage() {
             <CardTitle>Tenants</CardTitle>
           </CardHeader>
           <CardContent>
-            <TenantTable tenants={tenants} properties={properties} />
+            {tenantsLoading ? <Skeleton className="h-64 w-full" /> : <TenantTable tenants={tenants} properties={properties} />}
           </CardContent>
         </Card>
         <Card>

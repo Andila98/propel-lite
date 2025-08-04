@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateMessageAction, type GenerateMessageState } from './actions';
 import type { Tenant } from '@/lib/types';
+import { useTenants } from '@/hooks/use-tenants';
 
 type MessageFormValues = {
   tenantId: string;
@@ -22,13 +23,9 @@ export default function SmartMessagingPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateMessageState | null>(null);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const { tenants } = useTenants();
   
   const { handleSubmit, control, watch } = useForm<MessageFormValues>();
-
-  useEffect(() => {
-    // In a real app, you would fetch tenants here.
-  }, []);
   
   const selectedTenantId = watch('tenantId');
 
@@ -137,3 +134,5 @@ export default function SmartMessagingPage() {
     </div>
   );
 }
+
+    

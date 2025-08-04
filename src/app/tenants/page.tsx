@@ -13,10 +13,11 @@ import Link from 'next/link';
 import { TenantTable } from '@/components/tenant-table';
 import type { PropertyManager } from '@/lib/types';
 import { useProperties } from '@/hooks/use-properties';
+import { useTenants } from '@/hooks/use-tenants';
 
 export default function TenantsPage() {
   const { properties } = useProperties();
-  const tenants = []; // Replace with useTenants hook
+  const { tenants } = useTenants();
 
   // In a real app, you'd get the current user's role from your auth context/session.
   // We'll simulate a "Full Manager" role for demonstration.
@@ -49,3 +50,5 @@ export default function TenantsPage() {
     </div>
   );
 }
+
+    

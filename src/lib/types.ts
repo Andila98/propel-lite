@@ -72,7 +72,7 @@ export interface PropertyManager {
 
 export interface ActivityItem {
     id:string;
-    type: 'new-tenant' | 'rent-paid' | 'lease-ending';
+    type: 'new-tenant' | 'rent-paid' | 'lease-ending' | 'income-drop' | 'vacancy-rate';
     description: string;
     date: string;
 }

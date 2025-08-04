@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -26,20 +26,34 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { Tenant, Property } from '@/lib/types';
+import type { Tenant, Property, Payment } from '@/lib/types';
 import Link from 'next/link';
 import { Receipt as ReceiptIcon, Loader2 } from 'lucide-react';
 import { getReceiptAction, type ReceiptState } from './actions';
 import { Receipt } from '@/components/receipt';
+import { useTenants } from '@/hooks/use-tenants';
+import { useProperties } from '@/hooks/use-properties';
 
 export default function PaymentsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [receiptResult, setReceiptResult] = useState<ReceiptState | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const { tenants, loading: tenantsLoading } = useTenants();
+  const { properties, loading: propertiesLoading } = useProperties();
   
-  // In real app this would be fetched from the db.
-  const allPayments = [];
+  const allPayments = useMemo(() => {
+    return tenants.flatMap(tenant => 
+        (tenant.paymentHistory || []).map(payment => ({
+            ...payment,
+            tenantId: tenant.id,
+            tenantName: tenant.name,
+            propertyId: tenant.propertyId,
+            propertyName: properties.find(p => p.id === tenant.propertyId)?.address || 'N/A'
+        }))
+    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [tenants, properties]);
+
 
   const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
     setLoading(true);
@@ -54,6 +68,10 @@ export default function PaymentsPage() {
     }
 
     setLoading(false);
+  }
+
+  if (tenantsLoading || propertiesLoading) {
+      return <div>Loading...</div> // TODO: Add skeleton
   }
 
   return (
@@ -131,3 +149,5 @@ export default function PaymentsPage() {
     </div>
   );
 }
+
+    

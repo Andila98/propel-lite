@@ -41,22 +41,23 @@ import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
+import { useTenant } from '@/hooks/use-tenant';
+import { useProperty } from '@/hooks/use-property';
 
 export default function TenantDetailPage() {
   const router = useRouter();
   const { id } = useParams();
   const { toast } = useToast();
   const tenantId = id as string;
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [property, setProperty] = useState<Property | null>(null);
-  // In a real app, you would fetch this data.
-  // For now we'll leave it empty as mock data is removed.
-  useEffect(() => {
-   
-  }, [tenantId]);
+  const { tenant, loading: tenantLoading } = useTenant(tenantId);
+  const { property, loading: propertyLoading } = useProperty(tenant?.propertyId || '');
 
+  if (tenantLoading || propertyLoading) {
+    return <div>Loading...</div>; // TODO: Add skeleton
+  }
+  
   if (!tenant || !property) {
-    return <div>Loading...</div>;
+    return <div>Tenant or property not found.</div>;
   }
 
   const handleDelete = () => {
@@ -213,3 +214,5 @@ export default function TenantDetailPage() {
     </div>
   );
 }
+
+    
