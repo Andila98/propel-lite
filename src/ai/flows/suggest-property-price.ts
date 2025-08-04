@@ -1,5 +1,4 @@
 
-// src/ai/flows/suggest-property-price.ts
 'use server';
 
 /**
@@ -46,7 +45,12 @@ export async function suggestPropertyPrice(
   input: SuggestPropertyPriceInput
 ): Promise<SuggestPropertyPriceOutput> {
   console.log("Backend: suggestPropertyPrice flow received input:", input);
-  return suggestPropertyPriceFlow(input);
+  try {
+    return await suggestPropertyPriceFlow(input);
+  } catch(error) {
+    console.error("Backend Error: Failed to suggest property price:", error);
+    throw new Error("An error occurred while generating the price suggestion.");
+  }
 }
 
 const prompt = ai.definePrompt({

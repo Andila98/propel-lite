@@ -12,10 +12,10 @@ export async function generateReportAction(input: GenerateMonthlyReportInput): P
   console.log("Frontend: generateReportAction called with input:", input);
   try {
     const result = await generateMonthlyReport(input);
-    console.log("Frontend: Report generated successfully:", result);
+    console.log("Frontend: Report generated successfully:", result.reportTitle);
     return { report: result };
   } catch (error: any) {
-    console.error("Frontend: Failed to generate report:", error);
+    console.error("Frontend Action Error: Failed to generate report:", error);
     return {
       error: `Failed to generate report: ${error.message}`,
     };

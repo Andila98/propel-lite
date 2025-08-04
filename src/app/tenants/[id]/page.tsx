@@ -47,11 +47,14 @@ import { useProperty } from '@/hooks/use-property';
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
     const [sentiment, setSentiment] = useState<{ sentiment: string, summary: string } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchSentiment = async () => {
             if (!tenantId) return;
             try {
+                setLoading(true);
+                setError(null);
                 const response = await fetch(`/api/tenants/${tenantId}/sentiment`);
                 const data = await response.json();
                 if (response.ok) {
@@ -59,8 +62,9 @@ function SentimentAnalysis({ tenantId }: { tenantId: string }) {
                 } else {
                     throw new Error(data.error || 'Failed to fetch sentiment');
                 }
-            } catch (error) {
-                console.error("Failed to fetch sentiment", error);
+            } catch (err: any) {
+                console.error("Failed to fetch sentiment", err);
+                setError(err.message);
             } finally {
                 setLoading(false);
             }
@@ -81,11 +85,13 @@ function SentimentAnalysis({ tenantId }: { tenantId: string }) {
                 <CardDescription>Based on recent conversations.</CardDescription>
             </CardHeader>
             <CardContent>
-                {loading ? (
+                {loading && (
                      <div className="flex justify-center items-center h-24">
                         <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
-                ) : sentiment && (
+                )}
+                {error && <p className="text-destructive text-sm text-center">{error}</p>}
+                {sentiment && !loading && !error && (
                     <div className="flex items-start gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                            {sentimentIcon}

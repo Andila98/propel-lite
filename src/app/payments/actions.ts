@@ -12,10 +12,10 @@ export async function getReceiptAction(input: GenerateReceiptInput): Promise<Rec
   console.log("Frontend: getReceiptAction called with input:", input);
   try {
     const result = await generateReceipt(input);
-    console.log("Frontend: Receipt generated successfully:", result);
+    console.log("Frontend: Receipt generated successfully for tenant:", input.tenantId);
     return { receipt: result };
   } catch (error: any) {
-    console.error("Frontend: Failed to generate receipt:", error);
+    console.error("Frontend Action Error: Failed to generate receipt:", error);
     return {
       error: `Failed to generate receipt: ${error.message}`,
     };

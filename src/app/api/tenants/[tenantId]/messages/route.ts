@@ -13,6 +13,7 @@ export async function GET(
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 });
     }
+    console.log(`API: Fetching messages for tenant ${tenantId}.`);
 
     const messagesSnapshot = await db
       .collection('tenants')
@@ -22,7 +23,7 @@ export async function GET(
       .get();
 
     const messages = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+    console.log(`API: Found ${messages.length} messages for tenant ${tenantId}.`);
     return NextResponse.json(messages);
   } catch (error: any) {
     console.error(`API Error: Failed to fetch messages for tenant ${params.tenantId}:`, error);
@@ -61,7 +62,8 @@ export async function POST(
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       isRead: false,
     };
-
+    
+    console.log(`API: Sending message to tenant ${tenantId}.`);
     const docRef = await db
       .collection('tenants')
       .doc(tenantId)
@@ -70,7 +72,8 @@ export async function POST(
 
     const messageDoc = await docRef.get();
     const createdMessage = { id: messageDoc.id, ...messageDoc.data() };
-
+    console.log(`API: Message sent successfully with ID ${createdMessage.id}.`);
+    
     return NextResponse.json(createdMessage, { status: 201 });
 
   } catch (error: any) {

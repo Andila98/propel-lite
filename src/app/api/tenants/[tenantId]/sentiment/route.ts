@@ -13,9 +13,11 @@ export async function GET(
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 });
     }
+    console.log(`API: Getting sentiment for tenant ${tenantId}.`);
 
     const tenantDoc = await db.collection('tenants').doc(tenantId).get();
     if (!tenantDoc.exists) {
+        console.error(`API Error: Tenant not found for ID: ${tenantId}`);
         return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
     }
     const tenant = tenantDoc.data() as Tenant;
@@ -31,6 +33,7 @@ export async function GET(
     const messages = messagesSnapshot.docs.map(doc => doc.data() as Message);
     
     if (messages.length === 0) {
+        console.log(`API: No messages found for tenant ${tenantId}. Returning Neutral sentiment.`);
         return NextResponse.json({ sentiment: 'Neutral', summary: 'No messages found to analyze sentiment.' });
     }
 
@@ -40,7 +43,8 @@ export async function GET(
     };
 
     const sentimentResult = await summarizeTenantSentiment(sentimentInput);
-
+    console.log(`API: Sentiment analysis successful for tenant ${tenantId}. Result: ${sentimentResult.sentiment}`);
+    
     return NextResponse.json(sentimentResult);
   } catch (error: any) {
     console.error(`API Error: Failed to get sentiment for tenant ${params.tenantId}:`, error);

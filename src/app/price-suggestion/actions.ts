@@ -12,8 +12,9 @@ const SuggestionFormSchema = z.object({
   propertyDescription: z.string().optional(),
 });
 
-export type PriceSuggestionState = SuggestPropertyPriceOutput & {
+export type PriceSuggestionState = {
   error?: string;
+  suggestion?: SuggestPropertyPriceOutput;
 };
 
 export async function suggestPriceAction(
@@ -24,28 +25,22 @@ export async function suggestPriceAction(
   const validatedFields = SuggestionFormSchema.safeParse(input);
 
   if (!validatedFields.success) {
-    console.error("Backend: Invalid form data.", validatedFields.error.flatten().fieldErrors);
+    const errorMessage = "Invalid form data.";
+    console.error(`Backend Error: ${errorMessage}`, validatedFields.error.flatten().fieldErrors);
     return {
-      error: "Invalid form data.",
-      suggestedPrice: 0,
-      reasoning: "",
-      overrideConsiderations: "",
+      error: errorMessage,
     };
   }
 
   try {
     const result = await suggestPropertyPrice(validatedFields.data);
     console.log("Backend: AI suggestion result:", result);
-    return result;
-  } catch (error) {
-    console.error("Backend: Failed to generate price suggestion.", error);
+    return { suggestion: result };
+  } catch (error: any) {
+    const errorMessage = "Failed to generate price suggestion.";
+    console.error(`Backend Error: ${errorMessage}`, error);
     return {
-      error: "Failed to generate price suggestion.",
-      suggestedPrice: 0,
-      reasoning: "",
-      overrideConsiderations: "",
+      error: `${errorMessage}: ${error.message}`,
     };
   }
 }
-
-    

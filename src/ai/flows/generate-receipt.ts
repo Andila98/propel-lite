@@ -1,5 +1,4 @@
 
-// This file is machine-generated - edit with caution!
 'use server';
 /**
  * @fileOverview A flow that generates a receipt for a tenant payment.

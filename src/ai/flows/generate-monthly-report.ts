@@ -11,8 +11,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/firebase-admin';
-import { startOfMonth, endOfMonth } from 'date-fns';
-import type { Tenant, Property, Payment, MaintenanceRequest } from '@/lib/types';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
+import type { Tenant, Property, Payment } from '@/lib/types';
 
 
 const GenerateMonthlyReportInputSchema = z.object({
@@ -68,58 +68,56 @@ const generateMonthlyReportFlow = ai.defineFlow(
     outputSchema: GenerateMonthlyReportOutputSchema,
   },
   async (input) => {
-    const { month, year } = input;
-    const startDate = startOfMonth(new Date(year, month));
-    const endDate = endOfMonth(new Date(year, month));
+    console.log("Backend: generateMonthlyReportFlow received input:", input);
+    try {
+        const { month, year } = input;
+        const startDate = startOfMonth(new Date(year, month));
+        const endDate = endOfMonth(new Date(year, month));
 
-    // Fetch all properties and tenants once
-    const propertiesSnapshot = await db.collection('properties').get();
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
-    const tenantsSnapshot = await db.collection('tenants').get();
-    const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
+        // Fetch all properties and tenants once
+        const propertiesSnapshot = await db.collection('properties').get();
+        const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
+        const tenantsSnapshot = await db.collection('tenants').get();
+        const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
 
-    // Calculate metrics
-    const totalProperties = properties.length;
-    const totalUnits = properties.reduce((acc, p) => acc + (p.units?.length || 1), 0);
-    
-    // For simplicity, we'll count a tenant as occupying a unit.
-    const occupiedUnits = tenants.length;
-    
-    const allPayments: Payment[] = tenants.flatMap(t => t.paymentHistory || []);
-    const paymentsThisMonth = allPayments.filter(p => {
-        const paymentDate = new Date(p.date);
-        return paymentDate >= startDate && paymentDate <= endDate;
-    });
+        // Calculate metrics
+        const totalProperties = properties.length;
+        const totalUnits = properties.reduce((acc, p) => acc + (p.units?.length || 1), 0);
+        
+        // For simplicity, we'll count a tenant as occupying a unit.
+        const occupiedUnits = tenants.length;
+        
+        const allPayments: Payment[] = tenants.flatMap(t => t.paymentHistory || []);
+        const paymentsThisMonth = allPayments.filter(p => {
+            const paymentDate = new Date(p.date);
+            return paymentDate >= startDate && paymentDate <= endDate;
+        });
 
-    const totalRevenue = paymentsThisMonth.reduce((acc, p) => acc + p.amount, 0);
-    const latePayments = paymentsThisMonth.filter(p => new Date(p.date).getDate() > 5).length;
-    
-    // This is a placeholder for fetching real maintenance requests
-    const newMaintenanceRequests = Math.floor(Math.random() * 5); // Mock data
+        const totalRevenue = paymentsThisMonth.reduce((acc, p) => acc + p.amount, 0);
+        const latePayments = paymentsThisMonth.filter(p => new Date(p.date).getDate() > 5).length;
+        
+        // This is a placeholder for fetching real maintenance requests
+        const newMaintenanceRequests = Math.floor(Math.random() * 5); // Mock data
 
-    const monthName = format(startDate, 'MMMM');
-    
-    const promptInput = {
-      monthName,
-      year,
-      totalProperties,
-      totalUnits,
-      occupiedUnits,
-      totalRevenue,
-      paymentCount: paymentsThisMonth.length,
-      latePayments,
-      newMaintenanceRequests,
-    };
+        const monthName = format(startDate, 'MMMM');
+        
+        const promptInput = {
+        monthName,
+        year,
+        totalProperties,
+        totalUnits,
+        occupiedUnits,
+        totalRevenue,
+        paymentCount: paymentsThisMonth.length,
+        latePayments,
+        newMaintenanceRequests,
+        };
 
-    const { output } = await prompt(promptInput);
-    return output!;
+        const { output } = await prompt(promptInput);
+        return output!;
+    } catch (error) {
+        console.error("Backend Error in generateMonthlyReportFlow:", error);
+        throw new Error("Failed to generate monthly report due to an internal error.");
+    }
   }
 );
-
-// Helper to format date, as it's not available in this context by default
-function format(date: Date, formatStr: string): string {
-    if (formatStr === 'MMMM') {
-        return new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
-    }
-    return date.toISOString();
-}

@@ -40,6 +40,7 @@ export default function PriceSuggestionPage() {
   const onSubmit: SubmitHandler<SuggestionFormValues> = async (data) => {
     setLoading(true);
     setResult(null);
+    console.log("Frontend: Submitting data for price suggestion:", data);
     try {
       const res = await suggestPriceAction(data);
       if (res.error) {
@@ -51,14 +52,17 @@ export default function PriceSuggestionPage() {
       } else {
         setResult(res);
       }
-    } catch (e) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
-        variant: "destructive",
-      });
+    } catch (e: any) {
+        const errorMessage = "An unexpected error occurred.";
+        console.error(`Frontend Error: ${errorMessage}`, e);
+        toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+        });
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   };
   
   const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
@@ -132,21 +136,21 @@ export default function PriceSuggestionPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-              {result && (
+              {result?.suggestion && (
                 <>
                   <div>
                     <Label>Suggested Monthly Rent</Label>
                     <p className="text-3xl sm:text-4xl font-bold text-primary">
-                        {formatCurrency(result.suggestedPrice || 0, result.currency)}
+                        {formatCurrency(result.suggestion.suggestedPrice || 0, result.suggestion.currency)}
                     </p>
                   </div>
                   <div>
                     <Label>Reasoning</Label>
-                    <p className="text-muted-foreground">{result.reasoning}</p>
+                    <p className="text-muted-foreground">{result.suggestion.reasoning}</p>
                   </div>
                   <div>
                     <Label>Override Considerations</Label>
-                    <p className="text-muted-foreground">{result.overrideConsiderations}</p>
+                    <p className="text-muted-foreground">{result.suggestion.overrideConsiderations}</p>
                   </div>
                 </>
               )}

@@ -26,7 +26,13 @@ const GenerateReminderScheduleOutputSchema = z.object({
 export type GenerateReminderScheduleOutput = z.infer<typeof GenerateReminderScheduleOutputSchema>;
 
 export async function generateReminderSchedule(input: GenerateReminderScheduleInput): Promise<GenerateReminderScheduleOutput> {
-  return generateReminderScheduleFlow(input);
+  console.log("Backend: generateReminderSchedule flow received input:", input);
+  try {
+    return await generateReminderScheduleFlow(input);
+  } catch (error) {
+    console.error("Backend Error: Failed to generate reminder schedule:", error);
+    throw new Error("An error occurred while generating the reminder schedule.");
+  }
 }
 
 const prompt = ai.definePrompt({

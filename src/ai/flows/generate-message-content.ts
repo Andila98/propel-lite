@@ -1,5 +1,4 @@
 
-// This file is machine-generated - edit with caution!
 'use server';
 /**
  * @fileOverview A flow that suggests message content for tenant reminders and notifications.
@@ -28,7 +27,14 @@ const GenerateMessageContentOutputSchema = z.object({
 export type GenerateMessageContentOutput = z.infer<typeof GenerateMessageContentOutputSchema>;
 
 export async function generateMessageContent(input: GenerateMessageContentInput): Promise<GenerateMessageContentOutput> {
-  return generateMessageContentFlow(input);
+  console.log("Backend: generateMessageContent flow received input:", input);
+  try {
+    return await generateMessageContentFlow(input);
+  } catch (error) {
+    console.error("Backend Error: Failed to generate message content:", error);
+    // Re-throw or handle as needed
+    throw new Error("An error occurred while generating the message content.");
+  }
 }
 
 const prompt = ai.definePrompt({
