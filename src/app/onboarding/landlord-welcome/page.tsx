@@ -4,12 +4,13 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Rocket, Sparkles } from 'lucide-react';
+import { Rocket, Sparkles, PlayCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { clearOnboardingData } from '@/hooks/use-onboarding-form';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 export default function LandlordWelcomePage() {
   const router = useRouter();
@@ -40,10 +41,10 @@ export default function LandlordWelcomePage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="mx-auto max-w-4xl space-y-4">
         <Progress value={20} className="w-full" />
-        <Card className="w-full text-center">
-          <CardHeader>
+        <Card className="w-full">
+          <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Rocket className="h-8 w-8" />
             </div>
@@ -52,14 +53,29 @@ export default function LandlordWelcomePage() {
               Let’s get your rental business set up. You can add your properties manually or use our Quick Start to explore with sample data.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={handleContinue}>
-              Start Manual Setup
-            </Button>
-            <Button size="lg" variant="outline" onClick={handleQuickStart}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Quick Start with Sample Data
-            </Button>
+          <CardContent className="space-y-6">
+            <div className="aspect-video w-full max-w-xl mx-auto rounded-lg overflow-hidden relative group cursor-pointer bg-muted">
+                <Image 
+                    src="https://placehold.co/1280x720.png"
+                    alt="Onboarding video thumbnail"
+                    layout="fill"
+                    objectFit="cover"
+                    data-ai-hint="app interface screenshot"
+                />
+                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <PlayCircle className="h-16 w-16 text-white/80 group-hover:scale-110 transition-transform" />
+                </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" onClick={handleContinue}>
+                Start Manual Setup
+                </Button>
+                <Button size="lg" variant="outline" onClick={handleQuickStart}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Quick Start with Sample Data
+                </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
