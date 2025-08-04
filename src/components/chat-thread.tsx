@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/lib/types';
-import { Send, Loader2, Mic, Phone } from 'lucide-react';
+import { Send, Loader2, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChatThreadProps {
@@ -124,10 +124,6 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
         <Button variant="ghost" size="icon" onClick={() => handleFeatureClick('Voice note')}>
             <Mic className="h-5 w-5" />
             <span className="sr-only">Record voice note</span>
-        </Button>
-         <Button variant="ghost" size="icon" onClick={() => handleFeatureClick('WhatsApp')}>
-            <Phone className="h-5 w-5" />
-            <span className="sr-only">Send WhatsApp message</span>
         </Button>
         <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex gap-2">
             <Input
