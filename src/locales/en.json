@@ -1,0 +1,28 @@
+
+{
+  "dashboard": {
+    "title": "Landlord Dashboard",
+    "totalProperties": "Total Properties",
+    "totalPropertiesDesc": "Managed properties",
+    "totalTenants": "Total Tenants",
+    "totalTenantsDesc": "Across all properties",
+    "totalRevenue": "Total Revenue",
+    "week": "Week",
+    "month": "Month",
+    "quarter": "Quarter",
+    "occupancyRate": "Occupancy Rate",
+    "occupancyRateDesc": "Percentage of properties occupied",
+    "propertiesShowcase": "Properties Showcase",
+    "propertiesShowcaseDesc": "A look at your managed properties.",
+    "topPerformer": "Top Performer",
+    "topPerformerDesc": "Highest earning property this {{context}}.",
+    "topPerformerDesc_week": "Highest earning property this week.",
+    "topPerformerDesc_month": "Highest earning property this month.",
+    "topPerformerDesc_quarter": "Highest earning property this quarter.",
+    "noRevenue": "No revenue data for this period.",
+    "anomalyAlerts": "AI Anomaly Alerts",
+    "anomalyAlertsDesc": "Potential issues flagged by our AI.",
+    "tenants": "Tenants",
+    "propertyManagers": "Property Managers"
+  }
+}

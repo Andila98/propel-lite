@@ -1,0 +1,28 @@
+
+{
+  "dashboard": {
+    "title": "Panel del Propietario",
+    "totalProperties": "Propiedades Totales",
+    "totalPropertiesDesc": "Propiedades gestionadas",
+    "totalTenants": "Inquilinos Totales",
+    "totalTenantsDesc": "En todas las propiedades",
+    "totalRevenue": "Ingresos Totales",
+    "week": "Semana",
+    "month": "Mes",
+    "quarter": "Trimestre",
+    "occupancyRate": "Tasa de Ocupación",
+    "occupancyRateDesc": "Porcentaje de propiedades ocupadas",
+    "propertiesShowcase": "Muestra de Propiedades",
+    "propertiesShowcaseDesc": "Un vistazo a sus propiedades gestionadas.",
+    "topPerformer": "Mejor Rendimiento",
+    "topPerformerDesc": "Propiedad con mayores ingresos este {{context}}.",
+    "topPerformerDesc_week": "Propiedad con mayores ingresos esta semana.",
+    "topPerformerDesc_month": "Propiedad con mayores ingresos este mes.",
+    "topPerformerDesc_quarter": "Propiedad con mayores ingresos este trimestre.",
+    "noRevenue": "No hay datos de ingresos para este período.",
+    "anomalyAlerts": "Alertas de Anomalías de IA",
+    "anomalyAlertsDesc": "Posibles problemas marcados por nuestra IA.",
+    "tenants": "Inquilinos",
+    "propertyManagers": "Administradores de Propiedades"
+  }
+}
