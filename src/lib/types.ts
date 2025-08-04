@@ -1,4 +1,3 @@
-
 import type { FieldValue } from 'firebase-admin/firestore';
 
 export interface Document {
@@ -99,4 +98,17 @@ export interface AuditLog {
   entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
   entityName: string;
   timestamp: string;
+}
+
+export interface MaintenanceRequest {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  propertyId: string;
+  propertyAddress: string;
+  description: string;
+  status: 'Pending' | 'In Progress' | 'Completed';
+  priority?: 'High' | 'Medium' | 'Low';
+  reasoning?: string;
+  submittedDate: string;
 }
