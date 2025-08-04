@@ -60,6 +60,19 @@ export interface Tenant {
   avatarUrl: string;
 }
 
+export const permissionLabels: Record<string, string> = {
+  canEditProperties: "Edit Properties",
+  canDeleteProperties: "Delete Properties",
+  canAddTenants: "Add Tenants",
+  canEditTenants: "Edit Tenants",
+  canDeleteTenants: "Delete Tenants",
+  canViewPayments: "View Payments",
+  canManageManagers: "Manage Other Managers",
+  canManageSettings: "Access App Settings",
+};
+export type Permission = keyof typeof permissionLabels;
+
+
 export interface PropertyManager {
     id: string;
     name: string;
@@ -67,7 +80,7 @@ export interface PropertyManager {
     phone: string;
     avatarUrl: string;
     propertiesManaged: string[];
-    accessLevel: 'Full Manager' | 'Limited Staff';
+    permissions: Record<Permission, boolean>;
 }
 
 export interface ActivityItem {

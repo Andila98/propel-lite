@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import type { PropertyManager } from '@/lib/types';
+import { permissionLabels, type Permission } from '@/lib/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+
+const permissionsSchema = z.object(
+  Object.keys(permissionLabels).reduce((acc, key) => {
+    acc[key as Permission] = z.boolean().default(false);
+    return acc;
+  }, {} as Record<Permission, z.ZodBoolean>)
+);
 
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
   email: z.string().email("Please enter a valid email address."),
   phone: z.string().min(10, "Please enter a valid phone number."),
+  permissions: permissionsSchema,
 });
 type PropertyManagerFormValues = z.infer<typeof PropertyManagerFormSchema>;
 
@@ -45,7 +56,8 @@ export default function EditPropertyManagerPage() {
     defaultValues: {
       name: '',
       email: '',
-      phone: ''
+      phone: '',
+      permissions: {},
     }
   });
 
@@ -55,6 +67,7 @@ export default function EditPropertyManagerPage() {
         name: managerToEdit.name,
         email: managerToEdit.email,
         phone: managerToEdit.phone,
+        permissions: managerToEdit.permissions,
       });
       setPreviewUrl(managerToEdit.avatarUrl);
     }
@@ -64,7 +77,7 @@ export default function EditPropertyManagerPage() {
     return <div>Manager not found.</div>;
   }
 
-  const { register, handleSubmit, formState: { errors } } = form;
+  const { register, handleSubmit, control, formState: { errors } } = form;
   
   const getInitials = (name: string) => {
     const names = name.split(' ');
@@ -146,13 +159,13 @@ export default function EditPropertyManagerPage() {
             </Link>
             <h2 className="text-3xl font-bold tracking-tight">Edit Manager</h2>
         </div>
-        <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-                <CardTitle>Update Manager Information</CardTitle>
-                <CardDescription>Modify the details for {managerToEdit.name}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-4xl mx-auto">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Manager Information</CardTitle>
+                    <CardDescription>Modify the details for {managerToEdit.name}.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                     <div className="flex flex-col items-center gap-4 sm:flex-row">
                         <Avatar className="h-24 w-24">
                             {avatarImage ? (
@@ -175,26 +188,57 @@ export default function EditPropertyManagerPage() {
                     {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
                   </div>
 
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                    {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
+                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                    </div>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
-                    {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
-                  </div>
+                </CardContent>
+            </Card>
 
-                  <div className="flex justify-end pt-4">
-                      <Button type="submit" disabled={loading}>
-                        {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
-                      </Button>
-                  </div>
-                </form>
-            </CardContent>
-        </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Permissions</CardTitle>
+                    <CardDescription>Select the permissions for this manager.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {Object.keys(permissionLabels).map((key) => (
+                            <div key={key} className="flex items-center space-x-2">
+                                <Controller
+                                    name={`permissions.${key as Permission}`}
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Checkbox
+                                            id={key}
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    )}
+                                />
+                                <Label htmlFor={key} className="font-normal">
+                                    {permissionLabels[key as Permission]}
+                                </Label>
+                            </div>
+                        ))}
+                    </div>
+                    {errors.permissions && <p className="text-sm text-destructive mt-1">{errors.permissions.message}</p>}
+                </CardContent>
+            </Card>
+
+              <div className="flex justify-end pt-4">
+                  <Button type="submit" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
+                  </Button>
+              </div>
+        </form>
     </div>
   );
 }

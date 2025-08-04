@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye } from 'lucide-react';
+import { MoreHorizontal, Eye, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
 import { AnimatedEditIcon } from './icons/animated-edit-icon';
@@ -68,8 +68,8 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Access Level</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Permissions</TableHead>
             <TableHead>Properties Managed</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -86,14 +86,18 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
                   <span className="font-medium">{manager.name}</span>
                 </div>
               </TableCell>
-              <TableCell>{manager.email}</TableCell>
               <TableCell>
-                <Badge variant={manager.accessLevel === 'Full Manager' ? 'default' : 'secondary'}>
-                  {manager.accessLevel}
+                <div className="text-sm text-muted-foreground">{manager.email}</div>
+                <div className="text-sm text-muted-foreground">{manager.phone}</div>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="flex items-center gap-1.5 w-fit">
+                    <ShieldCheck className="h-3 w-3" />
+                    {Object.values(manager.permissions).filter(Boolean).length} Active
                 </Badge>
               </TableCell>
               <TableCell>
-                  <Badge variant="outline">{manager.propertiesManaged.length}</Badge>
+                  <Badge variant="secondary">{manager.propertiesManaged.length}</Badge>
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

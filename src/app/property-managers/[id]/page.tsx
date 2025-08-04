@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import type { PropertyManager } from '@/lib/types';
+import type { PropertyManager, Permission } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,15 +14,8 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, Phone, ShieldCheck } from 'lucide-react';
+import { Mail, Phone, ShieldCheck, CheckCircle, XCircle } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +32,8 @@ import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
+import { permissionLabels } from '@/lib/types';
+
 
 export default function PropertyManagerDetailPage() {
   const router = useRouter();
@@ -50,27 +45,14 @@ export default function PropertyManagerDetailPage() {
   
   // In real app, fetch manager data
   useEffect(() => {
-    if (manager) {
-      setAccessLevel(manager.accessLevel);
-    }
-  }, [manager]);
-  
-  const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
+    // Mock fetch
+  }, [managerId]);
 
   if (!manager) {
     return <div>Loading...</div>;
   }
   
   const managedProperties = properties.filter(p => manager.propertiesManaged.includes(p.id));
-
-  const handleAccessLevelChange = (newLevel: "Full Manager" | "Limited Staff") => {
-    // In a real app, you would also make an API call to save this change.
-    setAccessLevel(newLevel);
-    toast({
-      title: "Access Level Updated",
-      description: `${manager.name}'s access level has been set to ${newLevel}.`
-    });
-  };
 
   const handleDelete = () => {
     console.log(`Deleting manager: ${manager.id}`);
@@ -80,6 +62,10 @@ export default function PropertyManagerDetailPage() {
     });
     router.push('/property-managers');
   };
+  
+  const activePermissions = Object.entries(manager.permissions)
+    .filter(([, value]) => value)
+    .map(([key]) => permissionLabels[key as Permission]);
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -145,23 +131,28 @@ export default function PropertyManagerDetailPage() {
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{manager.phone}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                <div className="text-sm flex items-center gap-2">
-                  <span>Access Level: </span>
-                  <Select value={accessLevel} onValueChange={handleAccessLevelChange}>
-                    <SelectTrigger className="w-[150px] h-8" id="access-level-select">
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Full Manager">Full Manager</SelectItem>
-                      <SelectItem value="Limited Staff">Limited Staff</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
             </CardContent>
           </Card>
+           <Card>
+                <CardHeader>
+                  <CardTitle>Permissions</CardTitle>
+                  <CardDescription>This manager has the following permissions:</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    {activePermissions.map(permission => (
+                        <div key={permission} className="flex items-center gap-2 text-sm">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span>{permission}</span>
+                        </div>
+                    ))}
+                    {activePermissions.length === 0 && (
+                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <XCircle className="h-4 w-4" />
+                            <span>No permissions assigned.</span>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
 
         <div className="lg:col-span-2">
