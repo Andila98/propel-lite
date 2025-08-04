@@ -1,10 +1,11 @@
+
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Menu, DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft, Settings, LayoutDashboard } from "lucide-react"
+import { Menu, DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, PanelLeft, Settings, LayoutDashboard, FileClock } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 import {
   Sidebar,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/tenants", label: "Tenants", icon: AnimatedUsersIcon },
   { href: "/payments", label: "Payments", icon: Banknote },
   { href: "/property-managers", label: "Managers", icon: UserCog },
+  { href: "/audit-log", label: "Audit Log", icon: FileClock },
 ];
 
 const aiTools = [

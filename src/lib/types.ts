@@ -89,3 +89,12 @@ export interface ActivityItem {
     description: string;
     date: string;
 }
+
+export interface AuditLog {
+  id: string;
+  managerName: string;
+  action: string;
+  entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
+  entityName: string;
+  timestamp: string;
+}
