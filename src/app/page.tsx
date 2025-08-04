@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import type { Payment, ActivityItem, Property } from '@/lib/types';
 import { startOfWeek, startOfMonth, startOfQuarter, isWithinInterval, subDays } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useManagers } from '@/hooks/use-managers';
 
 const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
   ssr: false,
@@ -51,7 +52,7 @@ export default function DashboardPage() {
   const { properties, loading: propertiesLoading } = useProperties();
   const { tenants, loading: tenantsLoading } = useTenants();
   const [timeFilter, setTimeFilter] = useState('month');
-  const managers = []; // Replace with useManagers hook
+  const { managers } = useManagers();
   
   useEffect(() => {
     console.log("Frontend: DashboardPage component mounted.");
@@ -260,3 +261,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
