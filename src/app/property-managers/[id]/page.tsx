@@ -14,7 +14,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, Phone, ShieldCheck, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, Phone, ShieldCheck, CheckCircle, XCircle, Building } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
 import {
   AlertDialog,
@@ -135,7 +135,7 @@ export default function PropertyManagerDetailPage() {
           </Card>
            <Card>
                 <CardHeader>
-                  <CardTitle>Permissions</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Permissions</CardTitle>
                   <CardDescription>This manager has the following permissions:</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -158,7 +158,7 @@ export default function PropertyManagerDetailPage() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Managed Properties</CardTitle>
+              <CardTitle  className="flex items-center gap-2"><Building className="h-5 w-5"/> Managed Properties</CardTitle>
               <CardDescription>Properties assigned to {manager.name}.</CardDescription>
             </CardHeader>
             <CardContent>

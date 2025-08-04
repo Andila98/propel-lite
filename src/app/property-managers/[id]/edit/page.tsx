@@ -13,13 +13,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Building } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
-import type { PropertyManager } from '@/lib/types';
+import type { PropertyManager, Property } from '@/lib/types';
 import { permissionLabels, type Permission } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { useProperties } from '@/hooks/use-properties';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
@@ -33,6 +34,7 @@ const PropertyManagerFormSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   phone: z.string().min(10, "Please enter a valid phone number."),
   permissions: permissionsSchema,
+  propertiesManaged: z.array(z.string()).optional(),
 });
 type PropertyManagerFormValues = z.infer<typeof PropertyManagerFormSchema>;
 
@@ -42,6 +44,7 @@ export default function EditPropertyManagerPage() {
   const { toast } = useToast();
   const managerId = id as string;
   const [managerToEdit, setManagerToEdit] = useState<PropertyManager | null>(null);
+  const { properties } = useProperties();
 
   useEffect(() => {
     // In a real app, fetch manager data here.
@@ -58,6 +61,7 @@ export default function EditPropertyManagerPage() {
       email: '',
       phone: '',
       permissions: {},
+      propertiesManaged: [],
     }
   });
 
@@ -68,6 +72,7 @@ export default function EditPropertyManagerPage() {
         email: managerToEdit.email,
         phone: managerToEdit.phone,
         permissions: managerToEdit.permissions,
+        propertiesManaged: managerToEdit.propertiesManaged,
       });
       setPreviewUrl(managerToEdit.avatarUrl);
     }
@@ -105,7 +110,6 @@ export default function EditPropertyManagerPage() {
             console.log("Frontend: Starting manager avatar upload...");
             const formData = new FormData();
             formData.append('media', imageFile);
-            // We pass a dummy propertyData object as the API expects it.
             const propertyData = { title: `${data.name}'s Avatar` };
             formData.append('propertyData', JSON.stringify(propertyData));
 
@@ -205,7 +209,7 @@ export default function EditPropertyManagerPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Permissions</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Permissions</CardTitle>
                     <CardDescription>Select the permissions for this manager.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -230,6 +234,41 @@ export default function EditPropertyManagerPage() {
                         ))}
                     </div>
                     {errors.permissions && <p className="text-sm text-destructive mt-1">{errors.permissions.message}</p>}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> Assigned Properties</CardTitle>
+                    <CardDescription>Select which properties this manager can access.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Controller
+                        name="propertiesManaged"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {properties.map((property) => (
+                                <div key={property.id} className="flex items-start space-x-2">
+                                <Checkbox
+                                    id={`property-${property.id}`}
+                                    checked={field.value?.includes(property.id)}
+                                    onCheckedChange={(checked) => {
+                                    const currentValues = field.value || [];
+                                    return checked
+                                        ? field.onChange([...currentValues, property.id])
+                                        : field.onChange(currentValues.filter((id) => id !== property.id));
+                                    }}
+                                />
+                                <Label htmlFor={`property-${property.id}`} className="font-normal -mt-0.5">
+                                    {property.address}
+                                </Label>
+                                </div>
+                            ))}
+                            </div>
+                        )}
+                    />
+                    {errors.propertiesManaged && <p className="text-sm text-destructive mt-1">{errors.propertiesManaged.message}</p>}
                 </CardContent>
             </Card>
 

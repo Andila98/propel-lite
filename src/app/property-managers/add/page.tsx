@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { permissionLabels, type Permission } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Building, ShieldCheck } from 'lucide-react';
+import { useProperties } from '@/hooks/use-properties';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
@@ -27,12 +29,14 @@ const PropertyManagerFormSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   phone: z.string().min(10, "Please enter a valid phone number."),
   permissions: permissionsSchema,
+  propertiesManaged: z.array(z.string()).optional(),
 });
 type PropertyManagerFormValues = z.infer<typeof PropertyManagerFormSchema>;
 
 export default function AddPropertyManagerPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { properties } = useProperties();
 
   const {
     register,
@@ -45,7 +49,8 @@ export default function AddPropertyManagerPage() {
         permissions: {
             canEditProperties: true,
             canViewPayments: true,
-        }
+        },
+        propertiesManaged: [],
     }
   });
 
@@ -100,7 +105,7 @@ export default function AddPropertyManagerPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Permissions</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Permissions</CardTitle>
                     <CardDescription>Select the permissions for this manager.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -125,6 +130,41 @@ export default function AddPropertyManagerPage() {
                         ))}
                     </div>
                      {errors.permissions && <p className="text-sm text-destructive mt-1">{errors.permissions.message}</p>}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> Assigned Properties</CardTitle>
+                    <CardDescription>Select which properties this manager can access.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Controller
+                        name="propertiesManaged"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {properties.map((property) => (
+                                <div key={property.id} className="flex items-start space-x-2">
+                                <Checkbox
+                                    id={`property-${property.id}`}
+                                    checked={field.value?.includes(property.id)}
+                                    onCheckedChange={(checked) => {
+                                    const currentValues = field.value || [];
+                                    return checked
+                                        ? field.onChange([...currentValues, property.id])
+                                        : field.onChange(currentValues.filter((id) => id !== property.id));
+                                    }}
+                                />
+                                <Label htmlFor={`property-${property.id}`} className="font-normal -mt-0.5">
+                                    {property.address}
+                                </Label>
+                                </div>
+                            ))}
+                            </div>
+                        )}
+                    />
+                    {errors.propertiesManaged && <p className="text-sm text-destructive mt-1">{errors.propertiesManaged.message}</p>}
                 </CardContent>
             </Card>
 
