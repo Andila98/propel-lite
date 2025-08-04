@@ -14,32 +14,29 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 
-const TenantFormSchema = z.object({
-  name: z.string().min(2, "Please enter a valid name."),
+const InviteTenantFormSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
-  leaseStartDate: z.string().min(1, "Please select a start date"),
-  leaseEndDate: z.string().min(1, "Please select an end date"),
 });
-type TenantFormValues = z.infer<typeof TenantFormSchema>;
+type InviteTenantFormValues = z.infer<typeof InviteTenantFormSchema>;
 
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { form, setOnboardingData } = useOnboardingForm<TenantFormValues>('tenantData', {
-     resolver: zodResolver(TenantFormSchema),
-     defaultValues: { name: "", email: "", leaseStartDate: "", leaseEndDate: "" },
+  const { form, setOnboardingData } = useOnboardingForm<InviteTenantFormValues>('tenantData', {
+     resolver: zodResolver(InviteTenantFormSchema),
+     defaultValues: { email: "" },
   });
 
   const { register, handleSubmit, formState: { errors } } = form;
 
-  const onSubmit = (data: TenantFormValues) => {
-    // In a real app, you'd save this to the database.
-    console.log("Tenant data:", data);
+  const onSubmit = (data: InviteTenantFormValues) => {
+    // In a real app, you'd trigger a backend service to send an invite email.
+    console.log("Tenant invitation data:", data);
     setOnboardingData(data);
     toast({
-      title: "Tenant Added!",
-      description: "The tenant has been successfully linked to your property.",
+      title: "Invitation Sent!",
+      description: `An invitation has been sent to ${data.email}.`,
     });
     router.push('/onboarding/complete');
   };
@@ -50,41 +47,22 @@ export default function AddTenantPage() {
         <Progress value={80} className="w-full" />
         <Card>
           <CardHeader>
-            <CardTitle>Step 4: Add a Tenant</CardTitle>
-            <CardDescription>Now, add the tenant for the property you just created. Your progress is saved automatically.</CardDescription>
+            <CardTitle>Step 4: Invite a Tenant</CardTitle>
+            <CardDescription>Send an invitation to the tenant. They can set up their account and fill in their details via a secure link.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <Label htmlFor="name">Tenant Full Name</Label>
-                <Input id="name" {...register("name")} autoComplete="name" />
-                {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
-              </div>
-
-              <div>
                 <Label htmlFor="email">Tenant Email</Label>
-                <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                <Input id="email" type="email" {...register("email")} autoComplete="email" placeholder="tenant@example.com" />
                 {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="leaseStartDate">Lease Start Date</Label>
-                  <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />
-                  {errors.leaseStartDate && <p className="text-sm text-destructive mt-1">{errors.leaseStartDate.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="leaseEndDate">Lease End Date</Label>
-                  <Input id="leaseEndDate" type="date" {...register("leaseEndDate")} />
-                  {errors.leaseEndDate && <p className="text-sm text-destructive mt-1">{errors.leaseEndDate.message}</p>}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center pt-4">
                 <Link href="/onboarding/complete">
                   <Button variant="link">Skip for now</Button>
                 </Link>
-                <Button type="submit">Finish Onboarding</Button>
+                <Button type="submit">Send Invite & Finish</Button>
               </div>
             </form>
           </CardContent>
