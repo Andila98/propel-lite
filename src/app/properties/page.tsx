@@ -17,7 +17,6 @@ import type { PropertyManager, Property, Tenant } from '@/lib/types';
 import { useProperties } from '@/hooks/use-properties';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { mockTenants } from '@/lib/mock-data';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -90,8 +89,7 @@ export default function PropertiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [propertyTypeFilter, setPropertyTypeFilter] = useState('all');
 
-  // In a real app, you'd fetch tenants from Firestore too
-  const tenants = mockTenants; 
+  const tenants = []; // Replace with useTenants hook
 
   const filteredProperties = useMemo(() => {
     return properties.filter(property => {
@@ -102,7 +100,6 @@ export default function PropertiesPage() {
   }, [properties, searchTerm, propertyTypeFilter]);
 
   // In a real app, you'd get the current user's role from your auth context/session.
-  // We'll simulate a "Full Manager" role for demonstration.
   const currentUserRole: PropertyManager['accessLevel'] = 'Full Manager';
 
   const renderContent = () => {

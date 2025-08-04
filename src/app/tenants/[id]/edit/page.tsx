@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm, Controller } from "react-hook-form";
@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockProperties, mockTenants } from '@/lib/mock-data';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import { useProperties } from '@/hooks/use-properties';
+import type { Tenant } from '@/lib/types';
 
 const TenantFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -30,8 +31,14 @@ export default function EditTenantPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const tenantId = id as string;
-  const tenantToEdit = mockTenants.find(t => t.id === tenantId);
-  const properties = mockProperties;
+  const { properties } = useProperties();
+  const [tenantToEdit, setTenantToEdit] = useState<Tenant | null>(null);
+
+  // In real app, you would fetch tenant data here.
+  useEffect(() => {
+    // const tenant = mockTenants.find(t => t.id === tenantId);
+    // setTenantToEdit(tenant || null);
+  }, [tenantId]);
 
   const form = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),

@@ -20,10 +20,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { mockTenants, mockProperties } from '@/lib/mock-data';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
+import type { Tenant, Property } from '@/lib/types';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -40,9 +40,14 @@ const StripeIcon = () => (
 )
 
 export default function TenantPortalPage() {
-  // For demonstration, we'll use the first tenant
-  const tenant = mockTenants[0];
-  const property = mockProperties.find(p => p.id === tenant.propertyId);
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
+
+  useEffect(() => {
+      // In a real app, this would be fetched based on the logged-in user
+      // setTenant(mockTenants[0]);
+      // setProperty(mockProperties.find(p => p.id === mockTenants[0].propertyId) || null);
+  }, []);
 
   // In a real app, this would be fetched from the landlord's settings
   const landlordPaymentSettings = {

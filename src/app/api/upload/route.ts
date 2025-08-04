@@ -2,7 +2,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import multer from 'multer';
 import { db, admin } from '@/lib/firebase-admin';
-import type { Property, Unit } from '@/lib/types';
+import type { Unit } from '@/lib/types';
+import type { Property } from '@/lib/types';
 import path from 'path';
 import fs from 'fs';
 import { PropertyFormSchema } from '@/lib/schemas';

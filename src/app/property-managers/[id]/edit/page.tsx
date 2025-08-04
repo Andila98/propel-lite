@@ -13,10 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { mockPropertyManagers } from '@/lib/mock-data';
 import { Loader2, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import type { PropertyManager } from '@/lib/types';
 
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -30,10 +30,14 @@ export default function EditPropertyManagerPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const managerId = id as string;
-  const managerToEdit = mockPropertyManagers.find(t => t.id === managerId);
+  const [managerToEdit, setManagerToEdit] = useState<PropertyManager | null>(null);
+
+  useEffect(() => {
+    // In a real app, fetch manager data here.
+  }, [managerId]);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(managerToEdit?.avatarUrl || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const form = useForm<PropertyManagerFormValues>({

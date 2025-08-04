@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { mockTenants } from '@/lib/mock-data';
 import { scheduleReminderAction, getReminderSuggestionAction, getScheduleSuggestionAction, ScheduleReminderFormValues, ScheduleReminderState } from './actions';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -21,6 +20,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Invoice } from '@/components/invoice';
 import type { GenerateInvoiceOutput } from '@/ai/flows/generate-invoice';
+import type { Tenant } from '@/lib/types';
 
 const ScheduleReminderFormSchema = z.object({
   tenantId: z.string().min(1, "Tenant is required."),
@@ -36,6 +36,12 @@ export default function RemindersPage() {
   const [scheduleSuggestion, setScheduleSuggestion] = useState<any>(null);
   const [invoice, setInvoice] = useState<GenerateInvoiceOutput | null>(null);
   const [finalResult, setFinalResult] = useState<ScheduleReminderState | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+
+  // In a real app, fetch tenants here
+  useEffect(() => {
+    // fetchTenants().then(setTenants);
+  }, []);
 
   const form = useForm<ScheduleReminderFormValues>({
     resolver: zodResolver(ScheduleReminderFormSchema),
@@ -124,7 +130,7 @@ export default function RemindersPage() {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <SelectTrigger id="tenantId"><SelectValue placeholder="Select a tenant..." /></SelectTrigger>
                         <SelectContent>
-                            {mockTenants.map(tenant => (
+                            {tenants.map(tenant => (
                             <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
                             ))}
                         </SelectContent>

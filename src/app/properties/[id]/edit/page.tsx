@@ -16,21 +16,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { PlusCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { mockProperties } from '@/lib/mock-data';
 import type { Property } from '@/lib/types';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import { useProperty } from '@/hooks/use-property';
 
 export default function EditPropertyPage() {
   const router = useRouter();
   const { id } = useParams();
   const { toast } = useToast();
   const propertyId = id as string;
-  const propertyToEdit = mockProperties.find(p => p.id === propertyId);
+  const { property: propertyToEdit, loading: propertyLoading } = useProperty(propertyId);
   
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(propertyToEdit?.imageUrl || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const form = useForm<PropertyFormValues>({
@@ -67,8 +67,12 @@ export default function EditPropertyPage() {
   const propertyType = watch("propertyType");
   const numberOfUnits = watch("numberOfUnits");
   
-  if (!propertyToEdit) {
+  if (propertyLoading) {
     return <div>Loading...</div>; 
+  }
+
+  if (!propertyToEdit) {
+    return <div>Property not found.</div>;
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Loader2, Wand2, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { mockTenants } from '@/lib/mock-data';
 import { generateMessageAction, type GenerateMessageState } from './actions';
+import type { Tenant } from '@/lib/types';
 
 type MessageFormValues = {
   tenantId: string;
@@ -22,8 +22,13 @@ export default function SmartMessagingPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateMessageState | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   
   const { handleSubmit, control, watch } = useForm<MessageFormValues>();
+
+  useEffect(() => {
+    // In a real app, you would fetch tenants here.
+  }, []);
   
   const selectedTenantId = watch('tenantId');
 
@@ -74,7 +79,7 @@ export default function SmartMessagingPage() {
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <SelectTrigger id="tenantId"><SelectValue placeholder="Select a tenant..." /></SelectTrigger>
                       <SelectContent>
-                        {mockTenants.map(tenant => (
+                        {tenants.map(tenant => (
                           <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
                         ))}
                       </SelectContent>

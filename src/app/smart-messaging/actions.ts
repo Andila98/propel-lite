@@ -1,7 +1,10 @@
+
 "use server";
 
 import { generateMessageContent, type GenerateMessageContentInput, type GenerateMessageContentOutput } from "@/ai/flows/generate-message-content";
-import { mockProperties, mockTenants } from "@/lib/mock-data";
+import { db } from "@/lib/firebase-admin";
+import type { Property, Tenant } from "@/lib/types";
+
 
 export type GenerateMessageState = GenerateMessageContentOutput & {
   error?: string;
@@ -14,17 +17,19 @@ export async function generateMessageAction(input: {
   const { tenantId, reminderType } = input;
   console.log("Backend: generateMessageAction called with input:", input);
 
-  const tenant = mockTenants.find(t => t.id === tenantId);
-  if (!tenant) {
+  const tenantDoc = await db.collection('tenants').doc(tenantId).get();
+  if (!tenantDoc.exists) {
     console.error(`Backend Error: Tenant not found for ID: ${tenantId}`);
     return { error: "Tenant not found.", messageContent: "" };
   }
+  const tenant = tenantDoc.data() as Tenant;
 
-  const property = mockProperties.find(p => p.id === tenant.propertyId);
-  if (!property) {
+  const propertyDoc = await db.collection('properties').doc(tenant.propertyId).get();
+  if (!propertyDoc.exists) {
     console.error(`Backend Error: Property not found for tenant with ID: ${tenantId}`);
     return { error: "Property not found for this tenant.", messageContent: "" };
   }
+  const property = propertyDoc.data() as Property;
   
   const aiInput: GenerateMessageContentInput = {
     propertyName: property.address,

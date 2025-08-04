@@ -1,3 +1,4 @@
+
 // This file is machine-generated - edit with caution!
 'use server';
 /**
@@ -10,7 +11,9 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { mockProperties, mockTenants } from '@/lib/mock-data';
+import { db } from '@/lib/firebase-admin';
+import type { Tenant, Property } from '@/lib/types';
+
 
 const GenerateReceiptInputSchema = z.object({
   tenantId: z.string().describe('The ID of the tenant.'),
@@ -68,11 +71,12 @@ const generateReceiptFlow = ai.defineFlow(
   },
   async (input) => {
     console.log("Backend: generateReceiptFlow received input:", input);
-    const tenant = mockTenants.find(t => t.id === input.tenantId);
-    if (!tenant) {
+    const tenantDoc = await db.collection('tenants').doc(input.tenantId).get();
+    if (!tenantDoc.exists) {
         console.error(`Tenant not found for id: ${input.tenantId}`);
         throw new Error('Tenant not found');
     }
+    const tenant = tenantDoc.data() as Tenant;
     
     const payment = tenant.paymentHistory.find(p => p.id === input.paymentId);
     if (!payment) {
@@ -80,11 +84,12 @@ const generateReceiptFlow = ai.defineFlow(
         throw new Error('Payment not found');
     }
     
-    const property = mockProperties.find(p => p.id === tenant.propertyId);
-    if (!property) {
+    const propertyDoc = await db.collection('properties').doc(tenant.propertyId).get();
+    if (!propertyDoc.exists) {
         console.error(`Property not found for id: ${tenant.propertyId}`);
         throw new Error('Property not found');
     }
+    const property = propertyDoc.data() as Property;
 
     const promptInput = {
         tenantName: tenant.name,

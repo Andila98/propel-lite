@@ -10,12 +10,12 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { mockProperties, mockTenants, mockPropertyManagers, mockActivities } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedUsersIcon } from '@/components/icons/animated-users-icon';
+import { useProperties } from '@/hooks/use-properties';
 
 const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
   ssr: false,
@@ -35,11 +35,11 @@ const PropertyManagerList = dynamic(() => import('@/components/property-manager-
 });
 
 export default function DashboardPage() {
-  const properties = mockProperties;
-  const tenants = mockTenants;
-  const managers = mockPropertyManagers;
-  const activities = mockActivities;
-
+  const { properties, loading: propertiesLoading } = useProperties();
+  const tenants = []; // Replace with useTenants hook later
+  const managers = []; // Replace with useManagers hook later
+  const activities = []; // Replace with useActivities hook later
+  
   useEffect(() => {
     console.log("Frontend: DashboardPage component mounted.");
   }, []);
@@ -63,7 +63,7 @@ export default function DashboardPage() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{properties.length}</div>
+              {propertiesLoading ? <Skeleton className="h-7 w-12"/> : <div className="text-2xl font-bold">{properties.length}</div>}
               <p className="text-xs text-muted-foreground">
                 Managed properties
               </p>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
                 <Banknote className="h-4 w-4 text-primary-foreground/80" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">Ksh{totalRent.toLocaleString()}</div>
+                 {propertiesLoading ? <Skeleton className="h-7 w-24"/> : <div className="text-2xl font-bold">Ksh{totalRent.toLocaleString()}</div>}
                 <p className="text-xs text-primary-foreground/80">
                 Total expected monthly income
                 </p>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
             <Home className="h-4 w-4 text-primary-foreground/80" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{occupancyRate.toFixed(0)}%</div>
+            {propertiesLoading ? <Skeleton className="h-7 w-16"/> : <div className="text-2xl font-bold">{occupancyRate.toFixed(0)}%</div>}
             <p className="text-xs text-primary-foreground/80">
               Percentage of properties occupied
             </p>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <CardDescription>A look at your managed properties.</CardDescription>
           </CardHeader>
           <CardContent>
-            <PropertiesCarousel properties={properties} />
+            {propertiesLoading ? <Skeleton className="h-80 w-full" /> : <PropertiesCarousel properties={properties} />}
           </CardContent>
         </Card>
         <Card className="lg:col-span-3">

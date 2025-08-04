@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { mockTenants, mockProperties } from '@/lib/mock-data';
 import type { Tenant, Property } from '@/lib/types';
 import Link from 'next/link';
 import { Receipt as ReceiptIcon, Loader2 } from 'lucide-react';
@@ -39,15 +38,8 @@ export default function PaymentsPage() {
   const [receiptResult, setReceiptResult] = useState<ReceiptState | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   
-  const allPayments = mockTenants.flatMap(tenant => 
-    tenant.paymentHistory.map(payment => ({
-      ...payment,
-      tenantName: tenant.name,
-      tenantId: tenant.id,
-      propertyId: tenant.propertyId,
-      propertyName: mockProperties.find(p => p.id === tenant.propertyId)?.address || 'N/A'
-    }))
-  ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // In real app this would be fetched from the db.
+  const allPayments = [];
 
   const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
     setLoading(true);
@@ -89,7 +81,7 @@ export default function PaymentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allPayments.map((payment) => (
+              {allPayments.map((payment: any) => (
                 <TableRow key={payment.id}>
                   <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
                   <TableCell>

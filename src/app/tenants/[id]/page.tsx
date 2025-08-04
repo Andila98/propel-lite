@@ -3,7 +3,6 @@
 
 import Link from 'next/link';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { mockTenants, mockProperties } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,8 +45,13 @@ export default function TenantDetailPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const tenantId = id as string;
-  const tenant = mockTenants.find((t) => t.id === tenantId);
-  const property = tenant ? mockProperties.find((p) => p.id === tenant.propertyId) : undefined;
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
+  // In a real app, you would fetch this data.
+  // For now we'll leave it empty as mock data is removed.
+  useEffect(() => {
+   
+  }, [tenantId]);
 
   if (!tenant || !property) {
     return <div>Loading...</div>;

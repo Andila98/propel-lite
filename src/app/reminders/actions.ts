@@ -4,8 +4,9 @@
 import { generateMessageContent, type GenerateMessageContentInput } from "@/ai/flows/generate-message-content";
 import { generateReminderSchedule, type GenerateReminderScheduleInput } from "@/ai/flows/generate-reminder-schedule";
 import { generateInvoice, type GenerateInvoiceInput, type GenerateInvoiceOutput } from "@/ai/flows/generate-invoice";
-import { mockProperties, mockTenants } from "@/lib/mock-data";
 import { z } from "zod";
+import { db } from "@/lib/firebase-admin";
+import type { Tenant, Property } from "@/lib/types";
 
 const ScheduleReminderFormSchema = z.object({
   tenantId: z.string().min(1, "Tenant is required."),
@@ -47,17 +48,19 @@ export async function getReminderSuggestionAction(input: {
 }): Promise<ScheduleReminderState> {
   const { tenantId, reminderType } = input;
 
-  const tenant = mockTenants.find(t => t.id === tenantId);
-  if (!tenant) {
+  const tenantDoc = await db.collection('tenants').doc(tenantId).get();
+  if (!tenantDoc.exists) {
     console.error(`Backend: Tenant not found for ID: ${tenantId}`);
     return { error: "Tenant not found." };
   }
+  const tenant = tenantDoc.data() as Tenant;
 
-  const property = mockProperties.find(p => p.id === tenant.propertyId);
-  if (!property) {
+  const propertyDoc = await db.collection('properties').doc(tenant.propertyId).get();
+  if (!propertyDoc.exists) {
     console.error(`Backend: Property not found for tenant ID: ${tenantId}`);
     return { error: "Property not found for this tenant." };
   }
+  const property = propertyDoc.data() as Property;
   
   const messageInput: GenerateMessageContentInput = {
     propertyName: property.address,
@@ -97,11 +100,13 @@ export async function getScheduleSuggestionAction(input: {
   reminderType: 'rentDue' | 'leaseRenewal' | 'maintenance';
 }) {
     const { tenantId, reminderType } = input;
-    const tenant = mockTenants.find(t => t.id === tenantId);
-     if (!tenant) {
+    const tenantDoc = await db.collection('tenants').doc(tenantId).get();
+     if (!tenantDoc.exists) {
         console.error(`Backend: Tenant not found for ID: ${tenantId}`);
         return { error: "Tenant not found." };
     }
+    const tenant = tenantDoc.data() as Tenant;
+
     const scheduleInput: GenerateReminderScheduleInput = {
         reminderType,
         leaseEndDate: tenant.leaseEndDate,

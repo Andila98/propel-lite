@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { mockPropertyManagers, mockProperties } from '@/lib/mock-data';
 import type { PropertyManager } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,26 +38,30 @@ import { useToast } from '@/hooks/use-toast';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import { useProperties } from '@/hooks/use-properties';
 
 export default function PropertyManagerDetailPage() {
   const router = useRouter();
   const { id } = useParams();
   const { toast } = useToast();
   const managerId = id as string;
-  const manager = mockPropertyManagers.find((m) => m.id === managerId);
-  const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
+  const [manager, setManager] = useState<PropertyManager | null>(null);
+  const { properties } = useProperties();
   
+  // In real app, fetch manager data
   useEffect(() => {
     if (manager) {
       setAccessLevel(manager.accessLevel);
     }
   }, [manager]);
+  
+  const [accessLevel, setAccessLevel] = useState(manager?.accessLevel);
 
   if (!manager) {
     return <div>Loading...</div>;
   }
   
-  const managedProperties = mockProperties.filter(p => manager.propertiesManaged.includes(p.id));
+  const managedProperties = properties.filter(p => manager.propertiesManaged.includes(p.id));
 
   const handleAccessLevelChange = (newLevel: "Full Manager" | "Limited Staff") => {
     // In a real app, you would also make an API call to save this change.

@@ -1,4 +1,5 @@
 
+"use client"
 import {
   Card,
   CardContent,
@@ -6,16 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { mockProperties, mockTenants } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { TenantTable } from '@/components/tenant-table';
 import type { PropertyManager } from '@/lib/types';
+import { useProperties } from '@/hooks/use-properties';
 
 export default function TenantsPage() {
-  const properties = mockProperties;
-  const tenants = mockTenants;
+  const { properties } = useProperties();
+  const tenants = []; // Replace with useTenants hook
 
   // In a real app, you'd get the current user's role from your auth context/session.
   // We'll simulate a "Full Manager" role for demonstration.

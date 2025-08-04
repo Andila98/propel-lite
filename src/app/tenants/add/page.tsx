@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockProperties } from '@/lib/mock-data';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import { useProperties } from '@/hooks/use-properties';
 
 const TenantFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -27,7 +27,7 @@ type TenantFormValues = z.infer<typeof TenantFormSchema>;
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const properties = mockProperties;
+  const { properties } = useProperties();
 
   const {
     register,
