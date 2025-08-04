@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -24,17 +25,17 @@ export default function AddPropertyManagerPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<PropertyManagerFormValues>({
+  const { form, setOnboardingData } = useOnboardingForm<PropertyManagerFormValues>('managerData', {
     resolver: zodResolver(PropertyManagerFormSchema),
+    defaultValues: { name: "", email: "", phone: "" },
   });
+
+  const { register, handleSubmit, formState: { errors } } = form;
 
   const onSubmit = (data: PropertyManagerFormValues) => {
     // In a real app, you'd save this to the database.
     console.log("Property Manager data:", data);
+    setOnboardingData(data);
     toast({
       title: "Property Manager Added!",
       description: "The property manager has been successfully added.",
@@ -49,7 +50,7 @@ export default function AddPropertyManagerPage() {
         <Card>
           <CardHeader>
             <CardTitle>Step 3: Add a Property Manager</CardTitle>
-            <CardDescription>Enter the details of the property manager.</CardDescription>
+            <CardDescription>Enter the details of the property manager. Your progress is saved automatically.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

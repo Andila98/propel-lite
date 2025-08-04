@@ -1,11 +1,21 @@
 
+"use client";
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useEffect } from 'react';
+import { clearOnboardingData } from '@/hooks/use-onboarding-form';
 
 export default function OnboardingCompletePage() {
+
+  useEffect(() => {
+    // Clear the stored onboarding data now that the process is complete
+    clearOnboardingData();
+  }, []);
+
   return (
     <div className="container mx-auto p-4 md:p-8">
        <div className="mx-auto max-w-2xl space-y-4">

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 
 const TenantFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -25,17 +26,17 @@ export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<TenantFormValues>({
-    resolver: zodResolver(TenantFormSchema),
+  const { form, setOnboardingData } = useOnboardingForm<TenantFormValues>('tenantData', {
+     resolver: zodResolver(TenantFormSchema),
+     defaultValues: { name: "", email: "", leaseStartDate: "", leaseEndDate: "" },
   });
+
+  const { register, handleSubmit, formState: { errors } } = form;
 
   const onSubmit = (data: TenantFormValues) => {
     // In a real app, you'd save this to the database.
     console.log("Tenant data:", data);
+    setOnboardingData(data);
     toast({
       title: "Tenant Added!",
       description: "The tenant has been successfully linked to your property.",
@@ -50,7 +51,7 @@ export default function AddTenantPage() {
         <Card>
           <CardHeader>
             <CardTitle>Step 4: Add a Tenant</CardTitle>
-            <CardDescription>Now, add the tenant for the property you just created.</CardDescription>
+            <CardDescription>Now, add the tenant for the property you just created. Your progress is saved automatically.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
