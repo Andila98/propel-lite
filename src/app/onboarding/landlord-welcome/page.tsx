@@ -40,7 +40,3 @@ export default function LandlordWelcomePage() {
     </div>
   );
 }
-
-    
-
-    

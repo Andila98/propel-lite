@@ -84,7 +84,3 @@ export default function AddPropertyManagerPage() {
     </div>
   );
 }
-
-    
-
-    

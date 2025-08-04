@@ -92,7 +92,3 @@ export default function AddTenantPage() {
     </div>
   );
 }
-
-    
-
-    
