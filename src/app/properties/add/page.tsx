@@ -15,11 +15,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, Loader2, Upload } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import Papa from 'papaparse';
+import type { Unit } from '@/lib/types';
 
 export default function AddPropertyPage() {
   const router = useRouter();
@@ -57,6 +59,46 @@ export default function AddPropertyPage() {
       setImageFile(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+    }
+  };
+
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (result) => {
+          try {
+              const units = result.data.map((row: any): Unit => ({
+                unitNumber: row.unitNumber || '',
+                unitType: row.unitType || 'one-bedroom',
+                rent: parseFloat(row.rent) || 0,
+                squareFootage: parseInt(row.squareFootage, 10) || 0,
+                isAvailable: row.isAvailable ? row.isAvailable.toLowerCase() === 'true' : true,
+              }));
+              replace(units);
+              setValue("numberOfUnits", units.length);
+              toast({
+                title: "CSV Parsed!",
+                description: `${units.length} units have been loaded from the file.`
+              })
+          } catch (error) {
+              toast({
+                  title: "CSV Parsing Error",
+                  description: "Could not parse CSV. Make sure it has headers: unitNumber, unitType, rent, squareFootage, isAvailable.",
+                  variant: "destructive"
+              });
+          }
+        },
+        error: (error) => {
+            toast({
+                title: "CSV Error",
+                description: error.message,
+                variant: "destructive"
+            });
+        }
+      });
     }
   };
 
@@ -220,21 +262,45 @@ export default function AddPropertyPage() {
                         </div>
 
                         {propertyType === "apartment" && (
-                            <div>
-                                <Label htmlFor="numberOfUnits">Number of Units</Label>
-                                <Input 
-                                    id="numberOfUnits" 
-                                    type="number" 
-                                    {...register("numberOfUnits")}
-                                    min="1"
-                                    onChange={(e) => {
-                                        const num = parseInt(e.target.value, 10);
-                                        setValue("numberOfUnits", num);
-                                        handleUnitGeneration(num);
-                                    }}
-                                />
-                                {errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{errors.numberOfUnits.message}</p>}
-                            </div>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Apartment Units</CardTitle>
+                                    <CardDescription>Define the number of units or upload a CSV.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="numberOfUnits">Number of Units</Label>
+                                        <Input 
+                                            id="numberOfUnits" 
+                                            type="number" 
+                                            {...register("numberOfUnits")}
+                                            min="1"
+                                            onChange={(e) => {
+                                                const num = parseInt(e.target.value, 10);
+                                                setValue("numberOfUnits", num);
+                                                handleUnitGeneration(num);
+                                            }}
+                                        />
+                                        {errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{errors.numberOfUnits.message}</p>}
+                                    </div>
+                                    <div className="relative">
+                                        <Separator />
+                                        <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">OR</span>
+                                    </div>
+                                     <div>
+                                        <Label htmlFor="csvFile">Upload Units (CSV)</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Input id="csvFile" type="file" accept=".csv" onChange={handleCsvUpload} />
+                                            <Button type="button" variant="outline" size="icon" asChild>
+                                                <Label htmlFor="csvFile" className="cursor-pointer">
+                                                    <Upload className="h-4 w-4" />
+                                                </Label>
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-1">Headers: unitNumber, unitType, rent, squareFootage, isAvailable</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         )}
                       </CardContent>
                     </Card>
