@@ -153,8 +153,6 @@ export default function AddPropertyPage() {
     console.log("Frontend: Submitting property data from onboarding...", data);
     setLoading(true);
     
-    // The image file itself cannot be stored in localStorage.
-    // So we require the user to select it again if it's not in the component's state.
     if (!imageFile && !previewUrl) {
         toast({
             title: "Image required",
@@ -165,9 +163,6 @@ export default function AddPropertyPage() {
         return;
     }
     
-    // A bit of a hack: if we have a preview but no file, we can't submit.
-    // The proper way would be to upload and store the image URL immediately.
-    // For this prototype, we'll prompt the user to re-select if the page was reloaded.
     if (previewUrl && !imageFile) {
        toast({
             title: "Please re-select image",
@@ -181,15 +176,14 @@ export default function AddPropertyPage() {
     try {
       console.log("Frontend: Starting image upload via API (Onboarding)...");
       const formData = new FormData();
-      const landlordId = "user_12345";
-      const propertyData = { ...data, landlordId };
+      const propertyData = { ...data };
 
       formData.append('media', imageFile!);
       formData.append('propertyData', JSON.stringify(propertyData));
       
       setOnboardingData(data); // Save final valid data
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/properties/create', {
         method: 'POST',
         body: formData,
       });
