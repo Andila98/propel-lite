@@ -6,7 +6,7 @@ import { randomBytes } from 'crypto';
 
 export const POST = withRole(async (req: AuthenticatedRequest) => {
   try {
-    const { uid: userId } = req.user;
+    const { uid: landlordId } = req.user;
 
     const { email } = await req.json();
     if (!email) {
@@ -21,7 +21,7 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
     await db.collection('invites').add({
       email,
       role: 'manager',
-      landlordId: userId,
+      landlordId: landlordId,
       token,
       status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
