@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+
+import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
@@ -28,6 +29,9 @@ export function withRole(
       const userRole = decodedToken.role as AllowedRoles;
 
       if (!userRole || !allowedRoles.includes(userRole)) {
+        console.error(
+            `[RBAC_VIOLATION] User ${decodedToken.uid} with role '${userRole}' attempted to access protected route: ${req.nextUrl.pathname}`
+        );
         return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
       }
       
@@ -42,7 +46,7 @@ export function withRole(
       return handler(authenticatedRequest);
 
     } catch (error: any) {
-      console.error('RBAC Error:', error);
+      console.error('[RBAC_ERROR]', error);
       let errorMessage = 'Unauthorized';
       if (error.code === 'auth/id-token-expired') {
         errorMessage = 'Token has expired';
