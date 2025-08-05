@@ -24,6 +24,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
 import type { Tenant, Property } from '@/lib/types';
+import { mockTenants, mockProperties } from '@/lib/mock-data';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,8 +46,8 @@ export default function TenantPortalPage() {
 
   useEffect(() => {
       // In a real app, this would be fetched based on the logged-in user
-      // setTenant(mockTenants[0]);
-      // setProperty(mockProperties.find(p => p.id === mockTenants[0].propertyId) || null);
+      setTenant(mockTenants[0]);
+      setProperty(mockProperties.find(p => p.id === mockTenants[0].propertyId) || null);
   }, []);
 
   // In a real app, this would be fetched from the landlord's settings

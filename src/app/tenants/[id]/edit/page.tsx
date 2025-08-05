@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
 import type { Tenant } from '@/lib/types';
+import { useTenants } from '@/hooks/use-tenants';
 
 const TenantFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -32,13 +33,8 @@ export default function EditTenantPage() {
   const { toast } = useToast();
   const tenantId = id as string;
   const { properties } = useProperties();
-  const [tenantToEdit, setTenantToEdit] = useState<Tenant | null>(null);
-
-  // In real app, you would fetch tenant data here.
-  useEffect(() => {
-    // const tenant = mockTenants.find(t => t.id === tenantId);
-    // setTenantToEdit(tenant || null);
-  }, [tenantId]);
+  const { tenants } = useTenants();
+  const tenantToEdit = tenants.find(t => t.id === tenantId);
 
   const form = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),

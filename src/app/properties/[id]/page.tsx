@@ -104,7 +104,7 @@ export default function PropertyDetailPage() {
     router.push('/properties');
   };
 
-  const propertyImage = property.imageUrl.startsWith('http') ? property.imageUrl : `${window.location.origin}${property.imageUrl}`;
+  const propertyImage = property.imageUrl.startsWith('http') ? property.imageUrl : `${property.imageUrl}`;
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">

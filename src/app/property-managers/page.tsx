@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { PropertyManagerTable } from '@/components/property-manager-table';
+import { useManagers } from '@/hooks/use-managers';
 
 export default function PropertyManagersPage() {
-  const managers = []; // Replace with useManagers hook
+  const { managers } = useManagers();
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">

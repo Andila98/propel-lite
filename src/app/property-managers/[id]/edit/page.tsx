@@ -22,6 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useProperties } from '@/hooks/use-properties';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useManagers } from '@/hooks/use-managers';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
@@ -44,12 +45,9 @@ export default function EditPropertyManagerPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const managerId = id as string;
-  const [managerToEdit, setManagerToEdit] = useState<PropertyManager | null>(null);
+  const { managers } = useManagers();
+  const managerToEdit = managers.find(m => m.id === managerId);
   const { properties } = useProperties();
-
-  useEffect(() => {
-    // In a real app, fetch manager data here.
-  }, [managerId]);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -151,7 +149,7 @@ export default function EditPropertyManagerPage() {
     }
   };
   
-  const avatarImage = previewUrl?.startsWith('http') ? previewUrl : (previewUrl ? `${window.location.origin}${previewUrl}` : null);
+  const avatarImage = previewUrl;
 
   return (
     <TooltipProvider>
@@ -245,7 +243,7 @@ export default function EditPropertyManagerPage() {
                             </div>
                         ))}
                     </div>
-                    {errors.permissions && <p className="text-sm text-destructive mt-1">{errors.permissions.message}</p>}
+                    {errors.permissions && <p className="text-sm text-destructive mt-1">{String(errors.permissions.message)}</p>}
                 </CardContent>
             </Card>
 

@@ -33,6 +33,7 @@ import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
 import { permissionLabels } from '@/lib/types';
+import { useManagers } from '@/hooks/use-managers';
 
 
 export default function PropertyManagerDetailPage() {
@@ -40,13 +41,9 @@ export default function PropertyManagerDetailPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const managerId = id as string;
-  const [manager, setManager] = useState<PropertyManager | null>(null);
+  const { managers } = useManagers();
+  const manager = managers.find(m => m.id === managerId);
   const { properties } = useProperties();
-  
-  // In real app, fetch manager data
-  useEffect(() => {
-    // Mock fetch
-  }, [managerId]);
 
   if (!manager) {
     return <div>Loading...</div>;
