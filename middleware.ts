@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-firebase-auth-edge';
+import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from './config/server-config';
 
 export async function middleware(req: NextRequest) {
@@ -11,19 +11,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   
-  const token = await getToken({ 
-      req, 
+  const tokens = await getTokens(req.cookies, {
       cookieName: authConfig.cookieName,
       cookieSignatureKeys: authConfig.cookieSignatureKeys,
-   });
+  });
 
-  if (!token) {
+  if (!tokens) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url);
   }
   
-  const role = token?.role;
+  const role = tokens.decodedToken.role;
   const pathname = nextUrl.pathname;
 
   // 🔐 Role-based route protection
