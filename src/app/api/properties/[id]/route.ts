@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { db, admin } from '@/lib/firebase-admin';
 import { verifyFirebaseToken } from '@/lib/server-utils';
 
 export async function GET(
@@ -37,5 +37,42 @@ export async function GET(
       { error: `Failed to fetch property: ${error.message}` },
       { status: 500 }
     );
+  }
+}
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { userId, role } = await verifyFirebaseToken(req);
+    const propertyId = params.id;
+
+    if (role !== 'landlord') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+    
+    const updates = await req.json();
+
+    const ref = db.collection('properties').doc(propertyId);
+    const doc = await ref.get();
+
+    if (!doc.exists || doc.data()?.landlordId !== userId) {
+      return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
+    }
+
+    // Ensure server-only fields are not updated from client
+    delete updates.landlordId;
+    delete updates.createdAt;
+    
+    await ref.update({
+      ...updates,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return NextResponse.json({ message: 'Property updated' });
+  } catch (error: any) {
+    console.error(`[PROPERTY_UPDATE_ERROR] for ID ${params.id}:`, error);
+     if (error.message.includes('No auth token provided')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
