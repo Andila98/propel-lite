@@ -36,14 +36,20 @@ export default function LoginPage() {
             body: JSON.stringify({ email, password }),
         });
 
+        const data = await response.json();
+
         if (response.ok) {
             toast({
                 title: "Login Successful",
                 description: "Redirecting to your dashboard...",
             });
-            router.push('/');
+            // Role-based redirection
+            if (data.role === 'tenant') {
+              router.push('/tenant-portal');
+            } else {
+              router.push('/');
+            }
         } else {
-            const data = await response.json();
             throw new Error(data.error || "Login failed");
         }
     } catch (error: any) {

@@ -14,15 +14,16 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ 
       req, 
       cookieName: authConfig.cookieName,
-      serviceAccount: authConfig.serviceAccount,
-      apiKey: authConfig.apiKey,
+      cookieSignatureKeys: authConfig.cookieSignatureKeys,
    });
 
   if (!token) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    const url = req.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url);
   }
   
-  const role = token?.claims?.role;
+  const role = token?.role;
   const pathname = nextUrl.pathname;
 
   // 🔐 Role-based route protection
@@ -40,6 +41,10 @@ export async function middleware(req: NextRequest) {
 
   if (pathname.startsWith('/superadmin') && role !== 'superadmin') {
     return NextResponse.redirect(new URL('/', req.url));
+  }
+  
+  if (pathname === '/' && role === 'tenant') {
+    return NextResponse.redirect(new URL('/tenant-portal', req.url));
   }
 
   return NextResponse.next();
