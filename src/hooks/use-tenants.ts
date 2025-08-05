@@ -3,6 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import type { Tenant } from '@/lib/types';
+import { getTokens } from 'next-firebase-auth-edge/lib/next/client';
+import { authConfig } from '@/config/server-config';
 
 export function useTenants() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -13,9 +15,15 @@ export function useTenants() {
     const fetchTenants = async () => {
         try {
             console.log("Hook: useTenants is fetching data from API.");
-            const response = await fetch('/api/tenants');
+            const tokens = await getTokens();
+            const response = await fetch('/api/tenants', {
+              headers: {
+                Authorization: `Bearer ${tokens?.idToken}`
+              }
+            });
             if (!response.ok) {
-                throw new Error('Failed to fetch tenants.');
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to fetch tenants.');
             }
             const data = await response.json();
             setTenants(data);
@@ -33,5 +41,3 @@ export function useTenants() {
 
   return { tenants, loading, error };
 }
-
-    

@@ -3,12 +3,20 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import { randomBytes } from 'crypto';
+import { getAuth } from 'firebase-admin/auth';
+import { getTokens } from 'next-firebase-auth-edge';
+import { authConfig } from '@/config/server-config';
 
-export async function GET() {
+export const GET = withRole(async (req: AuthenticatedRequest) => {
     try {
-        console.log("API: Fetching all tenants from Firestore.");
-        // Query the 'users' collection for documents where the role is 'tenant'
-        const tenantsSnapshot = await db.collection('users').where('role', '==', 'tenant').get();
+        const { uid: landlordId } = req.user;
+        console.log(`API: Fetching tenants for landlord ${landlordId}.`);
+
+        const tenantsSnapshot = await db.collection('users')
+            .where('role', '==', 'tenant')
+            .where('landlordId', '==', landlordId)
+            .get();
+            
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log(`API: Successfully fetched ${tenants.length} tenants.`);
         return NextResponse.json(tenants);
@@ -19,7 +27,7 @@ export async function GET() {
             { status: 500 }
         );
     }
-}
+}, ['landlord']);
 
 
 export const POST = withRole(async (req: AuthenticatedRequest) => {
