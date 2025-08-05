@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import type { Property } from '@/lib/types';
-import { getTokens } from 'next-firebase-auth-edge';
 
 export function useProperties() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -14,12 +13,7 @@ export function useProperties() {
     const fetchProperties = async () => {
         try {
             console.log("Hook: useProperties is fetching data from API.");
-            const tokens = await getTokens();
-            const response = await fetch('/api/properties', {
-              headers: {
-                Authorization: `Bearer ${tokens?.idToken}`
-              }
-            });
+            const response = await fetch('/api/properties');
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to fetch properties.');
