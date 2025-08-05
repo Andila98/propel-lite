@@ -69,3 +69,5 @@ export function RecentActivities({ activities }: { activities: ActivityItem[] })
     </Carousel>
   );
 }
+
+    

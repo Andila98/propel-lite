@@ -83,3 +83,5 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
     </Carousel>
   );
 }
+
+    
