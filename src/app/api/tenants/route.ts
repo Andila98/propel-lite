@@ -41,7 +41,7 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
         // --- Start Transaction ---
         const tenantRef = db.collection('users').doc(); // Create a new ref for the tenant
         const propertyRef = db.collection('properties').doc(propertyId);
-        const unitRef = db.collection('properties').doc(propertyId).collection('units').doc(unitId);
+        const unitRef = propertyRef.collection('units').doc(unitId);
 
         await db.runTransaction(async (transaction) => {
             const propertyDoc = await transaction.get(propertyRef);
