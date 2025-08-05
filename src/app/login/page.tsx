@@ -25,26 +25,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // In a real app, you'd have auth logic here.
-    // We'll simulate a successful login and redirect to onboarding for new users.
-    if (email && password) {
-       toast({
-        title: "Login Successful",
-        description: "Redirecting to your dashboard...",
-      });
-      // A real app would check if the user is new and route to onboarding if so.
-      // For this prototype, we'll always go to the dashboard after the initial login.
-      router.push('/');
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Please enter email and password.",
-        variant: "destructive",
-      });
-       setIsLoading(false);
+    
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+
+        if (response.ok) {
+            toast({
+                title: "Login Successful",
+                description: "Redirecting to your dashboard...",
+            });
+            router.push('/');
+        } else {
+            const data = await response.json();
+            throw new Error(data.error || "Login failed");
+        }
+    } catch (error: any) {
+        toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
     }
   };
   
