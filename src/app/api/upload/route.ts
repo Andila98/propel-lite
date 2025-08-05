@@ -16,21 +16,8 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure multer for local file storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const randomSuffix = randomBytes(8).toString('hex');
-    const fileExtension = path.extname(file.originalname);
-    const fileName = `${Date.now()}-${randomSuffix}${fileExtension}`;
-    cb(null, fileName);
-  },
-});
-
-const upload = multer({ storage });
-
+// This function is no longer ideal for Next.js App Router.
+// We will parse FormData directly in the POST handler.
 const runMiddleware = (req: any, res: any, fn: any) => {
   return new Promise((resolve, reject) => {
     fn(req, res, (result: any) => {
@@ -56,16 +43,10 @@ export async function OPTIONS(req: NextRequest) {
 
 
 export async function POST(req: NextRequest) {
-  const res = new NextResponse();
-
   try {
-    const tempReq: any = req;
-    const tempRes: any = res;
-
-    await runMiddleware(tempReq, tempRes, upload.single('media'));
-
-    const file = tempReq.file;
-    const propertyDataString = tempReq.body.propertyData;
+    const formData = await req.formData();
+    const file = formData.get('media') as File | null;
+    const propertyDataString = formData.get('propertyData') as string | null;
 
     if (!file || !propertyDataString) {
       console.error("API Error: Missing propertyData or media file.");
@@ -95,7 +76,16 @@ export async function POST(req: NextRequest) {
 
     const validatedData = validationResult.data;
     
-    const publicUrl = `/media/${file.filename}`;
+    // Save the file locally
+    const randomSuffix = randomBytes(8).toString('hex');
+    const fileExtension = path.extname(file.name);
+    const fileName = `${Date.now()}-${randomSuffix}${fileExtension}`;
+    const filePath = path.join(uploadDir, fileName);
+    
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    fs.writeFileSync(filePath, fileBuffer);
+    
+    const publicUrl = `/media/${fileName}`;
 
     const totalRent = validatedData.units.reduce((acc: number, unit: Unit) => acc + (unit.rent || 0), 0);
     const totalBedrooms = validatedData.units.reduce((acc: number, unit: Unit) => {
