@@ -12,9 +12,9 @@ export async function GET(
         return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 });
     }
 
-    const tenantDoc = await db.collection('tenants').doc(tenantId).get();
+    const tenantDoc = await db.collection('users').doc(tenantId).get();
 
-    if (!tenantDoc.exists) {
+    if (!tenantDoc.exists || tenantDoc.data()?.role !== 'tenant') {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
     }
 
@@ -29,5 +29,3 @@ export async function GET(
     );
   }
 }
-
-    

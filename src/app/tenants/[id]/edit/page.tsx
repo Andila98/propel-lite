@@ -17,13 +17,17 @@ import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
 import type { Tenant } from '@/lib/types';
 import { useTenants } from '@/hooks/use-tenants';
+import { useTenant } from '@/hooks/use-tenant';
+import { format } from 'date-fns';
 
 const TenantFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
   email: z.string().email("Please enter a valid email address."),
+  phone: z.string().optional(),
   propertyId: z.string({ required_error: "Please select a property."}),
-  leaseStartDate: z.string().min(1, "Please select a start date"),
-  leaseEndDate: z.string().min(1, "Please select an end date"),
+  currentUnitId: z.string({ required_error: "Please select a unit."}),
+  leaseStart: z.date({ required_error: "Lease start date is required."}),
+  leaseEnd: z.date({ required_error: "Lease end date is required."}),
 });
 type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
@@ -33,34 +37,35 @@ export default function EditTenantPage() {
   const { toast } = useToast();
   const tenantId = id as string;
   const { properties } = useProperties();
-  const { tenants } = useTenants();
-  const tenantToEdit = tenants.find(t => t.id === tenantId);
+  const { tenant, loading: tenantLoading } = useTenant(tenantId);
 
   const form = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-    }
   });
+  
+  const { register, handleSubmit, control, formState: { errors }, reset } = form;
 
   useEffect(() => {
-    if (tenantToEdit) {
-      form.reset({
-        name: tenantToEdit.name,
-        email: tenantToEdit.email,
-        propertyId: tenantToEdit.propertyId,
-        leaseStartDate: tenantToEdit.leaseStartDate,
-        leaseEndDate: tenantToEdit.leaseEndDate,
+    if (tenant) {
+      reset({
+        name: tenant.name,
+        email: tenant.email,
+        phone: tenant.phone,
+        propertyId: tenant.currentUnitId?.split('_')[0], // Extract from unitId
+        currentUnitId: tenant.currentUnitId,
+        leaseStart: tenant.leaseStart.toDate(),
+        leaseEnd: tenant.leaseEnd.toDate(),
       });
     }
-  }, [tenantToEdit, form]);
+  }, [tenant, reset]);
 
-  if (!tenantToEdit) {
-    return <div>Tenant not found.</div>;
+  if (tenantLoading) {
+    return <div>Loading...</div>; // TODO Skeleton
   }
 
-  const { register, handleSubmit, control, formState: { errors } } = form;
+  if (!tenant) {
+    return <div>Tenant not found.</div>;
+  }
 
   const onSubmit = (data: TenantFormValues) => {
     // In a real app, you'd save this to the database.
@@ -71,6 +76,9 @@ export default function EditTenantPage() {
     });
     router.push(`/tenants/${tenantId}`);
   };
+  
+  const selectedPropertyId = form.watch('propertyId');
+  const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units || [];
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -86,7 +94,7 @@ export default function EditTenantPage() {
         <Card className="max-w-2xl mx-auto">
             <CardHeader>
                 <CardTitle>Update Tenant Information</CardTitle>
-                <CardDescription>Modify the details for {tenantToEdit.name}.</CardDescription>
+                <CardDescription>Modify the details for {tenant.name}.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -96,43 +104,84 @@ export default function EditTenantPage() {
                     {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
                 </div>
 
-                <div>
-                    <Label htmlFor="email">Tenant Email</Label>
-                    <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                    {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="email">Tenant Email</Label>
+                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input id="phone" {...register("phone")} autoComplete="tel" />
+                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                    </div>
                 </div>
 
-                <div>
-                    <Label htmlFor="propertyId">Property</Label>
-                    <Controller
-                        name="propertyId"
-                        control={control}
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <SelectTrigger id="propertyId">
-                                <SelectValue placeholder="Select a property..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {properties.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                        )}
-                    />
-                     {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="propertyId">Property</Label>
+                        <Controller
+                            name="propertyId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <SelectTrigger id="propertyId">
+                                    <SelectValue placeholder="Select a property..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {properties.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                    </div>
+                     <div>
+                        <Label htmlFor="currentUnitId">Unit</Label>
+                        <Controller
+                            name="currentUnitId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId}>
+                                <SelectTrigger id="currentUnitId">
+                                    <SelectValue placeholder="Select a unit..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableUnits.map(u => (
+                                        <SelectItem key={u.id} value={u.id}>{u.unitNumber}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.currentUnitId && <p className="text-sm text-destructive mt-1">{errors.currentUnitId.message}</p>}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                    <Label htmlFor="leaseStartDate">Lease Start Date</Label>
-                    <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />
-                    {errors.leaseStartDate && <p className="text-sm text-destructive mt-1">{errors.leaseStartDate.message}</p>}
+                    <Label htmlFor="leaseStart">Lease Start Date</Label>
+                    <Controller
+                        name="leaseStart"
+                        control={control}
+                        render={({ field }) => (
+                             <Input id="leaseStart" type="date" value={field.value ? format(field.value, 'yyyy-MM-dd') : ''} onChange={e => field.onChange(new Date(e.target.value))} />
+                        )}
+                    />
+                    {errors.leaseStart && <p className="text-sm text-destructive mt-1">{errors.leaseStart.message}</p>}
                     </div>
                     <div>
-                    <Label htmlFor="leaseEndDate">Lease End Date</Label>
-                    <Input id="leaseEndDate" type="date" {...register("leaseEndDate")} />
-                    {errors.leaseEndDate && <p className="text-sm text-destructive mt-1">{errors.leaseEndDate.message}</p>}
+                    <Label htmlFor="leaseEnd">Lease End Date</Label>
+                    <Controller
+                        name="leaseEnd"
+                        control={control}
+                        render={({ field }) => (
+                            <Input id="leaseEnd" type="date" value={field.value ? format(field.value, 'yyyy-MM-dd') : ''} onChange={e => field.onChange(new Date(e.target.value))} />
+                        )}
+                    />
+                    {errors.leaseEnd && <p className="text-sm text-destructive mt-1">{errors.leaseEnd.message}</p>}
                     </div>
                 </div>
 

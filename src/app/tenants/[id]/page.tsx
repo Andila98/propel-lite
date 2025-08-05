@@ -35,7 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { Tenant, Property } from '@/lib/types';
+import type { Tenant, Property, Payment } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
@@ -43,6 +43,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
 import { useTenant } from '@/hooks/use-tenant';
 import { useProperty } from '@/hooks/use-property';
+import { usePayments } from '@/hooks/use-payments';
 
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
     const [sentiment, setSentiment] = useState<{ sentiment: string, summary: string } | null>(null);
@@ -113,7 +114,9 @@ export default function TenantDetailPage() {
   const { toast } = useToast();
   const tenantId = id as string;
   const { tenant, loading: tenantLoading } = useTenant(tenantId);
-  const { property, loading: propertyLoading } = useProperty(tenant?.propertyId || '');
+  const { property, loading: propertyLoading } = useProperty(tenant?.currentUnitId ? tenant.currentUnitId.split('_')[0] : '');
+  const { payments, loading: paymentsLoading } = usePayments(tenantId);
+
 
   if (tenantLoading || propertyLoading) {
     return <div>Loading...</div>; // TODO: Add skeleton
@@ -131,15 +134,28 @@ export default function TenantDetailPage() {
     });
     router.push('/tenants');
   };
+  
+  const getRentStatus = (payments: Payment[], rent: number) => {
+    const paidThisMonth = payments
+      .filter(p => new Date(p.paidAt).getMonth() === new Date().getMonth())
+      .reduce((sum, p) => sum + p.amount, 0);
 
-  const renderStatusBadge = (status: Tenant['rentStatus']) => {
-    const statusMap = {
+    if (paidThisMonth >= rent) return 'Paid';
+    if (paidThisMonth > 0) return 'Partially Paid';
+    return 'Overdue';
+  }
+
+  const rentStatus = getRentStatus(payments, property.rent);
+
+
+  const renderStatusBadge = (status: string) => {
+    const statusMap: Record<string, 'default' | 'destructive' | 'secondary' | 'outline'> = {
       'Paid': 'default',
       'Overdue': 'destructive',
       'Partially Paid': 'secondary',
       'Advance': 'outline',
     } as const;
-    return <Badge variant={statusMap[status]}>{status}</Badge>;
+    return <Badge variant={statusMap[status] || 'default'}>{status}</Badge>;
   }
 
   const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
@@ -149,8 +165,10 @@ export default function TenantDetailPage() {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString(undefined, {
+  const formatDate = (dateString: string | Date) => {
+      if (!dateString) return 'N/A';
+      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      return date.toLocaleDateString(undefined, {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
@@ -170,7 +188,7 @@ export default function TenantDetailPage() {
           </Link>
           <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12">
-                  <AvatarImage src={tenant.avatarUrl} alt={tenant.name} data-ai-hint="person portrait" />
+                  <AvatarImage src={(tenant as any).avatarUrl} alt={tenant.name} data-ai-hint="person portrait" />
                   <AvatarFallback>{tenant.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
@@ -180,7 +198,7 @@ export default function TenantDetailPage() {
           </div>
         </div>
          <div className="flex items-center gap-2">
-            <Link href={`/tenants/${tenant.id}/edit`}>
+            <Link href={`/tenants/${tenant.uid}/edit`}>
                  <Button variant="outline">
                     <AnimatedEditIcon /> Edit
                 </Button>
@@ -228,6 +246,10 @@ export default function TenantDetailPage() {
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">{tenant.email}</span>
                   </div>
+                   <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{tenant.phone || 'N/A'}</span>
+                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -242,7 +264,7 @@ export default function TenantDetailPage() {
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Lease Period</span>
-                        <span className="font-medium">{formatDate(tenant.leaseStartDate)} to {formatDate(tenant.leaseEndDate)}</span>
+                        <span className="font-medium">{formatDate(tenant.leaseStart.toDate())} to {formatDate(tenant.leaseEnd.toDate())}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
@@ -250,11 +272,11 @@ export default function TenantDetailPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Rent Status</span>
-                        {renderStatusBadge(tenant.rentStatus)}
+                        {renderStatusBadge(rentStatus)}
                     </div>
                 </CardContent>
               </Card>
-              <SentimentAnalysis tenantId={tenant.id} />
+              <SentimentAnalysis tenantId={tenant.uid} />
             </div>
 
             <div className="lg:col-span-2">
@@ -264,7 +286,8 @@ export default function TenantDetailPage() {
                         <CardDescription>Recent payments from {tenant.name}.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                       {paymentsLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : (
+                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Date</TableHead>
@@ -274,9 +297,9 @@ export default function TenantDetailPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {tenant.paymentHistory.map((payment, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>{formatDate(payment.date)}</TableCell>
+                                {payments.map((payment) => (
+                                    <TableRow key={payment.id}>
+                                        <TableCell>{formatDate(new Date(payment.paidAt))}</TableCell>
                                         <TableCell>
                                             <Badge variant={payment.type === 'Rent' ? 'default' : 'secondary'}>
                                                 {payment.type}
@@ -288,6 +311,7 @@ export default function TenantDetailPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                       )}
                     </CardContent>
                 </Card>
             </div>
@@ -300,7 +324,7 @@ export default function TenantDetailPage() {
                     <CardDescription>Direct messaging with {tenant.name}.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChatThread tenantId={tenant.id} tenantName={tenant.name} />
+                    <ChatThread tenantId={tenant.uid} tenantName={tenant.name} />
                 </CardContent>
             </Card>
         </TabsContent>

@@ -42,5 +42,3 @@ export function useTenant(tenantId: string) {
 
   return { tenant, loading, error };
 }
-
-    
