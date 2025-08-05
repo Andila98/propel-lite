@@ -60,37 +60,19 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
     
     const publicUrl = `/media/${fileName}`;
 
-    const totalRent = validatedData.units.reduce((acc: number, unit: Unit) => acc + (unit.rent || 0), 0);
-    const totalBedrooms = validatedData.units.reduce((acc: number, unit: Unit) => {
-        const type = unit.unitType;
-        if (type === 'one-bedroom') return acc + 1;
-        if (type === 'two-bedroom') return acc + 2;
-        if (type === 'three-bedroom') return acc + 3;
-        return acc;
-    }, 0);
-     const totalBathrooms = validatedData.units.reduce((acc: number, unit: Unit) => {
-        const type = unit.unitType;
-        if (type === 'one-bedroom' || type === 'two-bedroom' || type === 'three-bedroom') return acc + 1;
-        return acc;
-    }, 0);
-     const totalSquareFootage = validatedData.units.reduce((acc: number, unit: Unit) => acc + (unit.squareFootage || 0), 0);
-
-    const newProperty: Omit<Property, 'id'> = {
+    const newProperty: Omit<Property, 'id' | 'createdAt'> = {
       landlordId: userId,
+      name: validatedData.name,
       address: validatedData.address,
-      propertyType: validatedData.propertyType,
+      type: validatedData.type,
       imageUrl: publicUrl,
-      rent: totalRent,
-      bedrooms: totalBedrooms,
-      bathrooms: totalBathrooms,
-      squareFootage: totalSquareFootage,
       description: validatedData.description,
-      units: validatedData.units,
-      currency: validatedData.currency,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    const docRef = await db.collection('properties').add(newProperty);
+    const docRef = await db.collection('properties').add({
+        ...newProperty,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
     
     const createdProperty = {
         id: docRef.id,

@@ -34,15 +34,8 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
   const router = useRouter();
 
   const isOccupied = (propertyId: string) =>
-    tenants.some((t) => t.propertyId === propertyId);
+    tenants.some((t: any) => t.propertyId === propertyId);
     
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
-  };
-
   const handleRowClick = (propertyId: string) => {
     router.push(`/properties/${propertyId}`);
   };
@@ -54,7 +47,6 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
           <TableHead className="w-[80px]">Image</TableHead>
           <TableHead>Address</TableHead>
           <TableHead>Type</TableHead>
-          <TableHead>Rent</TableHead>
           <TableHead>Status</TableHead>
         </TableRow>
       </TableHeader>
@@ -67,7 +59,7 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
           >
             <TableCell>
               <Image
-                src={prop.imageUrl}
+                src={prop.imageUrl || "https://placehold.co/100x100.png"}
                 alt={prop.address}
                 width={50}
                 height={50}
@@ -76,8 +68,7 @@ function PropertyTable({ properties, tenants }: { properties: Property[], tenant
               />
             </TableCell>
             <TableCell className="font-medium">{prop.address}</TableCell>
-            <TableCell className="capitalize">{prop.propertyType}</TableCell>
-            <TableCell>{formatCurrency(prop.rent, prop.currency)}</TableCell>
+            <TableCell className="capitalize">{prop.type}</TableCell>
             <TableCell>
               {isOccupied(prop.id) ? (
                 <Badge variant="secondary">Occupied</Badge>
@@ -101,7 +92,7 @@ export default function PropertiesPage() {
   const filteredProperties = useMemo(() => {
     return properties.filter(property => {
       const searchMatch = property.address.toLowerCase().includes(searchTerm.toLowerCase());
-      const typeMatch = propertyTypeFilter === 'all' || property.propertyType === propertyTypeFilter;
+      const typeMatch = propertyTypeFilter === 'all' || property.type === propertyTypeFilter;
       return searchMatch && typeMatch;
     });
   }, [properties, searchTerm, propertyTypeFilter]);
@@ -128,7 +119,7 @@ export default function PropertiesPage() {
         return <p className="text-center text-muted-foreground py-10">No properties found. Add your first one!</p>
     }
 
-    return <PropertyTable properties={filteredProperties} tenants={tenants} />;
+    return <PropertyTable properties={filteredProperties} tenants={tenants as any[]} />;
   };
 
   return (
@@ -164,9 +155,9 @@ export default function PropertiesPage() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="apartment">Apartment</SelectItem>
-                        <SelectItem value="house">House</SelectItem>
-                        <SelectItem value="bedsitter">Bedsitter</SelectItem>
+                        <SelectItem value="Apartment">Apartment</SelectItem>
+                        <SelectItem value="House">House</SelectItem>
+                        <SelectItem value="Bedsitter">Bedsitter</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

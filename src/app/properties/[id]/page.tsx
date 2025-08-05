@@ -104,7 +104,7 @@ export default function PropertyDetailPage() {
     router.push('/properties');
   };
 
-  const propertyImage = property.imageUrl.startsWith('http') ? property.imageUrl : `${property.imageUrl}`;
+  const propertyImage = property.imageUrl;
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -118,7 +118,7 @@ export default function PropertyDetailPage() {
             </Link>
             <div>
                 <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{property.address}</h2>
-                <p className="text-sm text-muted-foreground capitalize">{property.propertyType}</p>
+                <p className="text-sm text-muted-foreground capitalize">{property.type}</p>
             </div>
         </div>
         <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function PropertyDetailPage() {
         <div className="lg:col-span-3">
              <Card className="overflow-hidden">
                 <Image
-                    src={propertyImage}
+                    src={propertyImage || "https://placehold.co/800x500.png"}
                     alt={property.address}
                     width={800}
                     height={500}
@@ -168,9 +168,7 @@ export default function PropertyDetailPage() {
             <Tabs defaultValue="overview">
                 <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="gallery">Gallery</TabsTrigger>
                     <TabsTrigger value="occupancy">Occupancy</TabsTrigger>
-                    {property.propertyType === 'apartment' && <TabsTrigger value="units">Units</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="overview" className="mt-4">
                     <Card>
@@ -188,59 +186,12 @@ export default function PropertyDetailPage() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm pt-2">
                                             <div className="flex items-center gap-2">
                                                 <Home className="h-4 w-4 text-muted-foreground" />
-                                                <span>Type: <span className="font-semibold capitalize">{property.propertyType}</span></span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                                <span>Rent: <span className="font-semibold">{formatCurrency(property.rent, property.currency)}/mo</span></span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Square className="h-4 w-4 text-muted-foreground" />
-                                                <span>Size: <span className="font-semibold">{property.squareFootage} sqft</span></span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <BedDouble className="h-4 w-4 text-muted-foreground" />
-                                                <span>Bedrooms: <span className="font-semibold">{property.bedrooms}</span></span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Bath className="h-4 w-4 text-muted-foreground" />
-                                                <span>Bathrooms: <span className="font-semibold">{property.bathrooms}</span></span>
+                                                <span>Type: <span className="font-semibold capitalize">{property.type}</span></span>
                                             </div>
                                         </div>
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                 <TabsContent value="gallery" className="mt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Photo Gallery</CardTitle>
-                            <CardDescription>A collection of images for this property.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {property.gallery && property.gallery.length > 0 ? (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {property.gallery.map((url, index) => (
-                                        <div key={index} className="overflow-hidden rounded-lg">
-                                            <Image
-                                                src={url}
-                                                alt={`Property image ${index + 1}`}
-                                                width={400}
-                                                height={300}
-                                                className="w-full h-full object-cover aspect-video transition-transform hover:scale-105"
-                                                data-ai-hint="apartment interior"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-48 border-2 border-dashed rounded-lg p-4">
-                                    <Camera className="h-8 w-8 mb-2" />
-                                    <p>No gallery images have been added for this property yet.</p>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -280,134 +231,10 @@ export default function PropertyDetailPage() {
                         </Card>
                     </div>
                 </TabsContent>
-                 {property.propertyType === 'apartment' && property.units && (
-                    <TabsContent value="units" className="mt-4">
-                        <Card>
-                        <CardHeader>
-                            <CardTitle>Units</CardTitle>
-                            <CardDescription>Individual units within this property.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <UnitTable units={property.units} currency={property.currency} />
-                        </CardContent>
-                        </Card>
-                    </TabsContent>
-                )}
             </Tabs>
         </div>
       </div>
     </div>
-  );
-}
-
-function UnitTable({ units, currency }: { units: Unit[], currency: string }) {
-  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
-
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
-  };
-
-  return (
-    <>
-      <Dialog>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Unit #</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Rent</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Details</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {units.map((unit, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{unit.unitNumber}</TableCell>
-                <TableCell className="capitalize">{unit.unitType.replace('-', ' ')}</TableCell>
-                <TableCell>{formatCurrency(unit.rent, currency)}</TableCell>
-                <TableCell>
-                  {unit.isAvailable ? (
-                    <Badge variant="outline">Available</Badge>
-                  ) : (
-                    <Badge variant="secondary">Occupied</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedUnit(unit)}>
-                      <Eye className="h-4 w-4" />
-                      <span className="sr-only">View Details</span>
-                    </Button>
-                  </DialogTrigger>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Unit {selectedUnit?.unitNumber} Details</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Tabs defaultValue="gallery">
-              <TabsList>
-                <TabsTrigger value="gallery">Gallery</TabsTrigger>
-                <TabsTrigger value="documents">Documents</TabsTrigger>
-              </TabsList>
-              <TabsContent value="gallery" className="mt-4">
-                {selectedUnit?.gallery && selectedUnit.gallery.length > 0 ? (
-                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {selectedUnit.gallery.map((url, index) => (
-                          <div key={index} className="overflow-hidden rounded-lg">
-                              <Image
-                                  src={url}
-                                  alt={`Unit image ${index + 1}`}
-                                  width={200}
-                                  height={150}
-                                  className="w-full h-full object-cover aspect-video"
-                                  data-ai-hint="unit interior"
-                              />
-                          </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-40 border-2 border-dashed rounded-lg">
-                    <GalleryIcon className="h-8 w-8 mb-2" />
-                    <p>No gallery images for this unit.</p>
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="documents" className="mt-4">
-                 {selectedUnit?.documents && selectedUnit.documents.length > 0 ? (
-                   <ul className="space-y-2">
-                      {selectedUnit.documents.map((doc, index) => (
-                          <li key={index} className="flex items-center justify-between p-2 rounded-md border">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4" />
-                              <span>{doc.name}</span>
-                            </div>
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={doc.url} target="_blank" rel="noopener noreferrer">Download</a>
-                            </Button>
-                          </li>
-                      ))}
-                  </ul>
-                ) : (
-                   <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-40 border-2 border-dashed rounded-lg">
-                    <FileText className="h-8 w-8 mb-2" />
-                    <p>No documents uploaded for this unit.</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }
 

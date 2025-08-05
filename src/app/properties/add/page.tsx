@@ -40,21 +40,15 @@ export default function AddPropertyPage() {
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
       address: "",
+      name: "",
       description: "",
       currency: "KES",
-      units: [],
     },
   });
 
   const { register, control, handleSubmit, formState: { errors }, setValue, watch } = form;
 
-  const { fields, append, remove, replace } = useFieldArray({
-    control,
-    name: "units",
-  });
-
-  const propertyType = watch("propertyType");
-  const numberOfUnits = watch("numberOfUnits");
+  const propertyType = watch("type");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,85 +56,6 @@ export default function AddPropertyPage() {
       setImageFile(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
-    }
-  };
-
-  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => {
-          try {
-              const units = result.data.map((row: any): Unit => ({
-                unitNumber: row.unitNumber || '',
-                unitType: row.unitType || 'one-bedroom',
-                rent: parseFloat(row.rent) || 0,
-                squareFootage: parseInt(row.squareFootage, 10) || 0,
-                isAvailable: row.isAvailable ? row.isAvailable.toLowerCase() === 'true' : true,
-              }));
-              replace(units);
-              setValue("numberOfUnits", units.length);
-              toast({
-                title: "CSV Parsed!",
-                description: `${units.length} units have been loaded from the file.`
-              })
-          } catch (error) {
-              toast({
-                  title: "CSV Parsing Error",
-                  description: "Could not parse CSV. Make sure it has headers: unitNumber, unitType, rent, squareFootage, isAvailable.",
-                  variant: "destructive"
-              });
-          }
-        },
-        error: (error) => {
-            toast({
-                title: "CSV Error",
-                description: error.message,
-                variant: "destructive"
-            });
-        }
-      });
-    }
-  };
-
-  const handleUnitGeneration = (num: number) => {
-    if (isNaN(num) || num < 1) {
-      replace([]);
-      return;
-    }
-    const newUnits = Array.from({ length: num }, (_, i) => ({
-      unitNumber: `Unit ${i + 1}`,
-      unitType: "one-bedroom",
-      rent: 1000,
-      squareFootage: 500,
-      isAvailable: true,
-    }));
-    replace(newUnits);
-  };
-
-  const handlePropertyTypeChange = (type: string) => {
-    setValue("propertyType", type as "apartment" | "house" | "bedsitter");
-    if (type === 'apartment') {
-      setValue("numberOfUnits", 1);
-      handleUnitGeneration(1);
-    } else if (type === 'house' || type === 'bedsitter') {
-      setValue("numberOfUnits", 1);
-      const unitTypeMap: { [key: string]: 'three-bedroom' | 'bedsitter' } = {
-        'house': 'three-bedroom',
-        'bedsitter': 'bedsitter',
-      };
-      const newUnits = [{
-        unitNumber: 'Main Unit',
-        unitType: unitTypeMap[type],
-        rent: type === 'house' ? 3500 : 1500,
-        squareFootage: type === 'house' ? 1200 : 400,
-        isAvailable: true,
-      }];
-      replace(newUnits as any);
-    } else {
-      replace([]);
     }
   };
 
@@ -201,18 +116,6 @@ export default function AddPropertyPage() {
     }
   };
   
-  const addUnit = () => {
-    append({
-        unitNumber: `Unit ${fields.length + 1}`,
-        unitType: "one-bedroom",
-        rent: 1000,
-        squareFootage: 500,
-        isAvailable: true,
-    });
-    const currentNum = numberOfUnits || 0;
-    setValue("numberOfUnits", currentNum + 1);
-  };
-
   return (
     <TooltipProvider>
     <div className="flex-1 space-y-4 p-4 md:p-6">
@@ -234,14 +137,19 @@ export default function AddPropertyPage() {
                       </CardHeader>
                       <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="sm:col-span-2">
+                           <div>
+                              <Label htmlFor="name">Property Name</Label>
+                              <Input id="name" {...register("name")} placeholder="e.g. Greenwood Heights" />
+                              {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                          </div>
+                           <div>
                               <Label htmlFor="address">Address</Label>
                               <Input id="address" {...register("address")} autoComplete="street-address" />
                               {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <Label htmlFor="propertyType">Property Type</Label>
+                              <Label htmlFor="type">Property Type</Label>
                                <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
@@ -256,41 +164,22 @@ export default function AddPropertyPage() {
                               </Tooltip>
                             </div>
                               <Controller
-                                  name="propertyType"
-                                  control={control}
-                                  render={({ field }) => (
-                                      <Select onValueChange={(value) => { field.onChange(value); handlePropertyTypeChange(value); }} defaultValue={field.value}>
-                                      <SelectTrigger id="propertyType">
-                                          <SelectValue placeholder="Select a type..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                          <SelectItem value="apartment">Apartment</SelectItem>
-                                          <SelectItem value="house">House</SelectItem>
-                                          <SelectItem value="bedsitter">Bedsitter</SelectItem>
-                                      </SelectContent>
-                                      </Select>
-                                  )}
-                              />
-                              {errors.propertyType && <p className="text-sm text-destructive mt-1">{errors.propertyType.message}</p>}
-                          </div>
-                           <div>
-                              <Label htmlFor="currency">Currency</Label>
-                              <Controller
-                                  name="currency"
+                                  name="type"
                                   control={control}
                                   render={({ field }) => (
                                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                      <SelectTrigger id="currency">
-                                          <SelectValue placeholder="Select a currency..." />
+                                      <SelectTrigger id="type">
+                                          <SelectValue placeholder="Select a type..." />
                                       </SelectTrigger>
                                       <SelectContent>
-                                          <SelectItem value="KES">KES</SelectItem>
-                                          <SelectItem value="USD">USD</SelectItem>
-                                          <SelectItem value="EUR">EUR</SelectItem>
+                                          <SelectItem value="Apartment">Apartment</SelectItem>
+                                          <SelectItem value="House">House</SelectItem>
+                                          <SelectItem value="Bedsitter">Bedsitter</SelectItem>
                                       </SelectContent>
                                       </Select>
                                   )}
                               />
+                              {errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}
                           </div>
                         </div>
 
@@ -299,203 +188,10 @@ export default function AddPropertyPage() {
                             <Textarea id="description" {...register("description")} placeholder="e.g., A beautiful apartment with stunning views..." />
                             {errors.description && <p className="text-sm text-destructive mt-1">{errors.description.message}</p>}
                         </div>
-
-                        {propertyType === "apartment" && (
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex items-center gap-2">
-                                        <CardTitle>Apartment Units</CardTitle>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                            <p className="max-w-xs">Define the individual residential spaces within the apartment building. Each unit has its own details like rent and type.</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </div>
-                                    <CardDescription>Define the number of units or upload a CSV.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="numberOfUnits">Number of Units</Label>
-                                        <Input 
-                                            id="numberOfUnits" 
-                                            type="number" 
-                                            {...register("numberOfUnits")}
-                                            min="1"
-                                            onChange={(e) => {
-                                                const num = parseInt(e.target.value, 10);
-                                                setValue("numberOfUnits", num);
-                                                handleUnitGeneration(num);
-                                            }}
-                                        />
-                                        {errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{errors.numberOfUnits.message}</p>}
-                                    </div>
-                                    <div className="relative">
-                                        <Separator />
-                                        <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">OR</span>
-                                    </div>
-                                     <div>
-                                        <div className="flex items-center gap-2">
-                                            <Label htmlFor="csvFile">Upload Units (CSV)</Label>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                <p className="max-w-xs">The CSV file must contain the headers: <br /> `unitNumber`, `unitType`, `rent`, `squareFootage`, `isAvailable`.</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Input id="csvFile" type="file" accept=".csv" onChange={handleCsvUpload} />
-                                            <Button type="button" variant="outline" size="icon" asChild>
-                                                <Label htmlFor="csvFile" className="cursor-pointer">
-                                                    <Upload className="h-4 w-4" />
-                                                </Label>
-                                            </Button>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-1">Headers: unitNumber, unitType, rent, squareFootage, isAvailable</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
                       </CardContent>
                     </Card>
-                    <div className="space-y-6 lg:hidden">
-                      <Card>
-                          <CardHeader>
-                              <CardTitle>Property Image</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                              <div>
-                                  <Label htmlFor="imageFile">Upload Image</Label>
-                                  <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
-                              </div>
-                          </CardContent>
-                      </Card>
-                      <Card>
-                          <CardHeader>
-                              <CardTitle>Image Preview</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                              <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                  {previewUrl ? (
-                                      <Image
-                                          src={previewUrl}
-                                          alt="Property Preview"
-                                          width={800}
-                                          height={500}
-                                          className="object-contain w-full h-full"
-                                          data-ai-hint="apartment building"
-                                      />
-                                  ) : (
-                                      <div className="text-muted-foreground flex flex-col items-center">
-                                          <ImageIcon className="h-12 w-12" />
-                                          <p>Image preview will appear here</p>
-                                      </div>
-                                  )}
-                              </div>
-                          </CardContent>
-                      </Card>
-                    </div>
-                    <div className="space-y-6">
-                        {(propertyType && fields.length > 0) && <Separator />}
-                        {fields.map((field, index) => (
-                          <Card key={field.id} className="p-4">
-                            <div className="flex justify-between items-center mb-4">
-                              <h4 className="text-lg font-medium">
-                                {propertyType === 'apartment' ? `Unit Details` : 'Unit Details'}
-                              </h4>
-                              {propertyType === 'apartment' && (
-                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
-                                  <AnimatedDeleteIcon />
-                                </Button>
-                              )}
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <Label htmlFor={`units.${index}.unitNumber`}>Unit Number</Label>
-                                <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
-                              </div>
-                              <div>
-                                <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
-                                <Controller
-                                  name={`units.${index}.unitType`}
-                                  control={control}
-                                  render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                      <SelectTrigger id={`units.${index}.unitType`}><SelectValue placeholder="Select type..." /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="studio">Studio</SelectItem>
-                                        <SelectItem value="bedsitter">Bedsitter</SelectItem>
-                                        <SelectItem value="one-bedroom">One Bedroom</SelectItem>
-                                        <SelectItem value="two-bedroom">Two Bedroom</SelectItem>
-                                        <SelectItem value="three-bedroom">Three Bedroom</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
-                                <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
-                              </div>
-                              <div>
-                                <Label htmlFor={`units.${index}.squareFootage`}>Square Footage</Label>
-                                <Input id={`units.${index}.squareFootage`} type="number" {...register(`units.${index}.squareFootage`)} />
-                              </div>
-                              <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
-                                   <Controller
-                                    name={`units.${index}.isAvailable`}
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Switch
-                                            id={`units.${index}.isAvailable`}
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    )}
-                                    />
-                                  <Label htmlFor={`units.${index}.isAvailable`}>Available</Label>
-                                </div>
-                            </div>
-                            <Collapsible className="mt-4">
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="link" className="p-0 h-auto">
-                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Images/Documents
-                                    </Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-4 pt-4">
-                                     <div>
-                                        <Label htmlFor={`unit-gallery-${index}`}>Unit Images</Label>
-                                        <Input id={`unit-gallery-${index}`} type="file" multiple accept="image/*" />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor={`unit-docs-${index}`}>Unit Documents</Label>
-                                        <Input id={`unit-docs-${index}`} type="file" multiple accept=".pdf,.doc,.docx" />
-                                    </div>
-                                </CollapsibleContent>
-                            </Collapsible>
-                             {errors.units?.[index] && (
-                                <div className="text-sm text-destructive mt-2">
-                                   {Object.values(errors.units[index]).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
-                                </div>
-                              )}
-                          </Card>
-                        ))}
-                         {propertyType === 'apartment' && (
-                            <Button type="button" variant="outline" onClick={addUnit}>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add Another Unit
-                            </Button>
-                        )}
-                        {errors.units && typeof errors.units.message === 'string' && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
-                    </div>
                 </div>
-                <div className="lg:col-span-2 space-y-8 hidden lg:block">
+                <div className="lg:col-span-2 space-y-8">
                      <Card>
                         <CardHeader>
                             <CardTitle>Property Image</CardTitle>

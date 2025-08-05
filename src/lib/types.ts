@@ -6,39 +6,42 @@ export interface Document {
 }
 
 export interface Unit {
+  id: string; // Document ID
+  propertyId: string;
+  landlordId: string;
   unitNumber: string;
-  unitType: 'one-bedroom' | 'two-bedroom' | 'three-bedroom' | 'bedsitter' | 'studio';
   rent: number;
-  squareFootage: number;
-  isAvailable: boolean;
+  size?: string; // e.g. "500 sqft"
+  isOccupied: boolean;
+  tenantId?: string;
   gallery?: string[];
   documents?: Document[];
 }
 
 export interface Property {
-  id: string;
+  id: string; // Document ID
+  name: string;
+  type: 'Apartment' | 'House' | 'Bedsitter';
   address: string;
-  propertyType: 'apartment' | 'house' | 'bedsitter';
-  squareFootage: number;
-  bedrooms: number;
-  bathrooms: number;
-  rent: number;
-  currency: string; // e.g., 'KES', 'USD'
-  imageUrl: string;
+  landlordId: string;
+  managerId?: string;
+  createdAt: FieldValue;
+  imageUrl?: string;
   description: string;
-  units?: Unit[];
-  gallery?: string[];
-  createdAt?: FieldValue;
-  landlordId?: string;
+  // Units are now in their own collection
 }
 
 export interface Payment {
-  id: string;
-  date: string;
+  id: string; // Document ID
+  tenantId: string;
+  landlordId: string;
+  unitId: string;
   amount: number;
-  method: string;
-  type: 'Rent' | 'Deposit' | 'Fee' | 'Other';
-  notes?: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  method: 'Mpesa' | 'Stripe' | 'Manual';
+  txRef: string; // transaction code
+  paidAt: any; // Timestamp
+  receiptUrl?: string;
 }
 
 export interface Message {
@@ -50,17 +53,27 @@ export interface Message {
   isRead?: boolean;
 }
 
-export interface Tenant {
-  id: string;
-  name: string;
-  email: string;
-  propertyId: string;
-  leaseStartDate: string;
-  leaseEndDate: string;
-  rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance';
+export interface User {
+    uid: string,
+    email: string,
+    name: string,
+    role: 'landlord' | 'tenant' | 'manager' | 'superadmin',
+    phone?: string,
+    landlordId?: string,  // for managers & tenants
+    createdAt: any, // Timestamp
+    status?: 'active' | 'invited' | 'suspended'
+}
+
+export interface Tenant extends User {
+  role: 'tenant',
+  currentUnitId?: string,
+  leaseStart: any, // Timestamp
+  leaseEnd?: any, // Timestamp
+  status: 'active' | 'moved-out',
   paymentHistory: Payment[];
   avatarUrl: string;
 }
+
 
 export const permissionLabels: Record<string, string> = {
   canEditProperties: "Edit property details",
