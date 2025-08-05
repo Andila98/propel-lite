@@ -1,6 +1,8 @@
 
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { NextResponse, type NextRequest } from 'next/server';
+import { db, admin } from '@/lib/firebase-admin';
+import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
+import { randomBytes } from 'crypto';
 
 export async function GET() {
     try {
@@ -18,3 +20,58 @@ export async function GET() {
         );
     }
 }
+
+
+export const POST = withRole(async (req: AuthenticatedRequest) => {
+    try {
+        const { uid: landlordId } = req.user;
+        const body = await req.json();
+        const { name, email, phone, propertyId, unitId, leaseStart, leaseEnd } = body;
+
+        if (!name || !email || !propertyId || !unitId || !leaseStart || !leaseEnd) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        // For security, we create the user with a random password.
+        // They can use the "Forgot Password" flow to set their own.
+        const randomPassword = randomBytes(16).toString('hex');
+        
+        const userRecord = await admin.auth().createUser({
+            email,
+            password: randomPassword,
+            displayName: name,
+            phoneNumber: phone,
+        });
+
+        await admin.auth().setCustomUserClaims(userRecord.uid, {
+            role: 'tenant',
+            landlordId,
+        });
+
+        const newTenantData = {
+            uid: userRecord.uid,
+            name,
+            email,
+            phone: phone || null,
+            role: 'tenant',
+            landlordId,
+            propertyId,
+            currentUnitId: unitId,
+            leaseStart: admin.firestore.Timestamp.fromDate(new Date(leaseStart)),
+            leaseEnd: admin.firestore.Timestamp.fromDate(new Date(leaseEnd)),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'active',
+        };
+
+        await db.collection('users').doc(userRecord.uid).set(newTenantData);
+
+        return NextResponse.json({ ...newTenantData, id: userRecord.uid }, { status: 201 });
+
+    } catch (error: any) {
+        console.error('[TENANT_CREATE_ERROR]', error);
+        if (error.code === 'auth/email-already-exists') {
+            return NextResponse.json({ error: 'A user with this email already exists.' }, { status: 409 });
+        }
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}, ['landlord']);
