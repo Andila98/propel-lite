@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Tenant } from '@/lib/types';
-import { getTokens } from 'next-firebase-auth-edge/lib/next/client';
+import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 
 export function useTenants() {

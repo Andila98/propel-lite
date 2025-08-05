@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Property } from '@/lib/types';
-import { getTokens } from 'next-firebase-auth-edge/lib/next/client';
+import { getTokens } from 'next-firebase-auth-edge';
 
 export function useProperties() {
   const [properties, setProperties] = useState<Property[]>([]);
