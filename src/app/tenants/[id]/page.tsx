@@ -114,9 +114,9 @@ export default function TenantDetailPage() {
   const { toast } = useToast();
   const tenantId = id as string;
   const { tenant, loading: tenantLoading } = useTenant(tenantId);
-  const { property, loading: propertyLoading } = useProperty(tenant?.currentUnitId ? tenant.currentUnitId.split('_')[0] : '');
+  // The propertyId is now available on the tenant document
+  const { property, loading: propertyLoading } = useProperty(tenant?.propertyId);
   const { payments, loading: paymentsLoading } = usePayments(tenantId);
-
 
   if (tenantLoading || propertyLoading) {
     return <div>Loading...</div>; // TODO: Add skeleton
@@ -126,13 +126,27 @@ export default function TenantDetailPage() {
     return <div>Tenant or property not found.</div>;
   }
 
-  const handleDelete = () => {
-    console.log(`Deleting tenant: ${tenant.id}`);
-    toast({
-      title: "Tenant Deleted",
-      description: `${tenant.name} has been removed from your records.`,
-    });
-    router.push('/tenants');
+  const handleDelete = async () => {
+    try {
+        const response = await fetch(`/api/tenants/${tenantId}`, {
+            method: 'DELETE',
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to delete tenant.');
+        }
+        toast({
+            title: "Tenant Deleted",
+            description: `${tenant.name} has been removed from your records.`,
+        });
+        router.push('/tenants');
+    } catch(err: any) {
+        toast({
+            title: "Error",
+            description: err.message,
+            variant: "destructive",
+        });
+    }
   };
   
   const getRentStatus = (payments: Payment[], rent: number) => {
@@ -165,9 +179,18 @@ export default function TenantDetailPage() {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string | Date) => {
+  const formatDate = (dateString: string | Date | { toDate: () => Date }) => {
       if (!dateString) return 'N/A';
-      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      let date: Date;
+      if (typeof dateString === 'string') {
+          date = new Date(dateString);
+      } else if (dateString instanceof Date) {
+          date = dateString;
+      } else if (typeof (dateString as any).toDate === 'function') {
+          date = (dateString as any).toDate();
+      } else {
+        return 'Invalid Date';
+      }
       return date.toLocaleDateString(undefined, {
           year: 'numeric',
           month: 'long',
@@ -264,7 +287,7 @@ export default function TenantDetailPage() {
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Lease Period</span>
-                        <span className="font-medium">{formatDate(tenant.leaseStart.toDate())} to {formatDate(tenant.leaseEnd.toDate())}</span>
+                        <span className="font-medium">{formatDate(tenant.leaseStart)} to {formatDate(tenant.leaseEnd)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
