@@ -1,21 +1,17 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
-import { verifyFirebaseToken } from '@/lib/server-utils';
+import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import type { Property, Unit } from '@/lib/types';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
+export const PUT = withRole(async (req: AuthenticatedRequest, { params }: { params: { id: string; unitId: string } }) => {
   try {
-    const { userId, role } = await verifyFirebaseToken(req);
+    const { uid: userId } = req.user;
     const propertyId = params.id;
     // Note: In our array structure, we'll use the unitNumber as the identifier.
     // A more robust solution might add a unique ID to each unit object.
     const unitId = params.unitId; 
     const updates = await req.json();
-
-    if (role !== 'landlord') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
 
     const propertyRef = db.collection('properties').doc(propertyId);
     const propertyDoc = await propertyRef.get();
@@ -49,22 +45,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     return NextResponse.json({ message: 'Unit updated successfully' });
   } catch (error: any) {
     console.error(`[UPDATE_UNIT_ERROR] for property ${params.id}, unit ${params.unitId}:`, error);
-     if (error.message.includes('No auth token provided')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'Failed to update unit' }, { status: 500 });
   }
-}
+}, ['landlord']);
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
+export const DELETE = withRole(async (req: AuthenticatedRequest, { params }: { params: { id: string; unitId: string } }) => {
     try {
-        const { userId, role } = await verifyFirebaseToken(req);
+        const { uid: userId } = req.user;
         const propertyId = params.id;
         const unitId = params.unitId;
-
-        if (role !== 'landlord') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
 
         const propertyRef = db.collection('properties').doc(propertyId);
         const propertyDoc = await propertyRef.get();
@@ -88,9 +77,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         return NextResponse.json({ message: 'Unit deleted successfully' });
     } catch (error: any) {
         console.error(`[DELETE_UNIT_ERROR] for property ${params.id}, unit ${params.unitId}:`, error);
-        if (error.message.includes('No auth token provided')) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
         return NextResponse.json({ error: 'Failed to delete unit' }, { status: 500 });
     }
-}
+}, ['landlord']);

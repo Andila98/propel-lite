@@ -1,15 +1,12 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
-import { verifyFirebaseToken } from '@/lib/server-utils';
+import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import { randomBytes } from 'crypto';
 
-export async function POST(req: NextRequest) {
+export const POST = withRole(async (req: AuthenticatedRequest) => {
   try {
-    const { userId, role } = await verifyFirebaseToken(req);
-    if (role !== 'landlord') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const { uid: userId } = req.user;
 
     const { email } = await req.json();
     if (!email) {
@@ -37,9 +34,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Invitation sent successfully.', token });
   } catch (err: any) {
     console.error('[INVITE_MANAGER_ERROR]', err);
-    if (err.message.includes('No auth token provided')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'Failed to send invitation' }, { status: 500 });
   }
-}
+}, ['landlord']);

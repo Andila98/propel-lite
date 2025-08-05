@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
-import { verifyFirebaseToken } from '@/lib/server-utils';
+import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -17,13 +17,9 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withRole(async (req: AuthenticatedRequest) => {
   try {
-    const { userId, role } = await verifyFirebaseToken(req);
-
-    if (role !== 'landlord') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const { uid: userId } = req.user;
     
     const formData = await req.formData();
     const file = formData.get('media') as File | null;
@@ -106,9 +102,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[PROPERTY_CREATE_ERROR]', error);
-     if (error.message.includes('No auth token provided')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-}
+}, ['landlord']);

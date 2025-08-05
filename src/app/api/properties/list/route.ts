@@ -1,15 +1,11 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-admin';
-import { verifyFirebaseToken } from '@/lib/server-utils';
+import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 
-export async function GET(req: NextRequest) {
+export const GET = withRole(async (req: AuthenticatedRequest) => {
   try {
-    const { userId, role } = await verifyFirebaseToken(req);
-
-    if (role !== 'landlord') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const { uid: userId } = req.user;
 
     const snapshot = await db
       .collection('properties')
@@ -29,9 +25,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(properties);
   } catch (error: any) {
     console.error('[PROPERTY_LIST_ERROR]', error);
-    if (error.message.includes('No auth token provided')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-}
+}, ['landlord']);
