@@ -5,11 +5,21 @@ import type { NextRequest } from 'next/server'
 // This function can be marked `async` if using `await` inside
 export function middleware(request: NextRequest) {
   // In a real implementation, you would add your token verification logic here.
-  // 1. Get the token from the Authorization header.
-  // 2. Call your verifyFirebaseToken() utility.
-  // 3. If the token is invalid, redirect to the login page.
-  // 4. If the token is valid, you can add the decoded user info to the request headers
-  //    to be accessed in API routes or server components.
+  // The `verifyFirebaseToken` utility is available in `src/lib/utils.ts`.
+  //
+  // Example:
+  // try {
+  //   const claims = await verifyFirebaseToken(request);
+  //   console.log("Middleware: Token verified for user:", claims.userId);
+  //   // Add claims to request headers for use in server components/API routes
+  //   const headers = new Headers(request.headers);
+  //   headers.set('x-user-id', claims.userId);
+  //   headers.set('x-user-role', claims.role);
+  //   return NextResponse.next({ request: { headers } });
+  // } catch (error) {
+  //   console.error("Middleware: Authentication error", error);
+  //   return NextResponse.redirect(new URL('/login', request.url));
+  // }
   
   console.log("Middleware executing for path:", request.nextUrl.pathname);
 
