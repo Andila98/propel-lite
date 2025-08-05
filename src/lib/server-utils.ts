@@ -1,3 +1,4 @@
+
 import { getAuth } from "firebase-admin/auth";
 
 export async function verifyFirebaseToken(req: Request) {
