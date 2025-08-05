@@ -41,6 +41,7 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
         // --- Start Transaction ---
         const tenantRef = db.collection('users').doc(); // Create a new ref for the tenant
         const propertyRef = db.collection('properties').doc(propertyId);
+        const unitRef = db.collection('properties').doc(propertyId).collection('units').doc(unitId);
 
         await db.runTransaction(async (transaction) => {
             const propertyDoc = await transaction.get(propertyRef);
@@ -52,19 +53,13 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
                 throw new Error("Unauthorized to modify this property.");
             }
 
-            const units = (propertyData.units || []) as Unit[];
-            const unitIndex = units.findIndex(u => u.id === unitId);
-
-            if (unitIndex === -1) {
+            const unitDoc = await transaction.get(unitRef);
+            if (!unitDoc.exists) {
                 throw new Error("Unit not found in this property.");
             }
-            if (units[unitIndex].isOccupied) {
+            if (unitDoc.data()?.isOccupied) {
                 throw new Error("This unit is already occupied.");
             }
-
-            // Mark unit as occupied
-            units[unitIndex].isOccupied = true;
-            units[unitIndex].tenantId = tenantRef.id;
 
             // For security, we create the user with a random password.
             // They can use the "Forgot Password" flow to set their own.
@@ -100,7 +95,10 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
 
             // Commit all changes
             transaction.set(tenantRef, newTenantData);
-            transaction.update(propertyRef, { units });
+            transaction.update(unitRef, { 
+                isOccupied: true,
+                tenantId: tenantRef.id 
+            });
         });
 
         // --- End Transaction ---
