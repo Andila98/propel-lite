@@ -7,12 +7,18 @@ import type { Property, Unit } from '@/lib/types';
 
 export const GET = withRole(async (req: AuthenticatedRequest) => {
     try {
-        const { uid: landlordId } = req.user;
-        console.log(`API: Fetching tenants for landlord ${landlordId}.`);
+        const { role, uid, landlordId } = req.user;
+        const targetLandlordId = role === 'landlord' ? uid : landlordId;
+        
+        if (!targetLandlordId) {
+            return NextResponse.json({ error: 'Landlord ID not found for this user.' }, { status: 400 });
+        }
+
+        console.log(`API: Fetching tenants for landlord ${targetLandlordId}.`);
 
         const tenantsSnapshot = await db.collection('users')
             .where('role', '==', 'tenant')
-            .where('landlordId', '==', landlordId)
+            .where('landlordId', '==', targetLandlordId)
             .get();
             
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -25,7 +31,7 @@ export const GET = withRole(async (req: AuthenticatedRequest) => {
             { status: 500 }
         );
     }
-}, ['landlord']);
+}, ['landlord', 'manager']);
 
 
 export const POST = withRole(async (req: AuthenticatedRequest) => {
