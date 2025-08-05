@@ -14,13 +14,19 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import type { Unit } from '@/lib/types';
+
 
 const TenantFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
   email: z.string().email("Please enter a valid email address."),
+  phone: z.string().optional(),
   propertyId: z.string({ required_error: "Please select a property."}),
-  leaseStartDate: z.string().min(1, "Please select a start date"),
-  leaseEndDate: z.string().min(1, "Please select an end date"),
+  unitId: z.string({ required_error: "Please select a unit." }),
+  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
+  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
 });
 type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
@@ -28,24 +34,51 @@ export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { properties } = useProperties();
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),
   });
+  
+  const selectedPropertyId = watch('propertyId');
+  const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
 
-  const onSubmit = (data: TenantFormValues) => {
-    // In a real app, you'd save this to the database.
-    console.log("New Tenant data:", data);
-    toast({
-      title: "Tenant Added!",
-      description: "The tenant has been successfully linked to a property.",
-    });
-    router.push('/tenants');
+  const onSubmit = async (data: TenantFormValues) => {
+    setLoading(true);
+    try {
+        const response = await fetch('/api/tenants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to create tenant.');
+        }
+
+        toast({
+            title: "Tenant Added!",
+            description: `${data.name} has been successfully added.`,
+        });
+        router.push('/tenants');
+
+    } catch (error: any) {
+        toast({
+            title: "Creation Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -62,7 +95,7 @@ export default function AddTenantPage() {
         <Card className="max-w-2xl mx-auto">
             <CardHeader>
                 <CardTitle>Tenant Information</CardTitle>
-                <CardDescription>Enter the details for the new tenant.</CardDescription>
+                <CardDescription>Enter the details for the new tenant and assign them to a unit.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -72,48 +105,82 @@ export default function AddTenantPage() {
                     {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
                 </div>
 
-                <div>
-                    <Label htmlFor="email">Tenant Email</Label>
-                    <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                    {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="email">Tenant Email</Label>
+                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                    </div>
+                     <div>
+                        <Label htmlFor="phone">Phone Number (Optional)</Label>
+                        <Input id="phone" {...register("phone")} autoComplete="tel" />
+                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                    </div>
                 </div>
 
-                <div>
-                    <Label htmlFor="propertyId">Property</Label>
-                    <Controller
-                        name="propertyId"
-                        control={control}
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <SelectTrigger id="propertyId">
-                                <SelectValue placeholder="Select a property..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {properties.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                        )}
-                    />
-                     {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="propertyId">Property</Label>
+                        <Controller
+                            name="propertyId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <SelectTrigger id="propertyId">
+                                    <SelectValue placeholder="Select a property..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {properties.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="unitId">Available Unit</Label>
+                        <Controller
+                            name="unitId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                                <SelectTrigger id="unitId">
+                                    <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableUnits.map((u: Unit) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.unitNumber} - {u.size} ({u.rent} Ksh)
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                         {errors.unitId && <p className="text-sm text-destructive mt-1">{errors.unitId.message}</p>}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                    <Label htmlFor="leaseStartDate">Lease Start Date</Label>
-                    <Input id="leaseStartDate" type="date" {...register("leaseStartDate")} />
-                    {errors.leaseStartDate && <p className="text-sm text-destructive mt-1">{errors.leaseStartDate.message}</p>}
+                    <Label htmlFor="leaseStart">Lease Start Date</Label>
+                    <Input id="leaseStart" type="date" {...register("leaseStart")} />
+                    {errors.leaseStart && <p className="text-sm text-destructive mt-1">{errors.leaseStart.message}</p>}
                     </div>
                     <div>
-                    <Label htmlFor="leaseEndDate">Lease End Date</Label>
-                    <Input id="leaseEndDate" type="date" {...register("leaseEndDate")} />
-                    {errors.leaseEndDate && <p className="text-sm text-destructive mt-1">{errors.leaseEndDate.message}</p>}
+                    <Label htmlFor="leaseEnd">Lease End Date</Label>
+                    <Input id="leaseEnd" type="date" {...register("leaseEnd")} />
+                    {errors.leaseEnd && <p className="text-sm text-destructive mt-1">{errors.leaseEnd.message}</p>}
                     </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                    <Button type="submit">Add Tenant</Button>
+                    <Button type="submit" disabled={loading}>
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Add Tenant
+                    </Button>
                 </div>
                 </form>
             </CardContent>
