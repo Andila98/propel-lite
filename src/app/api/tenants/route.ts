@@ -1,9 +1,9 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import { randomBytes } from 'crypto';
 import type { Property, Unit } from '@/lib/types';
+import { getAuth } from 'firebase-admin/auth';
 
 export const GET = withRole(async (req: AuthenticatedRequest) => {
     try {
@@ -47,8 +47,7 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
         // --- Start Transaction ---
         const tenantRef = db.collection('users').doc(); // Create a new ref for the tenant
         const propertyRef = db.collection('properties').doc(propertyId);
-        const unitRef = propertyRef.collection('units').doc(unitId);
-
+        
         await db.runTransaction(async (transaction) => {
             const propertyDoc = await transaction.get(propertyRef);
             if (!propertyDoc.exists) {
@@ -58,12 +57,14 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
             if (propertyData.landlordId !== landlordId) {
                 throw new Error("Unauthorized to modify this property.");
             }
+            
+            const units = (propertyData.units || []) as Unit[];
+            const unitIndex = units.findIndex(u => u.id === unitId);
 
-            const unitDoc = await transaction.get(unitRef);
-            if (!unitDoc.exists) {
+            if (unitIndex === -1) {
                 throw new Error("Unit not found in this property.");
             }
-            if (unitDoc.data()?.isOccupied) {
+            if (units[unitIndex].isOccupied) {
                 throw new Error("This unit is already occupied.");
             }
 
@@ -71,7 +72,7 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
             // They can use the "Forgot Password" flow to set their own.
             const randomPassword = randomBytes(16).toString('hex');
             
-            const userRecord = await admin.auth().createUser({
+            const userRecord = await getAuth().createUser({
                 uid: tenantRef.id,
                 email,
                 password: randomPassword,
@@ -79,7 +80,7 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
                 phoneNumber: phone,
             });
 
-            await admin.auth().setCustomUserClaims(userRecord.uid, {
+            await getAuth().setCustomUserClaims(userRecord.uid, {
                 role: 'tenant',
                 landlordId,
             });
@@ -98,13 +99,13 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 status: 'active',
             };
+            
+            units[unitIndex].isOccupied = true;
+            units[unitIndex].tenantId = tenantRef.id;
 
             // Commit all changes
             transaction.set(tenantRef, newTenantData);
-            transaction.update(unitRef, { 
-                isOccupied: true,
-                tenantId: tenantRef.id 
-            });
+            transaction.update(propertyRef, { units });
         });
 
         // --- End Transaction ---
