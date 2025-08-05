@@ -1,18 +1,21 @@
 
 import { z } from "zod";
+import type { Unit as UnitType } from './types'; // Import the main Unit type
 
-export const DocumentSchema = z.object({
-  name: z.string(),
-  url: z.string().url(),
-});
-
+// This schema is a subset of the main Unit type, used for validation in forms.
+// We are not importing and extending because the main type has properties (like `id`) that are not part of form submissions.
 export const UnitSchema = z.object({
   unitNumber: z.string().min(1, "Unit number is required."),
   rent: z.coerce.number().positive("Rent must be a positive number."),
   size: z.string().optional(),
   isOccupied: z.boolean().default(false),
   tenantId: z.string().optional(),
+  // Add other fields from UnitType that you expect in forms, but are optional
+  unitType: z.string().optional(),
+  squareFootage: z.number().optional(),
+  isAvailable: z.boolean().optional(),
 });
+
 
 export const PropertyFormSchema = z.object({
   name: z.string().min(3, "Please enter a property name (min 3 characters)."),
@@ -21,7 +24,10 @@ export const PropertyFormSchema = z.object({
     required_error: "Please select a property type.",
   }),
   description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
-  landlordId: z.string().optional(), // Should be set on the server
+  currency: z.string().optional(),
+  units: z.array(UnitSchema).optional(),
+  propertyType: z.string().optional(), // From onboarding form
+  numberOfUnits: z.number().optional(), // From onboarding form
 });
 
 export type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
