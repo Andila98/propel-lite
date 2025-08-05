@@ -39,7 +39,7 @@ export async function GET(
 
     const sentimentInput = {
       messages: messages.map(m => ({ senderName: m.senderName, content: m.content })),
-      tenantName: tenant.name || 'the tenant',
+      tenantName: tenant.name,
     };
 
     const sentimentResult = await summarizeTenantSentiment(sentimentInput);
