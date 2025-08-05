@@ -6,16 +6,21 @@ import { authConfig } from './config/server-config';
 export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   
-  const publicPaths = ['/login', '/onboarding', '/register'];
-  if (publicPaths.some(path => nextUrl.pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
-  
   const tokens = await getTokens(req.cookies, {
       cookieName: authConfig.cookieName,
       cookieSignatureKeys: authConfig.cookieSignatureKeys,
   });
 
+  // If the request is for an API route and there are no tokens, return 401
+  if (nextUrl.pathname.startsWith('/api/') && !tokens) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const publicPaths = ['/login', '/onboarding', '/register'];
+  if (publicPaths.some(path => nextUrl.pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+  
   if (!tokens) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
@@ -53,11 +58,10 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
