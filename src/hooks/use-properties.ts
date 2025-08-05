@@ -14,10 +14,10 @@ export function useProperties() {
         try {
             console.log("Hook: useProperties is fetching data from API.");
             const response = await fetch('/api/properties');
-            if (!response.ok) {
-                throw new Error('Failed to fetch properties.');
-            }
             const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to fetch properties.');
+            }
             setProperties(data);
             console.log("Hook: Successfully fetched and set properties.", data.length);
         } catch (err: any) {
