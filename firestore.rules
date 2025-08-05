@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users Collection
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId || isSuperAdmin();
+    }
+
+    // Properties Collection
+    match /properties/{propertyId} {
+      allow create: if isLandlord();
+      allow read, update, delete: if isOwnerOfProperty(propertyId) || isSuperAdmin();
+    }
+
+    // Units Collection
+    match /units/{unitId} {
+      allow create: if isLandlord();
+      allow read, update, delete: if isOwnerOfUnit(unitId) || isSuperAdmin();
+    }
+
+    // Payments
+    match /payments/{paymentId} {
+      allow create: if isTenant() || isLandlord();
+      allow read: if isOwnerOfPayment(paymentId) || isSuperAdmin();
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
+      allow create, update, delete: if isLandlord();
+      allow read: if isTenant() || isManager() || isLandlord();
+    }
+
+    // Invites
+    match /invites/{inviteId} {
+      allow create, update: if isLandlord();
+      allow read: if isSuperAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 🔒 Helper functions
+    function isSuperAdmin() {
+      return request.auth.token.role == "superadmin";
+    }
+
+    function isLandlord() {
+      return request.auth.token.role == "landlord";
+    }
+
+    function isTenant() {
+      return request.auth.token.role == "tenant";
+    }
+
+    function isManager() {
+      return request.auth.token.role == "manager";
+    }
+
+    function isOwnerOfProperty(propertyId) {
+      // Corrected: Compare against the incoming/existing resource data, not a non-existent property on the token.
+      // Assumes landlordId is stored on the property document.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.landlordId == resource.data.landlordId || request.auth.uid == resource.data.landlordId;
+    }
+
+    function isOwnerOfUnit(unitId) {
+       // Assumes landlordId is stored on the unit document.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.landlordId == resource.data.landlordId;
+    }
+
+    function isOwnerOfPayment(paymentId) {
+      return request.auth.uid == resource.data.tenantId ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.landlordId == resource.data.landlordId;
+    }
+  }
+}
