@@ -10,14 +10,11 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import type { Message } from '@/lib/types';
+import { db } from '@/lib/firebase-admin';
+import type { Message, Tenant } from '@/lib/types';
 
 const SummarizeTenantSentimentInputSchema = z.object({
-  messages: z.array(z.object({
-      senderName: z.string(),
-      content: z.string(),
-  })).describe("A list of messages in a conversation thread."),
-  tenantName: z.string().describe("The name of the tenant in the conversation."),
+  tenantId: z.string().describe("The ID of the tenant."),
 });
 export type SummarizeTenantSentimentInput = z.infer<typeof SummarizeTenantSentimentInputSchema>;
 
@@ -28,7 +25,7 @@ const SummarizeTenantSentimentOutputSchema = z.object({
 export type SummarizeTenantSentimentOutput = z.infer<typeof SummarizeTenantSentimentOutputSchema>;
 
 export async function summarizeTenantSentiment(input: SummarizeTenantSentimentInput): Promise<SummarizeTenantSentimentOutput> {
-  console.log("Backend: summarizeTenantSentiment flow received input for tenant:", input.tenantName);
+  console.log("Backend: summarizeTenantSentiment flow received input for tenant:", input.tenantId);
   try {
     return await summarizeTenantSentimentFlow(input);
   } catch (error) {
@@ -39,7 +36,13 @@ export async function summarizeTenantSentiment(input: SummarizeTenantSentimentIn
 
 const prompt = ai.definePrompt({
   name: 'summarizeTenantSentimentPrompt',
-  input: {schema: SummarizeTenantSentimentInputSchema},
+  input: {schema: z.object({
+      messages: z.array(z.object({
+          senderName: z.string(),
+          content: z.string(),
+      })),
+      tenantName: z.string(),
+  })},
   output: {schema: SummarizeTenantSentimentOutputSchema},
   prompt: `You are a sentiment analysis expert specializing in landlord-tenant communications.
   Your task is to analyze the following conversation with a tenant named {{{tenantName}}} and determine their overall sentiment.
@@ -70,7 +73,34 @@ const summarizeTenantSentimentFlow = ai.defineFlow(
     outputSchema: SummarizeTenantSentimentOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
+    const { tenantId } = input;
+    
+    const tenantDoc = await db.collection('users').doc(tenantId).get();
+    if (!tenantDoc.exists) {
+        throw new Error('Tenant not found');
+    }
+    const tenant = tenantDoc.data() as Tenant;
+
+    const messagesSnapshot = await db
+      .collection('tenants')
+      .doc(tenantId)
+      .collection('messages')
+      .orderBy('timestamp', 'asc')
+      .limit(20)
+      .get();
+      
+    const messages = messagesSnapshot.docs.map(doc => doc.data() as Message);
+
+    if (messages.length === 0) {
+        return { sentiment: 'Neutral', summary: 'No messages found to analyze sentiment.' };
+    }
+
+    const promptInput = {
+      messages: messages.map(m => ({ senderName: m.senderName, content: m.content })),
+      tenantName: tenant.name,
+    };
+    
+    const {output} = await prompt(promptInput);
     return output!;
   }
 );

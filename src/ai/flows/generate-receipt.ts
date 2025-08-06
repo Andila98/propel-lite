@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/firebase-admin';
-import type { Tenant, Property } from '@/lib/types';
+import type { Tenant, Property, Payment } from '@/lib/types';
 
 
 const GenerateReceiptInputSchema = z.object({
@@ -74,22 +74,27 @@ const generateReceiptFlow = ai.defineFlow(
   },
   async (input) => {
     console.log("Backend: generateReceiptFlow received input:", input);
-    const tenantDoc = await db.collection('tenants').doc(input.tenantId).get();
+    const tenantDoc = await db.collection('users').doc(input.tenantId).get();
     if (!tenantDoc.exists) {
         console.error(`Tenant not found for id: ${input.tenantId}`);
         throw new Error('Tenant not found');
     }
     const tenant = tenantDoc.data() as Tenant;
     
-    const payment = tenant.paymentHistory.find(p => p.id === input.paymentId);
-    if (!payment) {
+    const paymentDoc = await db.collection('payments').doc(input.paymentId).get();
+    if (!paymentDoc.exists) {
         console.error(`Payment not found for id: ${input.paymentId}`);
         throw new Error('Payment not found');
     }
+    const payment = paymentDoc.data() as Payment;
+
+    if (payment.tenantId !== input.tenantId) {
+        throw new Error("Payment does not belong to the specified tenant.");
+    }
     
-    const propertyDoc = await db.collection('properties').doc(tenant.propertyId).get();
+    const propertyDoc = await db.collection('properties').doc(payment.propertyId).get();
     if (!propertyDoc.exists) {
-        console.error(`Property not found for id: ${tenant.propertyId}`);
+        console.error(`Property not found for id: ${payment.propertyId}`);
         throw new Error('Property not found');
     }
     const property = propertyDoc.data() as Property;
@@ -97,11 +102,11 @@ const generateReceiptFlow = ai.defineFlow(
     const promptInput = {
         tenantName: tenant.name,
         propertyAddress: property.address,
-        paymentDate: payment.date,
+        paymentDate: new Date(payment.paidAt.seconds * 1000).toISOString().split('T')[0],
         paymentMethod: payment.method,
         amountPaid: payment.amount,
         currentDate: new Date().toISOString().split('T')[0],
-        currency: property.currency || 'Ksh',
+        currency: (property as any).currency || 'Ksh',
     };
 
     try {

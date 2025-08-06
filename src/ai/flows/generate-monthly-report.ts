@@ -74,43 +74,42 @@ const generateMonthlyReportFlow = ai.defineFlow(
         const startDate = startOfMonth(new Date(year, month));
         const endDate = endOfMonth(new Date(year, month));
 
-        // Fetch all properties and tenants once
         const propertiesSnapshot = await db.collection('properties').get();
         const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
-        const tenantsSnapshot = await db.collection('tenants').get();
+        const tenantsSnapshot = await db.collection('users').where('role', '==', 'tenant').get();
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
 
-        // Calculate metrics
-        const totalProperties = properties.length;
-        const totalUnits = properties.reduce((acc, p) => acc + (p.units?.length || 1), 0);
+        let totalUnits = 0;
+        for (const property of properties) {
+            const unitsSnapshot = await db.collection('properties').doc(property.id).collection('units').get();
+            totalUnits += unitsSnapshot.size;
+        }
         
-        // For simplicity, we'll count a tenant as occupying a unit.
-        const occupiedUnits = tenants.length;
+        const occupiedUnits = tenants.filter(t => t.status === 'active').length;
         
-        const allPayments: Payment[] = tenants.flatMap(t => t.paymentHistory || []);
-        const paymentsThisMonth = allPayments.filter(p => {
-            const paymentDate = new Date(p.date);
-            return paymentDate >= startDate && paymentDate <= endDate;
-        });
+        const paymentsSnapshot = await db.collection('payments')
+            .where('paidAt', '>=', startDate)
+            .where('paidAt', '<=', endDate)
+            .get();
+        const paymentsThisMonth = paymentsSnapshot.docs.map(doc => doc.data() as Payment);
 
         const totalRevenue = paymentsThisMonth.reduce((acc, p) => acc + p.amount, 0);
-        const latePayments = paymentsThisMonth.filter(p => new Date(p.date).getDate() > 5).length;
+        const latePayments = paymentsThisMonth.filter(p => new Date(p.paidAt).getDate() > 5).length;
         
-        // This is a placeholder for fetching real maintenance requests
-        const newMaintenanceRequests = Math.floor(Math.random() * 5); // Mock data
+        const newMaintenanceRequests = Math.floor(Math.random() * 5);
 
         const monthName = format(startDate, 'MMMM');
         
         const promptInput = {
-        monthName,
-        year,
-        totalProperties,
-        totalUnits,
-        occupiedUnits,
-        totalRevenue,
-        paymentCount: paymentsThisMonth.length,
-        latePayments,
-        newMaintenanceRequests,
+            monthName,
+            year,
+            totalProperties: properties.length,
+            totalUnits,
+            occupiedUnits,
+            totalRevenue,
+            paymentCount: paymentsThisMonth.length,
+            latePayments,
+            newMaintenanceRequests,
         };
 
         const { output } = await prompt(promptInput);

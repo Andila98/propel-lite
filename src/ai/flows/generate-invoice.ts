@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/firebase-admin';
-import type { Tenant, Property } from '@/lib/types';
+import type { Tenant, Property, Unit } from '@/lib/types';
 
 const GenerateInvoiceInputSchema = z.object({
   tenantId: z.string().describe('The ID of the tenant.'),
@@ -82,7 +82,7 @@ const generateInvoiceFlow = ai.defineFlow(
   },
   async (input) => {
     console.log("Backend: generateInvoiceFlow received input:", input);
-    const tenantDoc = await db.collection('tenants').doc(input.tenantId).get();
+    const tenantDoc = await db.collection('users').doc(input.tenantId).get();
     const propertyDoc = await db.collection('properties').doc(input.propertyId).get();
 
     if (!tenantDoc.exists || !propertyDoc.exists) {
@@ -93,14 +93,20 @@ const generateInvoiceFlow = ai.defineFlow(
     
     const tenant = tenantDoc.data() as Tenant;
     const property = propertyDoc.data() as Property;
+    
+    const unitSnapshot = await db.collection('properties').doc(input.propertyId).collection('units').doc(tenant.currentUnitId!).get();
+    if (!unitSnapshot.exists) {
+        throw new Error(`Unit with ID ${tenant.currentUnitId} not found.`);
+    }
+    const unit = unitSnapshot.data() as Unit;
 
     const promptInput = {
         tenantName: tenant.name,
         propertyAddress: property.address,
-        rentAmount: property.rent,
+        rentAmount: unit.rent,
         dueDate: input.dueDate,
         currentDate: new Date().toISOString().split('T')[0],
-        currency: property.currency || 'Ksh',
+        currency: (property as any).currency || 'Ksh',
     };
 
     try {
