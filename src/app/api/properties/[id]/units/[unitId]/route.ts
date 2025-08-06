@@ -6,39 +6,31 @@ import type { Property, Unit } from '@/lib/types';
 
 export const PUT = withRole(async (req: AuthenticatedRequest, { params }: { params: { id: string; unitId: string } }) => {
   try {
-    const { uid: userId } = req.user;
-    const propertyId = params.id;
-    // Note: In our array structure, we'll use the unitNumber as the identifier.
-    // A more robust solution might add a unique ID to each unit object.
-    const unitId = params.unitId; 
+    const { uid: landlordId } = req.user;
+    const { id: propertyId, unitId } = params;
     const updates = await req.json();
 
     const propertyRef = db.collection('properties').doc(propertyId);
-    const propertyDoc = await propertyRef.get();
+    const unitRef = propertyRef.collection('units').doc(unitId);
 
-    if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== userId) {
+    const propertyDoc = await propertyRef.get();
+    if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {
       return NextResponse.json({ error: 'Unauthorized or property not found' }, { status: 403 });
     }
-
-    const propertyData = propertyDoc.data() as Property;
-    const units = propertyData.units || [];
     
-    let unitFound = false;
-    const updatedUnits = units.map((unit: Unit) => {
-        // We're using unitNumber as the unique key for this operation.
-        if (unit.unitNumber === unitId) {
-            unitFound = true;
-            return { ...unit, ...updates };
-        }
-        return unit;
-    });
-
-    if (!unitFound) {
+    const unitDoc = await unitRef.get();
+    if (!unitDoc.exists) {
         return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
     }
+    
+    // Ensure critical fields are not updated from the client
+    delete updates.id;
+    delete updates.propertyId;
+    delete updates.landlordId;
+    delete updates.createdAt;
 
-    await propertyRef.update({
-      units: updatedUnits,
+    await unitRef.update({
+      ...updates,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
@@ -51,28 +43,24 @@ export const PUT = withRole(async (req: AuthenticatedRequest, { params }: { para
 
 export const DELETE = withRole(async (req: AuthenticatedRequest, { params }: { params: { id: string; unitId: string } }) => {
     try {
-        const { uid: userId } = req.user;
-        const propertyId = params.id;
-        const unitId = params.unitId;
+        const { uid: landlordId } = req.user;
+        const { id: propertyId, unitId } = params;
 
         const propertyRef = db.collection('properties').doc(propertyId);
+        const unitRef = propertyRef.collection('units').doc(unitId);
+
         const propertyDoc = await propertyRef.get();
 
-        if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== userId) {
+        if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {
             return NextResponse.json({ error: 'Unauthorized or property not found' }, { status: 403 });
         }
         
-        const propertyData = propertyDoc.data() as Property;
-        const unitToDelete = propertyData.units?.find((unit: Unit) => unit.unitNumber === unitId);
-
-        if (!unitToDelete) {
+        const unitDoc = await unitRef.get();
+        if (!unitDoc.exists) {
             return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
         }
 
-        await propertyRef.update({
-            units: admin.firestore.FieldValue.arrayRemove(unitToDelete),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
+        await unitRef.delete();
 
         return NextResponse.json({ message: 'Unit deleted successfully' });
     } catch (error: any) {
