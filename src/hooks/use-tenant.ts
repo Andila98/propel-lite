@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,19 +13,21 @@ export function useTenant(tenantId: string) {
   useEffect(() => {
     if (!tenantId) {
       setLoading(false);
-      setError("No tenant ID provided.");
+      // setError("No tenant ID provided."); // This can cause a flash of error message on initial load
       return;
     }
     
     const fetchTenant = async () => {
         try {
+            setLoading(true);
             console.log(`Hook: useTenant fetching data for tenantId: ${tenantId}`);
             const response = await fetch(`/api/tenants/${tenantId}`);
             if (!response.ok) {
                 if(response.status === 404) {
                     throw new Error("Tenant not found.");
                 }
-                throw new Error('Failed to fetch tenant details.');
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to fetch tenant details.');
             }
             const data = await response.json();
             setTenant(data);

@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -75,17 +76,14 @@ export default function AddPropertyPage() {
     try {
       console.log("Frontend: Starting property creation via API...");
       const formData = new FormData();
-      // In a real app, get this from auth state. For now, server will assign it
       const propertyData = { ...data }; 
 
       formData.append('media', imageFile);
       formData.append('propertyData', JSON.stringify(propertyData));
 
-      // Use the consolidated create endpoint
-      const response = await fetch('/api/properties/create', {
+      const response = await fetch('/api/properties', {
         method: 'POST',
         body: formData,
-        // Do NOT set Content-Type header when using FormData with fetch
       });
 
       const result = await response.json();

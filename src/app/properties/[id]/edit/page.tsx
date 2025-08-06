@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -40,7 +41,7 @@ export default function EditPropertyPage() {
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
       address: '',
-      propertyType: 'apartment',
+      type: 'Apartment',
       units: [],
       numberOfUnits: 0,
     },
@@ -49,11 +50,12 @@ export default function EditPropertyPage() {
   useEffect(() => {
     if (propertyToEdit) {
       form.reset({
+        name: propertyToEdit.name || "",
         address: propertyToEdit.address || "",
-        propertyType: propertyToEdit.propertyType,
+        type: propertyToEdit.type,
         description: propertyToEdit.description || "",
-        units: propertyToEdit.units || [],
-        numberOfUnits: propertyToEdit.units?.length || 0,
+        units: (propertyToEdit as any).units || [],
+        numberOfUnits: (propertyToEdit as any).units?.length || 0,
       });
       setPreviewUrl(propertyToEdit.imageUrl);
     }
@@ -67,7 +69,7 @@ export default function EditPropertyPage() {
     name: "units",
   });
 
-  const propertyType = watch("propertyType");
+  const propertyType = watch("type");
   const numberOfUnits = watch("numberOfUnits");
   
   if (propertyLoading) {
@@ -96,11 +98,13 @@ export default function EditPropertyPage() {
         complete: (result) => {
           try {
               const units = result.data.map((row: any): Unit => ({
+                id: row.id || '',
+                propertyId: propertyId,
+                landlordId: '',
                 unitNumber: row.unitNumber || '',
-                unitType: row.unitType || 'one-bedroom',
                 rent: parseFloat(row.rent) || 0,
-                squareFootage: parseInt(row.squareFootage, 10) || 0,
-                isAvailable: row.isAvailable ? row.isAvailable.toLowerCase() === 'true' : true,
+                size: row.size || '',
+                isOccupied: row.isOccupied ? row.isOccupied.toLowerCase() === 'true' : true,
               }));
               replace(units);
               setValue("numberOfUnits", units.length);
@@ -144,23 +148,23 @@ export default function EditPropertyPage() {
   };
 
   const handlePropertyTypeChange = (type: string) => {
-    setValue("propertyType", type as "apartment" | "house" | "bedsitter");
-    if (type === 'apartment') {
+    setValue("type", type as "Apartment" | "House" | "Bedsitter");
+    if (type === 'Apartment') {
       if (!numberOfUnits || numberOfUnits === 0) {
         setValue("numberOfUnits", 1);
         handleUnitGeneration(1);
       }
-    } else if (type === 'house' || type === 'bedsitter') {
+    } else if (type === 'House' || type === 'Bedsitter') {
       setValue("numberOfUnits", 1);
       const unitTypeMap: { [key: string]: 'three-bedroom' | 'bedsitter' } = {
-        'house': 'three-bedroom',
-        'bedsitter': 'bedsitter',
+        'House': 'three-bedroom',
+        'Bedsitter': 'bedsitter',
       };
       const newUnits = [{
         unitNumber: 'Main Unit',
         unitType: unitTypeMap[type],
         rent: 1500,
-        squareFootage: type === 'house' ? 1200 : 400,
+        squareFootage: type === 'House' ? 1200 : 400,
         isAvailable: true,
       }];
       replace(newUnits as any);
@@ -171,36 +175,21 @@ export default function EditPropertyPage() {
 
   const onSubmit = async (data: PropertyFormValues) => {
     setLoading(true);
-    let finalImageUrl = propertyToEdit?.imageUrl;
 
     try {
-      if (imageFile) {
-        console.log("Frontend: Starting image upload via API...");
-        const formData = new FormData();
-        const landlordId = "user_12345";
-        const propertyData = { ...data, landlordId, propertyId: propertyId };
-        
-        formData.append('media', imageFile);
-        formData.append('propertyData', JSON.stringify(propertyData));
+      // In a real app, you would handle image uploads separately or within the same request if your backend supports multipart/form-data for PUT.
+      // For this example, we assume we are just updating text data.
+      const response = await fetch(`/api/properties/${propertyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
 
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Upload failed');
-        }
-
-        const result = await response.json();
-        console.log("Frontend: Image uploaded successfully. URL:", result.imageUrl);
-        finalImageUrl = result.imageUrl;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Update failed');
       }
-      
-      const updatedPropertyData = { ...data, imageUrl: finalImageUrl };
-      console.log("Frontend: Submitting updated property data:", updatedPropertyData);
-      
+
       toast({
         title: "Property Updated!",
         description: "Your property has been successfully saved.",
@@ -208,7 +197,7 @@ export default function EditPropertyPage() {
       router.push(`/properties/${propertyId}`);
 
     } catch (err: any) {
-        console.error("Frontend: Error during property update or image upload:", err);
+        console.error("Frontend: Error during property update:", err);
         toast({
             title: "Update Failed",
             description: `There was an error saving your property: ${err.message}`,
@@ -222,10 +211,8 @@ export default function EditPropertyPage() {
   const addUnit = () => {
     append({
         unitNumber: `Unit ${fields.length + 1}`,
-        unitType: "one-bedroom",
         rent: 1000,
-        squareFootage: 500,
-        isAvailable: true,
+        isOccupied: false
     });
     const currentNum = numberOfUnits || 0;
     setValue("numberOfUnits", currentNum + 1);
@@ -260,7 +247,7 @@ export default function EditPropertyPage() {
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <Label htmlFor="propertyType">Property Type</Label>
+                                  <Label htmlFor="type">Property Type</Label>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
@@ -275,26 +262,26 @@ export default function EditPropertyPage() {
                                   </Tooltip>
                                 </div>
                                   <Controller
-                                      name="propertyType"
+                                      name="type"
                                       control={control}
                                       render={({ field }) => (
-                                          <Select onValueChange={(value) => handlePropertyTypeChange(value)} defaultValue={field.value}>
-                                          <SelectTrigger id="propertyType">
+                                          <Select onValueChange={(value) => handlePropertyTypeChange(value)} value={field.value}>
+                                          <SelectTrigger id="type">
                                               <SelectValue placeholder="Select a type..." />
                                           </SelectTrigger>
                                           <SelectContent>
-                                              <SelectItem value="apartment">Apartment</SelectItem>
-                                              <SelectItem value="house">House</SelectItem>
-                                              <SelectItem value="bedsitter">Bedsitter</SelectItem>
+                                              <SelectItem value="Apartment">Apartment</SelectItem>
+                                              <SelectItem value="House">House</SelectItem>
+                                              <SelectItem value="Bedsitter">Bedsitter</SelectItem>
                                           </SelectContent>
                                           </Select>
                                       )}
                                   />
-                                  {errors.propertyType && <p className="text-sm text-destructive mt-1">{errors.propertyType.message}</p>}
+                                  {errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}
                               </div>
                             </div>
 
-                            {propertyType === "apartment" && (
+                            {propertyType === "Apartment" && (
                                 <Card>
                                     <CardHeader>
                                         <div className="flex items-center gap-2">
@@ -402,9 +389,9 @@ export default function EditPropertyPage() {
                           <div key={field.id} className="space-y-4 rounded-lg border p-4 relative">
                             <div className="flex justify-between items-center">
                               <h4 className="text-lg font-medium">
-                                {propertyType === 'apartment' ? `Unit Details` : 'Unit Details'}
+                                {propertyType === 'Apartment' ? `Unit Details` : 'Unit Details'}
                               </h4>
-                              {propertyType === 'apartment' && (
+                              {propertyType === 'Apartment' && (
                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
                                   <AnimatedDeleteIcon />
                                 </Button>
@@ -417,46 +404,27 @@ export default function EditPropertyPage() {
                                 <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
                               </div>
                               <div>
-                                <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
-                                <Controller
-                                  name={`units.${index}.unitType`}
-                                  control={control}
-                                  render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                      <SelectTrigger id={`units.${index}.unitType`}><SelectValue placeholder="Select type..." /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="studio">Studio</SelectItem>
-                                        <SelectItem value="bedsitter">Bedsitter</SelectItem>
-                                        <SelectItem value="one-bedroom">One Bedroom</SelectItem>
-                                        <SelectItem value="two-bedroom">Two Bedroom</SelectItem>
-                                        <SelectItem value="three-bedroom">Three Bedroom</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                />
+                                <Label htmlFor={`units.${index}.size`}>Unit Size/Type</Label>
+                                <Input id={`units.${index}.size`} {...register(`units.${index}.size`)} placeholder="e.g. 2 Bedroom" />
                               </div>
                               <div>
                                 <Label htmlFor={`units.${index}.rent`}>Monthly Rent (Ksh)</Label>
                                 <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
                               </div>
-                              <div>
-                                <Label htmlFor={`units.${index}.squareFootage`}>Square Footage</Label>
-                                <Input id={`units.${index}.squareFootage`} type="number" {...register(`units.${index}.squareFootage`)} />
-                              </div>
                               <div className="flex flex-col justify-center space-y-2 pt-6">
                                 <div className="flex items-center space-x-2">
                                    <Controller
-                                    name={`units.${index}.isAvailable`}
+                                    name={`units.${index}.isOccupied`}
                                     control={control}
                                     render={({ field }) => (
                                         <Switch
-                                            id={`units.${index}.isAvailable`}
+                                            id={`units.${index}.isOccupied`}
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
                                         />
                                     )}
                                     />
-                                  <Label htmlFor={`units.${index}.isAvailable`}>Available</Label>
+                                  <Label htmlFor={`units.${index}.isOccupied`}>Occupied</Label>
                                 </div>
                               </div>
                             </div>
@@ -480,14 +448,12 @@ export default function EditPropertyPage() {
                              {errors.units?.[index] && (
                                 <div className="text-sm text-destructive mt-2">
                                    {errors.units[index]?.unitNumber && <p>{errors.units[index]?.unitNumber?.message}</p>}
-                                   {errors.units[index]?.unitType && <p>{errors.units[index]?.unitType?.message}</p>}
                                    {errors.units[index]?.rent && <p>{errors.units[index]?.rent?.message}</p>}
-                                   {errors.units[index]?.squareFootage && <p>{errors.units[index]?.squareFootage?.message}</p>}
                                 </div>
                               )}
                           </div>
                         ))}
-                         {propertyType === 'apartment' && (
+                         {propertyType === 'Apartment' && (
                             <Button type="button" variant="outline" onClick={addUnit}>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Another Unit

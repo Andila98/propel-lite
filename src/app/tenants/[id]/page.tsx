@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from 'next/link';
@@ -114,15 +115,15 @@ export default function TenantDetailPage() {
   const { toast } = useToast();
   const tenantId = id as string;
   const { tenant, loading: tenantLoading } = useTenant(tenantId);
-  // The propertyId is now available on the tenant document
-  const { property, loading: propertyLoading } = useProperty(tenant?.propertyId);
+  const propertyId = tenant?.currentUnitId?.split('_')[0] ?? '';
+  const { property, loading: propertyLoading } = useProperty(propertyId);
   const { payments, loading: paymentsLoading } = usePayments(tenantId);
 
   if (tenantLoading || propertyLoading) {
     return <div>Loading...</div>; // TODO: Add skeleton
   }
   
-  if (!tenant || !property) {
+  if (!tenant) {
     return <div>Tenant or property not found.</div>;
   }
 
@@ -150,6 +151,7 @@ export default function TenantDetailPage() {
   };
   
   const getRentStatus = (payments: Payment[], rent: number) => {
+    if (!payments || !rent) return 'Overdue';
     const paidThisMonth = payments
       .filter(p => new Date(p.paidAt).getMonth() === new Date().getMonth())
       .reduce((sum, p) => sum + p.amount, 0);
@@ -159,7 +161,7 @@ export default function TenantDetailPage() {
     return 'Overdue';
   }
 
-  const rentStatus = getRentStatus(payments, property.rent);
+  const rentStatus = getRentStatus(payments, property?.rent || 0);
 
 
   const renderStatusBadge = (status: string) => {
@@ -179,15 +181,13 @@ export default function TenantDetailPage() {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string | Date | { toDate: () => Date }) => {
-      if (!dateString) return 'N/A';
+  const formatDate = (dateValue: any) => {
+      if (!dateValue) return 'N/A';
       let date: Date;
-      if (typeof dateString === 'string') {
-          date = new Date(dateString);
-      } else if (dateString instanceof Date) {
-          date = dateString;
-      } else if (typeof (dateString as any).toDate === 'function') {
-          date = (dateString as any).toDate();
+      if (dateValue.toDate) { // Firestore Timestamp
+          date = dateValue.toDate();
+      } else if (typeof dateValue === 'string' || dateValue instanceof Date) {
+          date = new Date(dateValue);
       } else {
         return 'Invalid Date';
       }
@@ -195,7 +195,6 @@ export default function TenantDetailPage() {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
-          timeZone: 'UTC' // Explicitly use UTC to avoid timezone shifts
       });
   }
 
@@ -279,8 +278,8 @@ export default function TenantDetailPage() {
                 <CardHeader>
                   <CardTitle>Lease Details</CardTitle>
                   <CardDescription>
-                    <Link href={`/properties/${property.id}`} className="text-primary hover:underline">
-                        {property.address}
+                    <Link href={`/properties/${property?.id}`} className="text-primary hover:underline">
+                        {property?.address}
                     </Link>
                   </CardDescription>
                 </CardHeader>
@@ -291,7 +290,7 @@ export default function TenantDetailPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
-                        <span className="font-medium">{formatCurrency(property.rent, property.currency)}</span>
+                        <span className="font-medium">{formatCurrency(property?.rent || 0, property?.currency)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Rent Status</span>
@@ -322,13 +321,13 @@ export default function TenantDetailPage() {
                             <TableBody>
                                 {payments.map((payment) => (
                                     <TableRow key={payment.id}>
-                                        <TableCell>{formatDate(new Date(payment.paidAt))}</TableCell>
+                                        <TableCell>{formatDate(payment.paidAt)}</TableCell>
                                         <TableCell>
-                                            <Badge variant={payment.type === 'Rent' ? 'default' : 'secondary'}>
-                                                {payment.type}
+                                            <Badge variant={'default'}>
+                                                Rent
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>{formatCurrency(payment.amount, property.currency)}</TableCell>
+                                        <TableCell>{formatCurrency(payment.amount, property?.currency)}</TableCell>
                                         <TableCell>{payment.method}</TableCell>
                                     </TableRow>
                                 ))}
