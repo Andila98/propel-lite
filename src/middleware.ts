@@ -9,7 +9,13 @@ export async function middleware(req: NextRequest) {
   const tokens = await getTokens(req.cookies, {
       cookieName: authConfig.cookieName,
       cookieSignatureKeys: authConfig.cookieSignatureKeys,
+      serviceAccount: authConfig.serviceAccount,
+      apiKey: authConfig.apiKey,
   });
+
+  if (nextUrl.pathname.startsWith('/api/auth')) {
+      return NextResponse.next();
+  }
 
   if (nextUrl.pathname.startsWith('/api/') && !tokens) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
