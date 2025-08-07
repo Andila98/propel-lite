@@ -95,6 +95,7 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
       type: validatedData.type,
       imageUrl: publicUrl,
       description: validatedData.description,
+      currency: validatedData.currency,
     };
 
     const docRef = db.collection('properties').doc();

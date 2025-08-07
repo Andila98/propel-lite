@@ -2,6 +2,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
+import { PropertyFormSchema } from '@/lib/schemas';
 
 export const GET = withRole(async (
   req: AuthenticatedRequest,

@@ -94,7 +94,11 @@ const generateInvoiceFlow = ai.defineFlow(
     const tenant = tenantDoc.data() as Tenant;
     const property = propertyDoc.data() as Property;
     
-    const unitSnapshot = await db.collection('properties').doc(input.propertyId).collection('units').doc(tenant.currentUnitId!).get();
+    if (!tenant.currentUnitId) {
+        throw new Error(`Tenant with ID ${tenant.uid} is not assigned to a unit.`);
+    }
+
+    const unitSnapshot = await db.collection('properties').doc(input.propertyId).collection('units').doc(tenant.currentUnitId).get();
     if (!unitSnapshot.exists) {
         throw new Error(`Unit with ID ${tenant.currentUnitId} not found.`);
     }

@@ -102,7 +102,7 @@ const generateReceiptFlow = ai.defineFlow(
     const promptInput = {
         tenantName: tenant.name,
         propertyAddress: property.address,
-        paymentDate: new Date(payment.paidAt.seconds * 1000).toISOString().split('T')[0],
+        paymentDate: new Date((payment.paidAt as any).seconds * 1000).toISOString().split('T')[0],
         paymentMethod: payment.method,
         amountPaid: payment.amount,
         currentDate: new Date().toISOString().split('T')[0],

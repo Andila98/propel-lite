@@ -28,6 +28,7 @@ export interface Property {
   createdAt: FieldValue;
   imageUrl?: string;
   description: string;
+  currency?: string; // e.g., 'KES', 'USD', 'EUR'
   // Units are now in their own collection
 }
 
@@ -35,6 +36,7 @@ export interface Payment {
   id: string; // Document ID
   tenantId: string;
   landlordId: string;
+  propertyId: string;
   unitId: string;
   amount: number;
   status: 'pending' | 'confirmed' | 'failed';
