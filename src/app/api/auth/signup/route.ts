@@ -6,39 +6,35 @@ import { db, admin } from '@/lib/firebase-admin';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, displayName, phone, password, role } = body;
+    const { email, displayName, password, role } = body;
 
     if (!email || !password || !role || !displayName) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (role !== 'tenant') {
-        return NextResponse.json({ error: 'Invalid role specified. Only tenants can sign up through this form.' }, { status: 400 });
+    if (role !== 'landlord') {
+        return NextResponse.json({ error: 'Invalid role specified. Only landlords can sign up here.' }, { status: 400 });
     }
 
     const userRecord = await getAuth().createUser({
       email,
       password,
       displayName,
-      phoneNumber: phone,
     });
 
-    // For tenants, landlordId must be assigned later, perhaps through an invite or property assignment flow.
     await getAuth().setCustomUserClaims(userRecord.uid, {
-      role,
-      landlordId: null, 
+      role: 'landlord',
     });
 
     await db.collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
       email,
-      displayName,
-      phone: phone || null,
-      role,
+      name: displayName,
+      role: 'landlord',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return NextResponse.json({ message: 'Account created successfully', userId: userRecord.uid }, { status: 201 });
+    return NextResponse.json({ message: 'Landlord account created successfully', userId: userRecord.uid }, { status: 201 });
   } catch (error: any) {
     console.error('[SIGNUP_ERROR]', error);
     if (error.code === 'auth/email-already-exists') {

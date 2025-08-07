@@ -11,7 +11,6 @@ export async function middleware(req: NextRequest) {
       cookieSignatureKeys: authConfig.cookieSignatureKeys,
   });
 
-  // If the request is for an API route and there are no tokens, return 401
   if (nextUrl.pathname.startsWith('/api/') && !tokens) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -30,7 +29,6 @@ export async function middleware(req: NextRequest) {
   const role = tokens.decodedToken.role;
   const pathname = nextUrl.pathname;
 
-  // 🔐 Role-based route protection
   if (pathname.startsWith('/landlord') && role !== 'landlord') {
     return NextResponse.redirect(new URL('/tenant-portal', req.url));
   }
@@ -56,12 +54,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

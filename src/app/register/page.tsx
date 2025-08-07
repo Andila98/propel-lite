@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import {
@@ -15,81 +15,59 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PropelLiteLogo, GoogleIcon, GithubIcon } from '@/components/icons/logo';
+import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Eye, EyeOff } from 'lucide-react';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [email, setEmail] = useState('landlord@demo.com');
-  const [password, setPassword] = useState('Password123!');
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          displayName,
+          role: 'landlord', // Defaulting to landlord signup
+        }),
+      });
 
-        const idToken = await user.getIdToken();
-        const idTokenResult = await user.getIdTokenResult();
-        const role = idTokenResult.claims.role || 'tenant';
-        
-        const serverResponse = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-        });
+      const data = await response.json();
 
-        if (!serverResponse.ok) {
-            const errorData = await serverResponse.json();
-            throw new Error(errorData.error || "Failed to create server session.");
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create account.');
+      }
 
-        toast({
-            title: "Login Successful",
-            description: "Redirecting to your dashboard...",
-        });
+      toast({
+        title: "Account Created!",
+        description: "Redirecting you to the login page...",
+      });
 
-        if (role === 'tenant') {
-            router.push('/tenant-portal');
-        } else {
-            router.push('/');
-        }
+      router.push('/login');
 
     } catch (error: any) {
-        console.error("Login Error:", error);
-        let errorMessage = "An unknown error occurred.";
-        if (error.code) { 
-            switch (error.code) {
-                case 'auth/user-not-found':
-                case 'auth/wrong-password':
-                case 'auth/invalid-credential':
-                    errorMessage = 'Invalid email or password. Please try again.';
-                    break;
-                case 'auth/too-many-requests':
-                    errorMessage = 'Too many login attempts. Please try again later.';
-                    break;
-                default:
-                    errorMessage = 'Login failed. Please check your credentials.';
-            }
-        } else {
-             errorMessage = error.message;
-        }
-        toast({
-            title: "Login Failed",
-            description: errorMessage,
-            variant: "destructive",
-        });
+      console.error("Registration Error:", error);
+      toast({
+        title: "Registration Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
   
@@ -107,11 +85,23 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center">
             <PropelLiteLogo className="h-12 w-12" />
           </div>
-          <CardTitle className="text-2xl">Welcome back to RentEase</CardTitle>
-          <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
+          <CardTitle className="text-2xl">Create your RentEase account</CardTitle>
+          <CardDescription>Get started managing your properties today.</CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleRegister}>
           <CardContent className="space-y-4">
+             <div className="space-y-2">
+              <Label htmlFor="displayName">Full Name</Label>
+              <Input
+                id="displayName"
+                type="text"
+                placeholder="John Doe"
+                required
+                autoComplete="name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -130,7 +120,7 @@ export default function LoginPage() {
                 id="password" 
                 type={showPassword ? "text" : "password"}
                 required
-                autoComplete="current-password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pr-10"
@@ -144,7 +134,7 @@ export default function LoginPage() {
               </button>
             </div>
              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing In..." : "Sign In"}
+                {isLoading ? "Creating Account..." : "Create Account"}
              </Button>
           </CardContent>
         </form>
@@ -158,14 +148,14 @@ export default function LoginPage() {
           
         <CardFooter className="flex flex-col gap-4">
            <p className="text-sm text-center text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-semibold text-primary underline-offset-4 hover:underline">
-                Sign up
+            Already have an account?{" "}
+            <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
+                Sign in
             </Link>
           </p>
           <Button variant="outline" className="w-full" onClick={() => handleSocialLogin('Google')}>
             <GoogleIcon className="mr-2 h-4 w-4" />
-            Sign in with Google
+            Sign up with Google
           </Button>
         </CardFooter>
       </Card>
