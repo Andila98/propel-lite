@@ -18,13 +18,14 @@ export function withRole(
   handler: (req: AuthenticatedRequest) => Promise<NextResponse>, 
   allowedRoles: AllowedRoles[]
 ) {
-  return async function wrappedHandler(req: NextRequest) {
+  return async function wrappedHandler(req: NextRequest, ...args: any[]) {
     try {
-      const token = req.headers.get('Authorization')?.split(' ')[1];
-      if (!token) {
-          return NextResponse.json({ error: 'Missing token' }, { status: 401 });
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
       }
-
+      
+      const token = authHeader.split(' ')[1];
       const decodedToken = await getAuth().verifyIdToken(token);
       const userRole = decodedToken.role as AllowedRoles;
 
@@ -43,7 +44,8 @@ export function withRole(
         token: decodedToken,
       };
 
-      return handler(authenticatedRequest);
+      // Pass along any additional arguments from the route handler (like params)
+      return handler(authenticatedRequest, ...args);
 
     } catch (error: any) {
       console.error('[RBAC_ERROR]', error);
