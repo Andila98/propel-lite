@@ -6,53 +6,44 @@ import { authConfig } from './config/server-config';
 export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   
-  // Allow public access to auth-related API routes
-  if (nextUrl.pathname.startsWith('/api/auth/login') || nextUrl.pathname.startsWith('/api/auth/signup')) {
-      return NextResponse.next();
-  }
+  // Define public paths that do not require authentication
+  const publicPaths = [
+    '/login',
+    '/register',
+    '/onboarding',
+    '/api/auth/login',
+    '/api/auth/signup',
+    '/api/auth/accept-invite',
+    // Allow public access to static assets and image optimization
+    '/_next/static',
+    '/_next/image',
+    '/favicon.ico',
+    '/placeholders',
+  ];
 
-  const tokens = await getTokens(req.cookies, {
-      ...authConfig
-  });
+  const isPublicPath = publicPaths.some(path => nextUrl.pathname.startsWith(path));
 
-  // Protect all other API routes
-  if (nextUrl.pathname.startsWith('/api/') && !tokens) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Allow public access to specific pages
-  const publicPaths = ['/login', '/onboarding', '/register'];
-  if (publicPaths.some(path => nextUrl.pathname.startsWith(path))) {
+  // If it's a public path, do nothing
+  if (isPublicPath) {
     return NextResponse.next();
   }
-  
-  // If no token, redirect to login for any other protected page
+
+  // For all other paths, check for authentication
+  const tokens = await getTokens(req, authConfig);
+
+  // If no token, redirect to login for any protected page
   if (!tokens) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/login'
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    console.log(`Redirecting unauthenticated user from ${nextUrl.pathname} to /login`);
     return NextResponse.redirect(url);
   }
   
-  // Role-based redirects for authenticated users
+  // If authenticated, check for role-based redirects
   const role = tokens.decodedToken.role;
   const pathname = nextUrl.pathname;
 
-  if (pathname.startsWith('/landlord') && role !== 'landlord') {
-    return NextResponse.redirect(new URL('/tenant-portal', req.url));
-  }
-
-  if (pathname.startsWith('/manager') && role !== 'manager') {
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-
-  if (pathname.startsWith('/tenant') && role !== 'tenant') {
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-
-  if (pathname.startsWith('/superadmin') && role !== 'superadmin') {
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-  
+  // If a tenant tries to access the root, redirect them to their portal
   if (pathname === '/' && role === 'tenant') {
     return NextResponse.redirect(new URL('/tenant-portal', req.url));
   }
@@ -60,8 +51,9 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
+// Configure the matcher to run middleware on all paths except for specific static files.
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|placeholders).*)',
   ],
 };
