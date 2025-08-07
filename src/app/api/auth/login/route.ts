@@ -3,46 +3,24 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 import { getAuth } from 'firebase-admin/auth';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export async function POST(request: NextRequest) {
-  const { email, password } = await request.json();
+  const { idToken } = await request.json();
 
   try {
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${authConfig.apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          returnSecureToken: true,
-        }),
-      }
-    );
-
-    const tokens = await response.json();
-    if (!response.ok) {
-      console.error("Firebase Auth Error:", tokens.error.message);
-      return NextResponse.json(
-        { error: 'Invalid credentials. Please try again.' },
-        { status: 401 }
-      );
-    }
+    // The library will verify the token and get the user from it.
+    const user = await getAuth().verifyIdToken(idToken);
     
-    // Get user's role from custom claims
-    const user = await getAuth().getUser(tokens.localId);
-    const role = user.customClaims?.role || 'tenant'; // Default to tenant if no role
-
-    const responseWithCookie = new NextResponse(JSON.stringify({ success: true, role }), {
+    const responseWithCookie = new NextResponse(JSON.stringify({ success: true, role: user.role }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
 
-    await getTokens(tokens, {
-      user,
+    // The getTokens function from next-firebase-auth-edge will handle refreshing the token
+    // if necessary and setting the secure, httpOnly session cookie.
+    await getTokens(idToken, {
+      user, // Pass the decoded user token
       serviceAccount: authConfig.serviceAccount,
       apiKey: authConfig.apiKey,
       cookieName: authConfig.cookieName,
@@ -54,6 +32,7 @@ export async function POST(request: NextRequest) {
     }).then((tokens) => tokens.setCookies(responseWithCookie));
     
     return responseWithCookie;
+
   } catch (error) {
     console.error("Login API Error:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

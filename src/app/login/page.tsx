@@ -32,25 +32,33 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+        // 1. Authenticate with Firebase on the client
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
+        // 2. Get the Firebase ID token from the authenticated user
+        const idToken = await user.getIdToken();
         const idTokenResult = await user.getIdTokenResult();
         const role = idTokenResult.claims.role || 'tenant';
         
-        // This is a workaround for the server to set the cookie
-        // In a real app, you might have a more sophisticated session management system
-        await fetch('/api/auth/login', {
+        // 3. Send the ID token to our backend to create a session cookie
+        const serverResponse = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ idToken }),
         });
+
+        if (!serverResponse.ok) {
+            const errorData = await serverResponse.json();
+            throw new Error(errorData.error || "Failed to create server session.");
+        }
 
         toast({
             title: "Login Successful",
             description: "Redirecting to your dashboard...",
         });
 
+        // 4. Redirect based on role
         if (role === 'tenant') {
             router.push('/tenant-portal');
         } else {
@@ -58,8 +66,9 @@ export default function LoginPage() {
         }
 
     } catch (error: any) {
+        console.error("Login Error:", error);
         let errorMessage = "An unknown error occurred.";
-        if (error.code) {
+        if (error.code) { // Firebase client-side errors
             switch (error.code) {
                 case 'auth/user-not-found':
                 case 'auth/wrong-password':
@@ -72,6 +81,8 @@ export default function LoginPage() {
                 default:
                     errorMessage = 'Login failed. Please check your credentials.';
             }
+        } else { // Server-side or other errors
+             errorMessage = error.message;
         }
         toast({
             title: "Login Failed",
