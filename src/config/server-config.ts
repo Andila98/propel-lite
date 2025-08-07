@@ -1,4 +1,5 @@
 
+
 export const authConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
     cookieName: '__session',
