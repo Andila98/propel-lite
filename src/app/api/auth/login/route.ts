@@ -1,43 +1,44 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
-import { getAuth } from 'firebase-admin/auth';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+import { getTokens } from 'next-firebase-auth-edge/lib/next/tokens';
+import { 
+    apiKey, 
+    cookieSignatureKeys, 
+    cookieSerializeOptions, 
+    serviceAccount 
+} from '@/config/server-config';
 
 export async function POST(request: NextRequest) {
-  const { idToken } = await request.json();
-
   try {
-    const decodedToken = await getAuth().verifyIdToken(idToken);
-    
-    const responseWithCookie = new NextResponse(
-        JSON.stringify({ success: true, role: decodedToken.role }), 
-        {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        }
-    );
+    const { idToken } = await request.json();
 
-    await getTokens(idToken, {
-      user: decodedToken, // Pass the decoded user token
-      serviceAccount: authConfig.serviceAccount,
-      apiKey: authConfig.apiKey,
-      cookieName: authConfig.cookieName,
-      cookieSignatureKeys: authConfig.cookieSignatureKeys,
-      cookieSerializeOptions: authConfig.cookieSerializeOptions,
-      handleInvalidToken: async () => {
-        console.error("Login API Error: Invalid token provided.");
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-      },
-    }).then((tokens) => {
-        tokens.setCookies(responseWithCookie)
+    // The getTokens function handles verifying the token, fetching custom claims,
+    // and generating the session cookie.
+    const tokens = await getTokens(idToken, {
+      serviceAccount,
+      apiKey,
+      cookieName: '__session',
+      cookieSignatureKeys,
+      cookieSerializeOptions,
     });
-    
-    return responseWithCookie;
 
-  } catch (error) {
+    const response = NextResponse.json({
+        success: true,
+        role: tokens.decodedToken.role
+    }, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    // Set the secure, HTTP-only session cookie on the browser
+    response.cookies.set(tokens.cookie);
+
+    return response;
+
+  } catch (error: any) {
     console.error("Login API Error:", error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    // Provide a more specific error message if available
+    const message = error.message || 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
