@@ -25,7 +25,7 @@ export const PropertyFormSchema = z.object({
   }),
   description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
   currency: z.string().optional(),
-  units: z.array(UnitSchema).optional(),
+  units: z.array(UnitSchema).min(1, "At least one unit is required."),
   numberOfUnits: z.coerce.number().optional(),
   propertyType: z.string().optional(), // Added from onboarding form
 });
