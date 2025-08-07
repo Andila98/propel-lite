@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TestTube2, CheckCircle, AlertTriangle } from 'lucide-react';
-import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
+import { PropertyFormSchema } from '@/lib/schemas';
+import { useAuth } from '@/hooks/use-auth';
 
 // Using a simplified version of the schema for testing purposes.
 const TestFormSchema = PropertyFormSchema.pick({
@@ -25,6 +26,7 @@ type TestFormValues = Zod.infer<typeof TestFormSchema>;
 
 export default function TestPropertyCreationPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,12 @@ export default function TestPropertyCreationPage() {
     setError(null);
     setResult(null);
 
+    if (!user) {
+        setError("You must be logged in to run this test.");
+        setLoading(false);
+        return;
+    }
+
     if (!imageFile) {
         toast({ title: "Image required", description: "Please select an image for the test property.", variant: "destructive" });
         setLoading(false);
@@ -65,12 +73,16 @@ export default function TestPropertyCreationPage() {
     }
 
     try {
+      const token = await user.getIdToken();
       const formData = new FormData();
       formData.append('media', imageFile);
       formData.append('propertyData', JSON.stringify(data));
       
       const response = await fetch('/api/properties', {
         method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
         body: formData,
       });
 

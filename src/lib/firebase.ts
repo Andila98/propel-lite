@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getFirestore, collection, type Firestore, type CollectionReference, type DocumentData } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getAuth, type Auth } from "firebase/auth";
 import type { Property } from './types';
 
 const firebaseConfig = {
@@ -18,6 +19,7 @@ const firebaseConfig = {
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
+const auth: Auth = getAuth(app);
 
 // Type-safe collection references
 const createCollection = <T = DocumentData>(collectionName: string) => {
@@ -26,4 +28,4 @@ const createCollection = <T = DocumentData>(collectionName: string) => {
 
 const propertiesCollection = createCollection<Property>('properties');
 
-export { app, db, storage, propertiesCollection };
+export { app, db, auth, storage, propertiesCollection };

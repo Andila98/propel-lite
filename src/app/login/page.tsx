@@ -17,12 +17,14 @@ import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon, GithubIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('landlord@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('landlord@demo.com');
+  const [password, setPassword] = useState('Password123!');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,32 +32,50 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-        const response = await fetch('/api/auth/login', {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        const idTokenResult = await user.getIdTokenResult();
+        const role = idTokenResult.claims.role || 'tenant';
+        
+        // This is a workaround for the server to set the cookie
+        // In a real app, you might have a more sophisticated session management system
+        await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
 
-        const data = await response.json();
+        toast({
+            title: "Login Successful",
+            description: "Redirecting to your dashboard...",
+        });
 
-        if (response.ok) {
-            toast({
-                title: "Login Successful",
-                description: "Redirecting to your dashboard...",
-            });
-            // Role-based redirection
-            if (data.role === 'tenant') {
-              router.push('/tenant-portal');
-            } else {
-              router.push('/');
-            }
+        if (role === 'tenant') {
+            router.push('/tenant-portal');
         } else {
-            throw new Error(data.error || "Login failed");
+            router.push('/');
         }
+
     } catch (error: any) {
+        let errorMessage = "An unknown error occurred.";
+        if (error.code) {
+            switch (error.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    errorMessage = 'Invalid email or password. Please try again.';
+                    break;
+                case 'auth/too-many-requests':
+                    errorMessage = 'Too many login attempts. Please try again later.';
+                    break;
+                default:
+                    errorMessage = 'Login failed. Please check your credentials.';
+            }
+        }
         toast({
             title: "Login Failed",
-            description: error.message,
+            description: errorMessage,
             variant: "destructive",
         });
     } finally {
