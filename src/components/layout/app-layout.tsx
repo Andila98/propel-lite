@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, Settings, LayoutDashboard, FileClock, CalendarCheck, Wrench, BarChartHorizontal } from "lucide-react"
+import { DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, Settings, LayoutDashboard, FileClock, CalendarCheck, Wrench, BarChartHorizontal, TestTube2 } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 import {
   Sidebar,
@@ -85,6 +85,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuItem>
             ))}
+          </SidebarMenu>
+           <SidebarMenu>
+             <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+                Testing
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <Link href="/test-property-creation">
+                    <SidebarMenuButton tooltip="Test Property Creation" isActive={pathname === "/test-property-creation"}>
+                        <TestTube2 />
+                        <span>Test Creation</span>
+                    </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
