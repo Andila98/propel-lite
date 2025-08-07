@@ -230,7 +230,27 @@ export default function AddPropertyPage() {
                                     <Label htmlFor="imageFile">Property Image</Label>
                                     <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
                                 </div>
-                              <div>
+                                <div>
+                                <Label htmlFor="currency">Currency</Label>
+                                <Controller
+                                    name="currency"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger id="currency">
+                                            <SelectValue placeholder="Select currency..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="KES">KES</SelectItem>
+                                            <SelectItem value="USD">USD</SelectItem>
+                                            <SelectItem value="EUR">EUR</SelectItem>
+                                        </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                {errors.currency && <p className="text-sm text-destructive mt-1">{errors.currency.message}</p>}
+                               </div>
+                              <div className="sm:col-span-2">
                                 <div className="flex items-center gap-2">
                                   <Label htmlFor="type">Property Type</Label>
                                   <Tooltip>
@@ -450,5 +470,7 @@ export default function AddPropertyPage() {
     </TooltipProvider>
   );
 }
+
+    
 
     
