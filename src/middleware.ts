@@ -6,29 +6,34 @@ import { authConfig } from './config/server-config';
 export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   
+  // Allow public access to auth-related API routes
+  if (nextUrl.pathname.startsWith('/api/auth/login') || nextUrl.pathname.startsWith('/api/auth/signup')) {
+      return NextResponse.next();
+  }
+
   const tokens = await getTokens(req.cookies, {
       ...authConfig
   });
 
-  if (nextUrl.pathname.startsWith('/api/auth')) {
-      return NextResponse.next();
-  }
-
+  // Protect all other API routes
   if (nextUrl.pathname.startsWith('/api/') && !tokens) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Allow public access to specific pages
   const publicPaths = ['/login', '/onboarding', '/register'];
   if (publicPaths.some(path => nextUrl.pathname.startsWith(path))) {
     return NextResponse.next();
   }
   
+  // If no token, redirect to login for any other protected page
   if (!tokens) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url);
   }
   
+  // Role-based redirects for authenticated users
   const role = tokens.decodedToken.role;
   const pathname = nextUrl.pathname;
 
