@@ -8,6 +8,7 @@
 
 import { db, admin } from '@/lib/firebase-admin';
 import type { Property, Unit } from '@/lib/types';
+import { v4 as uuid } from 'uuid';
 
 class PropertyService {
   private propertiesCollection = db.collection('properties');
@@ -18,6 +19,7 @@ class PropertyService {
    * @returns A promise that resolves to an array of properties.
    */
   async getPropertiesByLandlord(landlordId: string): Promise<Property[]> {
+    console.log(`PropertyService: Fetching properties for landlord ${landlordId}`);
     const snapshot = await this.propertiesCollection
       .where('landlordId', '==', landlordId)
       .orderBy('createdAt', 'desc')
@@ -31,7 +33,8 @@ class PropertyService {
       id: doc.id,
       ...doc.data(),
     } as Property));
-
+    
+    console.log(`PropertyService: Found ${properties.length} properties.`);
     return properties;
   }
 
@@ -42,33 +45,71 @@ class PropertyService {
    * @returns A promise that resolves to the property object or null if not found/unauthorized.
    */
   async getPropertyById(propertyId: string, landlordId: string): Promise<Property | null> {
+    console.log(`PropertyService: Fetching property ${propertyId} for landlord ${landlordId}`);
     const doc = await this.propertiesCollection.doc(propertyId).get();
 
     if (!doc.exists || doc.data()?.landlordId !== landlordId) {
+       console.warn(`PropertyService: Property ${propertyId} not found or unauthorized for landlord ${landlordId}`);
       return null;
     }
 
-    return { id: doc.id, ...doc.data() } as Property;
+    const propertyData = { id: doc.id, ...doc.data() } as Property;
+
+    // Also fetch units subcollection
+    const unitsSnapshot = await doc.ref.collection('units').get();
+    const units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() }));
+    
+    (propertyData as any).units = units;
+
+    console.log(`PropertyService: Successfully fetched property ${propertyId} with ${units.length} units.`);
+    return propertyData;
   }
 
   /**
-   * Creates a new property in the database.
-   * @param propertyData The data for the new property.
+   * Creates a new property and its associated units in the database.
+   * @param propertyData The data for the new property, including units.
    * @param landlordId The UID of the landlord creating the property.
+   * @param imageUrl The URL of the uploaded property image.
    * @returns The newly created property object.
    */
-  async createProperty(propertyData: Partial<Property>, landlordId: string): Promise<Property> {
-    const newProperty = {
-      ...propertyData,
+  async createPropertyWithUnits(propertyData: any, landlordId: string, imageUrl: string): Promise<Property> {
+    console.log(`PropertyService: Creating new property for landlord ${landlordId}`);
+    const newPropertyData = {
       landlordId,
+      name: propertyData.name,
+      address: propertyData.address,
+      type: propertyData.type,
+      imageUrl,
+      description: propertyData.description,
+      currency: propertyData.currency,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    const docRef = await this.propertiesCollection.add(newProperty);
+    const docRef = this.propertiesCollection.doc();
+    
+    const units = propertyData.units || [];
 
+    // Use a transaction to ensure all or nothing is written
+    await db.runTransaction(async (transaction) => {
+        transaction.set(docRef, newPropertyData);
+
+        units.forEach((unit: any) => {
+            const unitId = uuid();
+            const unitRef = docRef.collection('units').doc(unitId);
+            transaction.set(unitRef, {
+                ...unit,
+                id: unitId,
+                propertyId: docRef.id,
+                landlordId: landlordId,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+        });
+    });
+    
+    console.log(`PropertyService: Successfully created property ${docRef.id} with ${units.length} units.`);
     return {
       id: docRef.id,
-      ...newProperty,
+      ...newPropertyData,
       createdAt: new Date(), // Return a serializable date
     } as Property;
   }
