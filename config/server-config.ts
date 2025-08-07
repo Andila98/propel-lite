@@ -1,4 +1,5 @@
 
+
 export const authConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
     cookieName: '__session',
@@ -16,3 +17,4 @@ export const authConfig = {
         privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
     },
 };
+
