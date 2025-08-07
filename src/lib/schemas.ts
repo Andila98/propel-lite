@@ -12,7 +12,7 @@ export const UnitSchema = z.object({
   propertyId: z.string().optional(),
   landlordId: z.string().optional(),
   unitType: z.string().optional(),
-  squareFootage: z.number().optional(),
+  squareFootage: z.coerce.number().optional(),
   isAvailable: z.boolean().optional(),
 });
 
@@ -25,6 +25,9 @@ export const PropertyFormSchema = z.object({
   }),
   description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
   currency: z.string().optional(),
+  units: z.array(UnitSchema).optional(),
+  numberOfUnits: z.coerce.number().optional(),
+  propertyType: z.string().optional(), // Added from onboarding form
 });
 
 export type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
