@@ -35,6 +35,7 @@ export default function AddPropertyPage() {
   const { form, setOnboardingData } = useOnboardingForm<PropertyFormValues>('propertyData', {
     resolver: zodResolver(PropertyFormSchema),
     defaultValues: {
+      name: "",
       address: "",
       description: "",
       currency: "KES",
@@ -49,7 +50,7 @@ export default function AddPropertyPage() {
     name: "units",
   });
 
-  const propertyType = watch("propertyType");
+  const propertyType = watch("type");
   const numberOfUnits = watch("numberOfUnits");
 
    useEffect(() => {
@@ -77,14 +78,13 @@ export default function AddPropertyPage() {
         skipEmptyLines: true,
         complete: (result) => {
           try {
-              const units = result.data.map((row: any): Unit => ({
+              const units = result.data.map((row: any): Partial<Unit> => ({
                 unitNumber: row.unitNumber || '',
-                unitType: row.unitType || 'one-bedroom',
+                size: row.size || '',
                 rent: parseFloat(row.rent) || 0,
-                squareFootage: parseInt(row.squareFootage, 10) || 0,
-                isAvailable: row.isAvailable ? row.isAvailable.toLowerCase() === 'true' : true,
+                isOccupied: row.isOccupied ? row.isOccupied.toLowerCase() === 'true' : false,
               }));
-              replace(units);
+              replace(units as any);
               setValue("numberOfUnits", units.length);
               toast({
                 title: "CSV Parsed!",
@@ -93,7 +93,7 @@ export default function AddPropertyPage() {
           } catch (error) {
               toast({
                   title: "CSV Parsing Error",
-                  description: "Could not parse CSV. Make sure it has headers: unitNumber, unitType, rent, squareFootage, isAvailable.",
+                  description: "Could not parse CSV. Make sure it has headers: unitNumber, size, rent, isOccupied.",
                   variant: "destructive"
               });
           }
@@ -117,33 +117,27 @@ export default function AddPropertyPage() {
     }
     const newUnits = Array.from({ length: num }, (_, i) => ({
       unitNumber: `Unit ${i + 1}`,
-      unitType: "one-bedroom",
-      rent: 1000,
-      squareFootage: 500,
-      isAvailable: true,
+      size: "2 Bedroom",
+      rent: 25000,
+      isOccupied: false,
     }));
     replace(newUnits);
   };
 
-  const handlePropertyTypeChange = (type: string) => {
-    setValue("propertyType", type as "apartment" | "house" | "bedsitter");
-    if (type === 'apartment') {
+  const handlePropertyTypeChange = (type: 'Apartment' | 'House' | 'Bedsitter') => {
+    setValue("type", type);
+    if (type === 'Apartment') {
       setValue("numberOfUnits", 1);
       handleUnitGeneration(1);
-    } else if (type === 'house' || type === 'bedsitter') {
+    } else if (type === 'House' || type === 'Bedsitter') {
       setValue("numberOfUnits", 1);
-      const unitTypeMap: { [key: string]: 'three-bedroom' | 'bedsitter' } = {
-        'house': 'three-bedroom',
-        'bedsitter': 'bedsitter',
-      };
       const newUnits = [{
         unitNumber: 'Main Unit',
-        unitType: unitTypeMap[type],
-        rent: type === 'house' ? 3500 : 1500,
-        squareFootage: type === 'house' ? 1200 : 400,
-        isAvailable: true,
+        size: type === 'House' ? '4 Bedroom' : 'Standard Bedsitter',
+        rent: type === 'House' ? 120000 : 15000,
+        isOccupied: false,
       }];
-      replace(newUnits as any);
+      replace(newUnits);
     } else {
       replace([]);
     }
@@ -219,10 +213,9 @@ export default function AddPropertyPage() {
   const addUnit = () => {
     append({
         unitNumber: `Unit ${fields.length + 1}`,
-        unitType: "one-bedroom",
-        rent: 1000,
-        squareFootage: 500,
-        isAvailable: true,
+        size: "1 Bedroom",
+        rent: 20000,
+        isOccupied: false,
     });
     const currentNum = numberOfUnits || 0;
     setValue("numberOfUnits", currentNum + 1);
@@ -246,6 +239,11 @@ export default function AddPropertyPage() {
                         <div className="space-y-6">
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="sm:col-span-2">
+                                  <Label htmlFor="name">Property Name</Label>
+                                  <Input id="name" {...register("name")} placeholder="e.g. Greenview Apartments" />
+                                  {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                              </div>
+                              <div className="sm:col-span-2">
                                   <Label htmlFor="address">Address</Label>
                                   <Input id="address" {...register("address")} autoComplete="street-address" />
                                   {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
@@ -256,7 +254,7 @@ export default function AddPropertyPage() {
                                 </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <Label htmlFor="propertyType">Property Type</Label>
+                                  <Label htmlFor="type">Property Type</Label>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
@@ -271,42 +269,22 @@ export default function AddPropertyPage() {
                                   </Tooltip>
                                 </div>
                                   <Controller
-                                      name="propertyType"
+                                      name="type"
                                       control={control}
                                       render={({ field }) => (
-                                          <Select onValueChange={(value) => { field.onChange(value); handlePropertyTypeChange(value); }} value={field.value}>
-                                          <SelectTrigger id="propertyType">
+                                          <Select onValueChange={(value) => { field.onChange(value); handlePropertyTypeChange(value as any); }} value={field.value}>
+                                          <SelectTrigger id="type">
                                               <SelectValue placeholder="Select a type..." />
                                           </SelectTrigger>
                                           <SelectContent>
-                                              <SelectItem value="apartment">Apartment</SelectItem>
-                                              <SelectItem value="house">House</SelectItem>
-                                              <SelectItem value="bedsitter">Bedsitter</SelectItem>
+                                              <SelectItem value="Apartment">Apartment</SelectItem>
+                                              <SelectItem value="House">House</SelectItem>
+                                              <SelectItem value="Bedsitter">Bedsitter</SelectItem>
                                           </SelectContent>
                                           </Select>
                                       )}
                                   />
-                                  {errors.propertyType && <p className="text-sm text-destructive mt-1">{errors.propertyType.message}</p>}
-                              </div>
-                               <div>
-                                  <Label htmlFor="currency">Currency</Label>
-                                  <Controller
-                                      name="currency"
-                                      control={control}
-                                      render={({ field }) => (
-                                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                          <SelectTrigger id="currency">
-                                              <SelectValue placeholder="Select a currency..." />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                              <SelectItem value="KES">KES</SelectItem>
-                                              <SelectItem value="USD">USD</SelectItem>
-                                              <SelectItem value="EUR">EUR</SelectItem>
-                                          </SelectContent>
-                                          </Select>
-                                      )}
-                                  />
-                                  {errors.currency && <p className="text-sm text-destructive mt-1">{errors.currency.message}</p>}
+                                  {errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}
                               </div>
                             </div>
                             
@@ -344,7 +322,7 @@ export default function AddPropertyPage() {
                     </Card>
                 </div>
                 <div className="space-y-6">
-                    {propertyType === "apartment" && (
+                    {propertyType === "Apartment" && (
                         <Card>
                             <CardHeader>
                                 <div className="flex items-center gap-2">
@@ -388,7 +366,7 @@ export default function AddPropertyPage() {
                                           <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p className="max-w-xs">The CSV file must contain the headers: <br /> `unitNumber`, `unitType`, `rent`, `squareFootage`, `isAvailable`.</p>
+                                          <p className="max-w-xs">The CSV file must contain the headers: <br /> `unitNumber`, `size`, `rent`, `isOccupied`.</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </div>
@@ -400,7 +378,7 @@ export default function AddPropertyPage() {
                                             </Label>
                                         </Button>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1">Headers: unitNumber, unitType, rent, squareFootage, isAvailable</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Headers: unitNumber, size, rent, isOccupied</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -413,9 +391,9 @@ export default function AddPropertyPage() {
                           <Card key={field.id} className="p-4">
                             <div className="flex justify-between items-center mb-4">
                               <h4 className="text-lg font-medium">
-                                {propertyType === 'apartment' ? `Unit Details` : 'Unit Details'}
+                                {propertyType === 'Apartment' ? `Unit Details` : 'Unit Details'}
                               </h4>
-                              {propertyType === 'apartment' && (
+                              {propertyType === 'Apartment' && (
                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
                                   <AnimatedDeleteIcon />
                                 </Button>
@@ -428,45 +406,26 @@ export default function AddPropertyPage() {
                                 <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
                               </div>
                               <div>
-                                <Label htmlFor={`units.${index}.unitType`}>Unit Type</Label>
-                                <Controller
-                                  name={`units.${index}.unitType`}
-                                  control={control}
-                                  render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <SelectTrigger id={`units.${index}.unitType`}><SelectValue placeholder="Select type..." /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="studio">Studio</SelectItem>
-                                        <SelectItem value="bedsitter">Bedsitter</SelectItem>
-                                        <SelectItem value="one-bedroom">One Bedroom</SelectItem>
-                                        <SelectItem value="two-bedroom">Two Bedroom</SelectItem>
-                                        <SelectItem value="three-bedroom">Three Bedroom</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                />
+                                <Label htmlFor={`units.${index}.size`}>Size/Type</Label>
+                                 <Input id={`units.${index}.size`} {...register(`units.${index}.size`)} placeholder="e.g. 2 Bedroom"/>
                               </div>
                               <div>
                                 <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
                                 <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
                               </div>
-                              <div className="sm:col-span-2">
-                                <Label htmlFor={`units.${index}.squareFootage`}>Square Footage</Label>
-                                <Input id={`units.${index}.squareFootage`} type="number" {...register(`units.${index}.squareFootage`)} />
-                              </div>
-                              <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
+                              <div className="flex items-center space-x-2 pt-6">
                                    <Controller
-                                    name={`units.${index}.isAvailable`}
+                                    name={`units.${index}.isOccupied`}
                                     control={control}
                                     render={({ field }) => (
                                         <Switch
-                                            id={`units.${index}.isAvailable`}
+                                            id={`units.${index}.isOccupied`}
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
                                         />
                                     )}
                                     />
-                                  <Label htmlFor={`units.${index}.isAvailable`}>Available</Label>
+                                  <Label htmlFor={`units.${index}.isOccupied`}>Occupied</Label>
                                 </div>
                             </div>
                              <Collapsible className="mt-4">
@@ -493,7 +452,7 @@ export default function AddPropertyPage() {
                               )}
                           </Card>
                         ))}
-                         {propertyType === 'apartment' && (
+                         {propertyType === 'Apartment' && (
                             <Button type="button" variant="outline" onClick={addUnit}>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Another Unit

@@ -8,6 +8,7 @@ import fs from 'fs';
 import { randomBytes } from 'crypto';
 import type { Property, Unit } from '@/lib/types';
 import { PropertyFormSchema } from '@/lib/schemas';
+import { v4 as uuid } from 'uuid';
 
 
 const uploadDir = path.join(process.cwd(), 'public/media');
@@ -96,10 +97,28 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
       description: validatedData.description,
     };
 
-    const docRef = await db.collection('properties').add({
+    const docRef = db.collection('properties').doc();
+    await docRef.set({
         ...newProperty,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // If units are provided in the form, create them in the subcollection
+    if (validatedData.units && validatedData.units.length > 0) {
+      const unitsBatch = db.batch();
+      validatedData.units.forEach(unit => {
+        const unitId = uuid();
+        const unitRef = docRef.collection('units').doc(unitId);
+        unitsBatch.set(unitRef, {
+          ...unit,
+          id: unitId,
+          propertyId: docRef.id,
+          landlordId: userId,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      await unitsBatch.commit();
+    }
     
     const createdProperty = {
         id: docRef.id,
