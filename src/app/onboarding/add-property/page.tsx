@@ -183,7 +183,7 @@ export default function AddPropertyPage() {
       
       setOnboardingData(data); // Save final valid data
 
-      const response = await fetch('/api/properties/create', {
+      const response = await fetch('/api/properties', {
         method: 'POST',
         body: formData,
       });
