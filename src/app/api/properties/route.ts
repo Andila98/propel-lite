@@ -1,5 +1,4 @@
 
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
@@ -115,5 +114,3 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }, ['landlord']);
-
-

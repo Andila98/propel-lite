@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const UnitSchema = z.object({
@@ -26,8 +25,6 @@ export const PropertyFormSchema = z.object({
   }),
   description: z.string().min(10, "Please provide a brief description (min 10 characters)."),
   currency: z.string().optional(),
-  units: z.array(UnitSchema).optional(),
-  numberOfUnits: z.coerce.number().optional(),
 });
 
 export type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
