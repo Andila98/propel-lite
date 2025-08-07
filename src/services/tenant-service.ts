@@ -1,6 +1,3 @@
-
-'use server';
-
 /**
  * @fileOverview A service class for handling tenant-related database operations.
  * This centralizes the logic for creating, retrieving, and deleting tenants.
