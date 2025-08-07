@@ -7,10 +7,7 @@ export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   
   const tokens = await getTokens(req.cookies, {
-      cookieName: authConfig.cookieName,
-      cookieSignatureKeys: authConfig.cookieSignatureKeys,
-      serviceAccount: authConfig.serviceAccount,
-      apiKey: authConfig.apiKey,
+      ...authConfig
   });
 
   if (nextUrl.pathname.startsWith('/api/auth')) {

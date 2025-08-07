@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokens } from 'next-firebase-auth-edge';
-import { cookieSignatureKeys } from './config/server-config';
+import { authConfig } from './config/server-config';
 
 const AUTH_COOKIE_NAME = '__session';
 
@@ -9,8 +9,10 @@ export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   
   const tokens = await getTokens(req.cookies, {
-      cookieName: AUTH_COOKIE_NAME,
-      cookieSignatureKeys: cookieSignatureKeys,
+      cookieName: authConfig.cookieName,
+      cookieSignatureKeys: authConfig.cookieSignatureKeys,
+      serviceAccount: authConfig.serviceAccount,
+      apiKey: authConfig.apiKey,
   });
 
   if (nextUrl.pathname.startsWith('/api/') && !tokens) {
