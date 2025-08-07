@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (!['landlord', 'tenant'].includes(role)) {
-        return NextResponse.json({ error: 'Invalid role specified' }, { status: 400 });
+    if (role !== 'tenant') {
+        return NextResponse.json({ error: 'Invalid role specified. Only tenants can sign up through this form.' }, { status: 400 });
     }
 
     const userRecord = await getAuth().createUser({
@@ -23,10 +23,10 @@ export async function POST(req: NextRequest) {
       phoneNumber: phone,
     });
 
+    // For tenants, landlordId must be assigned later, perhaps through an invite or property assignment flow.
     await getAuth().setCustomUserClaims(userRecord.uid, {
       role,
-      // If the role is landlord, their own UID is their landlordId
-      landlordId: role === 'landlord' ? userRecord.uid : null, 
+      landlordId: null, 
     });
 
     await db.collection('users').doc(userRecord.uid).set({

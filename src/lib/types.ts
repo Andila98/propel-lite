@@ -72,8 +72,6 @@ export interface Tenant extends User {
   leaseStart: any, // Timestamp
   leaseEnd?: any, // Timestamp
   status: 'active' | 'moved-out',
-  paymentHistory: Payment[];
-  avatarUrl: string;
 }
 
 
