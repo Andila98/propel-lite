@@ -9,27 +9,30 @@ export async function POST(request: NextRequest) {
   const { idToken } = await request.json();
 
   try {
-    // The library will verify the token and get the user from it.
-    const user = await getAuth().verifyIdToken(idToken);
+    const decodedToken = await getAuth().verifyIdToken(idToken);
     
-    const responseWithCookie = new NextResponse(JSON.stringify({ success: true, role: user.role }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const responseWithCookie = new NextResponse(
+        JSON.stringify({ success: true, role: decodedToken.role }), 
+        {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }
+    );
 
-    // The getTokens function from next-firebase-auth-edge will handle refreshing the token
-    // if necessary and setting the secure, httpOnly session cookie.
     await getTokens(idToken, {
-      user, // Pass the decoded user token
+      user: decodedToken, // Pass the decoded user token
       serviceAccount: authConfig.serviceAccount,
       apiKey: authConfig.apiKey,
       cookieName: authConfig.cookieName,
       cookieSignatureKeys: authConfig.cookieSignatureKeys,
       cookieSerializeOptions: authConfig.cookieSerializeOptions,
       handleInvalidToken: async () => {
+        console.error("Login API Error: Invalid token provided.");
         return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
       },
-    }).then((tokens) => tokens.setCookies(responseWithCookie));
+    }).then((tokens) => {
+        tokens.setCookies(responseWithCookie)
+    });
     
     return responseWithCookie;
 
