@@ -36,38 +36,41 @@ export async function middleware(request: NextRequest) {
   }
 
   // For all other paths, check for authentication
-  let tokens;
   try {
-    console.log('Attempting to get tokens...');
-    tokens = await getTokens(request, {
+    console.log(`[MIDDLEWARE] Checking auth for path: ${pathname}`);
+    const tokens = await getTokens(request, {
       ...authConfig,
-      // The `apiKey` is required on the server when calling `getTokens`
       apiKey: authConfig.apiKey, 
     });
-    console.log('Tokens received:', !!tokens);
+
+    // If no valid tokens are found, redirect to the login page
+    if (!tokens) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      console.log(`[MIDDLEWARE] Redirecting unauthenticated user from ${pathname} to /login`);
+      return NextResponse.redirect(url);
+    }
+    
+    console.log(`[MIDDLEWARE] User ${tokens.decodedToken.email} authenticated with role: ${tokens.decodedToken.role}`);
+
+    // Role-based redirect: if a tenant accesses the root, send them to their portal
+    if (pathname === '/' && tokens.decodedToken.role === 'tenant') {
+       console.log(`[MIDDLEWARE] Redirecting tenant to /tenant-portal`);
+      return NextResponse.redirect(new URL('/tenant-portal', request.url));
+    }
+    
+    // If the user is authenticated and the path is not a special case, allow the request
+    return NextResponse.next();
+
   } catch (error) {
-    console.error('Token error:', error);
-    // If there's an error getting tokens, treat as unauthenticated
+    console.error('[MIDDLEWARE_ERROR]', `Error verifying tokens for path: ${pathname}`, error);
+    
+    // On token verification errors, redirect to login
     const url = request.nextUrl.clone();
     url.pathname = '/login';
+    url.searchParams.set('error', 'session_invalid');
     return NextResponse.redirect(url);
   }
-
-  // If no valid tokens are found, redirect to the login page
-  if (!tokens) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    console.log(`Redirecting unauthenticated user from ${pathname} to /login`);
-    return NextResponse.redirect(url);
-  }
-
-  // Role-based redirect: if a tenant accesses the root, send them to their portal
-  if (pathname === '/' && tokens.decodedToken.role === 'tenant') {
-    return NextResponse.redirect(new URL('/tenant-portal', request.url));
-  }
-  
-  // If the user is authenticated and the path is not a special case, allow the request
-  return NextResponse.next();
 }
 
 // Configure the middleware to run on all paths except for the defined static asset paths
