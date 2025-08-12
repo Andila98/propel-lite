@@ -37,7 +37,9 @@ export async function middleware(request: NextRequest) {
 
   // For all other paths, check for authentication
   try {
-    console.log(`[MIDDLEWARE] Checking auth for path: ${pathname}`);
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`[MIDDLEWARE] Checking auth for path: ${pathname}`);
+    }
     const tokens = await getTokens(request, {
       ...authConfig,
       apiKey: authConfig.apiKey, 
@@ -47,11 +49,15 @@ export async function middleware(request: NextRequest) {
     if (!tokens) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
+      url.searchParams.set('redirect', pathname);
       console.log(`[MIDDLEWARE] Redirecting unauthenticated user from ${pathname} to /login`);
       return NextResponse.redirect(url);
     }
     
-    console.log(`[MIDDLEWARE] User ${tokens.decodedToken.email} authenticated with role: ${tokens.decodedToken.role}`);
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`[MIDDLEWARE] User ${tokens.decodedToken.email} authenticated with role: ${tokens.decodedToken.role}`);
+    }
+
 
     // Role-based redirect: if a tenant accesses the root, send them to their portal
     if (pathname === '/' && tokens.decodedToken.role === 'tenant') {
