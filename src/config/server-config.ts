@@ -1,3 +1,4 @@
+
 import type { ServiceAccount } from 'firebase-admin';
 import type { CookieSerializeOptions } from 'next-firebase-auth-edge';
 
@@ -22,7 +23,7 @@ const serviceAccount: ServiceAccount = {
     privateKey: getRequiredEnv('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
 };
 
-// The API key is used by the \`next-firebase-auth-edge\` library to sign the session cookie.
+// The API key is used by the `next-firebase-auth-edge` library to sign the session cookie.
 const apiKey = getRequiredEnv('NEXT_PUBLIC_FIREBASE_API_KEY');
 
 // These keys are used to sign and encrypt the session cookie.

@@ -39,8 +39,6 @@ export default function LoginPage() {
         const user = userCredential.user;
 
         const idToken = await user.getIdToken();
-        const idTokenResult = await user.getIdTokenResult();
-        const role = idTokenResult.claims.role || 'tenant';
         
         const serverResponse = await fetch('/api/auth/login', {
             method: 'POST',
@@ -52,6 +50,8 @@ export default function LoginPage() {
             const errorData = await serverResponse.json();
             throw new Error(errorData.error || "Failed to create server session.");
         }
+        
+        const { role } = await serverResponse.json();
 
         toast({
             title: "Login Successful",

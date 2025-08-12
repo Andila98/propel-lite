@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // For all other paths, check for authentication
-  const tokens = await getTokens(request.cookies, authConfig);
+  const tokens = await getTokens(request, authConfig);
 
   // If no valid tokens are found, redirect to the login page
   if (!tokens) {

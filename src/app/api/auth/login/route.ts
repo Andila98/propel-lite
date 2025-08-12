@@ -1,13 +1,16 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTokensFromIdToken } from 'next-firebase-auth-edge/lib/next/tokens';
+import { getTokens } from 'next-firebase-auth-edge/lib/next/tokens';
 import { authConfig } from '@/config/server-config';
 
 export async function POST(request: NextRequest) {
   try {
     const { idToken } = await request.json();
 
-    const { decodedToken, token, cookie } = await getTokensFromIdToken(idToken, authConfig);
+    const { decodedToken, token, cookie } = await getTokens(request, {
+      idToken,
+      ...authConfig,
+    });
 
     const response = NextResponse.json({
         success: true,
@@ -16,9 +19,10 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: { 
         'Content-Type': 'application/json',
-        'Set-Cookie': cookie,
        },
     });
+
+    response.headers.set('Set-Cookie', cookie);
 
     return response;
 

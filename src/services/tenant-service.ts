@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview A service class for handling tenant-related database operations.
  * This centralizes the logic for creating, retrieving, and deleting tenants.
@@ -137,8 +138,9 @@ export class TenantService {
     await db.runTransaction(async (transaction) => {
         // Mark the unit as unoccupied if a unit is assigned
         if (tenant.currentUnitId) {
-            const propertyId = tenant.currentUnitId.split('_')[0]; // Assuming unitId is 'propertyId_unitId'
-            if (propertyId) {
+            const propertyDoc = await this.propertiesCollection.where('units', 'array-contains', tenant.currentUnitId).limit(1).get();
+            if (!propertyDoc.empty) {
+                const propertyId = propertyDoc.docs[0].id;
                 const unitRef = this.propertiesCollection.doc(propertyId).collection('units').doc(tenant.currentUnitId);
                 transaction.update(unitRef, { isOccupied: false, tenantId: admin.firestore.FieldValue.delete() });
             }
