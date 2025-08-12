@@ -115,7 +115,20 @@ const generateInvoiceFlow = ai.defineFlow(
         currency: (property as any).currency || 'Ksh',
     };
 
-    const {output} = await prompt(promptInput);
-    return output!;
+    const maxRetries = 3;
+    let attempt = 0;
+    while (attempt < maxRetries) {
+      try {
+        const {output} = await prompt(promptInput);
+        return output!;
+      } catch (error: any) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+      }
+    }
+    throw new Error('Failed to generate invoice after multiple retries.');
   }
 );
