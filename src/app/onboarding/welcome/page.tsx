@@ -11,7 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Rocket, User, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
+import { Stepper } from '@/components/ui/stepper';
+
+const onboardingSteps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'add-property', label: 'Add Property' },
+    { id: 'add-manager', label: 'Add Manager' },
+    { id: 'add-tenant', label: 'Add Tenant' },
+    { id: 'complete', label: 'Complete' },
+];
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -40,8 +48,10 @@ export default function WelcomePage() {
 
   return (
     <div className="flex-1 p-4 md:p-8">
-      <div className="mx-auto max-w-2xl space-y-4">
-        <Progress value={0} className="w-full" />
+      <div className="mx-auto max-w-2xl space-y-8">
+         <div className="hidden sm:block">
+            <Stepper steps={onboardingSteps} currentStep={-1} />
+        </div>
         <Card className="w-full text-center">
           <CardHeader>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">

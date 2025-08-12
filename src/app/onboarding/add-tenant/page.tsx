@@ -11,8 +11,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
 import { useOnboardingForm } from '@/hooks/use-onboarding-form';
+import { Stepper } from '@/components/ui/stepper';
+
+const onboardingSteps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'add-property', label: 'Add Property' },
+    { id: 'add-manager', label: 'Add Manager' },
+    { id: 'add-tenant', label: 'Add Tenant' },
+    { id: 'complete', label: 'Complete' },
+];
 
 const InviteTenantFormSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -43,8 +51,8 @@ export default function AddTenantPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="mx-auto max-w-2xl space-y-4">
-        <Progress value={80} className="w-full" />
+      <div className="mx-auto max-w-2xl space-y-8">
+        <Stepper steps={onboardingSteps} currentStep={3} />
         <Card>
           <CardHeader>
             <CardTitle>Step 4: Invite a Tenant</CardTitle>

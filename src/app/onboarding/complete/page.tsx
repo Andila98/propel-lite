@@ -5,9 +5,17 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2 } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { useEffect } from 'react';
 import { clearOnboardingData } from '@/hooks/use-onboarding-form';
+import { Stepper } from '@/components/ui/stepper';
+
+const onboardingSteps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'add-property', label: 'Add Property' },
+    { id: 'add-manager', label: 'Add Manager' },
+    { id: 'add-tenant', label: 'Add Tenant' },
+    { id: 'complete', label: 'Complete' },
+];
 
 export default function OnboardingCompletePage() {
 
@@ -18,8 +26,8 @@ export default function OnboardingCompletePage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-       <div className="mx-auto max-w-2xl space-y-4">
-        <Progress value={100} className="w-full" />
+       <div className="mx-auto max-w-2xl space-y-8">
+        <Stepper steps={onboardingSteps} currentStep={4} />
         <Card className="w-full text-center">
             <CardHeader>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">

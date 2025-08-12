@@ -11,10 +11,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
 import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { Stepper } from '@/components/ui/stepper';
+
+const onboardingSteps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'add-property', label: 'Add Property' },
+    { id: 'add-manager', label: 'Add Manager' },
+    { id: 'add-tenant', label: 'Add Tenant' },
+    { id: 'complete', label: 'Complete' },
+];
 
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -48,8 +56,8 @@ export default function AddPropertyManagerPage() {
   return (
     <div className="container mx-auto p-4 md:p-8">
       <TooltipProvider>
-        <div className="mx-auto max-w-2xl space-y-4">
-          <Progress value={60} className="w-full" />
+        <div className="mx-auto max-w-2xl space-y-8">
+          <Stepper steps={onboardingSteps} currentStep={2} />
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">

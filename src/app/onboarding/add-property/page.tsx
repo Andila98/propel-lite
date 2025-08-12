@@ -3,15 +3,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 import { PropertyForm } from '@/components/property-form';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { Stepper } from '@/components/ui/stepper';
+
+const onboardingSteps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'add-property', label: 'Add Property' },
+    { id: 'add-manager', label: 'Add Manager' },
+    { id: 'add-tenant', label: 'Add Tenant' },
+    { id: 'complete', label: 'Complete' },
+];
 
 export default function AddPropertyPage() {
   const router = useRouter();
@@ -80,8 +86,8 @@ export default function AddPropertyPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <Progress value={40} className="w-full" />
+      <div className="mx-auto max-w-4xl space-y-8">
+        <Stepper steps={onboardingSteps} currentStep={1} />
          <PropertyForm 
             form={formFromHook}
             onSubmit={onSubmit}

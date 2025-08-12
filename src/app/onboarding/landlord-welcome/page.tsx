@@ -5,12 +5,20 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Rocket, Sparkles, PlayCircle } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { clearOnboardingData } from '@/hooks/use-onboarding-form';
 import { useEffect } from 'react';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Stepper } from '@/components/ui/stepper';
+
+const onboardingSteps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'add-property', label: 'Add Property' },
+    { id: 'add-manager', label: 'Add Manager' },
+    { id: 'add-tenant', label: 'Add Tenant' },
+    { id: 'complete', label: 'Complete' },
+];
+
 
 export default function LandlordWelcomePage() {
   const router = useRouter();
@@ -41,8 +49,8 @@ export default function LandlordWelcomePage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <Progress value={20} className="w-full" />
+      <div className="mx-auto max-w-4xl space-y-8">
+        <Stepper steps={onboardingSteps} currentStep={0} />
         <Card className="w-full">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
