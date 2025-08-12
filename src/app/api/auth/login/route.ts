@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { getTokens } from 'next-firebase-auth-edge/lib/next/tokens';
 import { authConfig } from '@/config/server-config';
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error("Login API Error:", error);
+    console.error("[LOGIN_ERROR]", error);
     const message = error.message || 'Internal Server Error';
     return NextResponse.json({ error: message }, { status: 500 });
   }

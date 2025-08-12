@@ -45,7 +45,9 @@ export async function POST(req: NextRequest) {
         if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'This email is already in use.' }, { status: 409 });
         }
-        throw error;
+        // Log other auth creation errors
+        console.error('[ACCEPT_INVITE_AUTH_ERROR]', error);
+        throw new Error('Failed to create Firebase Auth user.');
     }
 
     await getAuth().setCustomUserClaims(userRecord.uid, {
@@ -71,6 +73,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Manager account created successfully' }, { status: 201 });
   } catch (error: any) {
     console.error('[ACCEPT_INVITE_ERROR]', error);
-    return NextResponse.json({ error: 'Failed to create manager account.' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to create manager account.' }, { status: 500 });
   }
 }
