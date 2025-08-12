@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getTokens } from 'next-firebase-auth-edge';
+import { getTokens } from 'next-firebase-auth-edge/lib/next/tokens';
 import { authConfig } from './config/server-config';
 
 export async function middleware(request: NextRequest) {
@@ -36,7 +36,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // For all other paths, check for authentication
-  const tokens = await getTokens(request, authConfig);
+  const tokens = await getTokens(request, {
+    ...authConfig,
+    // The `apiKey` is required on the server when calling `getTokens`
+    apiKey: authConfig.apiKey, 
+  });
 
   // If no valid tokens are found, redirect to the login page
   if (!tokens) {
