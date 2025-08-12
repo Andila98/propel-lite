@@ -7,9 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const { idToken } = await request.json();
 
-    const tokens = await getTokens(idToken, {
-      ...authConfig,
-    });
+    const tokens = await getTokens(idToken, authConfig);
 
     const response = NextResponse.json({
         success: true,
