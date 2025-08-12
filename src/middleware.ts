@@ -36,11 +36,22 @@ export async function middleware(request: NextRequest) {
   }
 
   // For all other paths, check for authentication
-  const tokens = await getTokens(request, {
-    ...authConfig,
-    // The `apiKey` is required on the server when calling `getTokens`
-    apiKey: authConfig.apiKey, 
-  });
+  let tokens;
+  try {
+    console.log('Attempting to get tokens...');
+    tokens = await getTokens(request, {
+      ...authConfig,
+      // The `apiKey` is required on the server when calling `getTokens`
+      apiKey: authConfig.apiKey, 
+    });
+    console.log('Tokens received:', !!tokens);
+  } catch (error) {
+    console.error('Token error:', error);
+    // If there's an error getting tokens, treat as unauthenticated
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
 
   // If no valid tokens are found, redirect to the login page
   if (!tokens) {
