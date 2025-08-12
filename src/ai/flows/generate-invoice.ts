@@ -123,12 +123,15 @@ const generateInvoiceFlow = ai.defineFlow(
         return output!;
       } catch (error: any) {
         attempt++;
+        console.error(`[generateInvoiceFlow] Attempt ${attempt} failed:`, error);
         if (attempt >= maxRetries) {
-          throw error;
+          throw new Error('Failed to generate invoice after multiple retries.');
         }
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     }
+    // This line should not be reachable, but it's here for type safety.
     throw new Error('Failed to generate invoice after multiple retries.');
   }
 );
