@@ -1,12 +1,18 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
-import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import { v4 as uuid } from 'uuid';
+import { getTokens } from 'next-firebase-auth-edge';
+import { authConfig } from '@/config/server-config';
 
-export const POST = withRole(async (req: AuthenticatedRequest, { params }: { params: { id: string } }) => {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { uid: landlordId } = req.user;
+    const tokens = await getTokens(req, authConfig);
+    if (!tokens || tokens.decodedToken.role !== 'landlord') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { uid: landlordId } = tokens.decodedToken;
     const propertyId = params.id;
     const unitData = await req.json();
 
@@ -29,7 +35,6 @@ export const POST = withRole(async (req: AuthenticatedRequest, { params }: { par
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
-    // Add the new unit to the 'units' subcollection.
     await propertyRef.collection('units').doc(unitId).set(newUnit);
 
     return NextResponse.json({ message: 'Unit added successfully', unitId }, { status: 201 });
@@ -37,4 +42,4 @@ export const POST = withRole(async (req: AuthenticatedRequest, { params }: { par
     console.error(`[ADD_UNIT_ERROR] for property ${params.id}:`, error);
     return NextResponse.json({ error: 'Failed to add unit' }, { status: 500 });
   }
-}, ['landlord']);
+}

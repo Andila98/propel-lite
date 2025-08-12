@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { getTokens } from 'next-firebase-auth-edge/lib/next/tokens';
 import { authConfig } from '@/config/server-config';

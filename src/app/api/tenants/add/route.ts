@@ -1,8 +1,9 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import { TenantService } from '@/services/tenant-service';
 import { z } from 'zod';
+import { getTokens } from 'next-firebase-auth-edge';
+import { authConfig } from '@/config/server-config';
 
 
 const CreateTenantSchema = z.object({
@@ -17,14 +18,15 @@ const CreateTenantSchema = z.object({
 
 const tenantService = new TenantService();
 
-// POST /api/tenants/add
-// Creates a new tenant. This route is protected and only accessible by landlords.
-export const POST = withRole(async (req: AuthenticatedRequest) => {
+export async function POST(req: NextRequest) {
     try {
-        const { uid: landlordId } = req.user;
+        const tokens = await getTokens(req, authConfig);
+        if (!tokens || tokens.decodedToken.role !== 'landlord') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const { uid: landlordId } = tokens.decodedToken;
         const body = await req.json();
 
-        // Validate the request body.
         const validationResult = CreateTenantSchema.safeParse(body);
         if (!validationResult.success) {
             return NextResponse.json(
@@ -46,4 +48,4 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
         }
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
-}, ['landlord']);
+}

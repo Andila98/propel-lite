@@ -1,12 +1,28 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
-import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
-import type { Property, Unit } from '@/lib/types';
+import { getTokens } from 'next-firebase-auth-edge';
+import { authConfig } from '@/config/server-config';
 
-export const PUT = withRole(async (req: AuthenticatedRequest, { params }: { params: { id: string; unitId: string } }) => {
+async function handler(
+    req: NextRequest, 
+    { params }: { params: { id: string; unitId: string } },
+    allowedRoles: string[]
+) {
+    const tokens = await getTokens(req, authConfig);
+    if (!tokens || !allowedRoles.includes(tokens.decodedToken.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return { tokens, params, req };
+}
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
   try {
-    const { uid: landlordId } = req.user;
+    const authResult = await handler(req, { params }, ['landlord']);
+    if (authResult instanceof NextResponse) return authResult;
+    const { tokens } = authResult;
+
+    const { uid: landlordId } = tokens.decodedToken;
     const { id: propertyId, unitId } = params;
     const updates = await req.json();
 
@@ -23,7 +39,6 @@ export const PUT = withRole(async (req: AuthenticatedRequest, { params }: { para
         return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
     }
     
-    // Ensure critical fields are not updated from the client
     delete updates.id;
     delete updates.propertyId;
     delete updates.landlordId;
@@ -39,11 +54,15 @@ export const PUT = withRole(async (req: AuthenticatedRequest, { params }: { para
     console.error(`[UPDATE_UNIT_ERROR] for property ${params.id}, unit ${params.unitId}:`, error);
     return NextResponse.json({ error: 'Failed to update unit' }, { status: 500 });
   }
-}, ['landlord']);
+}
 
-export const DELETE = withRole(async (req: AuthenticatedRequest, { params }: { params: { id: string; unitId: string } }) => {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
     try {
-        const { uid: landlordId } = req.user;
+        const authResult = await handler(req, { params }, ['landlord']);
+        if (authResult instanceof NextResponse) return authResult;
+        const { tokens } = authResult;
+
+        const { uid: landlordId } = tokens.decodedToken;
         const { id: propertyId, unitId } = params;
 
         const propertyRef = db.collection('properties').doc(propertyId);
@@ -67,4 +86,4 @@ export const DELETE = withRole(async (req: AuthenticatedRequest, { params }: { p
         console.error(`[DELETE_UNIT_ERROR] for property ${params.id}, unit ${params.unitId}:`, error);
         return NextResponse.json({ error: 'Failed to delete unit' }, { status: 500 });
     }
-}, ['landlord']);
+}
