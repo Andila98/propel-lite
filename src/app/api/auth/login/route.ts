@@ -35,6 +35,16 @@ export async function POST(request: NextRequest) {
       idToken: idToken,
     });
     
+    // Log successful login for monitoring
+    const clientIP = request.headers.get('x-forwarded-for') || request.ip || 'unknown';
+    console.log('[LOGIN_SUCCESS]', {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        role: userRole,
+        timestamp: new Date().toISOString(),
+        ip: clientIP,
+    });
+
     // 3. Enhanced Response
     const response = NextResponse.json({
         success: true,
