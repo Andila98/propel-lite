@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, TestTube2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { PropertyFormSchema } from '@/lib/schemas';
 import { useAuth } from '@/hooks/use-auth';
+import { Progress } from '@/components/ui/progress';
 
 // Using a simplified version of the schema for testing purposes.
 const TestFormSchema = PropertyFormSchema.pick({
@@ -31,22 +32,29 @@ export default function TestPropertyCreationPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState(0);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<TestFormValues>({
-    resolver: zodResolver(TestFormSchema),
-    defaultValues: {
-      name: "Test Property",
-      address: "123 Test Street, Nairobi",
-      type: "Apartment",
-      description: "This is a test property created to verify API integration.",
-      units: [{
-        unitNumber: "T1",
-        rent: 5000,
-        size: "1 Test Unit",
-        isOccupied: false,
-      }]
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      setProgress(0);
+      let step = 0;
+      timer = setInterval(() => {
+        step += 1;
+        setProgress(prev => {
+            const newProgress = prev + step;
+            if (newProgress > 95) {
+                clearInterval(timer);
+                return 95;
+            }
+            return newProgress;
+        });
+      }, 50);
     }
-  });
+    return () => {
+      clearInterval(timer);
+    };
+  }, [loading]);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,6 +100,7 @@ export default function TestPropertyCreationPage() {
         throw new Error(responseData.error || 'Test failed with an unknown error.');
       }
       
+      setProgress(100);
       setResult(responseData);
       toast({ title: "Test Passed!", description: `Property "${responseData.name}" created successfully.` });
 
@@ -149,8 +158,13 @@ export default function TestPropertyCreationPage() {
                 <CardTitle>Test Result</CardTitle>
                 <CardDescription>The API response will be displayed here.</CardDescription>
             </CardHeader>
-            <CardContent>
-                {loading && <div className="flex justify-center items-center h-48"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}
+            <CardContent className="space-y-4">
+                {loading && (
+                    <div className="flex flex-col items-center justify-center h-48 space-y-4">
+                        <p className="text-sm text-muted-foreground">Running test...</p>
+                        <Progress value={progress} className="w-full" />
+                    </div>
+                )}
                 
                 {error && (
                     <div className="flex flex-col items-center justify-center h-48 text-destructive text-center">
