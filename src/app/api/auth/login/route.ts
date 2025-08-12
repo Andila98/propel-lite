@@ -1,8 +1,8 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
+import { getTokens } from 'next-firebase-auth-edge/lib/next/tokens';
 import { getAuth } from 'firebase-admin/auth';
 import { authConfig } from '@/config/server-config';
-import { createAuthCookies } from 'next-firebase-auth-edge/lib/next/cookies';
 import { db } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
@@ -11,9 +11,8 @@ export async function POST(request: NextRequest) {
 
     const decodedToken = await getAuth().verifyIdToken(idToken);
 
-    // Fetch user from Firestore to get the most up-to-date role
     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    let userRole = 'tenant'; // Default role
+    let userRole = 'tenant';
     if (userDoc.exists) {
         const userData = userDoc.data();
         if (userData && userData.role) {
@@ -21,11 +20,12 @@ export async function POST(request: NextRequest) {
         }
     }
     
-    // Create a new decoded token with the updated role for the cookie
-    const tokenWithRole = { ...decodedToken, role: userRole };
-
-    const cookies = await createAuthCookies(tokenWithRole, {
+    const tokens = await getTokens(request, {
       ...authConfig,
+      apiKey: authConfig.apiKey,
+      debug: process.env.NODE_ENV === 'development',
+      isTokenValid: (decoded) => decoded.uid === decodedToken.uid,
+      idToken,
     });
     
     const response = NextResponse.json({
@@ -36,8 +36,14 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
     });
     
-    cookies.forEach((cookie) => {
-        response.cookies.set(cookie.name, cookie.value, cookie);
+    response.cookies.set({
+      name: authConfig.cookieName,
+      value: tokens?.token,
+      httpOnly: true,
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: authConfig.cookieSerializeOptions.maxAge,
     });
 
     return response;
