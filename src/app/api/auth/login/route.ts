@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const decodedToken = await getAuth().verifyIdToken(idToken);
 
     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    let userRole = 'tenant';
+    let userRole = 'tenant'; // Default role
     if (userDoc.exists) {
         const userData = userDoc.data();
         if (userData && userData.role) {
@@ -20,12 +20,11 @@ export async function POST(request: NextRequest) {
         }
     }
     
+    // The library expects the request object, not just the idToken string.
     const tokens = await getTokens(request, {
       ...authConfig,
-      apiKey: authConfig.apiKey,
-      debug: process.env.NODE_ENV === 'development',
-      isTokenValid: (decoded) => decoded.uid === decodedToken.uid,
       idToken,
+      isTokenValid: (decoded) => decoded.uid === decodedToken.uid,
     });
     
     const response = NextResponse.json({
@@ -41,8 +40,8 @@ export async function POST(request: NextRequest) {
       value: tokens?.token,
       httpOnly: true,
       path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: authConfig.cookieSerializeOptions.secure,
+      sameSite: authConfig.cookieSerializeOptions.sameSite,
       maxAge: authConfig.cookieSerializeOptions.maxAge,
     });
 
