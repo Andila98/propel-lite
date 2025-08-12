@@ -1,4 +1,3 @@
-
 // This file is machine-generated - edit with caution!
 'use server';
 /**
@@ -40,7 +39,12 @@ const GenerateInvoiceOutputSchema = z.object({
 export type GenerateInvoiceOutput = z.infer<typeof GenerateInvoiceOutputSchema>;
 
 export async function generateInvoice(input: GenerateInvoiceInput): Promise<GenerateInvoiceOutput> {
-  return generateInvoiceFlow(input);
+  try {
+    return await generateInvoiceFlow(input);
+  } catch (error: any) {
+    console.error(`[generateInvoice] Error: Failed to generate invoice for tenant ${input.tenantId}`, error);
+    throw new Error(`Failed to generate invoice: ${error.message}`);
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -81,13 +85,11 @@ const generateInvoiceFlow = ai.defineFlow(
     outputSchema: GenerateInvoiceOutputSchema,
   },
   async (input) => {
-    console.log("Backend: generateInvoiceFlow received input:", input);
     const tenantDoc = await db.collection('users').doc(input.tenantId).get();
     const propertyDoc = await db.collection('properties').doc(input.propertyId).get();
 
     if (!tenantDoc.exists || !propertyDoc.exists) {
       const errorMessage = `Tenant or Property not found for tenantId: ${input.tenantId}, propertyId: ${input.propertyId}`;
-      console.error(errorMessage);
       throw new Error(errorMessage);
     }
     
@@ -113,12 +115,7 @@ const generateInvoiceFlow = ai.defineFlow(
         currency: (property as any).currency || 'Ksh',
     };
 
-    try {
-        const {output} = await prompt(promptInput);
-        return output!;
-    } catch (error) {
-        console.error("Backend: Error executing generateInvoicePrompt:", error);
-        throw new Error("Failed to generate invoice from AI prompt.");
-    }
+    const {output} = await prompt(promptInput);
+    return output!;
   }
 );

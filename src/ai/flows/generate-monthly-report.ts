@@ -34,7 +34,12 @@ const GenerateMonthlyReportOutputSchema = z.object({
 export type GenerateMonthlyReportOutput = z.infer<typeof GenerateMonthlyReportOutputSchema>;
 
 export async function generateMonthlyReport(input: GenerateMonthlyReportInput): Promise<GenerateMonthlyReportOutput> {
-  return generateMonthlyReportFlow(input);
+  try {
+    return await generateMonthlyReportFlow(input);
+  } catch (error: any) {
+    console.error(`[generateMonthlyReport] Error: Failed to generate report for ${input.month}/${input.year}`, error);
+    throw new Error(`Failed to generate monthly report: ${error.message}`);
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -68,55 +73,49 @@ const generateMonthlyReportFlow = ai.defineFlow(
     outputSchema: GenerateMonthlyReportOutputSchema,
   },
   async (input) => {
-    console.log("Backend: generateMonthlyReportFlow received input:", input);
-    try {
-        const { month, year } = input;
-        const startDate = startOfMonth(new Date(year, month));
-        const endDate = endOfMonth(new Date(year, month));
+    const { month, year } = input;
+    const startDate = startOfMonth(new Date(year, month));
+    const endDate = endOfMonth(new Date(year, month));
 
-        const propertiesSnapshot = await db.collection('properties').get();
-        const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
-        const tenantsSnapshot = await db.collection('users').where('role', '==', 'tenant').get();
-        const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
+    const propertiesSnapshot = await db.collection('properties').get();
+    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
+    const tenantsSnapshot = await db.collection('users').where('role', '==', 'tenant').get();
+    const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
 
-        let totalUnits = 0;
-        for (const property of properties) {
-            const unitsSnapshot = await db.collection('properties').doc(property.id).collection('units').get();
-            totalUnits += unitsSnapshot.size;
-        }
-        
-        const occupiedUnits = tenants.filter(t => t.status === 'active').length;
-        
-        const paymentsSnapshot = await db.collection('payments')
-            .where('paidAt', '>=', startDate)
-            .where('paidAt', '<=', endDate)
-            .get();
-        const paymentsThisMonth = paymentsSnapshot.docs.map(doc => doc.data() as Payment);
-
-        const totalRevenue = paymentsThisMonth.reduce((acc, p) => acc + p.amount, 0);
-        const latePayments = paymentsThisMonth.filter(p => new Date(p.paidAt).getDate() > 5).length;
-        
-        const newMaintenanceRequests = Math.floor(Math.random() * 5);
-
-        const monthName = format(startDate, 'MMMM');
-        
-        const promptInput = {
-            monthName,
-            year,
-            totalProperties: properties.length,
-            totalUnits,
-            occupiedUnits,
-            totalRevenue,
-            paymentCount: paymentsThisMonth.length,
-            latePayments,
-            newMaintenanceRequests,
-        };
-
-        const { output } = await prompt(promptInput);
-        return output!;
-    } catch (error) {
-        console.error("Backend Error in generateMonthlyReportFlow:", error);
-        throw new Error("Failed to generate monthly report due to an internal error.");
+    let totalUnits = 0;
+    for (const property of properties) {
+        const unitsSnapshot = await db.collection('properties').doc(property.id).collection('units').get();
+        totalUnits += unitsSnapshot.size;
     }
+    
+    const occupiedUnits = tenants.filter(t => t.status === 'active').length;
+    
+    const paymentsSnapshot = await db.collection('payments')
+        .where('paidAt', '>=', startDate)
+        .where('paidAt', '<=', endDate)
+        .get();
+    const paymentsThisMonth = paymentsSnapshot.docs.map(doc => doc.data() as Payment);
+
+    const totalRevenue = paymentsThisMonth.reduce((acc, p) => acc + p.amount, 0);
+    const latePayments = paymentsThisMonth.filter(p => new Date(p.paidAt).getDate() > 5).length;
+    
+    const newMaintenanceRequests = Math.floor(Math.random() * 5);
+
+    const monthName = format(startDate, 'MMMM');
+    
+    const promptInput = {
+        monthName,
+        year,
+        totalProperties: properties.length,
+        totalUnits,
+        occupiedUnits,
+        totalRevenue,
+        paymentCount: paymentsThisMonth.length,
+        latePayments,
+        newMaintenanceRequests,
+    };
+
+    const { output } = await prompt(promptInput);
+    return output!;
   }
 );

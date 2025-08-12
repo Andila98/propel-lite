@@ -40,12 +40,11 @@ export type PrioritizedMaintenanceRequestList = z.infer<typeof PrioritizedMainte
 
 
 export async function prioritizeMaintenance(input: MaintenanceRequestList): Promise<PrioritizedMaintenanceRequestList> {
-  console.log("Backend: prioritizeMaintenance flow received input:", input.requests.length, "requests");
   try {
     return await prioritizeMaintenanceFlow(input);
-  } catch (error) {
-      console.error("Backend Error: Failed to prioritize maintenance requests:", error);
-      throw new Error("An error occurred during AI prioritization.");
+  } catch (error: any) {
+      console.error(`[prioritizeMaintenance] Error: Failed to prioritize ${input.requests.length} requests.`, error);
+      throw new Error(`Failed to prioritize maintenance requests: ${error.message}`);
   }
 }
 

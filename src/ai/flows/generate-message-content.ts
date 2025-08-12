@@ -27,13 +27,11 @@ const GenerateMessageContentOutputSchema = z.object({
 export type GenerateMessageContentOutput = z.infer<typeof GenerateMessageContentOutputSchema>;
 
 export async function generateMessageContent(input: GenerateMessageContentInput): Promise<GenerateMessageContentOutput> {
-  console.log("Backend: generateMessageContent flow received input:", input);
   try {
     return await generateMessageContentFlow(input);
-  } catch (error) {
-    console.error("Backend Error: Failed to generate message content:", error);
-    // Re-throw or handle as needed
-    throw new Error("An error occurred while generating the message content.");
+  } catch (error: any) {
+    console.error(`[generateMessageContent] Error: Failed to generate content for tenant ${input.tenantName}`, error);
+    throw new Error(`Failed to generate message content: ${error.message}`);
   }
 }
 

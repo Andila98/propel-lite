@@ -44,12 +44,11 @@ export type SuggestPropertyPriceOutput = z.infer<typeof SuggestPropertyPriceOutp
 export async function suggestPropertyPrice(
   input: SuggestPropertyPriceInput
 ): Promise<SuggestPropertyPriceOutput> {
-  console.log("Backend: suggestPropertyPrice flow received input:", input);
   try {
     return await suggestPropertyPriceFlow(input);
-  } catch(error) {
-    console.error("Backend Error: Failed to suggest property price:", error);
-    throw new Error("An error occurred while generating the price suggestion.");
+  } catch(error: any) {
+    console.error(`[suggestPropertyPrice] Error: Failed to get price for address "${input.address}"`, error);
+    throw new Error(`Failed to suggest property price: ${error.message}`);
   }
 }
 

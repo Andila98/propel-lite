@@ -25,12 +25,11 @@ const SummarizeTenantSentimentOutputSchema = z.object({
 export type SummarizeTenantSentimentOutput = z.infer<typeof SummarizeTenantSentimentOutputSchema>;
 
 export async function summarizeTenantSentiment(input: SummarizeTenantSentimentInput): Promise<SummarizeTenantSentimentOutput> {
-  console.log("Backend: summarizeTenantSentiment flow received input for tenant:", input.tenantId);
   try {
     return await summarizeTenantSentimentFlow(input);
-  } catch (error) {
-      console.error("Backend Error: Failed to summarize tenant sentiment:", error);
-      throw new Error("An error occurred during sentiment analysis.");
+  } catch (error: any) {
+      console.error(`[summarizeTenantSentiment] Error: Failed to summarize sentiment for tenant ${input.tenantId}`, error);
+      throw new Error(`Failed to summarize tenant sentiment: ${error.message}`);
   }
 }
 

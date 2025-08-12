@@ -33,7 +33,12 @@ const GenerateReceiptOutputSchema = z.object({
 export type GenerateReceiptOutput = z.infer<typeof GenerateReceiptOutputSchema>;
 
 export async function generateReceipt(input: GenerateReceiptInput): Promise<GenerateReceiptOutput> {
-  return generateReceiptFlow(input);
+  try {
+    return await generateReceiptFlow(input);
+  } catch (error: any) {
+    console.error(`[generateReceipt] Error: Failed to generate receipt for payment ${input.paymentId}`, error);
+    throw new Error(`Failed to generate receipt: ${error.message}`);
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -73,18 +78,15 @@ const generateReceiptFlow = ai.defineFlow(
     outputSchema: GenerateReceiptOutputSchema,
   },
   async (input) => {
-    console.log("Backend: generateReceiptFlow received input:", input);
     const tenantDoc = await db.collection('users').doc(input.tenantId).get();
     if (!tenantDoc.exists) {
-        console.error(`Tenant not found for id: ${input.tenantId}`);
-        throw new Error('Tenant not found');
+        throw new Error(`Tenant not found for id: ${input.tenantId}`);
     }
     const tenant = tenantDoc.data() as Tenant;
     
     const paymentDoc = await db.collection('payments').doc(input.paymentId).get();
     if (!paymentDoc.exists) {
-        console.error(`Payment not found for id: ${input.paymentId}`);
-        throw new Error('Payment not found');
+        throw new Error(`Payment not found for id: ${input.paymentId}`);
     }
     const payment = paymentDoc.data() as Payment;
 
@@ -94,8 +96,7 @@ const generateReceiptFlow = ai.defineFlow(
     
     const propertyDoc = await db.collection('properties').doc(payment.propertyId).get();
     if (!propertyDoc.exists) {
-        console.error(`Property not found for id: ${payment.propertyId}`);
-        throw new Error('Property not found');
+        throw new Error(`Property not found for id: ${payment.propertyId}`);
     }
     const property = propertyDoc.data() as Property;
 
@@ -109,12 +110,7 @@ const generateReceiptFlow = ai.defineFlow(
         currency: (property as any).currency || 'Ksh',
     };
 
-    try {
-        const {output} = await prompt(promptInput);
-        return output!;
-    } catch(error) {
-        console.error("Backend: Error executing generateReceiptPrompt:", error);
-        throw new Error("Failed to generate receipt from AI prompt.");
-    }
+    const {output} = await prompt(promptInput);
+    return output!;
   }
 );
