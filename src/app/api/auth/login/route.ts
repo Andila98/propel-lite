@@ -1,23 +1,24 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTokens } from 'next-firebase-auth-edge/lib/next/tokens';
+import { getTokensFromIdToken } from 'next-firebase-auth-edge/lib/next/tokens';
 import { authConfig } from '@/config/server-config';
 
 export async function POST(request: NextRequest) {
   try {
     const { idToken } = await request.json();
 
-    const tokens = await getTokens(idToken, authConfig);
+    const { decodedToken, token, cookie } = await getTokensFromIdToken(idToken, authConfig);
 
     const response = NextResponse.json({
         success: true,
-        role: tokens.decodedToken.role
+        role: decodedToken.role
     }, {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Set-Cookie': cookie,
+       },
     });
-
-    response.cookies.set(tokens.cookie);
 
     return response;
 
