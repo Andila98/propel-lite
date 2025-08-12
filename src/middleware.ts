@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const tokens = await getTokens(request.cookies, {
+  const tokens = await getTokens(request, {
     ...authConfig,
   });
 
