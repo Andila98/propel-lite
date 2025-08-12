@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
         }
     }
     
+    // The library expects the raw request object, not just the body.
     const tokens = await getTokens(request, {
       ...authConfig,
-      idToken: idToken,
+      idToken,
     });
     
     // Log successful login for monitoring
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     
     response.cookies.set({
       name: authConfig.cookieName,
-      value: tokens?.token,
+      value: tokens.token,
       httpOnly: true,
       path: '/',
       secure: authConfig.cookieSerializeOptions.secure,
@@ -68,7 +69,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     // 2. More Comprehensive Error Handling
-    console.error("[LOGIN_ERROR]", error);
+    console.error("[LOGIN_ERROR]", {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
 
     if (error instanceof SyntaxError) {
       return NextResponse.json(
