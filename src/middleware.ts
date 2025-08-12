@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // For all other paths, check for authentication
-  const tokens = await getTokens(req, authConfig);
+  const tokens = await getTokens(req.cookies, authConfig);
 
   // If no token, redirect to login for any protected page
   if (!tokens) {
