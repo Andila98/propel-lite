@@ -1,20 +1,22 @@
-import { NextResponse } from 'next/server';
-import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
+import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/firebase-admin';
-import type { PropertyManager, Property } from '@/lib/types';
+import type { PropertyManager, Property } from 'src/services/property-service';
+import { getTokens } from 'next-firebase-auth-edge';
+import { authConfig } from '@/config/server-config';
 
-export const GET = withRole(async (req: AuthenticatedRequest) => {
-  const { uid: managerId } = req.user;
-
+export async function GET(req: NextRequest) {
   try {
-    // First, get the list of properties the manager is assigned to
+    const tokens = await getTokens(req, authConfig);
+    if (!tokens || tokens.decodedToken.role !== 'manager') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const managerId = tokens.decodedToken.uid;
+
     const managerDoc = await db.collection('users').doc(managerId).get();
     if (!managerDoc.exists) {
         return NextResponse.json({ error: 'Manager profile not found.' }, { status: 404 });
     }
     
-    // In our app, the list of managed properties is on the manager document
-    // This is a mock implementation detail; a real app might fetch this from the user's claims or another source
     const managerData = managerDoc.data() as PropertyManager; 
     const managedPropertyIds = managerData.propertiesManaged || [];
 
@@ -22,8 +24,6 @@ export const GET = withRole(async (req: AuthenticatedRequest) => {
         return NextResponse.json([]);
     }
 
-    // Fetch all properties assigned to this manager.
-    // Firestore's 'in' query is limited to 30 items. For more, you'd need multiple queries.
     const propertiesSnapshot = await db.collection('properties')
         .where(db.FieldPath.documentId(), 'in', managedPropertyIds)
         .get();
@@ -33,8 +33,10 @@ export const GET = withRole(async (req: AuthenticatedRequest) => {
     return NextResponse.json(properties);
 
   } catch (error: any) {
-    console.error(`[MANAGER_PROPERTIES_ERROR] for manager ${managerId}:`, error);
+    console.error(`[MANAGER_PROPERTIES_ERROR]:`, error);
+     if (error.message.includes('Auth cookie could not be found')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-
-}, ['manager']);
+}

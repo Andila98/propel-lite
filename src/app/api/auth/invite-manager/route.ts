@@ -1,19 +1,23 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
-import { withRole, type AuthenticatedRequest } from '@/lib/middleware/withRole';
 import { randomBytes } from 'crypto';
+import { getTokens } from 'next-firebase-auth-edge';
+import { authConfig } from '@/config/server-config';
 
-export const POST = withRole(async (req: AuthenticatedRequest) => {
+export async function POST(req: NextRequest) {
   try {
-    const { uid: landlordId } = req.user;
+    const tokens = await getTokens(req, authConfig);
+    if (!tokens || tokens.decodedToken.role !== 'landlord') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const landlordId = tokens.decodedToken.uid;
 
     const { email } = await req.json();
     if (!email) {
         return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
     
-    // In a real application, consider a more robust token generation strategy.
     const token = randomBytes(32).toString('hex');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
@@ -28,12 +32,12 @@ export const POST = withRole(async (req: AuthenticatedRequest) => {
       expiresAt,
     });
     
-    // In a real app, you would also trigger an email service here to send the invite link.
-    // e.g., sendInviteEmail(email, token);
-
     return NextResponse.json({ message: 'Invitation sent successfully.', token });
   } catch (err: any) {
     console.error('[INVITE_MANAGER_ERROR]', err);
+    if (err.message.includes('Auth cookie could not be found')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Failed to send invitation' }, { status: 500 });
   }
-}, ['landlord']);
+}

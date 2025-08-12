@@ -1,128 +1,83 @@
-import type { FieldValue } from 'firebase-admin/firestore';
-
-export interface Document {
-  name: string;
-  url: string;
-}
-
-export interface Unit {
-  id: string; // Document ID
-  propertyId: string;
-  landlordId: string;
-  unitNumber: string;
-  rent: number;
-  size?: string; // e.g. "500 sqft"
-  isOccupied: boolean;
-  tenantId?: string;
-  gallery?: string[];
-  documents?: Document[];
-}
-
-export interface Property {
-  id: string; // Document ID
-  name: string;
-  type: 'Apartment' | 'House' | 'Bedsitter';
-  address: string;
-  landlordId: string;
-  managerId?: string;
-  createdAt: FieldValue;
-  imageUrl?: string;
-  description: string;
-  currency?: string; // e.g., 'KES', 'USD', 'EUR'
-  // Units are now in their own collection
-}
-
-export interface Payment {
-  id: string; // Document ID
-  tenantId: string;
-  landlordId: string;
-  propertyId: string;
-  unitId: string;
-  amount: number;
-  status: 'pending' | 'confirmed' | 'failed';
-  method: 'Mpesa' | 'Stripe' | 'Manual';
-  txRef: string; // transaction code
-  paidAt: any; // Timestamp
-  receiptUrl?: string;
-}
-
-export interface Message {
-  id: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: any; // Can be Date, Firestore Timestamp, or string
-  isRead?: boolean;
-}
-
-export interface User {
-    uid: string,
-    email: string,
-    name: string,
-    role: 'landlord' | 'tenant' | 'manager' | 'superadmin',
-    phone?: string,
-    landlordId?: string,  // for managers & tenants
-    createdAt: any, // Timestamp
-    status?: 'active' | 'invited' | 'suspended'
-}
-
-export interface Tenant extends User {
-  role: 'tenant',
-  currentUnitId?: string,
-  leaseStart: any, // Timestamp
-  leaseEnd?: any, // Timestamp
-  status: 'active' | 'moved-out',
-}
-
-
-export const permissionLabels: Record<string, string> = {
-  canEditProperties: "Edit property details",
-  canDeleteProperties: "Delete properties",
-  canAddTenants: "Add and assign tenants",
-  canEditTenants: "Edit tenant information",
-  canDeleteTenants: "Remove tenants",
-  canViewPayments: "View financial records and payments",
-  canManageManagers: "Add, edit, and remove other managers",
-  canManageSettings: "Access and modify application settings",
-};
-export type Permission = keyof typeof permissionLabels;
-
-export interface PropertyManager {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  avatarUrl: string;
-  accessLevel: 'Full Manager' | 'Limited Staff';
-  propertiesManaged: string[];
-  permissions: Record<Permission, boolean>;
-}
-
-export interface ActivityItem {
-    id:string;
-    type: 'new-tenant' | 'rent-paid' | 'lease-ending' | 'income-drop' | 'vacancy-rate';
-    description: string;
-    date: string;
-}
-
-export interface AuditLog {
-  id: string;
-  managerName: string;
-  action: string;
-  entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
-  entityName: string;
-  timestamp: string;
-}
-
-export interface MaintenanceRequest {
-  id: string;
-  tenantId: string;
-  tenantName: string;
-  propertyId: string;
-  propertyAddress: string;
-  description: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
-  priority?: 'High' | 'Medium' | 'Low';
-  reasoning?: string;
-  submittedDate: string;
+{
+  "name": "nextn",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack -p 9002",
+    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
+    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx scripts/seedFirestore.ts"
+  },
+  "dependencies": {
+    "@genkit-ai/googleai": "^1.14.1",
+    "@genkit-ai/next": "^1.14.1",
+    "@hookform/resolvers": "^4.1.3",
+    "@radix-ui/react-accordion": "^1.2.3",
+    "@radix-ui/react-alert-dialog": "^1.1.6",
+    "@radix-ui/react-avatar": "^1.1.3",
+    "@radix-ui/react-checkbox": "^1.1.4",
+    "@radix-ui/react-collapsible": "^1.1.11",
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-dropdown-menu": "^2.1.6",
+    "@radix-ui/react-label": "^2.1.2",
+    "@radix-ui/react-menubar": "^1.1.6",
+    "@radix-ui/react-popover": "^1.1.6",
+    "@radix-ui/react-progress": "^1.1.2",
+    "@radix-ui/react-radio-group": "^1.2.3",
+    "@radix-ui/react-scroll-area": "^1.2.3",
+    "@radix-ui/react-select": "^2.1.6",
+    "@radix-ui/react-separator": "^1.1.2",
+    "@radix-ui/react-slider": "^1.2.3",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.1.3",
+    "@radix-ui/react-tabs": "^1.1.3",
+    "@radix-ui/react-toast": "^1.2.6",
+    "@radix-ui/react-tooltip": "^1.1.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
+    "embla-carousel-autoplay": "^8.2.0",
+    "embla-carousel-react": "^8.6.0",
+    "firebase": "^10.12.2",
+    "firebase-admin": "^12.7.0",
+    "framer-motion": "^11.5.1",
+    "genkit": "^1.14.1",
+    "i18next": "^23.11.5",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "lucide-react": "^0.475.0",
+    "motion": "^10.18.0",
+    "next": "15.3.3",
+    "next-firebase-auth-edge": "^1.4.2",
+    "next-themes": "^0.3.0",
+    "papaparse": "^5.4.1",
+    "patch-package": "^8.0.0",
+    "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.54.2",
+    "react-i18next": "^14.1.2",
+    "recharts": "^2.15.1",
+    "tailwind-merge": "^3.0.1",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^10.0.0",
+    "wav": "^1.0.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/papaparse": "^5.3.14",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
+    "genkit-cli": "^1.14.1",
+    "typescript": "^5.5.4",
+    "postcss": "^8.4.40",
+    "tailwindcss": "^3.4.7",
+    "tsx": "^4.16.2"
+  }
 }

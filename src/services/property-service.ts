@@ -7,8 +7,45 @@
  */
 
 import { db, admin } from '@/lib/firebase-admin';
-import type { Property, Unit } from '@/lib/types';
 import { v4 as uuid } from 'uuid';
+import type { FieldValue } from 'firebase-admin/firestore';
+
+// Types moved here for co-location with the service that uses them.
+
+export interface Unit {
+  id: string;
+  propertyId: string;
+  landlordId: string;
+  unitNumber: string;
+  rent: number;
+  size?: string;
+  isOccupied: boolean;
+  tenantId?: string;
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  type: 'Apartment' | 'House' | 'Bedsitter';
+  address: string;
+  landlordId: string;
+  managerId?: string;
+  createdAt: FieldValue;
+  imageUrl?: string;
+  description: string;
+  currency?: string;
+}
+
+export interface PropertyManager {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatarUrl: string;
+  accessLevel: 'Full Manager' | 'Limited Staff';
+  propertiesManaged: string[];
+}
+
 
 class PropertyService {
   private propertiesCollection = db.collection('properties');
