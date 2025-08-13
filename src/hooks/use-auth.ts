@@ -2,16 +2,37 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client-app';
+import { useRouter } from 'next/navigation';
 
-// This is a placeholder auth hook.
 export function useAuth() {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    // In a real app, you'd check for a session here.
-    setLoading(false);
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
 
-  return { user, loading };
+    return () => unsubscribe();
+  }, []);
+  
+  const logout = async () => {
+      try {
+        await auth.signOut();
+        await fetch('/api/auth/logout', { method: 'POST' });
+        router.push('/login');
+      } catch (error) {
+        console.error("Error during logout:", error);
+      }
+  };
+
+  return { user, loading, logout };
 }

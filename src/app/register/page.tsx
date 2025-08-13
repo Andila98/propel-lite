@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,13 +33,35 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    toast({
-        title: "Registration Unavailable",
-        description: "Firebase is not configured. Cannot create an account.",
-        variant: "destructive",
-    });
+    try {
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ displayName, email, password }),
+        });
 
-    setIsLoading(false);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create account.');
+        }
+
+        toast({
+            title: "Account Created!",
+            description: "Your account has been successfully created. Please log in.",
+        });
+        router.push('/login');
+
+    } catch (error: any) {
+        console.error("Registration Error:", error);
+        toast({
+            title: "Registration Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
   
   const handleSocialLogin = (provider: string) => {
@@ -60,54 +82,56 @@ export default function RegisterPage() {
           <CardDescription>Get started managing your properties today.</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
-          <CardContent className="space-y-4">
-             <div className="space-y-2">
-              <Label htmlFor="displayName">Full Name</Label>
-              <Input
-                id="displayName"
-                type="text"
-                placeholder="John Doe"
-                required
-                autoComplete="name"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 relative">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type={showPassword ? "text" : "password"}
-                required
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-muted-foreground"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-             <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Account"}
-             </Button>
-          </CardContent>
+          <fieldset disabled={isLoading} className="space-y-4">
+            <CardContent className="space-y-4">
+               <div className="space-y-2">
+                <Label htmlFor="displayName">Full Name</Label>
+                <Input
+                  id="displayName"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  autoComplete="name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 relative">
+                <Label htmlFor="password">Password</Label>
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-9 text-muted-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+               <Button type="submit" className="w-full">
+                  {isLoading ? <Loader2 className="animate-spin" /> : "Create Account"}
+               </Button>
+            </CardContent>
+          </fieldset>
         </form>
         
         <div className="relative my-4">
