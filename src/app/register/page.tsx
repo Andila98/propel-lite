@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,6 @@ import { Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,41 +33,13 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          displayName,
-          role: 'landlord', // Defaulting to landlord signup
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create account.');
-      }
-
-      toast({
-        title: "Account Created!",
-        description: "Redirecting you to the login page...",
-      });
-
-      router.push('/login');
-
-    } catch (error: any) {
-      console.error("Registration Error:", error);
-      toast({
-        title: "Registration Failed",
-        description: error.message,
+    toast({
+        title: "Registration Unavailable",
+        description: "Firebase is not configured. Cannot create an account.",
         variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    });
+
+    setIsLoading(false);
   };
   
   const handleSocialLogin = (provider: string) => {

@@ -18,8 +18,6 @@ import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon, GithubIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
@@ -34,63 +32,13 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+    toast({
+        title: "Login Unavailable",
+        description: "Firebase is not configured. Cannot log in.",
+        variant: "destructive",
+    });
 
-        const idToken = await user.getIdToken();
-        
-        const serverResponse = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-        });
-
-        if (!serverResponse.ok) {
-            const errorData = await serverResponse.json();
-            throw new Error(errorData.error || "Failed to create server session.");
-        }
-        
-        const { role } = await serverResponse.json();
-
-        toast({
-            title: "Login Successful",
-            description: "Redirecting to your dashboard...",
-        });
-
-        if (role === 'tenant') {
-            router.push('/tenant-portal');
-        } else {
-            router.push('/');
-        }
-
-    } catch (error: any) {
-        console.error("Login Error:", error);
-        let errorMessage = "An unknown error occurred.";
-        if (error.code) { 
-            switch (error.code) {
-                case 'auth/user-not-found':
-                case 'auth/wrong-password':
-                case 'auth/invalid-credential':
-                    errorMessage = 'Invalid email or password. Please try again.';
-                    break;
-                case 'auth/too-many-requests':
-                    errorMessage = 'Too many login attempts. Please try again later.';
-                    break;
-                default:
-                    errorMessage = 'Login failed. Please check your credentials.';
-            }
-        } else {
-             errorMessage = error.message;
-        }
-        toast({
-            title: "Login Failed",
-            description: errorMessage,
-            variant: "destructive",
-        });
-    } finally {
-        setIsLoading(false);
-    }
+    setIsLoading(false);
   };
   
   const handleSocialLogin = (provider: string) => {
