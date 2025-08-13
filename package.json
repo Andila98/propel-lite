@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "seed:users": "tsx scripts/seed-users.ts",
+    "seed:user": "tsx scripts/seed-users.ts",
+    "seed:landlord": "tsx scripts/seed-users.ts landlord@example.com landlord",
+    "seed:tenant": "tsx scripts/seed-users.ts tenant@example.com tenant"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -49,7 +53,7 @@
     "next": "^15.4.5",
     "next-firebase-auth-edge": "^1.4.2",
     "next-themes": "^0.3.0",
-    "papaparse": "^5.4.1",
+    "papaparse": "^5.3.14",
     "patch-package": "^8.0.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
