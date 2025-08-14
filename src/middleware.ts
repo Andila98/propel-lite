@@ -74,11 +74,10 @@ export async function middleware(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error('[MIDDLEWARE_ERROR]', {
+    console.error('[MIDDLEWARE_ERROR] Invalid token or session expired. Redirecting to login.', {
       pathname,
-      message: error.message,
-      code: error.code,
-      stack: error.stack.substring(0, 300) + '...',
+      errorMessage: error.message,
+      errorCode: error.code,
     });
     
     const url = request.nextUrl.clone();
