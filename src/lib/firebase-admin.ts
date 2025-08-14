@@ -1,11 +1,6 @@
 
 import * as admin from 'firebase-admin';
 
-// Load environment variables from a .env file
-if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').config({ path: '.env' });
-}
-
 const serviceAccount: admin.ServiceAccount = {
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
