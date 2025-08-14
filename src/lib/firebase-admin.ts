@@ -1,9 +1,5 @@
-
+import 'dotenv/config';
 import * as admin from 'firebase-admin';
-import * as dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config({ path: '.env' });
 
 const serviceAccount: admin.ServiceAccount = {
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,

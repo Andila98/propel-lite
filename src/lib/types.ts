@@ -1,83 +1,140 @@
-{
-  "name": "nextn",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack -p 9002",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "seed": "tsx scripts/seedFirestore.ts"
-  },
-  "dependencies": {
-    "@genkit-ai/googleai": "^1.14.1",
-    "@genkit-ai/next": "^1.14.1",
-    "@hookform/resolvers": "^4.1.3",
-    "@radix-ui/react-accordion": "^1.2.3",
-    "@radix-ui/react-alert-dialog": "^1.1.6",
-    "@radix-ui/react-avatar": "^1.1.3",
-    "@radix-ui/react-checkbox": "^1.1.4",
-    "@radix-ui/react-collapsible": "^1.1.11",
-    "@radix-ui/react-dialog": "^1.1.6",
-    "@radix-ui/react-dropdown-menu": "^2.1.6",
-    "@radix-ui/react-label": "^2.1.2",
-    "@radix-ui/react-menubar": "^1.1.6",
-    "@radix-ui/react-popover": "^1.1.6",
-    "@radix-ui/react-progress": "^1.1.2",
-    "@radix-ui/react-radio-group": "^1.2.3",
-    "@radix-ui/react-scroll-area": "^1.2.3",
-    "@radix-ui/react-select": "^2.1.6",
-    "@radix-ui/react-separator": "^1.1.2",
-    "@radix-ui/react-slider": "^1.2.3",
-    "@radix-ui/react-slot": "^1.2.3",
-    "@radix-ui/react-switch": "^1.1.3",
-    "@radix-ui/react-tabs": "^1.1.3",
-    "@radix-ui/react-toast": "^1.2.6",
-    "@radix-ui/react-tooltip": "^1.1.8",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "date-fns": "^3.6.0",
-    "dotenv": "^16.5.0",
-    "embla-carousel-autoplay": "^8.2.0",
-    "embla-carousel-react": "^8.6.0",
-    "firebase": "^10.12.2",
-    "firebase-admin": "^12.7.0",
-    "framer-motion": "^11.5.1",
-    "genkit": "^1.14.1",
-    "i18next": "^23.11.5",
-    "i18next-browser-languagedetector": "^8.0.0",
-    "lucide-react": "^0.475.0",
-    "motion": "^10.18.0",
-    "next": "15.3.3",
-    "next-firebase-auth-edge": "^1.4.2",
-    "next-themes": "^0.3.0",
-    "papaparse": "^5.4.1",
-    "patch-package": "^8.0.0",
-    "react": "^18.3.1",
-    "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.2",
-    "react-i18next": "^14.1.2",
-    "recharts": "^2.15.1",
-    "tailwind-merge": "^3.0.1",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^10.0.0",
-    "wav": "^1.0.2",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@types/node": "^20",
-    "@types/papaparse": "^5.3.14",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "@types/uuid": "^10.0.0",
-    "genkit-cli": "^1.14.1",
-    "typescript": "^5.5.4",
-    "postcss": "^8.4.40",
-    "tailwindcss": "^3.4.7",
-    "tsx": "^4.16.2"
-  }
+import type { Timestamp } from "firebase-admin/firestore";
+
+export interface User {
+    uid: string;
+    email: string;
+    name: string;
+    role: 'landlord' | 'tenant' | 'admin';
+    landlordId?: string; // For tenants and managers
+    createdAt: Date;
+    avatarUrl?: string;
+}
+
+export interface Property {
+    id: string;
+    name: string;
+    address: string;
+    type: 'Apartment' | 'House' | 'Bedsitter';
+    landlordId: string;
+    imageUrl: string;
+    description: string;
+    rent: number;
+    currency: string;
+    bedrooms: number;
+    bathrooms: number;
+    propertyType: 'Apartment' | 'House' | 'Bedsitter';
+    units: Unit[];
+    createdAt: Timestamp;
+}
+
+export interface Unit {
+    id: string;
+    propertyId: string;
+    landlordId: string;
+    unitNumber: string;
+    rent: number;
+    size: string;
+    isOccupied: boolean;
+    tenantId?: string;
+}
+
+export interface Tenant {
+    id: string;
+    uid: string;
+    name: string;
+    email: string;
+    phone?: string;
+    avatarUrl?: string;
+    propertyId: string;
+    leaseStartDate: string | Date;
+    leaseEndDate: string | Date;
+    rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance';
+    paymentHistory: Payment[];
+    landlordId: string;
+    currentUnitId?: string;
+    leaseStart: Timestamp;
+    leaseEnd: Timestamp;
+}
+
+export interface Payment {
+    id: string;
+    tenantId: string;
+    propertyId: string;
+    unitId: string;
+    amount: number;
+    date: string;
+    method: 'Mpesa' | 'Stripe' | 'Bank Transfer';
+    status: 'pending' | 'confirmed' | 'failed';
+    paidAt: string;
+    txRef?: string; // Transaction reference
+}
+
+export interface Message {
+  id: string;
+  senderId: string; // 'landlord-1' or tenant's UID
+  senderName: string; // 'You' or tenant's name
+  content: string;
+  timestamp: any; // Firestore timestamp
+  isRead: boolean;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: 'new-tenant' | 'rent-paid' | 'lease-ending' | 'income-drop' | 'vacancy-rate';
+  description: string;
+  date: string;
+}
+
+export interface MaintenanceRequest {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  propertyId: string;
+  propertyAddress: string;
+  description: string;
+  status: 'Pending' | 'In Progress' | 'Completed';
+  submittedDate: string;
+  priority?: 'High' | 'Medium' | 'Low';
+  reasoning?: string;
+}
+
+export type Permission = 
+  | 'canEditProperties'
+  | 'canDeleteProperties'
+  | 'canAddTenants'
+  | 'canEditTenants'
+  | 'canDeleteTenants'
+  | 'canViewPayments'
+  | 'canManageManagers'
+  | 'canManageSettings';
+
+export const permissionLabels: Record<Permission, string> = {
+  canEditProperties: 'Edit Properties',
+  canDeleteProperties: 'Delete Properties',
+  canAddTenants: 'Add Tenants',
+  canEditTenants: 'Edit Tenants',
+  canDeleteTenants: 'Delete Tenants',
+  canViewPayments: 'View Payments',
+  canManageManagers: 'Manage Managers',
+  canManageSettings: 'Manage Settings',
+};
+
+export interface PropertyManager {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatarUrl?: string;
+  accessLevel: 'Full Manager' | 'Limited Staff';
+  propertiesManaged: string[]; // Array of property IDs
+  permissions: Record<Permission, boolean>;
+}
+
+export interface AuditLog {
+    id: string;
+    managerName: string;
+    action: string;
+    entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
+    entityName: string;
+    timestamp: string;
 }

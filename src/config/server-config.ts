@@ -1,11 +1,6 @@
 
 import type { FirebaseAuthEdgeConfig } from 'next-firebase-auth-edge';
 import type { CookieSerializeOptions } from 'cookie';
-import * as dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config({ path: '.env' });
-
 
 function getRequiredEnv(key: string): string {
     const value = process.env[key];

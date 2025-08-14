@@ -34,6 +34,16 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
     }).format(amount);
   };
 
+  if (!properties || properties.length === 0) {
+    return (
+      <Card className="flex items-center justify-center h-80">
+        <CardContent>
+          <p className="text-muted-foreground">No properties to display.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Carousel 
       opts={{ loop: true }}
@@ -58,8 +68,8 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   </div>
                   <CardHeader className="absolute bottom-0 text-white">
-                    <CardTitle className="text-xl">{property.address}</CardTitle>
-                    <CardDescription className="text-primary-foreground/80 capitalize">{property.propertyType}</CardDescription>
+                    <CardTitle className="text-xl">{property.name || property.address}</CardTitle>
+                    <CardDescription className="text-primary-foreground/80 capitalize">{property.type}</CardDescription>
                   </CardHeader>
                 </Link>
                 <CardFooter className="bg-muted/50 p-4 flex justify-between text-sm">
@@ -83,5 +93,3 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
     </Carousel>
   );
 }
-
-    
