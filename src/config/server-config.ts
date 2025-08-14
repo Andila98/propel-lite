@@ -28,14 +28,14 @@ const cookieSerializeOptions: CookieSerializeOptions = {
 };
 
 const serviceAccount = {
-    projectId: getEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'propel-lite'),
-    clientEmail: getEnv('FIREBASE_CLIENT_EMAIL', 'firebase-adminsdk-y9lql@propel-lite.iam.gserviceaccount.com'),
+    projectId: getEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
+    clientEmail: getEnv('FIREBASE_CLIENT_EMAIL'),
     // Ensure the private key is correctly formatted.
     privateKey: getEnv('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
 };
 
 export const authConfig: FirebaseAuthEdgeConfig = {
-    apiKey: getEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'AIzaSyCcYPhpBKVFVnlsTAhK9lSH9sXQbshaid0'),
+    apiKey: getEnv('NEXT_PUBLIC_FIREBASE_API_KEY'),
     cookieName: 'PropelAuth',
     cookieSignatureKeys: [cookieSecretCurrent, cookieSecretPrevious],
     cookieSerializeOptions,
@@ -46,7 +46,7 @@ export const authConfig: FirebaseAuthEdgeConfig = {
 // Log configuration in development to help with debugging.
 if (process.env.NODE_ENV === 'development') {
     console.log('[AUTH_CONFIG] Firebase Auth Config Initialized:');
-    console.log(`- Project ID: ${serviceAccount.projectId}`);
+    console.log(`- Project ID: ${serviceAccount.projectId || 'NOT SET'}`);
     console.log(`- API Key Loaded: ${!!authConfig.apiKey}`);
     console.log(`- Private Key Loaded: ${!!serviceAccount.privateKey}`);
     console.log(`- Tenant ID: ${authConfig.tenantId || 'Not Set'}`);

@@ -61,6 +61,13 @@ export async function POST(req: NextRequest) {
         stack: error.stack,
     });
   
+    if (!admin.apps.length) {
+      return NextResponse.json(
+        { error: 'Firebase Admin SDK not configured. Cannot process signup.' },
+        { status: 503 }
+      );
+    }
+
     switch (error.code) {
       case 'auth/email-already-exists':
         return NextResponse.json(

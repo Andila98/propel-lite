@@ -14,28 +14,29 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Function to initialize Firebase, ensuring config is valid.
-function initializeFirebaseApp() {
-    // Check for missing configuration values.
-    for (const [key, value] of Object.entries(firebaseConfig)) {
-        if (!value && key !== 'measurementId') { // measurementId is optional
-            console.error(`Firebase config is missing '${key}'. Check your .env file.`);
-            // Throw an error or return null to prevent initialization with partial config
-            throw new Error(`Firebase config is missing '${key}'.`);
-        }
-    }
-    
+let app: FirebaseApp;
+let auth: ReturnType<typeof getAuth>;
+let db: ReturnType<typeof getFirestore>;
+
+// Check if all required config values are present
+const isConfigValid = Object.values(firebaseConfig).every(value => value);
+
+if (isConfigValid) {
     if (!getApps().length) {
-        console.log("Initializing Firebase App...");
-        return initializeApp(firebaseConfig);
+        app = initializeApp(firebaseConfig);
+        console.log("Firebase initialized");
     } else {
-        return getApp();
+        app = getApp();
     }
+    auth = getAuth(app);
+    db = getFirestore(app);
+} else {
+    console.error("Firebase config is missing or incomplete. Check your environment variables.");
+    // Provide mock/dummy objects to prevent app from crashing
+    app = {} as FirebaseApp;
+    auth = {} as ReturnType<typeof getAuth>;
+    db = {} as ReturnType<typeof getFirestore>;
 }
 
-
-const app: FirebaseApp = initializeFirebaseApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 export { app, auth, db };

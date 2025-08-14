@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const serviceAccount: admin.ServiceAccount = {
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'propel-lite',
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
 };
@@ -15,7 +15,7 @@ const serviceAccount: admin.ServiceAccount = {
 if (!admin.apps.length) {
   // Only attempt to initialize if the private key is provided.
   // This is crucial for preventing crashes in environments where the key isn't set.
-  if (serviceAccount.privateKey) {
+  if (serviceAccount.privateKey && serviceAccount.clientEmail && serviceAccount.projectId) {
       try {
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
@@ -26,7 +26,7 @@ if (!admin.apps.length) {
         console.error('Firebase Admin SDK initialization error:', error.stack);
       }
   } else {
-    console.warn("Firebase Admin SDK not initialized: FIREBASE_PRIVATE_KEY is not set.");
+    console.warn("Firebase Admin SDK not initialized: One or more required environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, NEXT_PUBLIC_FIREBASE_PROJECT_ID) are not set.");
   }
 }
 
