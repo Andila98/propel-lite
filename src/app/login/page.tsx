@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 // Defines a more specific type for login errors from the backend or Firebase
 type LoginError = {
   code?: string; // Firebase error code
-  error: string; // Custom error message from backend
+  message: string; // Custom error message from backend
 };
 
 export default function LoginPage() {
@@ -69,10 +69,13 @@ export default function LoginPage() {
         body: JSON.stringify({ idToken }),
       });
 
-      const data: { success: boolean, role: string, error?: string } = await response.json();
+      const data: { success: boolean; role: string; profileComplete: boolean; error?: string } = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed. Please check your credentials.');
+        // Pass the response status to the error to handle it below
+        const error = new Error(data.error || 'Login failed. Please check your credentials.');
+        (error as any).status = response.status;
+        throw error;
       }
       
       // Step 4: Handle successful login
@@ -80,16 +83,29 @@ export default function LoginPage() {
           title: "Login Successful",
           description: "Welcome back!",
       });
-      
-      const redirectUrl = searchParams.get('redirect') || (data.role === 'tenant' ? '/tenant-portal' : '/');
-      router.push(redirectUrl);
+
+      // Step 5: Handle redirection based on role and profile status
+      if (data.role === 'landlord' && !data.profileComplete) {
+          router.push('/onboarding/welcome');
+      } else if (data.role === 'tenant') {
+          router.push('/tenant-portal');
+      } else {
+          router.push('/');
+      }
 
     } catch (error) {
-        const typedError = error as LoginError;
+        const typedError = error as LoginError & { status?: number };
         console.error("Login page error:", typedError);
         let errorMessage = 'An unexpected error occurred.';
         
-        // Handle known Firebase client-side errors
+        // Handle custom backend errors
+        if (typedError.status === 404) {
+            errorMessage = 'User data not found in our system. Please contact support.';
+        } else if (typedError.message) {
+            errorMessage = typedError.message;
+        }
+
+        // Handle known Firebase client-side errors (if no specific backend error was caught)
         if (typedError.code) { 
             switch(typedError.code) {
                 case 'auth/invalid-credential':
@@ -101,11 +117,8 @@ export default function LoginPage() {
                 case 'auth/network-request-failed':
                     errorMessage = 'Network error. Please check your internet connection.';
                     break;
-                default:
-                    errorMessage = 'An authentication error occurred. Please try again.';
+                // Add other Firebase error codes as needed
             }
-        } else if (typedError.message) { // Errors from our backend or client-side checks
-            errorMessage = typedError.message;
         }
 
         toast({
@@ -116,7 +129,7 @@ export default function LoginPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [email, password, router, searchParams, toast]);
+  }, [email, password, router, toast]);
   
   const handleSocialLogin = (provider: string) => {
      toast({

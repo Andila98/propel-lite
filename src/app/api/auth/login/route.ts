@@ -22,7 +22,7 @@ const UserSchema = z.object({
  * 2. Verifies the token with the Firebase Admin SDK.
  * 3. Fetches the user's profile from Firestore and validates its schema.
  * 4. Generates a secure session cookie.
- * 5. Returns the user's role to the client for redirection.
+ * 5. Returns the user's role and profile status to the client for redirection.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -53,14 +53,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User data is malformed. Please contact support.' }, { status: 500 });
     }
 
-    const { role } = validationResult.data;
+    const { role, profileComplete } = validationResult.data;
     
     // 4. Generate session cookies
     const tokens = await getTokens(request, { ...authConfig, idToken });
-    const response = NextResponse.json({ success: true, role }, { status: 200 });
+    const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
     response.cookies.set(authConfig.cookieName, tokens.cookie, authConfig.cookieSerializeOptions);
 
-    console.log(`[API_LOGIN_SUCCESS] UID: ${uid}, Role: ${role}`);
+    console.log(`[API_LOGIN_SUCCESS] UID: ${uid}, Role: ${role}, Profile Complete: ${profileComplete}`);
     return response;
 
   } catch (error: any) {
