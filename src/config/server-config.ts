@@ -13,7 +13,9 @@ function getEnv(key: string, defaultValue?: string): string {
 
 // Use a single secret key for simplicity, which is sufficient for many applications.
 // For enhanced security with key rotation, two keys can be used.
-const cookieSecret = getEnv('COOKIE_SECRET_CURRENT');
+const cookieSecretCurrent = getEnv('COOKIE_SECRET_CURRENT', 'secret');
+const cookieSecretPrevious = getEnv('COOKIE_SECRET_PREVIOUS', 'secret');
+
 
 const cookieSerializeOptions: CookieSerializeOptions = {
     path: '/',
@@ -24,16 +26,16 @@ const cookieSerializeOptions: CookieSerializeOptions = {
 };
 
 const serviceAccount = {
-    projectId: getEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
+    projectId: getEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'propel-lite'),
     clientEmail: getEnv('FIREBASE_CLIENT_EMAIL'),
     // Ensure the private key is correctly formatted.
-    privateKey: getEnv('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
+    privateKey: getEnv('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
 };
 
 export const authConfig: FirebaseAuthEdgeConfig = {
-    apiKey: getEnv('NEXT_PUBLIC_FIREBASE_API_KEY'),
+    apiKey: getEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'AIzaSyCcYPhpBKVFVnlsTAhK9lSH9sXQbshaid0'),
     cookieName: 'PropelAuth',
-    cookieSignatureKeys: [cookieSecret, cookieSecret], // Using the same key twice satisfies the type.
+    cookieSignatureKeys: [cookieSecretCurrent, cookieSecretPrevious],
     cookieSerializeOptions,
     serviceAccount,
     tenantId: process.env.FIREBASE_TENANT_ID, // Optional
