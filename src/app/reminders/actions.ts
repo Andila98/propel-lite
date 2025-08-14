@@ -1,6 +1,9 @@
 
 "use server";
 
+import type { GenerateInvoiceOutput } from '@/ai/flows/generate-invoice';
+
+
 export interface ScheduleReminderState {
     error?: string;
     successMessage?: string;
