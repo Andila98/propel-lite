@@ -1,9 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+
+import { auth } from '@/lib/firebase/client-app';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,11 +20,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
-import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client-app'; // Use client-side auth instance
+import { useToast } from '@/hooks/use-toast';
+
+// Defines a more specific type for login errors from the backend or Firebase
+type LoginError = {
+  code?: string; // Firebase error code
+  error: string; // Custom error message from backend
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,8 +51,7 @@ export default function LoginPage() {
     }
   }, [searchParams, toast, router]);
 
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
@@ -56,29 +62,20 @@ export default function LoginPage() {
       // Step 2: Get the ID token from the authenticated user
       const idToken = await userCredential.user.getIdToken();
       
-      // Step 3: Validate the token on the client-side before sending
-      if (!idToken) {
-          console.error("Frontend: idToken is null or empty after fetching.");
-          throw new Error("Failed to retrieve authentication token. Please try again.");
-      }
-      console.log("Frontend: Successfully fetched Firebase ID Token.");
-
-      // Step 4: Send the validated token to the backend API
+      // Step 3: Send the token to the backend API to create a session
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken }),
       });
 
-      const data = await response.json();
+      const data: { success: boolean, role: string, error?: string } = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed. Please check your credentials.');
       }
       
-      // Step 5: Handle successful login
+      // Step 4: Handle successful login
       toast({
           title: "Login Successful",
           description: "Welcome back!",
@@ -87,12 +84,14 @@ export default function LoginPage() {
       const redirectUrl = searchParams.get('redirect') || (data.role === 'tenant' ? '/tenant-portal' : '/');
       router.push(redirectUrl);
 
-    } catch (error: any) {
-        console.error("Login page error:", error);
+    } catch (error) {
+        const typedError = error as LoginError;
+        console.error("Login page error:", typedError);
         let errorMessage = 'An unexpected error occurred.';
-        // Handle known Firebase and backend errors
-        if (error.code) { // Firebase client-side errors
-            switch(error.code) {
+        
+        // Handle known Firebase client-side errors
+        if (typedError.code) { 
+            switch(typedError.code) {
                 case 'auth/invalid-credential':
                     errorMessage = 'Invalid email or password. Please try again.';
                     break;
@@ -105,8 +104,8 @@ export default function LoginPage() {
                 default:
                     errorMessage = 'An authentication error occurred. Please try again.';
             }
-        } else if (error.message) { // Errors from our backend or client-side checks
-            errorMessage = error.message;
+        } else if (typedError.message) { // Errors from our backend or client-side checks
+            errorMessage = typedError.message;
         }
 
         toast({
@@ -117,7 +116,7 @@ export default function LoginPage() {
     } finally {
         setIsLoading(false);
     }
-  };
+  }, [email, password, router, searchParams, toast]);
   
   const handleSocialLogin = (provider: string) => {
      toast({
@@ -166,6 +165,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-9 text-muted-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

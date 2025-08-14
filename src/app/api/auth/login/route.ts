@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
     // 1. Verify the Firebase ID token
     const decodedIdToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email } = decodedIdToken;
-    console.log(`[LOGIN_ATTEMPT] UID: ${uid}, Email: ${email}`);
+    console.log(`[API_LOGIN_ATTEMPT] UID: ${uid}, Email: ${email}`);
 
     // 2. Fetch user data from Firestore
     const userDocRef = db.collection('users').doc(uid);
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
-      console.error(`[LOGIN_ERROR] Firestore user document not found for UID: ${uid}`);
+      console.error(`[API_LOGIN_ERROR] Firestore user document not found for UID: ${uid}`);
       return NextResponse.json({ error: 'User data not found in Firestore. Please contact support.' }, { status: 404 });
     }
     
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const validationResult = UserSchema.safeParse(userDoc.data());
 
     if (!validationResult.success) {
-      console.error(`[LOGIN_SCHEMA_MISMATCH] UID: ${uid}`, validationResult.error.flatten());
+      console.error(`[API_LOGIN_SCHEMA_MISMATCH] UID: ${uid}`, validationResult.error.flatten());
       return NextResponse.json({ error: 'User data is malformed. Please contact support.' }, { status: 500 });
     }
 
@@ -60,22 +60,21 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true, role }, { status: 200 });
     response.cookies.set(authConfig.cookieName, tokens.cookie, authConfig.cookieSerializeOptions);
 
-    console.log(`[LOGIN_SUCCESS] UID: ${uid}, Role: ${role}`);
+    console.log(`[API_LOGIN_SUCCESS] UID: ${uid}, Role: ${role}`);
     return response;
 
   } catch (error: any) {
-    // Check for Firebase Admin SDK initialization errors first
+    // Centralized error handling for the API route
     if (error.message.includes('Failed to parse private key') || error.message.includes('Missing or empty environment variable')) {
-      console.error('[LOGIN_FAILURE] Firebase Admin SDK configuration error:', error.message);
+      console.error('[API_LOGIN_FATAL] Firebase Admin SDK configuration error:', error.message);
       return NextResponse.json({ error: 'Firebase Admin SDK not configured. Please check server environment variables.' }, { status: 500 });
     }
 
-    console.error('[LOGIN_FAILURE]', {
+    console.error('[API_LOGIN_FAILURE]', {
       message: error.message,
       code: error.code,
     });
 
-    // Handle specific Firebase Auth errors
     const errorMap: { [key: string]: { message: string, status: number } } = {
         'auth/id-token-expired': { message: 'Token expired. Please login again.', status: 401 },
         'auth/id-token-revoked': { message: 'Access revoked. Please login again.', status: 401 },
