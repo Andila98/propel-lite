@@ -3,6 +3,18 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 import { admin, db } from '@/lib/firebase-admin';
+import { z } from 'zod';
+
+// Define a schema for the user data in Firestore
+const UserSchema = z.object({
+  uid: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  role: z.enum(['landlord', 'tenant', 'admin']),
+  createdAt: z.any(), // Firestore timestamps can be complex to validate here
+  isActive: z.boolean(),
+  profileComplete: z.boolean(),
+});
 
 async function handler(request: NextRequest) {
   const clientIP = request.headers.get('x-forwarded-for') || request.ip || 'unknown';
@@ -18,18 +30,25 @@ async function handler(request: NextRequest) {
     const { uid } = decodedIdToken;
     console.log(`[API_LOGIN] Action 1: Token verified successfully for UID: ${uid}, Email: ${decodedIdToken.email}`);
 
-    // Action 2: Fetch user data from Firestore to get their role.
-    const userDoc = await db.collection('users').doc(uid).get();
+    // Action 2: Fetch user data from Firestore and validate its schema.
+    const userDocRef = db.collection('users').doc(uid);
+    const userDoc = await userDocRef.get();
+
     if (!userDoc.exists) {
       console.error(`[API_LOGIN_ERROR] Firestore user document not found for UID: ${uid}`);
       return NextResponse.json({ error: 'User data not found in Firestore. Please contact support.' }, { status: 404 });
     }
-    const role = userDoc.data()?.role;
-    if (!role) {
-      console.error(`[API_LOGIN_ERROR] User role not found in Firestore for UID: ${uid}`);
-      return NextResponse.json({ error: 'User role not found. Please contact support.' }, { status: 403 });
+    
+    const userData = userDoc.data();
+    const validationResult = UserSchema.safeParse(userData);
+
+    if (!validationResult.success) {
+        console.error(`[API_LOGIN_SCHEMA_MISMATCH] UID: ${uid}`, validationResult.error.flatten());
+        return NextResponse.json({ error: 'User data is malformed. Please contact support.' }, { status: 500 });
     }
-    console.log(`[API_LOGIN] Action 2: Firestore document found. User role is: ${role}`);
+
+    const { role } = validationResult.data;
+    console.log(`[API_LOGIN] Action 2: Firestore document found and schema validated. User role is: ${role}`);
     
     // Action 3: Now, generate session cookies with the verified token and role.
     const tokens = await getTokens(request, { ...authConfig, idToken });
