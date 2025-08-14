@@ -111,7 +111,11 @@ class PropertyService {
    */
   async createPropertyWithUnits(propertyData: any, landlordId: string, imageUrl: string): Promise<Property> {
     console.log(`PropertyService: Creating new property for landlord ${landlordId}`);
+    const propertyId = uuid();
+    const docRef = this.propertiesCollection.doc(propertyId);
+
     const newPropertyData = {
+      id: propertyId,
       landlordId,
       name: propertyData.name,
       address: propertyData.address,
@@ -122,8 +126,6 @@ class PropertyService {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    const docRef = this.propertiesCollection.doc();
-    
     const units = propertyData.units || [];
 
     // Use a transaction to ensure all or nothing is written
@@ -144,11 +146,14 @@ class PropertyService {
     });
     
     console.log(`PropertyService: Successfully created property ${docRef.id} with ${units.length} units.`);
-    return {
-      id: docRef.id,
+    
+    // Return a serializable object
+    const createdProperty = {
       ...newPropertyData,
-      createdAt: new Date(), // Return a serializable date
-    } as Property;
+      createdAt: admin.firestore.Timestamp.now(), // Use a serializable timestamp
+    } as unknown as Property;
+    
+    return createdProperty;
   }
 }
 

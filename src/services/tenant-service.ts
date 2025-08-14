@@ -67,6 +67,7 @@ export class TenantService {
       phone: tenantData.phone || null,
       role: 'tenant',
       landlordId,
+      propertyId: tenantData.propertyId,
       currentUnitId: tenantData.unitId,
       leaseStart: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseStart)),
       leaseEnd: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseEnd)),
@@ -132,18 +133,14 @@ export class TenantService {
         throw new Error("Tenant not found or unauthorized.");
     }
 
-    const tenant = tenantDoc.data() as Tenant;
+    const tenant = tenantDoc.data() as any;
     
     // Use a transaction to ensure all or nothing is deleted/updated
     await db.runTransaction(async (transaction) => {
         // Mark the unit as unoccupied if a unit is assigned
-        if (tenant.currentUnitId) {
-            const propertyDoc = await this.propertiesCollection.where('units', 'array-contains', tenant.currentUnitId).limit(1).get();
-            if (!propertyDoc.empty) {
-                const propertyId = propertyDoc.docs[0].id;
-                const unitRef = this.propertiesCollection.doc(propertyId).collection('units').doc(tenant.currentUnitId);
-                transaction.update(unitRef, { isOccupied: false, tenantId: admin.firestore.FieldValue.delete() });
-            }
+        if (tenant.propertyId && tenant.currentUnitId) {
+            const unitRef = this.propertiesCollection.doc(tenant.propertyId).collection('units').doc(tenant.currentUnitId);
+            transaction.update(unitRef, { isOccupied: false, tenantId: admin.firestore.FieldValue.delete() });
         }
         
         // Delete the user from Firestore
