@@ -60,9 +60,20 @@ export async function POST(request: NextRequest) {
     const { role, profileComplete } = validationResult.data;
     
     // 4. Generate session cookies
-    const tokens = await getTokens(request, { ...authConfig, idToken });
+    const tokens = await getTokens(request.cookies, { ...authConfig, idToken });
+    
+    if (!tokens) {
+        return NextResponse.json({ error: 'Failed to generate session tokens.' }, { status: 500 });
+    }
+    
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
-    response.cookies.set(authConfig.cookieName, tokens.cookie, authConfig.cookieSerializeOptions);
+
+    response.cookies.set({
+      name: authConfig.cookieName,
+      value: tokens.token,
+      ...authConfig.cookieSerializeOptions,
+    });
+
 
     console.log(`[API_LOGIN_SUCCESS] UID: ${uid}, Role: ${role}, Profile Complete: ${profileComplete}`);
     return response;
