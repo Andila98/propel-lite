@@ -28,7 +28,6 @@ export interface ScheduleReminderState {
 export async function scheduleReminderAction(
   values: ScheduleReminderFormValues
 ): Promise<ScheduleReminderState> {
-  // This is where the problematic .reduce() call was.
   // The AI functionality is not yet implemented.
   // Returning a clear error message is the correct behavior for now.
   console.log("scheduleReminderAction called with:", values);
