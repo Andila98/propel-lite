@@ -10,6 +10,8 @@ import { propertyService } from '@/services/property-service';
 import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 
+export const runtime = 'nodejs'; // Ensure this route runs on the Node.js runtime
+
 const uploadDir = path.join(process.cwd(), 'public/media');
 
 if (!fs.existsSync(uploadDir)) {
