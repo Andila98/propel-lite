@@ -4,10 +4,6 @@
  * It acts as an intermediary between the API routes and the TenantService,
  * processing requests and formatting responses.
  */
-import * as dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config({ path: '.env' });
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { TenantService, type TenantData } from '@/services/tenant-service';

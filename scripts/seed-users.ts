@@ -21,11 +21,11 @@
  * This script uses Firebase Admin privileges and is intended for development environments only.
  * Ensure your service account credentials in the .env file are kept secure.
  */
-
+import * as dotenv from 'dotenv';
 import { initializeApp, cert, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import * as dotenv from 'dotenv';
+
 
 // Load environment variables from .env file
 dotenv.config();
