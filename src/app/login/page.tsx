@@ -38,6 +38,7 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await userCredential.user.getIdToken();
+      console.log('Frontend: Firebase ID Token received:', idToken);
       
       const response = await fetch('/api/auth/login', {
         method: 'POST',
