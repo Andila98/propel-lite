@@ -64,6 +64,12 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
+    // Check for Firebase Admin SDK initialization errors first
+    if (error.message.includes('Failed to parse private key') || error.message.includes('Missing or empty environment variable')) {
+      console.error('[LOGIN_FAILURE] Firebase Admin SDK configuration error:', error.message);
+      return NextResponse.json({ error: 'Firebase Admin SDK not configured. Please check server environment variables.' }, { status: 500 });
+    }
+
     console.error('[LOGIN_FAILURE]', {
       message: error.message,
       code: error.code,
