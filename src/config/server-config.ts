@@ -5,8 +5,10 @@ import type { CookieSerializeOptions } from 'cookie';
 // A utility function to safely get environment variables.
 function getEnv(key: string, defaultValue?: string): string {
     const value = process.env[key];
-    if (!value && defaultValue === undefined) { // No value and no default means it's required.
-        throw new Error(`Missing required environment variable: ${key}`);
+    // In development, it's okay to fall back to a default.
+    // In production, we might want to be stricter.
+    if (!value && process.env.NODE_ENV === 'production' && defaultValue === undefined) {
+        throw new Error(`Missing required environment variable in production: ${key}`);
     }
     return value || defaultValue!;
 }

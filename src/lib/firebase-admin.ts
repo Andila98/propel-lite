@@ -13,14 +13,20 @@ const serviceAccount: admin.ServiceAccount = {
 };
 
 if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: `https://${serviceAccount.projectId}.firebaseio.com`,
-    });
-    console.log('Firebase Admin SDK initialized successfully.');
-  } catch (error: any) {
-    console.error('Firebase Admin SDK initialization error:', error.stack);
+  // Only attempt to initialize if the private key is provided.
+  // This is crucial for preventing crashes in environments where the key isn't set.
+  if (serviceAccount.privateKey) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          databaseURL: `https://${serviceAccount.projectId}.firebaseio.com`,
+        });
+        console.log('Firebase Admin SDK initialized successfully.');
+      } catch (error: any) {
+        console.error('Firebase Admin SDK initialization error:', error.stack);
+      }
+  } else {
+    console.warn("Firebase Admin SDK not initialized: FIREBASE_PRIVATE_KEY is not set.");
   }
 }
 
