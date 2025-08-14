@@ -1,9 +1,10 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
-import { createAuthCookies } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 import { admin, db } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import type { Tokens } from 'next-firebase-auth-edge';
+import { getFirebaseAuth } from 'next-firebase-auth-edge/lib/auth';
 
 // Define a schema for the user data in Firestore to ensure data integrity.
 const UserSchema = z.object({
@@ -62,12 +63,16 @@ export async function POST(request: NextRequest) {
     // 4. Generate session cookies
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
 
-    await createAuthCookies(request, {
-      idToken,
-      response,
-      ...authConfig,
+    const {createSessionCookie} = getFirebaseAuth(authConfig.serviceAccount, authConfig.apiKey);
+    const sessionCookie = await createSessionCookie(idToken, {
+        expiresIn: authConfig.cookieSerializeOptions.maxAge! * 1000,
     });
 
+    response.cookies.set(
+        authConfig.cookieName,
+        sessionCookie,
+        authConfig.cookieSerializeOptions
+    );
 
     console.log(`[API_LOGIN_SUCCESS] UID: ${uid}, Role: ${role}, Profile Complete: ${profileComplete}`);
     return response;

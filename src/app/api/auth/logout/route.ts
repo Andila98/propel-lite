@@ -1,5 +1,6 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTokens, removeAuthCookies } from 'next-firebase-auth-edge';
+import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 import { getAuth } from 'firebase-admin/auth';
 import type { Tokens } from 'next-firebase-auth-edge';
@@ -24,7 +25,12 @@ export async function POST(request: NextRequest) {
   // Always attempt to clear the cookie.
   const response = NextResponse.json({ success: true }, { status: 200 });
   
-  await removeAuthCookies(request, { response, ...authConfig });
+  response.cookies.set({
+    name: authConfig.cookieName,
+    value: '',
+    path: '/',
+    maxAge: -1,
+  });
 
   return response;
 }
