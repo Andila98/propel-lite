@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from './config/server-config';
+import type { Tokens } from 'next-firebase-auth-edge';
 
 // Paths that do not require authentication
 const publicPaths = [
@@ -43,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     // This function will throw an error if the cookie is invalid or expired
-    const tokens = await getTokens(request, authConfig);
+    const tokens: Tokens | null = await getTokens(request, authConfig);
     
     if (!tokens) {
       // If no tokens are found, redirect to login with the original path as a query param

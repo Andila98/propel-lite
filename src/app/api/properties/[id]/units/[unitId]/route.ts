@@ -2,13 +2,14 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
+import type { Tokens } from 'next-firebase-auth-edge';
 
 async function handler(
     req: NextRequest, 
     { params }: { params: { id: string; unitId: string } },
     allowedRoles: string[]
 ) {
-    const tokens = await getTokens(req, authConfig);
+    const tokens: Tokens | null = await getTokens(req, authConfig);
     if (!tokens || !allowedRoles.includes(tokens.decodedToken.role)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

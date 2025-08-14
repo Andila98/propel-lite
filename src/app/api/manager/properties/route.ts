@@ -3,10 +3,11 @@ import { db } from '@/lib/firebase-admin';
 import type { PropertyManager, Property } from 'src/services/property-service';
 import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
+import type { Tokens } from 'next-firebase-auth-edge';
 
 export async function GET(req: NextRequest) {
   try {
-    const tokens = await getTokens(req, authConfig);
+    const tokens: Tokens | null = await getTokens(req, authConfig);
     if (!tokens || tokens.decodedToken.role !== 'manager') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

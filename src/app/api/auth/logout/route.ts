@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTokens } from 'next-firebase-auth-edge';
+import { getTokens, removeAuthCookies } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 import { getAuth } from 'firebase-admin/auth';
+import type { Tokens } from 'next-firebase-auth-edge';
 
 export async function POST(request: NextRequest) {
   try {
-    const tokens = await getTokens(request, authConfig);
+    const tokens: Tokens | null = await getTokens(request, authConfig);
     if (tokens) {
       // Invalidate the session by revoking the refresh token.
       await getAuth().revokeRefreshTokens(tokens.decodedToken.uid);
@@ -22,12 +23,8 @@ export async function POST(request: NextRequest) {
 
   // Always attempt to clear the cookie.
   const response = NextResponse.json({ success: true }, { status: 200 });
-  response.cookies.set({
-    name: authConfig.cookieName,
-    value: '',
-    path: '/',
-    maxAge: -1, // Expire the cookie immediately
-  });
+  
+  await removeAuthCookies(request, { response, ...authConfig });
 
   return response;
 }

@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTokens } from 'next-firebase-auth-edge';
+import { createAuthCookies } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
 import { admin, db } from '@/lib/firebase-admin';
 import { z } from 'zod';
+import type { Tokens } from 'next-firebase-auth-edge';
 
 // Define a schema for the user data in Firestore to ensure data integrity.
 const UserSchema = z.object({
@@ -59,18 +60,12 @@ export async function POST(request: NextRequest) {
     const { role, profileComplete } = validationResult.data;
     
     // 4. Generate session cookies
-    const tokens = await getTokens(request, { ...authConfig, idToken });
-    
-    if (!tokens) {
-        return NextResponse.json({ error: 'Failed to generate session tokens.' }, { status: 500 });
-    }
-    
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
 
-    response.cookies.set({
-      name: authConfig.cookieName,
-      value: tokens.token,
-      ...authConfig.cookieSerializeOptions,
+    await createAuthCookies(request, {
+      idToken,
+      response,
+      ...authConfig,
     });
 
 
