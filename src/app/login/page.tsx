@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PropelLiteLogo, GoogleIcon, GithubIcon } from '@/components/icons/logo';
+import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -38,7 +38,7 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await userCredential.user.getIdToken();
-      console.log('Frontend: Firebase ID Token received:', idToken);
+      console.log('Frontend: Firebase ID Token received.');
       
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -65,7 +65,7 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Login page error:", error);
         let errorMessage = 'An unexpected error occurred.';
-        if (error.code) {
+        if (error.code) { // Firebase client-side errors
             switch(error.code) {
                 case 'auth/invalid-credential':
                     errorMessage = 'Invalid email or password. Please try again.';
@@ -74,12 +74,12 @@ export default function LoginPage() {
                      errorMessage = 'Too many login attempts. Please try again later.';
                      break;
                 case 'auth/network-request-failed':
-                    errorMessage = 'Network error. Please check your connection.';
+                    errorMessage = 'Network error. Please check your internet connection.';
                     break;
                 default:
-                    errorMessage = error.message;
+                    errorMessage = 'An authentication error occurred. Please try again.';
             }
-        } else if (error.message) {
+        } else if (error.message) { // Errors from our backend
             errorMessage = error.message;
         }
 

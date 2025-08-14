@@ -25,8 +25,6 @@ const UserSchema = z.object({
  * 5. Returns the user's role to the client for redirection.
  */
 export async function POST(request: NextRequest) {
-  const clientIP = request.headers.get('x-forwarded-for') || request.ip || 'unknown';
-
   try {
     const { idToken } = await request.json();
     if (!idToken || typeof idToken !== 'string') {
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
     // 1. Verify the Firebase ID token
     const decodedIdToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email } = decodedIdToken;
-    console.log(`[LOGIN_ATTEMPT] UID: ${uid}, Email: ${email}, IP: ${clientIP}`);
+    console.log(`[LOGIN_ATTEMPT] UID: ${uid}, Email: ${email}`);
 
     // 2. Fetch user data from Firestore
     const userDocRef = db.collection('users').doc(uid);
@@ -62,15 +60,13 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true, role }, { status: 200 });
     response.cookies.set(authConfig.cookieName, tokens.cookie, authConfig.cookieSerializeOptions);
 
-    console.log(`[LOGIN_SUCCESS] UID: ${uid}, Role: ${role}, IP: ${clientIP}`);
+    console.log(`[LOGIN_SUCCESS] UID: ${uid}, Role: ${role}`);
     return response;
 
   } catch (error: any) {
     console.error('[LOGIN_FAILURE]', {
-      ip: clientIP,
       message: error.message,
       code: error.code,
-      stack: error.stack,
     });
 
     // Handle specific Firebase Auth errors

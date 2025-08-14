@@ -23,7 +23,7 @@ const publicPaths = [
   '/api/webhooks/mpesa',
   '/api/webhooks/stripe',
 
-  // Static assets
+  // Static assets and internal framework paths
   '/_next/static',
   '/_next/image',
   '/favicon.ico',
@@ -38,14 +38,17 @@ function isPublic(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  // If the path is public, skip the middleware
   if (isPublic(pathname)) {
     return NextResponse.next();
   }
 
   try {
+    // This function will throw an error if the cookie is invalid or expired
     const tokens = await getTokens(request, authConfig);
     
     if (!tokens) {
+      // If no tokens are found, redirect to login with the original path as a query param
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('redirect', pathname + request.nextUrl.search);
@@ -54,12 +57,9 @@ export async function middleware(request: NextRequest) {
     
     const { role } = tokens.decodedToken;
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[MIDDLEWARE_DEBUG] Path: ${pathname} | Role: ${role || 'none'} | UID: ${tokens.decodedToken.uid}`);
-    }
-    
-    // Enforce strict RBAC for tenants
+    // RBAC: Enforce strict role-based access for tenants
     if (role === 'tenant' && !pathname.startsWith('/tenant-portal')) {
+        console.log(`[MIDDLEWARE_RBAC] Redirecting tenant from ${pathname} to /tenant-portal`);
         return NextResponse.redirect(new URL('/tenant-portal', request.url));
     }
 
@@ -69,9 +69,9 @@ export async function middleware(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error(`[MIDDLEWARE_ERROR] Invalid token or session expired for path: ${pathname}. Redirecting to login.`, {
+    // This block handles errors from getTokens(), like an invalid or expired cookie
+    console.error(`[MIDDLEWARE_ERROR] Invalid token for path: ${pathname}. Redirecting to login.`, {
       errorMessage: error.message,
-      errorCode: error.code,
     });
     
     const url = request.nextUrl.clone();
@@ -79,7 +79,7 @@ export async function middleware(request: NextRequest) {
     url.searchParams.set('error', 'session_expired');
     const response = NextResponse.redirect(url);
     
-    // Clear the potentially invalid cookie
+    // Clear the potentially invalid cookie to prevent redirect loops
     response.cookies.set({
       name: authConfig.cookieName,
       value: '',
