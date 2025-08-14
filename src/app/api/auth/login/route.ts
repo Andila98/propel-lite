@@ -63,8 +63,7 @@ export async function POST(request: NextRequest) {
     // 4. Generate session cookies
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
 
-    const {createSessionCookie} = getFirebaseAuth(authConfig.serviceAccount, authConfig.apiKey);
-    const sessionCookie = await createSessionCookie(idToken, {
+    const sessionCookie = await admin.auth().createSessionCookie(idToken, {
         expiresIn: authConfig.cookieSerializeOptions.maxAge! * 1000,
     });
 
@@ -79,7 +78,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     // Centralized error handling for the API route
-    if (error.message.includes('Failed to parse private key') || error.message.includes('Missing or empty environment variable')) {
+    if (error.message.includes('Failed to parse private key') || error.message.includes('Missing or empty environment variable') || error.message.includes('createSessionCookie')) {
       console.error('[API_LOGIN_FATAL] Firebase Admin SDK configuration error:', error.message);
       return NextResponse.json({ error: 'Firebase Admin SDK not configured. Please check server environment variables.' }, { status: 500 });
     }
