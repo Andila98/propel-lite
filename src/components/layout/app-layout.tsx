@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar"
 import { AnimatedUsersIcon } from "../icons/animated-users-icon"
 import { ThemeToggle } from "../theme-toggle"
+import { LogoutButton } from "./logout-button"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -43,7 +44,6 @@ const aiTools = [
 const utilityPages = [
     { href: "/settings", label: "Settings", icon: Settings },
     { href: "/tenant-portal", label: "Tenant Portal", icon: AnimatedUsersIcon },
-    { href: "/login", label: "Logout", icon: LogIn },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -112,6 +112,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </Link>
                 </SidebarMenuItem>
                 ))}
+             <SidebarMenuItem>
+                <LogoutButton />
+            </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
