@@ -8,11 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "seed:users": "tsx scripts/seed-users.ts",
-    "seed:user": "tsx scripts/seed-users.ts",
-    "seed:landlord": "tsx scripts/seed-users.ts landlord@example.com landlord",
-    "seed:tenant": "tsx scripts/seed-users.ts tenant@example.com tenant"
+    "test": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
