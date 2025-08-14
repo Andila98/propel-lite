@@ -36,10 +36,20 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+      // Step 1: Authenticate with Firebase client-side
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const idToken = await userCredential.user.getIdToken();
-      console.log('Frontend: Firebase ID Token received.');
       
+      // Step 2: Get the ID token from the authenticated user
+      const idToken = await userCredential.user.getIdToken();
+      
+      // Step 3: Validate the token on the client-side before sending
+      if (!idToken) {
+          console.error("Frontend: idToken is null or empty after fetching.");
+          throw new Error("Failed to retrieve authentication token. Please try again.");
+      }
+      console.log("Frontend: Successfully fetched Firebase ID Token.");
+
+      // Step 4: Send the validated token to the backend API
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -54,6 +64,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed. Please check your credentials.');
       }
       
+      // Step 5: Handle successful login
       toast({
           title: "Login Successful",
           description: "Welcome back!",
@@ -65,6 +76,7 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Login page error:", error);
         let errorMessage = 'An unexpected error occurred.';
+        // Handle known Firebase and backend errors
         if (error.code) { // Firebase client-side errors
             switch(error.code) {
                 case 'auth/invalid-credential':
@@ -79,7 +91,7 @@ export default function LoginPage() {
                 default:
                     errorMessage = 'An authentication error occurred. Please try again.';
             }
-        } else if (error.message) { // Errors from our backend
+        } else if (error.message) { // Errors from our backend or client-side checks
             errorMessage = error.message;
         }
 
