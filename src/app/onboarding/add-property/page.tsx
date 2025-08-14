@@ -10,6 +10,8 @@ import { PropertyForm } from '@/components/property-form';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Stepper } from '@/components/ui/stepper';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },

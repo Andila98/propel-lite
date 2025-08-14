@@ -1,3 +1,4 @@
+
 import type { PropertyManager, Tenant, Property, Unit, Payment, User } from './types';
 
 // Mock Users
@@ -83,10 +84,11 @@ export const mockTenants: any[] = mockUsers
     .filter(u => u.role === 'tenant')
     .map(user => {
         const unit = mockUnits.find(un => un.tenantId === user.uid);
-        const payments = mockPayments.filter(p => p.tenantId === user.uid);
+        const payments = mockPayments.filter(p => p.tenantId === user.uid) || [];
         
         let rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance' = 'Overdue';
         const rentAmount = unit?.rent || 0;
+        
         const paymentsThisMonth = payments
             .filter(p => {
                 const paymentDate = new Date(p.paidAt as string);
@@ -94,8 +96,12 @@ export const mockTenants: any[] = mockUsers
             })
             .reduce((acc, p) => acc + p.amount, 0);
 
-        if (paymentsThisMonth >= rentAmount) {
-            rentStatus = 'Paid';
+        if (rentAmount > 0) {
+            if (paymentsThisMonth >= rentAmount) {
+                rentStatus = 'Paid';
+            } else if (paymentsThisMonth > 0) {
+                rentStatus = 'Partially Paid'
+            }
         }
 
         return {
