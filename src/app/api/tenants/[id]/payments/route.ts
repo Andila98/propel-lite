@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import type { Tenant } from 'src/services/tenant-service';
@@ -9,10 +10,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const { id: tenantId } = params;
     
     try {
-      const { tokens, error } = await verifyApiAuth(req, ['landlord', 'manager', 'tenant']);
+      const { decodedToken, error } = await verifyApiAuth(req, ['landlord', 'manager', 'tenant']);
       if (error) return error;
 
-      const { role, uid, claims } = tokens.decodedToken as any;
+      const { role, uid, claims } = decodedToken as any;
 
       const tenantDoc = await db.collection('users').doc(tenantId).get();
       if (!tenantDoc.exists) {
@@ -41,9 +42,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     } catch (error: any) {
       console.error(`[API_TENANT_PAYMENTS_GET_ERROR] Failed to fetch payments for tenant ${tenantId}:`, error);
-      if (error.message.includes('Auth cookie could not be found')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
       return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

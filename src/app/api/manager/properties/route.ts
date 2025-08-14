@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import type { PropertyManager, Property } from 'src/services/property-service';
@@ -5,10 +6,10 @@ import { verifyApiAuth } from '@/lib/server-utils';
 
 export async function GET(req: NextRequest) {
   try {
-    const { tokens, error } = await verifyApiAuth(req, ['manager']);
+    const { decodedToken, error } = await verifyApiAuth(req, ['manager']);
     if (error) return error;
 
-    const managerId = tokens.decodedToken.uid;
+    const managerId = decodedToken.uid;
 
     const managerDoc = await db.collection('users').doc(managerId).get();
     if (!managerDoc.exists) {
@@ -32,9 +33,6 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error(`[MANAGER_PROPERTIES_ERROR]:`, error);
-     if (error.message.includes('Auth cookie could not be found')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

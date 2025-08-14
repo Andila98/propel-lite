@@ -3,8 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
 import { admin, db } from '@/lib/firebase-admin';
 import { z } from 'zod';
-import type { Tokens } from 'next-firebase-auth-edge';
-import { getFirebaseAuth } from 'next-firebase-auth-edge/lib/auth';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 // Define a schema for the user data in Firestore to ensure data integrity.
 const UserSchema = z.object({
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Verify the Firebase ID token
-    const decodedIdToken = await admin.auth().verifyIdToken(idToken);
+    const decodedIdToken: DecodedIdToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email } = decodedIdToken;
     console.log(`[API_LOGIN_ATTEMPT] UID: ${uid}, Email: ${email}`);
 
@@ -63,9 +62,8 @@ export async function POST(request: NextRequest) {
     // 4. Generate session cookies
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
 
-    const sessionCookie = await admin.auth().createSessionCookie(idToken, {
-        expiresIn: authConfig.cookieSerializeOptions.maxAge! * 1000,
-    });
+    const expiresIn = authConfig.cookieSerializeOptions.maxAge! * 1000;
+    const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
 
     response.cookies.set(
         authConfig.cookieName,

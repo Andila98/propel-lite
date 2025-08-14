@@ -1,8 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from './config/server-config';
-import type { Tokens } from 'next-firebase-auth-edge';
+import { admin } from './lib/firebase-admin';
 
 // Paths that do not require authentication
 const publicPaths = [
@@ -43,19 +42,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
+
+  if (!sessionCookie) {
+      console.log(`[MIDDLEWARE] No session cookie found for path: ${pathname}. Redirecting to login.`);
+      return redirectToLogin(request);
+  }
+
   try {
-    // This function will throw an error if the cookie is invalid or expired
-    const tokens: Tokens | null = await getTokens(request, authConfig);
+    const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
     
-    if (!tokens) {
-      // If no tokens are found, redirect to login with the original path as a query param
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirect', pathname + request.nextUrl.search);
-      return NextResponse.redirect(url);
+    if (!decodedToken) {
+        return redirectToLogin(request, true);
     }
     
-    const role = (tokens.decodedToken as any).role;
+    const role = decodedToken.role;
 
     // RBAC: Enforce strict role-based access for tenants
     if (role === 'tenant' && !pathname.startsWith('/tenant-portal')) {
@@ -69,27 +70,31 @@ export async function middleware(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    // This block handles errors from getTokens(), like an invalid or expired cookie
-    console.error(`[MIDDLEWARE_ERROR] Invalid token for path: ${pathname}. Redirecting to login.`, {
+    console.error(`[MIDDLEWARE_ERROR] Invalid session cookie for path: ${pathname}.`, {
       errorMessage: error.message,
     });
-    
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('error', 'session_expired');
-    const response = NextResponse.redirect(url);
-    
-    // Clear the potentially invalid cookie to prevent redirect loops
-    response.cookies.set({
-      name: authConfig.cookieName,
-      value: '',
-      path: '/',
-      maxAge: -1,
-    });
-
-    return response;
+    return redirectToLogin(request, true);
   }
 }
+
+function redirectToLogin(request: NextRequest, sessionExpired = false) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    if (sessionExpired) {
+        url.searchParams.set('error', 'session_expired');
+    }
+    const response = NextResponse.redirect(url);
+
+    // Clear the potentially invalid cookie
+    response.cookies.set({
+        name: authConfig.cookieName,
+        value: '',
+        path: '/',
+        maxAge: -1,
+    });
+    return response;
+}
+
 
 // Match all paths except for the ones starting with the public asset folders
 export const config = {

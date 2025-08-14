@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import path from 'path';
@@ -17,19 +18,19 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord']) {
-    const { tokens, error } = await verifyApiAuth(req, allowedRoles);
+    const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
     if (error) {
-        return { tokens: null, response: error };
+        return { decodedToken: null, response: error };
     }
-    return { tokens, response: null };
+    return { decodedToken, response: null };
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const { tokens, response } = await checkAuth(req);
+    const { decodedToken, response } = await checkAuth(req);
     if (response) return response;
     
-    const { uid: userId } = tokens!.decodedToken;
+    const { uid: userId } = decodedToken!;
     const properties = await propertyService.getPropertiesByLandlord(userId);
 
     return NextResponse.json(properties);
@@ -41,10 +42,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { tokens, response } = await checkAuth(req);
+    const { decodedToken, response } = await checkAuth(req);
     if (response) return response;
 
-    const { uid: userId } = tokens!.decodedToken;
+    const { uid: userId } = decodedToken!;
     
     const formData = await req.formData();
     const file = formData.get('media') as File | null;

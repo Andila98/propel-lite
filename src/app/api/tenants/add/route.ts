@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { TenantService } from '@/services/tenant-service';
 import { z } from 'zod';
@@ -18,10 +19,10 @@ const tenantService = new TenantService();
 
 export async function POST(req: NextRequest) {
     try {
-        const { tokens, error } = await verifyApiAuth(req, ['landlord']);
+        const { decodedToken, error } = await verifyApiAuth(req, ['landlord']);
         if (error) return error;
 
-        const { uid: landlordId } = tokens.decodedToken;
+        const { uid: landlordId } = decodedToken;
         const body = await req.json();
 
         const validationResult = CreateTenantSchema.safeParse(body);

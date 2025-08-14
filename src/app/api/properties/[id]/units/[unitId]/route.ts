@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { verifyApiAuth } from '@/lib/server-utils';
@@ -7,20 +8,20 @@ async function handler(
     req: NextRequest, 
     allowedRoles: string[]
 ) {
-    const { tokens, error } = await verifyApiAuth(req, allowedRoles);
+    const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
     if (error) {
-        return { tokens: null, response: error };
+        return { decodedToken: null, response: error };
     }
-    return { tokens, response: null };
+    return { decodedToken, response: null };
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
   try {
     const authResult = await handler(req, ['landlord']);
     if (authResult.response) return authResult.response;
-    const { tokens } = authResult;
+    const { decodedToken } = authResult;
 
-    const { uid: landlordId } = tokens!.decodedToken;
+    const { uid: landlordId } = decodedToken!;
     const { id: propertyId, unitId } = params;
     const updates = await req.json();
 
@@ -58,9 +59,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     try {
         const authResult = await handler(req, ['landlord']);
         if (authResult.response) return authResult.response;
-        const { tokens } = authResult;
+        const { decodedToken } = authResult;
 
-        const { uid: landlordId } = tokens!.decodedToken;
+        const { uid: landlordId } = decodedToken!;
         const { id: propertyId, unitId } = params;
 
         const propertyRef = db.collection('properties').doc(propertyId);

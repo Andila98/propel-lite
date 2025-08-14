@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview TenantController handles the API logic for tenant-related requests.
  * It acts as an intermediary between the API routes and the TenantService,
@@ -28,11 +29,11 @@ export class TenantController {
   private tenantService = new TenantService();
 
   private async checkAuth(req: NextRequest, allowedRoles: string[]) {
-    const { tokens, error } = await verifyApiAuth(req, allowedRoles);
+    const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
     if (error) {
-        return { tokens: null, response: error };
+        return { decodedToken: null, response: error };
     }
-    return { tokens, response: null };
+    return { decodedToken, response: null };
   }
 
   /**
@@ -41,10 +42,10 @@ export class TenantController {
    * @returns A NextResponse with the created tenant data or an error.
    */
   async createTenant(req: NextRequest) {
-    const { tokens, response } = await this.checkAuth(req, ['landlord']);
+    const { decodedToken, response } = await this.checkAuth(req, ['landlord']);
     if (response) return response;
 
-    const { uid: landlordId } = tokens!.decodedToken;
+    const { uid: landlordId } = decodedToken!;
     const body = await req.json();
 
     const validationResult = CreateTenantSchema.safeParse(body);
@@ -75,10 +76,10 @@ export class TenantController {
    * @returns A NextResponse with the list of tenants or an error.
    */
   async listTenants(req: NextRequest) {
-    const { tokens, response } = await this.checkAuth(req, ['landlord', 'manager']);
+    const { decodedToken, response } = await this.checkAuth(req, ['landlord', 'manager']);
     if (response) return response;
     
-    const { role, uid, claims } = tokens!.decodedToken as any;
+    const { role, uid, claims } = decodedToken as any;
     const targetLandlordId = role === 'landlord' ? uid : claims.landlordId;
       
     if (!targetLandlordId) {
@@ -96,10 +97,10 @@ export class TenantController {
    * @returns A NextResponse with the tenant data or a not found error.
    */
   async getTenant(req: NextRequest, tenantId: string) {
-    const { tokens, response } = await this.checkAuth(req, ['landlord', 'manager']);
+    const { decodedToken, response } = await this.checkAuth(req, ['landlord', 'manager']);
     if (response) return response;
 
-    const { role, uid, claims } = tokens!.decodedToken as any;
+    const { role, uid, claims } = decodedToken as any;
     const targetLandlordId = role === 'landlord' ? uid : claims.landlordId;
 
     if (!targetLandlordId) {
@@ -122,10 +123,10 @@ export class TenantController {
    * @returns A NextResponse with a success message or an error.
    */
   async deleteTenant(req: NextRequest, tenantId: string) {
-    const { tokens, response } = await this.checkAuth(req, ['landlord']);
+    const { decodedToken, response } = await this.checkAuth(req, ['landlord']);
     if (response) return response;
 
-    const { uid: landlordId } = tokens!.decodedToken;
+    const { uid: landlordId } = decodedToken!;
     
     await this.tenantService.deleteTenant(tenantId, landlordId);
 

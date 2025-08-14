@@ -1,25 +1,22 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
-import { getAuth } from 'firebase-admin/auth';
-import type { Tokens } from 'next-firebase-auth-edge';
+import { admin } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
-  try {
-    const tokens: Tokens | null = await getTokens(request, authConfig);
-    if (tokens) {
-      // Invalidate the session by revoking the refresh token.
-      await getAuth().revokeRefreshTokens(tokens.decodedToken.uid);
-      console.log(`[LOGOUT_SUCCESS] Revoked refresh tokens for UID: ${tokens.decodedToken.uid}`);
+  const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
+
+  if (sessionCookie) {
+    try {
+      const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie);
+      await admin.auth().revokeRefreshTokens(decodedClaims.uid);
+      console.log(`[LOGOUT_SUCCESS] Revoked refresh tokens for UID: ${decodedClaims.uid}`);
+    } catch (error: any) {
+      console.error('[LOGOUT_ERROR] Failed to revoke refresh tokens:', {
+        message: error.message,
+        code: error.code
+      });
     }
-  } catch (error: any) {
-    // Log the error but don't prevent logout.
-    // The main goal is to clear the client-side cookie.
-    console.error('[LOGOUT_ERROR] Failed to revoke refresh tokens:', {
-      message: error.message,
-      code: error.code
-    });
   }
 
   // Always attempt to clear the cookie.

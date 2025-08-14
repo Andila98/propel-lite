@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { v4 as uuid } from 'uuid';
@@ -5,10 +6,10 @@ import { verifyApiAuth } from '@/lib/server-utils';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { tokens, error } = await verifyApiAuth(req, ['landlord']);
+    const { decodedToken, error } = await verifyApiAuth(req, ['landlord']);
     if (error) return error;
 
-    const { uid: landlordId } = tokens.decodedToken;
+    const { uid: landlordId } = decodedToken;
     const propertyId = params.id;
     const unitData = await req.json();
 
