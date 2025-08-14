@@ -2,12 +2,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import { auth } from '@/lib/firebase/client-app';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
 
 // Defines a more specific type for login errors from the backend or Firebase
 type LoginError = {
@@ -69,7 +69,7 @@ export default function LoginPage() {
         body: JSON.stringify({ idToken }),
       });
 
-      const data: { success: boolean; role: string; profileComplete: boolean; error?: string } = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         // Pass the response status to the error to handle it below

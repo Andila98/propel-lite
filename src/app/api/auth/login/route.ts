@@ -11,7 +11,9 @@ const UserSchema = z.object({
   email: z.string().email(),
   name: z.string(),
   role: z.enum(['landlord', 'tenant', 'admin']),
-  createdAt: z.any(), // Firestore timestamps are complex to validate simply
+  createdAt: z.any().refine((val) => (val && typeof val.toDate === 'function') || val instanceof Date, {
+    message: "createdAt must be a Firestore Timestamp or Date object"
+  }),
   isActive: z.boolean(),
   profileComplete: z.boolean(),
 });
@@ -26,7 +28,9 @@ const UserSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const { idToken } = await request.json();
+    const body = await request.json();
+    const { idToken } = body;
+
     if (!idToken || typeof idToken !== 'string') {
       return NextResponse.json({ error: 'Valid ID token is required.' }, { status: 400 });
     }
