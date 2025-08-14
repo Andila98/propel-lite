@@ -8,6 +8,7 @@ async function handler(request: NextRequest) {
   const clientIP = request.headers.get('x-forwarded-for') || request.ip || 'unknown';
   try {
     const { idToken } = await request.json();
+    console.log('Backend: ID Token received from frontend:', idToken); // Added for verification
     if (!idToken || typeof idToken !== 'string' || idToken.trim().length === 0) {
       return NextResponse.json({ error: 'Valid ID token is required' }, { status: 400 });
     }
