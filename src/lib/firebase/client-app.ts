@@ -1,3 +1,4 @@
+
 // src/lib/firebase/client-app.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -18,7 +19,9 @@ function initializeFirebaseApp() {
     // Check for missing configuration values.
     for (const [key, value] of Object.entries(firebaseConfig)) {
         if (!value && key !== 'measurementId') { // measurementId is optional
-            throw new Error(`Firebase config is missing '${key}'. Check your .env file.`);
+            console.error(`Firebase config is missing '${key}'. Check your .env file.`);
+            // Throw an error or return null to prevent initialization with partial config
+            throw new Error(`Firebase config is missing '${key}'.`);
         }
     }
     
