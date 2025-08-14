@@ -117,7 +117,7 @@ export default function DashboardPage() {
     }).format(amount);
   };
 
-  const totalRent = properties.reduce((acc, p) => acc + p.rent, 0);
+  const totalRent = properties?.reduce((acc, p) => acc + (p.rent || 0), 0) || 0;
   const occupiedProperties = tenants.map(t => t.propertyId);
   const occupancyRate = properties.length > 0 ? (occupiedProperties.length / properties.length) * 100 : 0;
   const loading = propertiesLoading || tenantsLoading;
