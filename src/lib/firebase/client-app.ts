@@ -6,21 +6,29 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAh3_w39v-LhQ0txefaM2y6sn8C7tD6rqE",
-  authDomain: "propel-lite-9ed56.firebaseapp.com",
-  projectId: "propel-lite-9ed56",
-  storageBucket: "propel-lite-9ed56.appspot.com",
-  messagingSenderId: "72284672505",
-  appId: "1:72284672505:web:20c0c78093d5086d682d28",
-  measurementId: "G-BB9NLCFL9B"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 
 let app: FirebaseApp;
-if (!getApps().length) {
+// Check if all required config values are present
+const isConfigComplete = firebaseConfig.apiKey && firebaseConfig.projectId;
+
+if (isConfigComplete && !getApps().length) {
     app = initializeApp(firebaseConfig);
-} else {
+} else if (isConfigComplete) {
     app = getApp();
+} else {
+    console.error("Firebase config is missing or incomplete. Check your environment variables.");
+    // Provide mock/dummy objects in a failed state to prevent app from crashing
+    // This part of the code should ideally not be reached if environment variables are set correctly.
+    app = {} as FirebaseApp;
 }
 
 const auth = getAuth(app);
