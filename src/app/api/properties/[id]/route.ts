@@ -2,15 +2,15 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { PropertyFormSchema } from '@/lib/schemas';
 import { propertyService } from '@/services/property-service';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
+import { verifyApiAuth } from '@/lib/server-utils';
+
 
 async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord']) {
-    const tokens = await getTokens(req, authConfig);
-    if (!tokens || !allowedRoles.includes(tokens.decodedToken.role)) {
-        return null;
+    const { tokens, error } = await verifyApiAuth(req, allowedRoles);
+    if (error) {
+        return { tokens: null, response: error };
     }
-    return tokens;
+    return { tokens, response: null };
 }
 
 export async function GET(
@@ -18,10 +18,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const tokens = await checkAuth(req);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await checkAuth(req);
+    if (response) return response;
 
-    const userId = tokens.decodedToken.uid;
+    const userId = tokens!.decodedToken.uid;
     const propertyId = params.id;
 
     if (!propertyId) {
@@ -48,10 +48,10 @@ export async function GET(
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const tokens = await checkAuth(req);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await checkAuth(req);
+    if (response) return response;
     
-    const userId = tokens.decodedToken.uid;
+    const userId = tokens!.decodedToken.uid;
     const propertyId = params.id;
     
     const updates = await req.json();
@@ -84,10 +84,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const tokens = await checkAuth(req);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await checkAuth(req);
+    if (response) return response;
 
-    const userId = tokens.decodedToken.uid;
+    const userId = tokens!.decodedToken.uid;
     const propertyId = params.id;
 
     const ref = db.collection('properties').doc(propertyId);

@@ -6,8 +6,7 @@ import { randomBytes } from 'crypto';
 import { PropertyFormSchema } from '@/lib/schemas';
 import { v4 as uuid } from 'uuid';
 import { propertyService } from '@/services/property-service';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
+import { verifyApiAuth } from '@/lib/server-utils';
 
 export const runtime = 'nodejs'; // Ensure this route runs on the Node.js runtime
 
@@ -18,23 +17,19 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord']) {
-    try {
-        const tokens = await getTokens(req, authConfig);
-        if (!tokens || !allowedRoles.includes(tokens.decodedToken.role)) {
-            return null;
-        }
-        return tokens;
-    } catch (e) {
-        return null;
+    const { tokens, error } = await verifyApiAuth(req, allowedRoles);
+    if (error) {
+        return { tokens: null, response: error };
     }
+    return { tokens, response: null };
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const tokens = await checkAuth(req);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await checkAuth(req);
+    if (response) return response;
     
-    const { uid: userId } = tokens.decodedToken;
+    const { uid: userId } = tokens!.decodedToken;
     const properties = await propertyService.getPropertiesByLandlord(userId);
 
     return NextResponse.json(properties);
@@ -46,10 +41,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const tokens = await checkAuth(req);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await checkAuth(req);
+    if (response) return response;
 
-    const { uid: userId } = tokens.decodedToken;
+    const { uid: userId } = tokens!.decodedToken;
     
     const formData = await req.formData();
     const file = formData.get('media') as File | null;

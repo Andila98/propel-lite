@@ -9,8 +9,8 @@ import { TenantService, type TenantData } from '@/services/tenant-service';
 import { z } from 'zod';
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
+import { verifyApiAuth } from '@/lib/server-utils';
+
 
 // Schema for validating new tenant data from the request body.
 const CreateTenantSchema = z.object({
@@ -28,15 +28,11 @@ export class TenantController {
   private tenantService = new TenantService();
 
   private async checkAuth(req: NextRequest, allowedRoles: string[]) {
-    try {
-        const tokens = await getTokens(req, authConfig);
-        if (!tokens || !allowedRoles.includes(tokens.decodedToken.role)) {
-            return null;
-        }
-        return tokens;
-    } catch(e) {
-        return null;
+    const { tokens, error } = await verifyApiAuth(req, allowedRoles);
+    if (error) {
+        return { tokens: null, response: error };
     }
+    return { tokens, response: null };
   }
 
   /**
@@ -45,10 +41,10 @@ export class TenantController {
    * @returns A NextResponse with the created tenant data or an error.
    */
   async createTenant(req: NextRequest) {
-    const tokens = await this.checkAuth(req, ['landlord']);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await this.checkAuth(req, ['landlord']);
+    if (response) return response;
 
-    const { uid: landlordId } = tokens.decodedToken;
+    const { uid: landlordId } = tokens!.decodedToken;
     const body = await req.json();
 
     const validationResult = CreateTenantSchema.safeParse(body);
@@ -79,10 +75,10 @@ export class TenantController {
    * @returns A NextResponse with the list of tenants or an error.
    */
   async listTenants(req: NextRequest) {
-    const tokens = await this.checkAuth(req, ['landlord', 'manager']);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await this.checkAuth(req, ['landlord', 'manager']);
+    if (response) return response;
     
-    const { role, uid, claims } = tokens.decodedToken;
+    const { role, uid, claims } = tokens!.decodedToken;
     const targetLandlordId = role === 'landlord' ? uid : claims.landlordId;
       
     if (!targetLandlordId) {
@@ -100,10 +96,10 @@ export class TenantController {
    * @returns A NextResponse with the tenant data or a not found error.
    */
   async getTenant(req: NextRequest, tenantId: string) {
-    const tokens = await this.checkAuth(req, ['landlord', 'manager']);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await this.checkAuth(req, ['landlord', 'manager']);
+    if (response) return response;
 
-    const { role, uid, claims } = tokens.decodedToken;
+    const { role, uid, claims } = tokens!.decodedToken;
     const targetLandlordId = role === 'landlord' ? uid : claims.landlordId;
 
     if (!targetLandlordId) {
@@ -126,10 +122,10 @@ export class TenantController {
    * @returns A NextResponse with a success message or an error.
    */
   async deleteTenant(req: NextRequest, tenantId: string) {
-    const tokens = await this.checkAuth(req, ['landlord']);
-    if (!tokens) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, response } = await this.checkAuth(req, ['landlord']);
+    if (response) return response;
 
-    const { uid: landlordId } = tokens.decodedToken;
+    const { uid: landlordId } = tokens!.decodedToken;
     
     await this.tenantService.deleteTenant(tenantId, landlordId);
 
