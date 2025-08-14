@@ -1,11 +1,8 @@
-// Import the functions you need from the SDKs you need
+// src/lib/firebase/client-app.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,22 +13,26 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-
-// Initialize Firebase for client-side
-let app: FirebaseApp;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
+// Function to initialize Firebase, ensuring config is valid.
+function initializeFirebaseApp() {
+    // Check for missing configuration values.
+    for (const [key, value] of Object.entries(firebaseConfig)) {
+        if (!value && key !== 'measurementId') { // measurementId is optional
+            throw new Error(`Firebase config is missing '${key}'. Check your .env file.`);
+        }
+    }
+    
+    if (!getApps().length) {
+        console.log("Initializing Firebase App...");
+        return initializeApp(firebaseConfig);
+    } else {
+        return getApp();
+    }
 }
 
+
+const app: FirebaseApp = initializeFirebaseApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Conditionally get analytics only in browser
-let analytics;
-if (typeof window !== "undefined") {
-  // analytics = getAnalytics(app);
-}
-
-export { app, auth, db, analytics };
+export { app, auth, db };
