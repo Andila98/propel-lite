@@ -27,7 +27,7 @@ const cookieSerializeOptions: CookieSerializeOptions = {
 
 const serviceAccount = {
     projectId: getEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'propel-lite'),
-    clientEmail: getEnv('FIREBASE_CLIENT_EMAIL'),
+    clientEmail: getEnv('FIREBASE_CLIENT_EMAIL', 'firebase-adminsdk-y9lql@propel-lite.iam.gserviceaccount.com'),
     // Ensure the private key is correctly formatted.
     privateKey: getEnv('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
 };
