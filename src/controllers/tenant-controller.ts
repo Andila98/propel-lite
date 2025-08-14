@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview TenantController handles the API logic for tenant-related requests.
  * It acts as an intermediary between the API routes and the TenantService,

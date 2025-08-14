@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { PropertyFormSchema } from '@/lib/schemas';

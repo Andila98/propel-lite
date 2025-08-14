@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { getTokens } from 'next-firebase-auth-edge';
 import { authConfig } from '@/config/server-config';
@@ -60,7 +59,7 @@ export async function POST(request: NextRequest) {
     const { role, profileComplete } = validationResult.data;
     
     // 4. Generate session cookies
-    const tokens = await getTokens(request.cookies, { ...authConfig, idToken });
+    const tokens = await getTokens(request, { ...authConfig, idToken });
     
     if (!tokens) {
         return NextResponse.json({ error: 'Failed to generate session tokens.' }, { status: 500 });

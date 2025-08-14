@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import { getTokens } from 'next-firebase-auth-edge';

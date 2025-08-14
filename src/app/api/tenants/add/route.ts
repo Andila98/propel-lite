@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { TenantService } from '@/services/tenant-service';
 import { z } from 'zod';
