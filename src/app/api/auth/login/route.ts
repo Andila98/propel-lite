@@ -8,35 +8,38 @@ async function handler(request: NextRequest) {
   const clientIP = request.headers.get('x-forwarded-for') || request.ip || 'unknown';
   try {
     const { idToken } = await request.json();
-    console.log('Backend: ID Token received from frontend:', idToken); // Added for verification
+    console.log('[API_LOGIN] Backend: ID Token received from frontend.');
     if (!idToken || typeof idToken !== 'string' || idToken.trim().length === 0) {
       return NextResponse.json({ error: 'Valid ID token is required' }, { status: 400 });
     }
     
-    // First, verify the token to get the UID without setting cookies yet.
+    // Action 1: Verify the token to get the UID without setting cookies yet.
     const decodedIdToken = await admin.auth().verifyIdToken(idToken);
     const { uid } = decodedIdToken;
+    console.log(`[API_LOGIN] Action 1: Token verified successfully for UID: ${uid}, Email: ${decodedIdToken.email}`);
 
-    // Then, fetch user data from Firestore to get their role.
+    // Action 2: Fetch user data from Firestore to get their role.
     const userDoc = await db.collection('users').doc(uid).get();
     if (!userDoc.exists) {
-      return NextResponse.json({ error: 'User data not found in Firestore.' }, { status: 404 });
+      console.error(`[API_LOGIN_ERROR] Firestore user document not found for UID: ${uid}`);
+      return NextResponse.json({ error: 'User data not found in Firestore. Please contact support.' }, { status: 404 });
     }
     const role = userDoc.data()?.role;
     if (!role) {
-      return NextResponse.json({ error: 'User role not found.' }, { status: 403 });
+      console.error(`[API_LOGIN_ERROR] User role not found in Firestore for UID: ${uid}`);
+      return NextResponse.json({ error: 'User role not found. Please contact support.' }, { status: 403 });
     }
+    console.log(`[API_LOGIN] Action 2: Firestore document found. User role is: ${role}`);
     
-    // Now, generate session cookies with the verified token and role.
+    // Action 3: Now, generate session cookies with the verified token and role.
     const tokens = await getTokens(request, { ...authConfig, idToken });
-    const { token, cookie } = tokens;
+    const { cookie } = tokens;
+    console.log('[API_LOGIN] Action 3: Session cookie generated.');
 
     const response = NextResponse.json({ success: true, role }, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
       },
     });
 
