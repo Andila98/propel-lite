@@ -78,7 +78,7 @@ export class TenantController {
     const { tokens, response } = await this.checkAuth(req, ['landlord', 'manager']);
     if (response) return response;
     
-    const { role, uid, claims } = tokens!.decodedToken;
+    const { role, uid, claims } = tokens!.decodedToken as any;
     const targetLandlordId = role === 'landlord' ? uid : claims.landlordId;
       
     if (!targetLandlordId) {
@@ -99,7 +99,7 @@ export class TenantController {
     const { tokens, response } = await this.checkAuth(req, ['landlord', 'manager']);
     if (response) return response;
 
-    const { role, uid, claims } = tokens!.decodedToken;
+    const { role, uid, claims } = tokens!.decodedToken as any;
     const targetLandlordId = role === 'landlord' ? uid : claims.landlordId;
 
     if (!targetLandlordId) {

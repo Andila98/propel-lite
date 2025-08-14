@@ -1,9 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { TenantService } from '@/services/tenant-service';
 import { z } from 'zod';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
-import type { Tokens } from 'next-firebase-auth-edge';
+import { verifyApiAuth } from '@/lib/server-utils';
 
 
 const CreateTenantSchema = z.object({
@@ -20,10 +18,9 @@ const tenantService = new TenantService();
 
 export async function POST(req: NextRequest) {
     try {
-        const tokens: Tokens | null = await getTokens(req, authConfig);
-        if (!tokens || tokens.decodedToken.role !== 'landlord') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        const { tokens, error } = await verifyApiAuth(req, ['landlord']);
+        if (error) return error;
+
         const { uid: landlordId } = tokens.decodedToken;
         const body = await req.json();
 

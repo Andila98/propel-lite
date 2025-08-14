@@ -40,13 +40,15 @@ export async function verifyApiAuth(
         }),
       };
     }
-
+    
+    const userRole = (tokens.decodedToken as any).role;
+    
     if (
       allowedRoles.length > 0 &&
-      !allowedRoles.includes(tokens.decodedToken.role)
+      !allowedRoles.includes(userRole)
     ) {
       console.warn(
-        `[API_AUTH] Forbidden: User role '${tokens.decodedToken.role}' not in allowed roles [${allowedRoles.join(", ")}].`
+        `[API_AUTH] Forbidden: User role '${userRole}' not in allowed roles [${allowedRoles.join(", ")}].`
       );
       return {
         tokens: null,

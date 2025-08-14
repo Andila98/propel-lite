@@ -1,28 +1,26 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
-import type { Tokens } from 'next-firebase-auth-edge';
+import { verifyApiAuth } from '@/lib/server-utils';
+
 
 async function handler(
     req: NextRequest, 
-    { params }: { params: { id: string; unitId: string } },
     allowedRoles: string[]
 ) {
-    const tokens: Tokens | null = await getTokens(req, authConfig);
-    if (!tokens || !allowedRoles.includes(tokens.decodedToken.role)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { tokens, error } = await verifyApiAuth(req, allowedRoles);
+    if (error) {
+        return { tokens: null, response: error };
     }
-    return { tokens, params, req };
+    return { tokens, response: null };
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
   try {
-    const authResult = await handler(req, { params }, ['landlord']);
-    if (authResult instanceof NextResponse) return authResult;
+    const authResult = await handler(req, ['landlord']);
+    if (authResult.response) return authResult.response;
     const { tokens } = authResult;
 
-    const { uid: landlordId } = tokens.decodedToken;
+    const { uid: landlordId } = tokens!.decodedToken;
     const { id: propertyId, unitId } = params;
     const updates = await req.json();
 
@@ -58,11 +56,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
     try {
-        const authResult = await handler(req, { params }, ['landlord']);
-        if (authResult instanceof NextResponse) return authResult;
+        const authResult = await handler(req, ['landlord']);
+        if (authResult.response) return authResult.response;
         const { tokens } = authResult;
 
-        const { uid: landlordId } = tokens.decodedToken;
+        const { uid: landlordId } = tokens!.decodedToken;
         const { id: propertyId, unitId } = params;
 
         const propertyRef = db.collection('properties').doc(propertyId);

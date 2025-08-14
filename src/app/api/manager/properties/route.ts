@@ -1,16 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/firebase-admin';
 import type { PropertyManager, Property } from 'src/services/property-service';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
-import type { Tokens } from 'next-firebase-auth-edge';
+import { verifyApiAuth } from '@/lib/server-utils';
 
 export async function GET(req: NextRequest) {
   try {
-    const tokens: Tokens | null = await getTokens(req, authConfig);
-    if (!tokens || tokens.decodedToken.role !== 'manager') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { tokens, error } = await verifyApiAuth(req, ['manager']);
+    if (error) return error;
+
     const managerId = tokens.decodedToken.uid;
 
     const managerDoc = await db.collection('users').doc(managerId).get();

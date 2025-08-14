@@ -1,16 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { v4 as uuid } from 'uuid';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
-import type { Tokens } from 'next-firebase-auth-edge';
+import { verifyApiAuth } from '@/lib/server-utils';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const tokens: Tokens | null = await getTokens(req, authConfig);
-    if (!tokens || tokens.decodedToken.role !== 'landlord') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { tokens, error } = await verifyApiAuth(req, ['landlord']);
+    if (error) return error;
 
     const { uid: landlordId } = tokens.decodedToken;
     const propertyId = params.id;

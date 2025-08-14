@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
     
-    const { role } = tokens.decodedToken;
+    const role = (tokens.decodedToken as any).role;
 
     // RBAC: Enforce strict role-based access for tenants
     if (role === 'tenant' && !pathname.startsWith('/tenant-portal')) {

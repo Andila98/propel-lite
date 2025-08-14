@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/firebase-admin';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from '@/config/server-config';
 import type { Tenant } from 'src/services/tenant-service';
+import { verifyApiAuth } from '@/lib/server-utils';
 
 // GET /api/tenants/[id]/payments
 // Fetches all payments for a specific tenant.
@@ -10,12 +9,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const { id: tenantId } = params;
     
     try {
-      const tokens = await getTokens(req, authConfig);
-      if (!tokens) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+      const { tokens, error } = await verifyApiAuth(req, ['landlord', 'manager', 'tenant']);
+      if (error) return error;
 
-      const { role, uid, claims } = tokens.decodedToken;
+      const { role, uid, claims } = tokens.decodedToken as any;
 
       const tenantDoc = await db.collection('users').doc(tenantId).get();
       if (!tenantDoc.exists) {
