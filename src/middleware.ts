@@ -14,6 +14,11 @@ const publicPaths = [
   '/onboarding/welcome',
   '/onboarding/landlord-welcome',
   '/onboarding/accept-invite',
+  '/onboarding/add-property',
+  '/onboarding/add-property-manager',
+  '/onboarding/add-tenant',
+  '/onboarding/complete',
+
 
   // Public APIs & webhooks
   '/api/auth/login',
