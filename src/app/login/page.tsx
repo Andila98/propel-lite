@@ -98,15 +98,15 @@ export default function LoginPage() {
         console.error("Login page error:", typedError);
         let errorMessage = 'An unexpected error occurred.';
         
-        // Handle custom backend errors
+        // Handle custom backend errors first
         if (typedError.status === 404) {
             errorMessage = 'User data not found in our system. Please contact support.';
-        } else if (typedError.message) {
-            errorMessage = typedError.message;
+        } else if (typedError.message && !typedError.code) { // Handle backend error messages that are not from Firebase
+             errorMessage = typedError.message;
         }
 
-        // Handle known Firebase client-side errors (if no specific backend error was caught)
-        if (typedError.code) { 
+        // Handle known Firebase client-side errors if no specific backend error was caught
+        else if (typedError.code) { 
             switch(typedError.code) {
                 case 'auth/invalid-credential':
                     errorMessage = 'Invalid email or password. Please try again.';
@@ -117,7 +117,8 @@ export default function LoginPage() {
                 case 'auth/network-request-failed':
                     errorMessage = 'Network error. Please check your internet connection.';
                     break;
-                // Add other Firebase error codes as needed
+                default:
+                    errorMessage = typedError.message; // Fallback to Firebase's message
             }
         }
 
