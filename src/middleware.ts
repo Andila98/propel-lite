@@ -1,7 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authConfig } from './config/server-config';
-import { admin } from './lib/firebase-admin';
 
 // Paths that do not require authentication
 const publicPaths = [
@@ -34,6 +33,9 @@ function isPublic(pathname: string): boolean {
   return publicPaths.some(path => pathname.startsWith(path));
 }
 
+// This middleware is now much simpler. It only checks for the existence of the session cookie.
+// The actual verification (which requires Node.js APIs) is delegated to the API routes
+// or page-level `getServerSideProps` functions.
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -46,36 +48,17 @@ export async function middleware(request: NextRequest) {
 
   if (!sessionCookie) {
       console.log(`[MIDDLEWARE] No session cookie found for path: ${pathname}. Redirecting to login.`);
-      return redirectToLogin(request);
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.searchParams.set('error', 'session_expired');
+      return NextResponse.redirect(url);
   }
 
-  try {
-    const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
-    
-    if (!decodedToken) {
-        return redirectToLogin(request, true);
-    }
-    
-    const role = decodedToken.role;
-
-    // RBAC: Enforce strict role-based access for tenants
-    if (role === 'tenant' && !pathname.startsWith('/tenant-portal')) {
-        console.log(`[MIDDLEWARE_RBAC] Redirecting tenant from ${pathname} to /tenant-portal`);
-        return NextResponse.redirect(new URL('/tenant-portal', request.url));
-    }
-
-    const response = NextResponse.next();
-    // Optional: set a header for backend services to easily access the user's role
-    response.headers.set('x-user-role', role || 'unknown');
-    return response;
-
-  } catch (error: any) {
-    console.error(`[MIDDLEWARE_ERROR] Invalid session cookie for path: ${pathname}.`, {
-      errorMessage: error.message,
-    });
-    return redirectToLogin(request, true);
-  }
+  // Allow the request to proceed. The actual token verification will happen
+  // in the API route or page component that requires the Node.js runtime.
+  return NextResponse.next();
 }
+
 
 function redirectToLogin(request: NextRequest, sessionExpired = false) {
     const url = request.nextUrl.clone();

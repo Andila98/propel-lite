@@ -4,6 +4,8 @@ import { db } from '@/lib/firebase-admin';
 import type { Tenant } from 'src/services/tenant-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
+export const runtime = 'nodejs';
+
 // GET /api/tenants/[id]/payments
 // Fetches all payments for a specific tenant.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {

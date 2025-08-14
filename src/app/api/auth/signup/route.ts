@@ -4,6 +4,8 @@ import { getAuth } from 'firebase-admin/auth';
 import { admin, db } from '@/lib/firebase-admin';
 import { z } from 'zod';
 
+export const runtime = 'nodejs';
+
 const signupSchema = z.object({
   email: z.string().email('Invalid email format'),
   displayName: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name too long'),

@@ -4,6 +4,8 @@ import { db } from '@/lib/firebase-admin';
 import type { PropertyManager, Property } from 'src/services/property-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
+export const runtime = 'nodejs';
+
 export async function GET(req: NextRequest) {
   try {
     const { decodedToken, error } = await verifyApiAuth(req, ['manager']);

@@ -5,6 +5,7 @@ import { PropertyFormSchema } from '@/lib/schemas';
 import { propertyService } from '@/services/property-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
+export const runtime = 'nodejs';
 
 async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord']) {
     const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);

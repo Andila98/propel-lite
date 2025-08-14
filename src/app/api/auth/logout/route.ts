@@ -3,6 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
 import { admin } from '@/lib/firebase-admin';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 

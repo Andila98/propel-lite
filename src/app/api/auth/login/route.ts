@@ -5,7 +5,8 @@ import { admin, db } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
-// Define a schema for the user data in Firestore to ensure data integrity.
+export const runtime = 'nodejs';
+
 const UserSchema = z.object({
   uid: z.string(),
   email: z.string().email(),

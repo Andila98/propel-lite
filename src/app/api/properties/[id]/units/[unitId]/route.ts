@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { verifyApiAuth } from '@/lib/server-utils';
 
+export const runtime = 'nodejs';
 
 async function handler(
     req: NextRequest, 

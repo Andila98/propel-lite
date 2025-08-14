@@ -9,6 +9,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { TenantController } from '@/controllers/tenant-controller';
 
+export const runtime = 'nodejs';
+
 const controller = new TenantController();
 
 // GET /api/tenants

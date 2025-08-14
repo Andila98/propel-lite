@@ -4,6 +4,8 @@ import { db, admin } from '@/lib/firebase-admin';
 import { v4 as uuid } from 'uuid';
 import { verifyApiAuth } from '@/lib/server-utils';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { decodedToken, error } = await verifyApiAuth(req, ['landlord']);

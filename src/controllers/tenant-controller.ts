@@ -12,6 +12,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
 import { verifyApiAuth } from '@/lib/server-utils';
 
+export const runtime = 'nodejs';
 
 // Schema for validating new tenant data from the request body.
 const CreateTenantSchema = z.object({
