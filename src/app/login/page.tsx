@@ -5,8 +5,9 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
-import { useAuth } from '@/hooks/use-auth';
+import { auth } from '@/lib/firebase/client-app';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +33,6 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -56,12 +56,41 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      await login(email, password);
+        // Step 1: Authenticate with Firebase client-side
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Step 2: Get the ID token from the authenticated user
+        const idToken = await userCredential.user.getIdToken();
+        
+        // Step 3: Send the token to the backend API to create a session
+        const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            // Pass the response status to the error to handle it below
+            const error = new Error(data.error || 'Login failed. Please check your credentials.');
+            (error as any).status = response.status;
+            throw error;
+        }
+
+        toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+        });
       
-      toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-      });
+      // Step 4: Handle redirection based on role and profile status
+      if (data.role === 'landlord' && !data.profileComplete) {
+          router.push('/onboarding/welcome');
+      } else if (data.role === 'tenant') {
+          router.push('/tenant-portal');
+      } else {
+          router.push('/');
+      }
 
     } catch (error) {
         const typedError = error as LoginError & { status?: number };
@@ -100,7 +129,7 @@ export default function LoginPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [email, password, login, toast]);
+  }, [email, password, router, toast]);
   
   const handleSocialLogin = (provider: string) => {
      toast({
