@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     
     const validationResult = signupSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error("[SIGNUP_VALIDATION_ERROR]", validationResult.error.flatten());
       return NextResponse.json(
         { error: 'Validation failed', details: validationResult.error.flatten().fieldErrors },
         { status: 400 }
@@ -46,9 +47,7 @@ export async function POST(req: NextRequest) {
       profileComplete: false,
     });
 
-    // Optional: Send verification email
-    // const verificationLink = await getAuth().generateEmailVerificationLink(email);
-    // await sendVerificationEmail(email, verificationLink);
+    console.log(`[SIGNUP_SUCCESS] Landlord account created for email: ${email}, UID: ${userRecord.uid}`);
     
     return NextResponse.json(
       { message: 'Landlord account created successfully. Please log in.', userId: userRecord.uid },
