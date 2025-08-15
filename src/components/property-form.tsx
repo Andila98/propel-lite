@@ -74,6 +74,17 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
   const propertyType = watch("type");
   const numberOfUnits = watch("numberOfUnits");
 
+  const addUnit = () => {
+    append({
+        unitNumber: `Unit ${fields.length + 1}`,
+        rent: 1000,
+        size: '1 Bedroom',
+        isOccupied: false
+    });
+    const currentNum = numberOfUnits || 0;
+    setValue("numberOfUnits", currentNum + 1);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
