@@ -99,7 +99,7 @@ export default function LoginPage() {
         
         // Handle custom backend errors first
         if (typedError.status === 404) {
-            errorMessage = 'User data not found in our system. Please contact support.';
+            errorMessage = 'User data not found in our system. Please sign up or contact support.';
         } else if (typedError.message && !typedError.code) { // Handle backend error messages that are not from Firebase
              errorMessage = typedError.message;
         }

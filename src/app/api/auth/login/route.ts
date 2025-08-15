@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
-      console.error(`[API_LOGIN_ERROR] Firestore user document not found for UID: ${uid}`);
-      return NextResponse.json({ error: 'User data not found in Firestore. Please contact support.' }, { status: 404 });
+      console.error(`[API_LOGIN_ERROR] Firestore user document not found for UID: ${uid}. A user should only be created via signup or invite.`);
+      return NextResponse.json({ error: 'User data not found in our system. Please sign up or contact support.' }, { status: 404 });
     }
     
     // 4. Validate user data against schema to prevent crashes from malformed data
