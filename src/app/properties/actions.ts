@@ -71,6 +71,7 @@ export async function createPropertyAction(
     
     revalidatePath('/properties');
     revalidatePath('/dashboard');
+    revalidatePath('/');
     
     return { success: true, propertyId: createdProperty.id };
 
