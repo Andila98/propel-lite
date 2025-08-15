@@ -19,6 +19,8 @@ import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client-app';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,16 +36,28 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+        // Step 1: Create the user on the client-side with Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Step 2: Update the user's profile with their display name
+        await updateProfile(userCredential.user, { displayName });
+
+        // Step 3: Get the ID token from the newly created and updated user
+        const idToken = await userCredential.user.getIdToken(true); // Force refresh to get claims if needed later
+
+        // Step 4: Send the ID token to the backend to create the Firestore user record and set custom claims
         const response = await fetch('/api/auth/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ displayName, email, password }),
+            body: JSON.stringify({ idToken }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to create account.');
+            // If backend provisioning fails, we should ideally delete the auth user to avoid orphaned accounts
+            await userCredential.user.delete();
+            throw new Error(data.error || 'Failed to provision account on the server.');
         }
 
         toast({
@@ -54,9 +68,28 @@ export default function RegisterPage() {
 
     } catch (error: any) {
         console.error("Registration Error:", error);
+        let errorMessage = "An unexpected error occurred during registration.";
+        if (error.code) {
+            switch(error.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage = "This email is already in use by another account.";
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = "The password is too weak. Please use at least 6 characters.";
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = "Please enter a valid email address.";
+                    break;
+                default:
+                    errorMessage = error.message;
+            }
+        } else {
+             errorMessage = error.message;
+        }
+
         toast({
             title: "Registration Failed",
-            description: error.message,
+            description: errorMessage,
             variant: "destructive",
         });
     } finally {
