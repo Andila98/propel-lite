@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Image as ImageIcon, Upload, Info } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, Upload, Info, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
@@ -21,23 +21,32 @@ import Papa from 'papaparse';
 import type { Unit } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFormStatus } from 'react-dom';
 
 interface PropertyFormProps {
-    onSubmit: (data: PropertyFormValues, imageFile: File | null) => void;
-    loading: boolean;
+    formAction: (payload: FormData) => void;
     initialData?: Partial<PropertyFormValues>;
     form?: UseFormReturn<PropertyFormValues>;
     isOnboarding?: boolean;
-    children?: ReactNode;
 }
 
-export function PropertyForm({ onSubmit, loading, initialData, form: passedForm, isOnboarding = false, children }: PropertyFormProps) {
+function SubmitButton({ isOnboarding }: { isOnboarding: boolean }) {
+    const { pending } = useFormStatus();
+    const buttonText = isOnboarding ? "Next: Add Property Manager" : "Save Property";
+    return (
+        <Button type="submit" className="w-full md:w-auto" disabled={pending}>
+           {pending ? <Loader2 className="animate-spin" /> : buttonText}
+        </Button>
+    )
+}
+
+export function PropertyForm({ formAction, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const defaultForm = useForm<PropertyFormValues>({
-    resolver: zodResolver(PropertyFormSchema),
+    // We don't need a resolver here anymore as validation is on the server
     defaultValues: initialData || {
       name: "",
       address: "",
@@ -55,7 +64,7 @@ export function PropertyForm({ onSubmit, loading, initialData, form: passedForm,
     }
   }, [initialData]);
 
-  const { register, control, handleSubmit, formState: { errors }, setValue, watch } = form;
+  const { register, control, handleSubmit, formState: { errors }, setValue, watch, getValues } = form;
 
   const { fields, append, remove, replace } = useFieldArray({
     control,
@@ -71,9 +80,6 @@ export function PropertyForm({ onSubmit, loading, initialData, form: passedForm,
       setImageFile(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
-      if (isOnboarding) {
-        localStorage.setItem('propertyImagePreview', url);
-      }
     }
   };
 
@@ -149,20 +155,14 @@ export function PropertyForm({ onSubmit, loading, initialData, form: passedForm,
     }
   };
   
-  const handleFormSubmit = (data: PropertyFormValues) => {
-    onSubmit(data, imageFile);
+  const clientAction = (formData: FormData) => {
+    const propertyData = getValues();
+    formData.append('propertyData', JSON.stringify(propertyData));
+    if (imageFile) {
+        formData.append('media', imageFile);
+    }
+    formAction(formData);
   }
-
-  const addUnit = () => {
-    append({
-        unitNumber: `Unit ${fields.length + 1}`,
-        size: "1 Bedroom",
-        rent: 20000,
-        isOccupied: false,
-    });
-    const currentNum = numberOfUnits || 0;
-    setValue("numberOfUnits", currentNum + 1);
-  };
   
   const cardHeader = isOnboarding ? (
       <CardHeader>
@@ -178,7 +178,7 @@ export function PropertyForm({ onSubmit, loading, initialData, form: passedForm,
 
   return (
     <TooltipProvider>
-    <form onSubmit={handleSubmit(handleFormSubmit)}>
+    <form action={clientAction}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-6">
                 <Card>
@@ -198,7 +198,7 @@ export function PropertyForm({ onSubmit, loading, initialData, form: passedForm,
                           </div>
                            <div>
                                 <Label htmlFor="imageFile">Property Image</Label>
-                                <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
+                                <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} required />
                             </div>
                             <div>
                             <Label htmlFor="currency">Currency</Label>
@@ -430,13 +430,9 @@ export function PropertyForm({ onSubmit, loading, initialData, form: passedForm,
                 </div>
             </div>
         </div>
-        {children || (
-            <div className="mt-8">
-              <Button type="submit" className="w-full md:w-auto" disabled={loading || !propertyType}>
-                 {loading ? <Loader2 className="animate-spin" /> : "Save Property"}
-              </Button>
-            </div>
-        )}
+        <div className="mt-8">
+            <SubmitButton isOnboarding={isOnboarding} />
+        </div>
     </form>
     </TooltipProvider>
   );
