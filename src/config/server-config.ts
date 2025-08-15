@@ -1,18 +1,8 @@
 import type { CookieSerializeOptions } from 'cookie';
 import { firebaseConfig as publicConfig } from './firebase-config';
 
-// A utility function to safely get environment variables.
-function getEnv(key: string, defaultValue?: string): string {
-    const value = process.env[key];
-    if (!value && defaultValue === undefined && process.env.NODE_ENV === 'production') {
-        // In production, we expect these to be set in the environment.
-        throw new Error(`Missing required environment variable in production: ${key}`);
-    }
-    return value || defaultValue || '';
-}
-
-const cookieSecretCurrent = getEnv('COOKIE_SECRET_CURRENT');
-const cookieSecretPrevious = getEnv('COOKIE_SECRET_PREVIOUS');
+const cookieSecretCurrent = process.env.COOKIE_SECRET_CURRENT || '';
+const cookieSecretPrevious = process.env.COOKIE_SECRET_PREVIOUS || '';
 
 export const authConfig = {
     apiKey: publicConfig.apiKey,
@@ -26,10 +16,10 @@ export const authConfig = {
         maxAge: 12 * 60 * 60 * 24, // 12 days
     },
     serviceAccount: {
-        projectId: publicConfig.projectId,
-        clientEmail: getEnv('FIREBASE_CLIENT_EMAIL'),
+        projectId: process.env.FIREBASE_PROJECT_ID || publicConfig.projectId,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
         // Ensure private key is correctly formatted
-        privateKey: getEnv('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
     },
 };
 
