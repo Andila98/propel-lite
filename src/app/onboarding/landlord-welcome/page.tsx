@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Stepper } from '@/components/ui/stepper';
 import { useAuth } from '@/hooks/use-auth';
-import { completeOnboarding } from './actions';
+import { completeOnboarding } from '../actions';
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
