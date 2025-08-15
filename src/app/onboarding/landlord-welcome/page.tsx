@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Stepper } from '@/components/ui/stepper';
 import { useAuth } from '@/hooks/use-auth';
+import { completeOnboarding } from './actions';
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
@@ -37,13 +38,23 @@ export default function LandlordWelcomePage() {
     router.push('/onboarding/add-property');
   };
 
-  const handleQuickStart = () => {
-    // In a real app, this would trigger a backend process
-    // to seed the database with sample data for the user.
+  const handleQuickStart = async () => {
     toast({
       title: "Quick Start Initialized!",
-      description: "We're adding some sample data to your account.",
+      description: "We're setting up your account with sample data.",
     });
+
+    const result = await completeOnboarding();
+
+    if (result.error) {
+       toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // For this prototype, we just navigate to the end of onboarding.
     // The dashboard already loads mock data if the DB is empty.
     router.push('/onboarding/complete');
