@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "seed:users": "tsx src/scripts/seed-users.ts",
+    "seed:properties": "tsx src/scripts/seed-properties.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
