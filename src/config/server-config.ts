@@ -6,19 +6,18 @@ function getEnv(key: string, defaultValue?: string): string {
     const value = process.env[key];
     if (!value && defaultValue === undefined && process.env.NODE_ENV === 'production') {
         // In production, we expect these to be set in the environment.
-        // Throwing an error here helps catch configuration issues early.
         throw new Error(`Missing required environment variable in production: ${key}`);
     }
     return value || defaultValue || '';
 }
 
-const cookieSecretCurrent = getEnv('COOKIE_SECRET_CURRENT', 'a_secure_default_secret_for_development_only');
-const cookieSecretPrevious = getEnv('COOKIE_SECRET_PREVIOUS', 'another_secure_default_secret_for_development');
+const cookieSecretCurrent = getEnv('COOKIE_SECRET_CURRENT');
+const cookieSecretPrevious = getEnv('COOKIE_SECRET_PREVIOUS');
 
 export const authConfig = {
     apiKey: publicConfig.apiKey,
     cookieName: 'PropelAuth',
-    cookieSignatureKeys: [cookieSecretCurrent, cookieSecretPrevious],
+    cookieSignatureKeys: [cookieSecretCurrent, cookieSecretPrevious].filter(Boolean),
     cookieSerializeOptions: {
         path: '/',
         httpOnly: true,
@@ -29,14 +28,15 @@ export const authConfig = {
     serviceAccount: {
         projectId: publicConfig.projectId,
         clientEmail: getEnv('FIREBASE_CLIENT_EMAIL'),
-        privateKey: getEnv('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
+        privateKey: getEnv('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
     },
-    tenantId: process.env.FIREBASE_TENANT_ID,
 };
 
 if (process.env.NODE_ENV === 'development') {
-    console.log('[AUTH_CONFIG] Firebase Auth Config Initialized for Development:');
-    console.log(`- Project ID: ${authConfig.serviceAccount.projectId || 'NOT SET'}`);
-    console.log(`- Client Email Loaded: ${!!authConfig.serviceAccount.clientEmail}`);
-    console.log(`- Private Key Loaded: ${!!authConfig.serviceAccount.privateKey}`);
+    const isConfigured = authConfig.serviceAccount.privateKey && authConfig.serviceAccount.clientEmail;
+    if (!isConfigured) {
+        console.warn(`[AUTH_CONFIG_WARN] Firebase Admin credentials are not set in environment variables. Server-side authentication will be disabled.`);
+    } else {
+         console.log(`[AUTH_CONFIG] Firebase Admin SDK configured for project: ${authConfig.serviceAccount.projectId}`);
+    }
 }

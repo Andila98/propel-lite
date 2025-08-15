@@ -1,7 +1,7 @@
 
-import { admin } from "@/lib/firebase-admin";
+import { admin, auth, isFirebaseAdminInitialized } from "@/lib/firebase-admin";
 import { authConfig } from "@/config/server-config";
-import type { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import type { DecodedIdToken } from "firebase-admin/auth";
 
 export interface AuthResult {
@@ -26,6 +26,14 @@ export async function verifyApiAuth(
   req: NextRequest,
   allowedRoles: string[] = []
 ): Promise<AuthResult | AuthError> {
+  if (!isFirebaseAdminInitialized || !auth) {
+      console.error('[API_AUTH_ERROR] Firebase Admin SDK is not initialized. Cannot verify session cookie.');
+      return {
+        decodedToken: null,
+        error: NextResponse.json({ error: "Server authentication is not configured." }, { status: 503 }),
+      };
+  }
+
   const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
@@ -37,7 +45,7 @@ export async function verifyApiAuth(
   }
 
   try {
-    const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
+    const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
     
     if (!decodedToken) {
         return {
