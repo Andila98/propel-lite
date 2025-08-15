@@ -10,7 +10,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { propertyService } from '@/services/property-service';
 
 
 export const SuggestionFormSchema = z.object({
