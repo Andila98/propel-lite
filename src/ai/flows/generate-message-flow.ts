@@ -10,9 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { TenantService } from '@/services/tenant-service';
-
-const tenantService = new TenantService();
+import { db } from '@/lib/firebase-admin';
 
 const GenerateMessageInputSchema = z.object({
   tenantId: z.string().describe("The ID of the tenant to message."),
@@ -72,6 +70,3 @@ const generateMessageFlow = ai.defineFlow(
     return output!;
   }
 );
-
-// We need a db instance here as we are using it in the flow
-import { db } from '@/lib/firebase-admin';
