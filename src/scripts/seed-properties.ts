@@ -4,7 +4,11 @@
  * Property Seeding Script for PropelLite/RentEase
  * 
  * This script populates the Firestore database with sample property and unit data.
+ * It first finds the UID of 'landlord1@demo.com' to ensure properties are assigned correctly.
+ * 
  * Usage: npm run seed:properties
+ * 
+ * Prerequisite: You should run `npm run seed:users` first to ensure the landlord exists.
  * 
  * Environment variables required:
  * - FIREBASE_PROJECT_ID
@@ -13,9 +17,9 @@
  */
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { config } from 'dotenv';
-import { v4 as uuid } from 'uuid';
 
 // Load environment variables
 config({ path: '.env' });
@@ -39,9 +43,7 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-
-// Sample Data
-const landlordId = 'Fk3W4i3n6ARo2dStC6mHk7aG6O73'; // UID for landlord1@demo.com from seed-users.ts
+const auth = getAuth();
 
 const propertiesToSeed = [
     {
@@ -100,6 +102,18 @@ const propertiesToSeed = [
 
 async function seedProperties() {
     console.log('🌱 Starting property seeding...');
+
+    // 1. Get the landlord UID
+    let landlordId: string;
+    try {
+        const landlordUser = await auth.getUserByEmail('landlord1@demo.com');
+        landlordId = landlordUser.uid;
+        console.log(`🔍 Found landlord 'landlord1@demo.com' with UID: ${landlordId}`);
+    } catch (error) {
+        console.error("🔴 ERROR: Could not find user 'landlord1@demo.com'. Please run `npm run seed:users` first.");
+        process.exit(1);
+    }
+    
     const propertiesCollection = db.collection('properties');
 
     for (const prop of propertiesToSeed) {
