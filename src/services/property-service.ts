@@ -1,6 +1,4 @@
 
-'use server';
-
 /**
  * @fileOverview A service class for handling property-related database operations.
  * This demonstrates an Object-Oriented approach to organizing backend logic.
