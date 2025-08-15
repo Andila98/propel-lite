@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -14,8 +13,8 @@ export interface User {
   name: string;
   role: 'landlord' | 'tenant' | 'admin';
   profileComplete: boolean;
-  // Add any other fields you expect from your /api/auth/me endpoint
   avatarUrl?: string;
+  // Add any other fields you expect from your /api/auth/me endpoint
 }
 
 interface AuthContextType {
