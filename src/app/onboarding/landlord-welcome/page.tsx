@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Stepper } from '@/components/ui/stepper';
+import { useAuth } from '@/hooks/use-auth';
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
@@ -23,8 +24,9 @@ const onboardingSteps = [
 export default function LandlordWelcomePage() {
   const router = useRouter();
   const { toast } = useToast();
-  // In a real app, you'd get the landlord's name from your auth context/session.
-  const landlordName = "Alex"; 
+  const { user } = useAuth();
+  
+  const landlordName = user?.name || "there"; 
 
   useEffect(() => {
     // Clear any partial onboarding data if the user lands here.

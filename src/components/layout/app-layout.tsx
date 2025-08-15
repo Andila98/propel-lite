@@ -22,6 +22,8 @@ import {
 import { AnimatedUsersIcon } from "../icons/animated-users-icon"
 import { ThemeToggle } from "../theme-toggle"
 import { LogoutButton } from "./logout-button"
+import { useAuth } from "@/hooks/use-auth"
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -48,6 +50,15 @@ const utilityPages = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const { user } = useAuth()
+
+  const getInitials = (name: string) => {
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[1][0]}`;
+    }
+    return name.substring(0, 2);
+  };
 
   return (
     <SidebarProvider>
@@ -55,7 +66,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
            <Link href="/" className="flex items-center gap-2 font-semibold">
               <PropelLiteLogo className="h-6 w-6" />
-              <span className="group-data-[collapsible=icon]:hidden">RentEase</span>
+              <span className="group-data-[collapsible=icon]:hidden">Propel Lite</span>
             </Link>
         </SidebarHeader>
         <SidebarContent>
@@ -121,8 +132,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sticky top-0 z-30 md:px-6">
           <SidebarTrigger className="md:hidden" />
-          <div className="flex w-full items-center justify-end">
+          <div className="flex w-full items-center justify-end gap-4">
             <ThemeToggle />
+             {user && (
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.avatarUrl} alt={user.name} />
+                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+              </Avatar>
+            )}
           </div>
         </header>
         <main className="flex flex-1 flex-col bg-background">

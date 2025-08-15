@@ -78,7 +78,7 @@ export default function RegisterPage() {
           <div className="mb-4 flex justify-center">
             <PropelLiteLogo className="h-12 w-12" />
           </div>
-          <CardTitle className="text-2xl">Create your RentEase account</CardTitle>
+          <CardTitle className="text-2xl">Create your Propel Lite account</CardTitle>
           <CardDescription>Get started managing your properties today.</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>

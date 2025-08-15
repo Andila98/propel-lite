@@ -22,6 +22,7 @@ import type { Payment, ActivityItem, Property } from '@/lib/types';
 import { startOfWeek, startOfMonth, startOfQuarter, isWithinInterval, subDays } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useManagers } from '@/hooks/use-managers';
+import { useAuth } from '@/hooks/use-auth';
 
 const PropertiesCarousel = dynamic(() => import('@/components/properties-carousel').then(mod => mod.PropertiesCarousel), { 
   ssr: false,
@@ -49,6 +50,7 @@ const anomalyAlerts: ActivityItem[] = [
 
 export default function DashboardPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { properties, loading: propertiesLoading } = useProperties();
   const { tenants, loading: tenantsLoading } = useTenants();
   const [timeFilter, setTimeFilter] = useState('month');
@@ -125,7 +127,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-1 flex-col space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('dashboard.title')}</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{user?.role === 'tenant' ? 'Tenant Dashboard' : t('dashboard.title')}</h2>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/properties">
@@ -261,7 +263,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    

@@ -145,7 +145,7 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center">
             <PropelLiteLogo className="h-12 w-12" />
           </div>
-          <CardTitle className="text-2xl">Welcome back to RentEase</CardTitle>
+          <CardTitle className="text-2xl">Welcome back to Propel Lite</CardTitle>
           <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>

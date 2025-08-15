@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 import Script from 'next/script';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/hooks/use-auth';
 
 const metadata: Metadata = {
   title: 'RentEase',
@@ -21,7 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/onboarding');
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/onboarding/accept-invite');
+  const isOnboarding = pathname.startsWith('/onboarding') && !isAuthPage;
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -41,14 +43,16 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
         >
-            {isAuthPage ? (
-            <div className="bg-background">{children}</div>
+          <AuthProvider>
+            {isAuthPage || isOnboarding ? (
+              <div className="bg-background">{children}</div>
             ) : (
-            <AppLayout>
-                {children}
-            </AppLayout>
+              <AppLayout>
+                  {children}
+              </AppLayout>
             )}
             <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
