@@ -67,24 +67,25 @@ async function verifySessionCookie(sessionCookie: string | undefined, path: stri
 export async function verifyApiAuth(
   req: NextRequest,
   allowedRoles: string[] = []
-): Promise<{ decodedToken: DecodedIdToken } | { response: NextResponse }> {
+) {
     const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
-    const { decodedToken, error } = await verifySessionCookie(sessionCookie, req.nextUrl.pathname);
+    const authCheck = await verifySessionCookie(sessionCookie, req.nextUrl.pathname);
 
-    if (error) {
-        return { response: NextResponse.json({ error: error.error }, { status: error.status }) };
+    if (authCheck.error) {
+        return { decodedToken: null, error: NextResponse.json({ error: authCheck.error.error }, { status: authCheck.error.status }) };
     }
     
+    const { decodedToken } = authCheck;
     const userRole = decodedToken.role;
     
     if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
       console.warn(
         `[API_AUTH_FORBIDDEN] UID: ${decodedToken.uid}, Role: '${userRole}' not in allowed roles [${allowedRoles.join(", ")}] for path: ${req.nextUrl.pathname}.`
       );
-      return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+      return { decodedToken: null, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
     }
 
-    return { decodedToken };
+    return { decodedToken, error: null };
 }
 
 /**
@@ -96,15 +97,16 @@ export async function verifyApiAuth(
  */
 export async function verifyServerActionAuth(
   allowedRoles: string[] = []
-): Promise<AuthResult | AuthError> {
+): Promise<{ decodedToken: DecodedIdToken } | { error: { error: string, status: number } }> {
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get(authConfig.cookieName)?.value;
-  const { decodedToken, error } = await verifySessionCookie(sessionCookie, "Server Action");
+  const authCheck = await verifySessionCookie(sessionCookie, "Server Action");
 
-  if (error) {
-    return { decodedToken: null, error: { error: error.error, status: error.status } };
+  if (authCheck.error) {
+    return { error: { error: authCheck.error.error, status: authCheck.error.status } };
   }
 
+  const { decodedToken } = authCheck;
   const userRole = decodedToken.role;
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
@@ -112,10 +114,9 @@ export async function verifyServerActionAuth(
       `[SERVER_ACTION_FORBIDDEN] UID: ${decodedToken.uid}, Role: '${userRole}' not in allowed roles [${allowedRoles.join(", ")}] for Server Action.`
     );
     return {
-      decodedToken: null,
       error: { error: "Forbidden", status: 403 },
     };
   }
 
-  return { decodedToken, error: null };
+  return { decodedToken };
 }
