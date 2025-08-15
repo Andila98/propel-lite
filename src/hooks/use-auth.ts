@@ -1,12 +1,11 @@
+
 "use client";
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
+import { onAuthStateChanged, type User as FirebaseUser, Unsubscribe } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client-app';
-import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-// Define a more detailed User type based on your Firestore structure
 export interface User {
   uid: string;
   email: string;
@@ -14,7 +13,6 @@ export interface User {
   role: 'landlord' | 'tenant' | 'admin';
   profileComplete: boolean;
   avatarUrl?: string;
-  // Add any other fields you expect from your /api/auth/me endpoint
 }
 
 interface AuthContextType {
@@ -31,54 +29,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const pathname = usePathname();
-  const router = useRouter();
+
+  const fetchUserData = useCallback(async (uid: string) => {
+    try {
+      console.log(`[AUTH_PROVIDER] Fetching user data for UID: ${uid}`);
+      const res = await fetch('/api/auth/me');
+      
+      if (res.ok) {
+        const userData: User = await res.json();
+        setUser(userData);
+        console.log(`[AUTH_PROVIDER] User data fetched successfully.`);
+      } else {
+        const errorText = await res.text();
+        console.error(`[AUTH_PROVIDER] Failed to fetch user data. Status: ${res.status}. Response: ${errorText}`);
+        // If the server says we're unauthorized, clear local user state.
+        if (res.status === 401) {
+            setUser(null);
+        }
+        setError(`Failed to fetch user data (Status: ${res.status})`);
+      }
+    } catch (err: any) {
+      console.error('[AUTH_PROVIDER] An unexpected error occurred during fetchUserData:', err);
+      setError(`An error occurred while fetching user data: ${err.message}`);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const userData = await res.json();
-          setUser(userData);
-        } else {
-          setUser(null);
-          // Don't throw an error for 401, it just means user is not logged in
-          if (res.status !== 401) {
-            const errorData = await res.json();
-            setError(errorData.error || 'Failed to fetch user session.');
-          }
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+    console.log('[AUTH_PROVIDER] Setting up onAuthStateChanged listener.');
+    const unsubscribe: Unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      console.log(`[AUTH_PROVIDER] onAuthStateChanged triggered. Firebase user state:`, fbUser ? `Logged in (UID: ${fbUser.uid})` : 'Logged out');
+      setFirebaseUser(fbUser);
+
+      if (fbUser) {
+        // User is authenticated with Firebase, now fetch detailed profile from our backend.
+        await fetchUserData(fbUser.uid);
+      } else {
+        // User is not authenticated with Firebase.
+        setUser(null);
       }
-    };
-    
-    fetchUser();
-    
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-        setFirebaseUser(fbUser);
-        if (!fbUser) {
-            setUser(null);
-            setLoading(false);
-        } else {
-            if (!user) {
-              fetchUser();
-            }
-        }
+      
+      // We are done with the auth check, stop loading.
+      setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [pathname]);
+    // Cleanup subscription on component unmount
+    return () => {
+        console.log('[AUTH_PROVIDER] Cleaning up onAuthStateChanged listener.');
+        unsubscribe();
+    };
+  }, [fetchUserData]);
 
   if (loading) {
     return (
-        <div className="flex min-h-screen w-full items-center justify-center bg-background">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    )
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
