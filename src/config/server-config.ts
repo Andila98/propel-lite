@@ -17,7 +17,7 @@ export const authConfig = {
         maxAge: 12 * 60 * 60 * 24, // 12 days
     },
     serviceAccount: {
-        projectId: process.env.FIREBASE_PROJECT_ID || publicConfig.projectId,
+        projectId: process.env.FIREBASE_PROJECT_ID || '',
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
         // The private key needs newlines correctly formatted.
         privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
