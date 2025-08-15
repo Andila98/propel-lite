@@ -1,7 +1,7 @@
 
 import { admin } from "@/lib/firebase-admin";
 import { authConfig } from "@/config/server-config";
-import type { NextRequest } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import type { DecodedIdToken } from "firebase-admin/auth";
 
 export interface AuthResult {
@@ -11,7 +11,7 @@ export interface AuthResult {
 
 export interface AuthError {
     decodedToken: null;
-    error: Response;
+    error: NextResponse;
 }
 
 /**
@@ -29,10 +29,10 @@ export async function verifyApiAuth(
   const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
-      console.warn("[API_AUTH] No session cookie found in request.");
+      console.warn(`[API_AUTH_WARN] Unauthorized: No session cookie found for path: ${req.nextUrl.pathname}.`);
       return {
         decodedToken: null,
-        error: new Response(JSON.stringify({ error: "Unauthorized: Missing session cookie." }), { status: 401 }),
+        error: NextResponse.json({ error: "Unauthorized: Missing session cookie." }, { status: 401 }),
       };
   }
 
@@ -42,7 +42,7 @@ export async function verifyApiAuth(
     if (!decodedToken) {
         return {
           decodedToken: null,
-          error: new Response(JSON.stringify({ error: "Unauthorized: Invalid session cookie." }), { status: 401 }),
+          error: NextResponse.json({ error: "Unauthorized: Invalid session cookie." }, { status: 401 }),
         };
     }
     
@@ -50,23 +50,23 @@ export async function verifyApiAuth(
     
     if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
       console.warn(
-        `[API_AUTH] Forbidden: User role '${userRole}' not in allowed roles [${allowedRoles.join(", ")}].`
+        `[API_AUTH_FORBIDDEN] UID: ${decodedToken.uid}, Role: '${userRole}' not in allowed roles [${allowedRoles.join(", ")}] for path: ${req.nextUrl.pathname}.`
       );
       return {
         decodedToken: null,
-        error: new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }),
+        error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
       };
     }
 
     return { decodedToken, error: null };
   } catch (error: any) {
-    console.error("[API_AUTH_ERROR] Error verifying session cookie:", {
+    console.error(`[API_AUTH_ERROR] Error verifying session cookie for path ${req.nextUrl.pathname}:`, {
       message: error.message,
       code: error.code,
     });
     return {
       decodedToken: null,
-      error: new Response(JSON.stringify({ error: "Unauthorized: Session expired or invalid." }), { status: 401 }),
+      error: NextResponse.json({ error: "Unauthorized: Session expired or invalid." }, { status: 401 }),
     };
   }
 }

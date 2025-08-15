@@ -33,21 +33,24 @@ function isPublic(pathname: string): boolean {
   return publicPaths.some(path => pathname.startsWith(path));
 }
 
-// This middleware is now much simpler. It only checks for the existence of the session cookie.
-// The actual verification (which requires Node.js APIs) is delegated to the API routes
-// or page-level `getServerSideProps` functions.
+/**
+ * Middleware for route protection.
+ * It checks for a session cookie on protected routes and redirects to login if not found.
+ * The actual verification of the cookie's validity happens in API routes or page server components.
+ */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // If the path is public, skip the middleware
   if (isPublic(pathname)) {
+    // console.log(`[MIDDLEWARE_PUBLIC] Allowing access to public path: ${pathname}`);
     return NextResponse.next();
   }
 
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
-      console.log(`[MIDDLEWARE] No session cookie found for path: ${pathname}. Redirecting to login.`);
+      console.log(`[MIDDLEWARE_REDIRECT] No session cookie found for protected path: ${pathname}. Redirecting to login.`);
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('error', 'session_expired');
@@ -56,26 +59,8 @@ export async function middleware(request: NextRequest) {
 
   // Allow the request to proceed. The actual token verification will happen
   // in the API route or page component that requires the Node.js runtime.
+  // console.log(`[MIDDLEWARE_PROTECTED] Session cookie found for path: ${pathname}. Allowing request.`);
   return NextResponse.next();
-}
-
-
-function redirectToLogin(request: NextRequest, sessionExpired = false) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    if (sessionExpired) {
-        url.searchParams.set('error', 'session_expired');
-    }
-    const response = NextResponse.redirect(url);
-
-    // Clear the potentially invalid cookie
-    response.cookies.set({
-        name: authConfig.cookieName,
-        value: '',
-        path: '/',
-        maxAge: -1,
-    });
-    return response;
 }
 
 

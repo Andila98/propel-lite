@@ -1,30 +1,24 @@
 
 import * as admin from 'firebase-admin';
-
-const serviceAccount: admin.ServiceAccount = {
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-};
+import { authConfig } from '@/config/server-config';
 
 if (!admin.apps.length) {
-  // Only attempt to initialize if the private key is provided.
-  // This is crucial for preventing crashes in environments where the key isn't set.
-  if (serviceAccount.privateKey && serviceAccount.clientEmail && serviceAccount.projectId) {
+  // Only attempt to initialize if the service account details are provided.
+  // This is crucial for preventing crashes in environments where the keys aren't set.
+  if (authConfig.serviceAccount.privateKey && authConfig.serviceAccount.clientEmail && authConfig.serviceAccount.projectId) {
       try {
         admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-          databaseURL: `https://${serviceAccount.projectId}.firebaseio.com`,
+          credential: admin.credential.cert(authConfig.serviceAccount),
+          databaseURL: `https://${authConfig.serviceAccount.projectId}.firebaseio.com`,
         });
-        console.log('Firebase Admin SDK initialized successfully.');
+        console.log('[FIREBASE_ADMIN] SDK initialized successfully.');
       } catch (error: any) {
-        console.error('Firebase Admin SDK initialization error:', error.stack);
+        console.error('[FIREBASE_ADMIN] SDK initialization error:', error.stack);
       }
   } else {
-    console.warn("Firebase Admin SDK not initialized: One or more required environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, NEXT_PUBLIC_FIREBASE_PROJECT_ID) are not set.");
+    console.warn("[FIREBASE_ADMIN] SDK not initialized: One or more required environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, NEXT_PUBLIC_FIREBASE_PROJECT_ID) are not set.");
   }
 }
-
 
 const db = admin.firestore();
 

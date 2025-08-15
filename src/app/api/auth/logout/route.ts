@@ -5,6 +5,12 @@ import { admin } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
+/**
+ * Handles the user logout process.
+ * 1. Verifies the session cookie from the request.
+ * 2. If valid, revokes all refresh tokens for the user to invalidate the session.
+ * 3. Clears the session cookie from the browser.
+ */
 export async function POST(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
@@ -18,6 +24,7 @@ export async function POST(request: NextRequest) {
         message: error.message,
         code: error.code
       });
+      // Do not re-throw error. The goal is to clear the cookie regardless.
     }
   }
 
@@ -28,7 +35,7 @@ export async function POST(request: NextRequest) {
     name: authConfig.cookieName,
     value: '',
     path: '/',
-    maxAge: -1,
+    maxAge: -1, // Expire the cookie immediately
   });
 
   return response;
