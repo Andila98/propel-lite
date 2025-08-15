@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { propertyService } from '@/services/property-service';
-import { verifyApiAuth } from '@/lib/server-utils';
+import { verifyServerActionAuth } from '@/lib/server-utils';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import path from 'path';
 import fs from 'fs/promises';
@@ -22,20 +22,20 @@ export async function createPropertyAction(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  // This function is designed to be used with React's useFormState hook.
-  // It handles form submission for creating a property, including file upload and validation.
-
-  // Note: We are not using verifyApiAuth here because server actions run in a different
-  // context where cookies are not available in the same way. We need to implement
-  // server-side session checking for actions. For now, we will proceed with the logic.
-  // This is a known limitation in this stage of development.
-  const userId = "user_12345"; // Placeholder for authenticated user ID
-
+  const { decodedToken, error: authError } = await verifyServerActionAuth(['landlord']);
+  if (authError) {
+    return { error: authError.error };
+  }
+  const userId = decodedToken.uid;
+  
   const propertyDataString = formData.get('propertyData') as string | null;
   const file = formData.get('media') as File | null;
 
-  if (!file || !propertyDataString) {
-      return { error: 'Missing propertyData or media file.' };
+  if (!file || file.size === 0) {
+      return { error: 'An image file is required.' };
+  }
+  if (!propertyDataString) {
+      return { error: 'Missing propertyData.' };
   }
     
   let propertyData;
@@ -48,7 +48,8 @@ export async function createPropertyAction(
   const validationResult = PropertyFormSchema.safeParse(propertyData);
   if (!validationResult.success) {
       console.error("Server Action Validation Error:", validationResult.error.flatten());
-      return { error: `Invalid property data: ${validationResult.error.flatten().fieldErrors}` };
+      const firstError = Object.values(validationResult.error.flatten().fieldErrors)[0]?.[0];
+      return { error: `Invalid property data: ${firstError}` };
   }
 
   const validatedData = validationResult.data;
@@ -75,6 +76,7 @@ export async function createPropertyAction(
 
   } catch (error: any) {
     console.error('[PROPERTY_CREATE_ACTION_ERROR]', error);
+    // In a real app, you might want to delete the uploaded file here if the DB operation fails
     return { error: `Internal Server Error: ${error.message}` };
   }
 }

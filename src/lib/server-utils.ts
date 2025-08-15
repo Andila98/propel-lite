@@ -3,6 +3,7 @@ import { auth, isFirebaseAdminInitialized } from "@/lib/firebase-admin";
 import { authConfig } from "@/config/server-config";
 import { NextResponse, type NextRequest } from "next/server";
 import type { DecodedIdToken } from "firebase-admin/auth";
+import { cookies } from "next/headers";
 
 export interface AuthResult {
     decodedToken: DecodedIdToken;
@@ -11,7 +12,48 @@ export interface AuthResult {
 
 export interface AuthError {
     decodedToken: null;
-    error: NextResponse;
+    error: { error: string, status: number };
+}
+
+async function verifySessionCookie(sessionCookie: string | undefined, path: string): Promise<AuthResult | AuthError> {
+ if (!isFirebaseAdminInitialized) {
+      console.error(`[AUTH_ERROR] Path: ${path} - Firebase Admin SDK is not initialized. Cannot verify session cookie.`);
+      return {
+        decodedToken: null,
+        error: { error: "Server authentication is not configured.", status: 503 },
+      };
+  }
+
+  if (!sessionCookie) {
+      console.warn(`[AUTH_WARN] Path: ${path} - Unauthorized: No session cookie found.`);
+      return {
+        decodedToken: null,
+        error: { error: "Unauthorized: Missing session cookie.", status: 401 },
+      };
+  }
+
+  try {
+    const decodedToken = await auth().verifySessionCookie(sessionCookie, true);
+    
+    if (!decodedToken) {
+        return {
+          decodedToken: null,
+          error: { error: "Unauthorized: Invalid session cookie.", status: 401 },
+        };
+    }
+    
+    return { decodedToken, error: null };
+
+  } catch (error: any) {
+    console.error(`[AUTH_ERROR] Path: ${path} - Error verifying session cookie:`, {
+      message: error.message,
+      code: error.code,
+    });
+    return {
+      decodedToken: null,
+      error: { error: "Unauthorized: Session expired or invalid.", status: 401 },
+    };
+  }
 }
 
 /**
@@ -25,33 +67,12 @@ export interface AuthError {
 export async function verifyApiAuth(
   req: NextRequest,
   allowedRoles: string[] = []
-): Promise<AuthResult | AuthError> {
-  if (!isFirebaseAdminInitialized) {
-      console.error('[API_AUTH_ERROR] Firebase Admin SDK is not initialized. Cannot verify session cookie.');
-      return {
-        decodedToken: null,
-        error: NextResponse.json({ error: "Server authentication is not configured." }, { status: 503 }),
-      };
-  }
+): Promise<{ decodedToken: DecodedIdToken } | { response: NextResponse }> {
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    const { decodedToken, error } = await verifySessionCookie(sessionCookie, req.nextUrl.pathname);
 
-  const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
-
-  if (!sessionCookie) {
-      console.warn(`[API_AUTH_WARN] Unauthorized: No session cookie found for path: ${req.nextUrl.pathname}.`);
-      return {
-        decodedToken: null,
-        error: NextResponse.json({ error: "Unauthorized: Missing session cookie." }, { status: 401 }),
-      };
-  }
-
-  try {
-    const decodedToken = await auth().verifySessionCookie(sessionCookie, true);
-    
-    if (!decodedToken) {
-        return {
-          decodedToken: null,
-          error: NextResponse.json({ error: "Unauthorized: Invalid session cookie." }, { status: 401 }),
-        };
+    if (error) {
+        return { response: NextResponse.json({ error: error.error }, { status: error.status }) };
     }
     
     const userRole = decodedToken.role;
@@ -60,21 +81,41 @@ export async function verifyApiAuth(
       console.warn(
         `[API_AUTH_FORBIDDEN] UID: ${decodedToken.uid}, Role: '${userRole}' not in allowed roles [${allowedRoles.join(", ")}] for path: ${req.nextUrl.pathname}.`
       );
-      return {
-        decodedToken: null,
-        error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
-      };
+      return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
     }
 
-    return { decodedToken, error: null };
-  } catch (error: any) {
-    console.error(`[API_AUTH_ERROR] Error verifying session cookie for path ${req.nextUrl.pathname}:`, {
-      message: error.message,
-      code: error.code,
-    });
+    return { decodedToken };
+}
+
+/**
+ * A utility to verify user authentication for Server Actions.
+ * It reads the session cookie from the 'next/headers' and checks roles.
+ *
+ * @param allowedRoles An array of roles that are allowed to access the action.
+ * @returns A promise that resolves to either the decoded token or an error object.
+ */
+export async function verifyServerActionAuth(
+  allowedRoles: string[] = []
+): Promise<AuthResult | AuthError> {
+  const cookieStore = cookies();
+  const sessionCookie = cookieStore.get(authConfig.cookieName)?.value;
+  const { decodedToken, error } = await verifySessionCookie(sessionCookie, "Server Action");
+
+  if (error) {
+    return { decodedToken: null, error: { error: error.error, status: error.status } };
+  }
+
+  const userRole = decodedToken.role;
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    console.warn(
+      `[SERVER_ACTION_FORBIDDEN] UID: ${decodedToken.uid}, Role: '${userRole}' not in allowed roles [${allowedRoles.join(", ")}] for Server Action.`
+    );
     return {
       decodedToken: null,
-      error: NextResponse.json({ error: "Unauthorized: Session expired or invalid." }, { status: 401 }),
+      error: { error: "Forbidden", status: 403 },
     };
   }
+
+  return { decodedToken, error: null };
 }
