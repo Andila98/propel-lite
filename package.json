@@ -47,7 +47,7 @@
     "i18next-browser-languagedetector": "^8.0.0",
     "lucide-react": "^0.475.0",
     "motion": "^10.18.0",
-    "next": "^14.2.5",
+    "next": "latest",
     "next-themes": "^0.3.0",
     "papaparse": "^5.3.14",
     "patch-package": "^8.0.0",
