@@ -7,11 +7,13 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export const runtime = 'nodejs';
 
+// 1. Define a strict schema for the user data in Firestore
 const UserSchema = z.object({
   uid: z.string(),
   email: z.string().email(),
   name: z.string(),
   role: z.enum(['landlord', 'tenant', 'admin']),
+  // Ensure createdAt is a Firestore Timestamp or a valid Date
   createdAt: z.any().refine((val) => (val && typeof val.toDate === 'function') || val instanceof Date, {
     message: "createdAt must be a Firestore Timestamp or Date object"
   }),
@@ -36,12 +38,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid ID token is required.' }, { status: 400 });
     }
 
-    // 1. Verify the Firebase ID token
+    // 2. Verify the Firebase ID token
     const decodedIdToken: DecodedIdToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email } = decodedIdToken;
     console.log(`[API_LOGIN_ATTEMPT] UID: ${uid}, Email: ${email}`);
 
-    // 2. Fetch user data from Firestore
+    // 3. Fetch user data from Firestore
     const userDocRef = db.collection('users').doc(uid);
     const userDoc = await userDocRef.get();
 
@@ -50,17 +52,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User data not found in Firestore. Please contact support.' }, { status: 404 });
     }
     
-    // 3. Validate user data against schema
+    // 4. Validate user data against schema to prevent crashes from malformed data
     const validationResult = UserSchema.safeParse(userDoc.data());
 
     if (!validationResult.success) {
       console.error(`[API_LOGIN_SCHEMA_MISMATCH] UID: ${uid}`, validationResult.error.flatten());
+      // This is a critical server-side data integrity issue.
       return NextResponse.json({ error: 'User data is malformed. Please contact support.' }, { status: 500 });
     }
 
     const { role, profileComplete } = validationResult.data;
     
-    // 4. Generate session cookies
+    // 5. Generate session cookie
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
 
     const expiresIn = authConfig.cookieSerializeOptions.maxAge! * 1000;
@@ -87,6 +90,7 @@ export async function POST(request: NextRequest) {
       code: error.code,
     });
 
+    // Map Firebase auth errors to user-friendly messages
     const errorMap: { [key: string]: { message: string, status: number } } = {
         'auth/id-token-expired': { message: 'Token expired. Please login again.', status: 401 },
         'auth/id-token-revoked': { message: 'Access revoked. Please login again.', status: 401 },
