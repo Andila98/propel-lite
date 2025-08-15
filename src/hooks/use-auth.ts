@@ -42,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         const errorText = await res.text();
         console.error(`[AUTH_PROVIDER] Failed to fetch user data. Status: ${res.status}. Response: ${errorText}`);
-        // If the server says we're unauthorized, clear local user state.
         if (res.status === 401) {
             setUser(null);
         }
@@ -61,18 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(fbUser);
 
       if (fbUser) {
-        // User is authenticated with Firebase, now fetch detailed profile from our backend.
         await fetchUserData(fbUser.uid);
       } else {
-        // User is not authenticated with Firebase.
         setUser(null);
       }
       
-      // We are done with the auth check, stop loading.
       setLoading(false);
     });
 
-    // Cleanup subscription on component unmount
     return () => {
         console.log('[AUTH_PROVIDER] Cleaning up onAuthStateChanged listener.');
         unsubscribe();
