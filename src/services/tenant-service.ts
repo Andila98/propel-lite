@@ -24,68 +24,6 @@ export class TenantService {
   private propertiesCollection = db().collection('properties');
 
   /**
-   * Creates a new tenant, including the Firebase Auth user and Firestore record.
-   * @param tenantData The data for the new tenant.
-   * @param landlordId The UID of the landlord creating the tenant.
-   * @returns The newly created tenant object.
-   */
-  async createTenant(tenantData: TenantData, landlordId: string): Promise<any> {
-    console.log(`TenantService: Creating new tenant for landlord ${landlordId}`);
-    
-    // Check if unit is already occupied
-    const unitRef = this.propertiesCollection.doc(tenantData.propertyId).collection('units').doc(tenantData.unitId);
-    const unitDoc = await unitRef.get();
-
-    if (!unitDoc.exists) {
-        throw new Error('Unit not found.');
-    }
-    if (unitDoc.data()?.isOccupied) {
-        throw new Error('This unit is already occupied.');
-    }
-
-    // Create Firebase Auth user
-    const tempPassword = randomBytes(16).toString('hex'); // Generate a secure temporary password
-    const userRecord = await auth().createUser({
-      email: tenantData.email,
-      password: tempPassword,
-      displayName: tenantData.name,
-      phoneNumber: tenantData.phone,
-    });
-    
-    // In a real app, you would email the user their login details.
-    console.log(`TenantService: Created auth user ${userRecord.uid} with temporary password.`);
-
-    await auth().setCustomUserClaims(userRecord.uid, {
-      role: 'tenant',
-      landlordId: landlordId,
-    });
-
-    const newTenant = {
-      uid: userRecord.uid,
-      name: tenantData.name,
-      email: tenantData.email,
-      phone: tenantData.phone || null,
-      role: 'tenant',
-      landlordId,
-      propertyId: tenantData.propertyId,
-      currentUnitId: tenantData.unitId,
-      leaseStart: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseStart)),
-      leaseEnd: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseEnd)),
-      status: 'active',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    // Use a transaction to ensure atomicity
-    await db().runTransaction(async (transaction) => {
-        transaction.set(this.usersCollection.doc(userRecord.uid), newTenant);
-        transaction.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
-    });
-
-    console.log(`TenantService: Successfully created tenant record and updated unit ${tenantData.unitId}`);
-    return { ...newTenant, id: userRecord.uid };
-  }
-
-  /**
    * Fetches all tenants for a given landlord.
    * @param landlordId The UID of the landlord.
    * @returns A promise that resolves to an array of tenants.

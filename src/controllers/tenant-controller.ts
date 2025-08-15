@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
 import { verifyApiAuth } from '@/lib/server-utils';
+import { db, admin, auth } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -28,6 +29,8 @@ const CreateTenantSchema = z.object({
 
 export class TenantController {
   private tenantService = new TenantService();
+  private usersCollection = db().collection('users');
+  private propertiesCollection = db().collection('properties');
 
   private async checkAuth(req: NextRequest, allowedRoles: string[]) {
     const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
@@ -56,10 +59,63 @@ export class TenantController {
         { status: 400 }
       );
     }
+    const tenantData = validationResult.data;
 
     try {
-      const createdTenant = await this.tenantService.createTenant(validationResult.data, landlordId);
-      return NextResponse.json(createdTenant, { status: 201 });
+        console.log(`TenantController: Creating new tenant for landlord ${landlordId}`);
+    
+        // Check if unit is already occupied
+        const unitRef = this.propertiesCollection.doc(tenantData.propertyId).collection('units').doc(tenantData.unitId);
+        const unitDoc = await unitRef.get();
+
+        if (!unitDoc.exists) {
+            throw new Error('Unit not found.');
+        }
+        if (unitDoc.data()?.isOccupied) {
+            throw new Error('This unit is already occupied.');
+        }
+
+        // Create Firebase Auth user
+        const tempPassword = randomBytes(16).toString('hex');
+        const userRecord = await auth().createUser({
+          email: tenantData.email,
+          password: tempPassword,
+          displayName: tenantData.name,
+          phoneNumber: tenantData.phone,
+        });
+        
+        console.log(`TenantController: Created auth user ${userRecord.uid}.`);
+
+        await auth().setCustomUserClaims(userRecord.uid, {
+          role: 'tenant',
+          landlordId: landlordId,
+        });
+
+        const newTenant = {
+          uid: userRecord.uid,
+          name: tenantData.name,
+          email: tenantData.email,
+          phone: tenantData.phone || null,
+          role: 'tenant',
+          landlordId,
+          propertyId: tenantData.propertyId,
+          currentUnitId: tenantData.unitId,
+          leaseStart: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseStart)),
+          leaseEnd: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseEnd)),
+          status: 'active',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        // Use a transaction to ensure atomicity
+        await db().runTransaction(async (transaction) => {
+            transaction.set(this.usersCollection.doc(userRecord.uid), newTenant);
+            transaction.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
+        });
+
+        console.log(`TenantController: Successfully created tenant record and updated unit ${tenantData.unitId}`);
+        const createdTenant = { ...newTenant, id: userRecord.uid };
+        return NextResponse.json(createdTenant, { status: 201 });
+
     } catch (error: any) {
       if (error.code === 'auth/email-already-exists') {
         return NextResponse.json({ error: 'A user with this email already exists.' }, { status: 409 });
