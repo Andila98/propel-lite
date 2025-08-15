@@ -9,10 +9,6 @@ import { firebaseConfig as publicConfig } from './firebase-config';
 export const authConfig = {
     apiKey: publicConfig.apiKey,
     cookieName: 'PropelAuth',
-    cookieSignatureKeys: [
-        process.env.COOKIE_SECRET_CURRENT || '',
-        process.env.COOKIE_SECRET_PREVIOUS || ''
-    ].filter(Boolean), // Filter out empty strings
     cookieSerializeOptions: {
         path: '/',
         httpOnly: true,

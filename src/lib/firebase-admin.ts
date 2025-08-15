@@ -16,7 +16,6 @@ if (!isInitialized) {
       try {
         admin.initializeApp({
           credential: admin.credential.cert(authConfig.serviceAccount),
-          databaseURL: `https://${authConfig.serviceAccount.projectId}.firebaseio.com`,
         });
         isInitialized = true;
         console.log('[FIREBASE_ADMIN] SDK initialized successfully.');
