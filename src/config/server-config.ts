@@ -28,10 +28,12 @@ export const authConfig = {
     serviceAccount: {
         projectId: publicConfig.projectId,
         clientEmail: getEnv('FIREBASE_CLIENT_EMAIL'),
+        // Ensure private key is correctly formatted
         privateKey: getEnv('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
     },
 };
 
+// Warning for developers if credentials are not set during development
 if (process.env.NODE_ENV === 'development') {
     const isConfigured = authConfig.serviceAccount.privateKey && authConfig.serviceAccount.clientEmail;
     if (!isConfigured) {

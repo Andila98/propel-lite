@@ -42,10 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const errorJson = await res.json();
             errorText = errorJson.error || errorText;
         } else {
-            errorText = await res.text();
+            // If the response is not JSON, it's likely an HTML error page.
+            errorText = `The server returned an unexpected response. This can happen if server-side configuration (e.g., environment variables for Firebase Admin) is missing.`;
         }
         console.error(`[AUTH_PROVIDER] Error response: ${errorText}`);
         setError(errorText);
+        // If we get an unauthorized error, it means the session is invalid, so clear the user.
         if (res.status === 401) {
             setUser(null);
         }
