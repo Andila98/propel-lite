@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Stepper } from '@/components/ui/stepper';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@/hooks/use-auth';
 
 
 const onboardingSteps = [
@@ -25,6 +26,7 @@ export default function AddPropertyPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { firebaseUser } = useAuth();
 
   const { form: formFromHook, setOnboardingData } = useOnboardingForm<PropertyFormValues>('propertyData', {
     resolver: zodResolver(PropertyFormSchema),
@@ -40,6 +42,12 @@ export default function AddPropertyPage() {
   const onSubmit = async (data: PropertyFormValues, imageFile: File | null) => {
     setLoading(true);
     
+    if (!firebaseUser) {
+        toast({ title: "Authentication Error", description: "You must be logged in to create a property.", variant: "destructive" });
+        setLoading(false);
+        return;
+    }
+
     if (!imageFile) {
         toast({
             title: "Image required",
@@ -51,6 +59,7 @@ export default function AddPropertyPage() {
     }
 
     try {
+      const token = await firebaseUser.getIdToken();
       const formData = new FormData();
       formData.append('media', imageFile!);
       formData.append('propertyData', JSON.stringify(data));
@@ -59,6 +68,9 @@ export default function AddPropertyPage() {
 
       const response = await fetch('/api/properties', {
         method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
 
