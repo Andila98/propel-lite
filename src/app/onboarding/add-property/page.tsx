@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 import { PropertyForm } from '@/components/property-form';
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { createPropertyAction } from '@/app/properties/actions';
 
 const onboardingSteps = [
@@ -39,7 +39,7 @@ export default function AddPropertyPage() {
   });
 
   const initialState = { error: undefined, success: false };
-  const [state, formAction] = useFormState(createPropertyAction, initialState);
+  const [state, formAction] = useActionState(createPropertyAction, initialState);
 
   useEffect(() => {
     if (state.success) {

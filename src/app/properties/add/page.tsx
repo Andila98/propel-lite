@@ -9,7 +9,7 @@ import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { PropertyForm } from '@/components/property-form';
 import type { PropertyFormValues } from '@/lib/schemas';
 import { useEffect, useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { createPropertyAction } from '@/app/properties/actions';
 
 export default function AddPropertyPage() {
@@ -17,7 +17,7 @@ export default function AddPropertyPage() {
   const { toast } = useToast();
   
   const initialState = { error: undefined, success: false };
-  const [state, formAction] = useFormState(createPropertyAction, initialState);
+  const [state, formAction] = useActionState(createPropertyAction, initialState);
 
   useEffect(() => {
     if (state.success) {
