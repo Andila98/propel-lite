@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
@@ -33,19 +34,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log(`[AUTH_PROVIDER] Fetching user data for UID: ${uid}`);
       const res = await fetch('/api/auth/me');
+
+      const contentType = res.headers.get("content-type");
+      if (!res.ok) {
+        let errorText = `Failed to fetch user data. Status: ${res.status}.`;
+        if (contentType && contentType.includes("application/json")) {
+            const errorJson = await res.json();
+            errorText = errorJson.error || errorText;
+        } else {
+            errorText = await res.text();
+        }
+        console.error(`[AUTH_PROVIDER] Error response: ${errorText}`);
+        setError(errorText);
+        if (res.status === 401) {
+            setUser(null);
+        }
+        return;
+      }
       
-      if (res.ok) {
+      if (contentType && contentType.includes("application/json")) {
         const userData: User = await res.json();
         setUser(userData);
         console.log(`[AUTH_PROVIDER] User data fetched successfully.`);
       } else {
-        const errorText = await res.text();
-        console.error(`[AUTH_PROVIDER] Failed to fetch user data. Status: ${res.status}. Response: ${errorText}`);
-        if (res.status === 401) {
-            setUser(null);
-        }
-        setError(`Failed to fetch user data (Status: ${res.status})`);
+        const errorText = "Received non-JSON response from server.";
+        console.error(`[AUTH_PROVIDER] ${errorText}`);
+        setError(errorText);
       }
+
     } catch (err: any) {
       console.error('[AUTH_PROVIDER] An unexpected error occurred during fetchUserData:', err);
       setError(`An error occurred while fetching user data: ${err.message}`);
