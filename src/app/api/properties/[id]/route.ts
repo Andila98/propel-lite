@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     const updates = await req.json();
 
-    const ref = db.collection('properties').doc(propertyId);
+    const ref = db().collection('properties').doc(propertyId);
     const doc = await ref.get();
 
     if (!doc.exists || doc.data()?.landlordId !== userId) {
@@ -92,7 +92,7 @@ export async function DELETE(
     const userId = decodedToken!.uid;
     const propertyId = params.id;
 
-    const ref = db.collection('properties').doc(propertyId);
+    const ref = db().collection('properties').doc(propertyId);
     const doc = await ref.get();
 
     if (!doc.exists || doc.data()?.landlordId !== userId) {

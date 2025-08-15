@@ -4,7 +4,7 @@
  * This centralizes the logic for creating, retrieving, and deleting tenants.
  */
 
-import { db, admin } from '@/lib/firebase-admin';
+import { db, admin, auth } from '@/lib/firebase-admin';
 import type { Tenant, Unit } from '@/lib/types';
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
@@ -20,8 +20,8 @@ export type TenantData = {
 };
 
 export class TenantService {
-  private usersCollection = db.collection('users');
-  private propertiesCollection = db.collection('properties');
+  private usersCollection = db().collection('users');
+  private propertiesCollection = db().collection('properties');
 
   /**
    * Creates a new tenant, including the Firebase Auth user and Firestore record.
@@ -45,7 +45,7 @@ export class TenantService {
 
     // Create Firebase Auth user
     const tempPassword = randomBytes(16).toString('hex'); // Generate a secure temporary password
-    const userRecord = await getAuth().createUser({
+    const userRecord = await auth().createUser({
       email: tenantData.email,
       password: tempPassword,
       displayName: tenantData.name,
@@ -55,7 +55,7 @@ export class TenantService {
     // In a real app, you would email the user their login details.
     console.log(`TenantService: Created auth user ${userRecord.uid} with temporary password.`);
 
-    await getAuth().setCustomUserClaims(userRecord.uid, {
+    await auth().setCustomUserClaims(userRecord.uid, {
       role: 'tenant',
       landlordId: landlordId,
     });
@@ -76,7 +76,7 @@ export class TenantService {
     };
 
     // Use a transaction to ensure atomicity
-    await db.runTransaction(async (transaction) => {
+    await db().runTransaction(async (transaction) => {
         transaction.set(this.usersCollection.doc(userRecord.uid), newTenant);
         transaction.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
     });
@@ -136,7 +136,7 @@ export class TenantService {
     const tenant = tenantDoc.data() as any;
     
     // Use a transaction to ensure all or nothing is deleted/updated
-    await db.runTransaction(async (transaction) => {
+    await db().runTransaction(async (transaction) => {
         // Mark the unit as unoccupied if a unit is assigned
         if (tenant.propertyId && tenant.currentUnitId) {
             const unitRef = this.propertiesCollection.doc(tenant.propertyId).collection('units').doc(tenant.currentUnitId);
@@ -148,7 +148,7 @@ export class TenantService {
     });
 
     // Delete the user from Firebase Auth
-    await getAuth().deleteUser(tenantId);
+    await auth().deleteUser(tenantId);
     
     console.log(`TenantService: Successfully deleted tenant ${tenantId} and freed up unit.`);
   }

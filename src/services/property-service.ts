@@ -48,7 +48,7 @@ export interface PropertyManager {
 
 
 class PropertyService {
-  private propertiesCollection = db.collection('properties');
+  private propertiesCollection = db().collection('properties');
 
   /**
    * Fetches all properties for a given landlord.
@@ -129,7 +129,7 @@ class PropertyService {
     const units = propertyData.units || [];
 
     // Use a transaction to ensure all or nothing is written
-    await db.runTransaction(async (transaction) => {
+    await db().runTransaction(async (transaction) => {
         transaction.set(docRef, newPropertyData);
 
         units.forEach((unit: any) => {

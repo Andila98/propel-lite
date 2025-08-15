@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ error: 'Missing or invalid unit data' }, { status: 400 });
     }
 
-    const propertyRef = db.collection('properties').doc(propertyId);
+    const propertyRef = db().collection('properties').doc(propertyId);
     const propertyDoc = await propertyRef.get();
 
     if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {
