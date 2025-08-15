@@ -148,7 +148,6 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
   };
 
   const handlePropertyTypeChange = (type: 'Apartment' | 'House' | 'Bedsitter') => {
-    setValue("type", type);
     if (type === 'Apartment') {
       setValue("numberOfUnits", 1);
       handleUnitGeneration(1);
