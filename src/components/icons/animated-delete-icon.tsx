@@ -11,7 +11,7 @@ declare global {
       'animated-icons': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
         src: string;
         trigger: string;
-        attributes: string;
+        'icon-attributes': string;
         height: string;
         width: string;
       };
@@ -35,7 +35,7 @@ export function AnimatedDeleteIcon() {
       <animated-icons
         src="https://animatedicons.co/get-icon?name=delete&style=minimalistic&token=c1352b7b-2e14-4124-b8fd-a064d7e44225"
         trigger="hover"
-        attributes='{"variationThumbColour":"#536DFE","variationName":"Two Tone","variationNumber":2,"numberOfGroups":2,"backgroundIsGroup":false,"strokeWidth":1,"defaultColours":{"group-1":"#000000","group-2":"#536DFE","background":"#FFFFFF"}}'
+        icon-attributes='{"variationThumbColour":"#536DFE","variationName":"Two Tone","variationNumber":2,"numberOfGroups":2,"backgroundIsGroup":false,"strokeWidth":1,"defaultColours":{"group-1":"#000000","group-2":"#536DFE","background":"#FFFFFF"}}'
         height="16"
         width="16"
       ></animated-icons>
