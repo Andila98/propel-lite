@@ -1,20 +1,15 @@
 
 "use client";
 
-import type { Metadata } from 'next';
 import './globals.css';
 import '../i18n'; // Import the i18n configuration
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
-import Script from 'next/script';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
 
-const metadata: Metadata = {
-  title: 'RentEase',
-  description: 'Streamlined Property Management',
-};
+// No metadata here because this is a client component
 
 export default function RootLayout({
   children,
@@ -22,12 +17,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/onboarding/accept-invite');
-  const isOnboarding = pathname.startsWith('/onboarding') && !isAuthPage;
+  // Pages that should not use the main AppLayout (sidebar, header, etc.)
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isOnboarding = pathname.startsWith('/onboarding');
+  const isPublicFlow = isAuthPage || isOnboarding;
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>RentEase - Streamlined Property Management</title>
+        <meta name="description" content="The easiest way to manage your rental properties." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -44,7 +43,7 @@ export default function RootLayout({
             disableTransitionOnChange
         >
           <AuthProvider>
-            {isAuthPage || isOnboarding ? (
+            {isPublicFlow ? (
               <div className="bg-background">{children}</div>
             ) : (
               <AppLayout>

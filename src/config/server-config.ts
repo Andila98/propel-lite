@@ -1,13 +1,18 @@
+
 import type { CookieSerializeOptions } from 'cookie';
 import { firebaseConfig as publicConfig } from './firebase-config';
 
-const cookieSecretCurrent = process.env.COOKIE_SECRET_CURRENT || '';
-const cookieSecretPrevious = process.env.COOKIE_SECRET_PREVIOUS || '';
+// This file is responsible for reading environment variables and creating a configuration object.
+// It uses simple fallbacks to empty strings to prevent build-time errors if variables are not set.
+// The actual logic to handle missing credentials should be in the service that consumes this config (e.g., firebase-admin.ts).
 
 export const authConfig = {
     apiKey: publicConfig.apiKey,
     cookieName: 'PropelAuth',
-    cookieSignatureKeys: [cookieSecretCurrent, cookieSecretPrevious].filter(Boolean),
+    cookieSignatureKeys: [
+        process.env.COOKIE_SECRET_CURRENT || '',
+        process.env.COOKIE_SECRET_PREVIOUS || ''
+    ].filter(Boolean), // Filter out empty strings
     cookieSerializeOptions: {
         path: '/',
         httpOnly: true,
@@ -18,17 +23,14 @@ export const authConfig = {
     serviceAccount: {
         projectId: process.env.FIREBASE_PROJECT_ID || publicConfig.projectId,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-        // Ensure private key is correctly formatted
+        // The private key needs newlines correctly formatted.
         privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
     },
 };
 
-// Warning for developers if credentials are not set during development
+// A simple log during development to confirm which project is being targeted by the Admin SDK.
 if (process.env.NODE_ENV === 'development') {
-    const isConfigured = authConfig.serviceAccount.privateKey && authConfig.serviceAccount.clientEmail;
-    if (!isConfigured) {
-        console.warn(`[AUTH_CONFIG_WARN] Firebase Admin credentials are not set in environment variables. Server-side authentication will be disabled.`);
-    } else {
+    if (authConfig.serviceAccount.projectId) {
          console.log(`[AUTH_CONFIG] Firebase Admin SDK configured for project: ${authConfig.serviceAccount.projectId}`);
     }
 }

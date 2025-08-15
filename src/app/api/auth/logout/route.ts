@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
-import { admin } from '@/lib/firebase-admin';
+import { admin, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -14,21 +14,18 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
-  if (sessionCookie) {
+  if (sessionCookie && isFirebaseAdminInitialized) {
     try {
       const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie);
       await admin.auth().revokeRefreshTokens(decodedClaims.uid);
       console.log(`[LOGOUT_SUCCESS] Revoked refresh tokens for UID: ${decodedClaims.uid}`);
     } catch (error: any) {
-      console.error('[LOGOUT_ERROR] Failed to revoke refresh tokens:', {
-        message: error.message,
-        code: error.code
-      });
-      // Do not re-throw error. The goal is to clear the cookie regardless.
+      // This error is common if the cookie is expired, so we don't need to log it as a server error.
+      console.log(`[LOGOUT_INFO] Could not revoke refresh tokens, likely because session cookie was already invalid: ${error.code}`);
     }
   }
 
-  // Always attempt to clear the cookie.
+  // Always attempt to clear the cookie, even if revoke failed or SDK isn't initialized.
   const response = NextResponse.json({ success: true }, { status: 200 });
   
   response.cookies.set({

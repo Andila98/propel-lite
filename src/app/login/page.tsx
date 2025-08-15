@@ -23,10 +23,9 @@ import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { Separator } from '@/components/ui/separator';
 
-// Defines a more specific type for login errors from the backend or Firebase
 type LoginError = {
-  code?: string; // Firebase error code
-  message: string; // Custom error message from backend
+  code?: string;
+  message: string;
 };
 
 export default function LoginPage() {
@@ -37,6 +36,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  const redirectPath = searchParams.get('redirect') || '/';
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -46,7 +47,6 @@ export default function LoginPage() {
         description: "Your session has expired. Please log in again.",
         variant: "destructive",
       });
-      // Clean the URL to remove the error parameter
       router.replace('/login', { scroll: false });
     }
   }, [searchParams, toast, router]);
@@ -56,24 +56,19 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-        // Step 1: Authenticate with Firebase client-side
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        // Step 2: Get the ID token from the authenticated user
         const idToken = await userCredential.user.getIdToken();
         
-        // Step 3: Send the token to the backend API to create a session
         const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            // Pass the response status to the error to handle it below
-            const error = new Error(data.error || 'Login failed. Please check your credentials.');
+            const error = new Error(data.error || 'Login failed.');
             (error as any).status = response.status;
             throw error;
         }
@@ -83,13 +78,12 @@ export default function LoginPage() {
             description: "Welcome back!",
         });
       
-      // Step 4: Handle redirection based on role and profile status
       if (data.role === 'landlord' && !data.profileComplete) {
           router.push('/onboarding/welcome');
       } else if (data.role === 'tenant') {
           router.push('/tenant-portal');
       } else {
-          router.push('/');
+          router.push(redirectPath);
       }
 
     } catch (error) {
@@ -97,27 +91,23 @@ export default function LoginPage() {
         console.error("Login page error:", typedError);
         let errorMessage = 'An unexpected error occurred.';
         
-        // Handle custom backend errors first
         if (typedError.status === 404) {
             errorMessage = 'User data not found in our system. Please sign up or contact support.';
-        } else if (typedError.message && !typedError.code) { // Handle backend error messages that are not from Firebase
+        } else if (typedError.message && !typedError.code) {
              errorMessage = typedError.message;
-        }
-
-        // Handle known Firebase client-side errors if no specific backend error was caught
-        else if (typedError.code) { 
+        } else if (typedError.code) { 
             switch(typedError.code) {
                 case 'auth/invalid-credential':
                     errorMessage = 'Invalid email or password. Please try again.';
                     break;
                 case 'auth/too-many-requests':
-                     errorMessage = 'Too many login attempts. Please try again later.';
+                     errorMessage = 'Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.';
                      break;
                 case 'auth/network-request-failed':
                     errorMessage = 'Network error. Please check your internet connection.';
                     break;
                 default:
-                    errorMessage = typedError.message; // Fallback to Firebase's message
+                    errorMessage = "An unknown error occurred. Please try again.";
             }
         }
 
@@ -129,7 +119,7 @@ export default function LoginPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [email, password, router, toast]);
+  }, [email, password, router, toast, redirectPath]);
   
   const handleSocialLogin = (provider: string) => {
      toast({
@@ -145,7 +135,7 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center">
             <PropelLiteLogo className="h-12 w-12" />
           </div>
-          <CardTitle className="text-2xl">Welcome back to Propel Lite</CardTitle>
+          <CardTitle className="text-2xl">Welcome back to RentEase</CardTitle>
           <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -164,7 +154,10 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2 relative">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Link href="#" className="text-sm text-primary hover:underline">Forgot password?</Link>
+                </div>
                 <Input 
                   id="password" 
                   type={showPassword ? "text" : "password"}
@@ -177,7 +170,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-9 text-muted-foreground"
+                  className="absolute right-3 top-[3.25rem] -translate-y-1/2 text-muted-foreground"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

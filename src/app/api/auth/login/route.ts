@@ -1,22 +1,20 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
-import { admin, db } from '@/lib/firebase-admin';
+import { admin, db, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export const runtime = 'nodejs';
 
-// 1. Define a strict schema for the user data in Firestore
+// Define a strict schema for the user data in Firestore.
+// This ensures data integrity and prevents crashes from malformed documents.
 const UserSchema = z.object({
   uid: z.string(),
   email: z.string().email(),
   name: z.string(),
-  role: z.enum(['landlord', 'tenant', 'admin']),
-  // Ensure createdAt is a Firestore Timestamp or a valid Date
-  createdAt: z.any().refine((val) => (val && typeof val.toDate === 'function') || val instanceof Date, {
-    message: "createdAt must be a Firestore Timestamp or Date object"
-  }),
+  role: z.enum(['landlord', 'tenant', 'admin', 'manager']),
+  createdAt: z.any(), // Can be Firestore Timestamp or Date
   isActive: z.boolean(),
   profileComplete: z.boolean(),
 });
@@ -30,6 +28,10 @@ const UserSchema = z.object({
  * 5. Returns the user's role and profile status to the client for redirection.
  */
 export async function POST(request: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      return NextResponse.json({ error: 'Server authentication is not configured.' }, { status: 503 });
+  }
+
   try {
     const body = await request.json();
     const { idToken } = body;
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
     const userDocRef = db().collection('users').doc(uid);
     const userDoc = await userDocRef.get();
 
+    // CRITICAL: Enforce that user must have a Firestore record to log in.
     if (!userDoc.exists) {
       console.error(`[API_LOGIN_ERROR] Firestore user document not found for UID: ${uid}. A user should only be created via signup or invite.`);
       return NextResponse.json({ error: 'User data not found in our system. Please sign up or contact support.' }, { status: 404 });
@@ -79,18 +82,11 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    // Centralized error handling for the API route
-    if (error.message.includes('Failed to parse private key') || error.message.includes('Missing or empty environment variable') || error.message.includes('createSessionCookie')) {
-      console.error('[API_LOGIN_FATAL] Firebase Admin SDK configuration error:', error.message);
-      return NextResponse.json({ error: 'Firebase Admin SDK not configured. Please check server environment variables.' }, { status: 500 });
-    }
-
     console.error('[API_LOGIN_FAILURE]', {
       message: error.message,
       code: error.code,
     });
 
-    // Map Firebase auth errors to user-friendly messages
     const errorMap: { [key: string]: { message: string, status: number } } = {
         'auth/id-token-expired': { message: 'Token expired. Please login again.', status: 401 },
         'auth/id-token-revoked': { message: 'Access revoked. Please login again.', status: 401 },

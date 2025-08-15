@@ -26,39 +26,45 @@ import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/properties", label: "Properties", icon: Building },
-  { href: "/tenants", label: "Tenants", icon: AnimatedUsersIcon },
-  { href: "/payments", label: "Payments", icon: Banknote },
-  { href: "/rent-schedule", label: "Rent Schedule", icon: CalendarCheck },
-  { href: "/maintenance", label: "Maintenance", icon: Wrench },
-  { href: "/reports", label: "Reports", icon: BarChartHorizontal },
-  { href: "/property-managers", label: "Managers", icon: UserCog },
-  { href: "/audit-log", label: "Audit Log", icon: FileClock },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['landlord', 'manager'] },
+  { href: "/properties", label: "Properties", icon: Building, roles: ['landlord', 'manager'] },
+  { href: "/tenants", label: "Tenants", icon: AnimatedUsersIcon, roles: ['landlord', 'manager'] },
+  { href: "/payments", label: "Payments", icon: Banknote, roles: ['landlord', 'manager'] },
+  { href: "/rent-schedule", label: "Rent Schedule", icon: CalendarCheck, roles: ['landlord', 'manager'] },
+  { href: "/maintenance", label: "Maintenance", icon: Wrench, roles: ['landlord', 'manager'] },
+  { href: "/reports", label: "Reports", icon: BarChartHorizontal, roles: ['landlord'] },
+  { href: "/property-managers", label: "Managers", icon: UserCog, roles: ['landlord'] },
+  { href: "/audit-log", label: "Audit Log", icon: FileClock, roles: ['landlord'] },
 ];
 
 const aiTools = [
-  { href: "/price-suggestion", label: "Price Suggestion", icon: DollarSign },
-  { href: "/smart-messaging", label: "Smart Messaging", icon: MessageCircle },
-  { href: "/reminders", label: "Reminders", icon: CalendarClock },
+  { href: "/price-suggestion", label: "Price Suggestion", icon: DollarSign, roles: ['landlord'] },
+  { href: "/smart-messaging", label: "Smart Messaging", icon: MessageCircle, roles: ['landlord', 'manager'] },
+  { href: "/reminders", label: "Reminders", icon: CalendarClock, roles: ['landlord'] },
 ]
 
 const utilityPages = [
-    { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/tenant-portal", label: "Tenant Portal", icon: AnimatedUsersIcon },
+    { href: "/settings", label: "Settings", icon: Settings, roles: ['landlord'] },
+    { href: "/tenant-portal", label: "Tenant Portal", icon: AnimatedUsersIcon, roles: ['tenant'] },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { user } = useAuth()
+  const userRole = user?.role;
 
   const getInitials = (name: string) => {
+    if (!name) return "";
     const names = name.split(' ');
     if (names.length > 1) {
       return `${names[0][0]}${names[1][0]}`;
     }
     return name.substring(0, 2);
   };
+  
+  const filteredNavItems = navItems.filter(item => userRole && item.roles.includes(userRole));
+  const filteredAiTools = aiTools.filter(item => userRole && item.roles.includes(userRole));
+  const filteredUtilityPages = utilityPages.filter(item => userRole && item.roles.includes(userRole));
 
   return (
     <SidebarProvider>
@@ -66,12 +72,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
            <Link href="/" className="flex items-center gap-2 font-semibold">
               <PropelLiteLogo className="h-6 w-6" />
-              <span className="group-data-[collapsible=icon]:hidden">Propel Lite</span>
+              <span className="group-data-[collapsible=icon]:hidden">RentEase</span>
             </Link>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map(({ href, label, icon: Icon }) => (
+            {filteredNavItems.map(({ href, label, icon: Icon }) => (
               <SidebarMenuItem key={href}>
                 <Link href={href}>
                     <SidebarMenuButton tooltip={label} isActive={pathname === href}>
@@ -82,38 +88,44 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          <SidebarMenu>
-             <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
-                AI Tools
-            </SidebarMenuItem>
-            {aiTools.map(({ href, label, icon: Icon }) => (
-              <SidebarMenuItem key={href}>
-                 <Link href={href}>
-                    <SidebarMenuButton tooltip={label} isActive={pathname === href}>
-                        <Icon />
-                        <span>{label}</span>
-                    </SidebarMenuButton>
-                </Link>
+          
+          {filteredAiTools.length > 0 && (
+            <SidebarMenu>
+              <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+                  AI Tools
               </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-           <SidebarMenu>
-             <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
-                Testing
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <Link href="/test-property-creation">
-                    <SidebarMenuButton tooltip="Test Property Creation" isActive={pathname === "/test-property-creation"}>
-                        <TestTube2 />
-                        <span>Test Creation</span>
-                    </SidebarMenuButton>
-                </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
+              {filteredAiTools.map(({ href, label, icon: Icon }) => (
+                <SidebarMenuItem key={href}>
+                  <Link href={href}>
+                      <SidebarMenuButton tooltip={label} isActive={pathname === href}>
+                          <Icon />
+                          <span>{label}</span>
+                      </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          )}
+
+           {userRole === 'landlord' && (
+             <SidebarMenu>
+              <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+                  Testing
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                  <Link href="/test-property-creation">
+                      <SidebarMenuButton tooltip="Test Property Creation" isActive={pathname === "/test-property-creation"}>
+                          <TestTube2 />
+                          <span>Test Creation</span>
+                      </SidebarMenuButton>
+                  </Link>
+              </SidebarMenuItem>
+            </SidebarMenu>
+           )}
         </SidebarContent>
         <SidebarFooter>
            <SidebarMenu>
-             {utilityPages.map(({ href, label, icon: Icon }) => (
+             {filteredUtilityPages.map(({ href, label, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
                     <Link href={href}>
                         <SidebarMenuButton tooltip={label} isActive={pathname === href}>

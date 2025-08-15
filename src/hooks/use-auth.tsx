@@ -5,12 +5,13 @@ import { useState, useEffect, createContext, useContext, ReactNode, useCallback 
 import { onAuthStateChanged, type User as FirebaseUser, Unsubscribe } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client-app';
 import { Loader2 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 
 export interface User {
   uid: string;
   email: string;
   name: string;
-  role: 'landlord' | 'tenant' | 'admin';
+  role: 'landlord' | 'tenant' | 'admin' | 'manager';
   profileComplete: boolean;
   avatarUrl?: string;
 }
@@ -35,34 +36,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log(`[AUTH_PROVIDER] Fetching user data for UID: ${uid}`);
       const res = await fetch('/api/auth/me');
 
-      const contentType = res.headers.get("content-type");
       if (!res.ok) {
+        // Clear local user state if the session is invalid on the server
+        if (res.status === 401 || res.status === 404) {
+            setUser(null);
+        }
         let errorText = `Failed to fetch user data. Status: ${res.status}.`;
-        if (contentType && contentType.includes("application/json")) {
+        try {
             const errorJson = await res.json();
             errorText = errorJson.error || errorText;
-        } else {
-            // If the response is not JSON, it's likely an HTML error page.
-            errorText = `The server returned an unexpected response. This can happen if server-side configuration (e.g., environment variables for Firebase Admin) is missing.`;
+        } catch (e) {
+             errorText = `The server returned an unexpected response. This can happen if server-side configuration is missing.`;
         }
         console.error(`[AUTH_PROVIDER] Error response: ${errorText}`);
         setError(errorText);
-        // If we get an unauthorized error, it means the session is invalid, so clear the user.
-        if (res.status === 401) {
-            setUser(null);
-        }
         return;
       }
       
-      if (contentType && contentType.includes("application/json")) {
-        const userData: User = await res.json();
-        setUser(userData);
-        console.log(`[AUTH_PROVIDER] User data fetched successfully.`);
-      } else {
-        const errorText = "Received non-JSON response from server.";
-        console.error(`[AUTH_PROVIDER] ${errorText}`);
-        setError(errorText);
-      }
+      const userData: User = await res.json();
+      setUser(userData);
+      console.log(`[AUTH_PROVIDER] User data fetched successfully.`);
 
     } catch (err: any) {
       console.error('[AUTH_PROVIDER] An unexpected error occurred during fetchUserData:', err);

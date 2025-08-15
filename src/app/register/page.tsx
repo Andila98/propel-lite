@@ -43,7 +43,7 @@ export default function RegisterPage() {
         await updateProfile(userCredential.user, { displayName });
 
         // Step 3: Get the ID token from the newly created and updated user
-        const idToken = await userCredential.user.getIdToken(true); // Force refresh to get claims if needed later
+        const idToken = await userCredential.user.getIdToken(true);
 
         // Step 4: Send the ID token to the backend to create the Firestore user record and set custom claims
         const response = await fetch('/api/auth/signup', {
@@ -111,7 +111,7 @@ export default function RegisterPage() {
           <div className="mb-4 flex justify-center">
             <PropelLiteLogo className="h-12 w-12" />
           </div>
-          <CardTitle className="text-2xl">Create your Propel Lite account</CardTitle>
+          <CardTitle className="text-2xl">Create your RentEase account</CardTitle>
           <CardDescription>Get started managing your properties today.</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
@@ -148,6 +148,7 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="new-password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pr-10"

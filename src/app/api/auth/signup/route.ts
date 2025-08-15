@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { admin, db } from '@/lib/firebase-admin';
+import { admin, db, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -18,13 +18,15 @@ const signupSchema = z.object({
  * 4. Creates a corresponding user profile in the Firestore 'users' collection.
  */
 export async function POST(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      return NextResponse.json({ error: 'Server authentication is not configured.' }, { status: 503 });
+  }
+
   try {
     const body = await req.json();
     
-    // 1. Validate request body
     const validationResult = signupSchema.safeParse(body);
     if (!validationResult.success) {
-      console.error("[SIGNUP_VALIDATION_ERROR]", validationResult.error.flatten());
       return NextResponse.json(
         { error: 'Validation failed', details: validationResult.error.flatten().fieldErrors },
         { status: 400 }
@@ -33,17 +35,14 @@ export async function POST(req: NextRequest) {
     
     const { idToken } = validationResult.data;
 
-    // 2. Verify Firebase ID token
     const decodedToken = await getAuth().verifyIdToken(idToken);
     const { uid, email, name } = decodedToken;
 
-    // 3. Set custom role claim
     await getAuth().setCustomUserClaims(uid, {
       role: 'landlord', // Default role for signup
     });
 
-    // 4. Create Firestore user profile
-    const userRef = db.collection('users').doc(uid);
+    const userRef = db().collection('users').doc(uid);
     await userRef.set({
       uid,
       email,
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
       role: 'landlord',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       isActive: true,
-      profileComplete: false, // Onboarding is required after signup
+      profileComplete: false,
     });
 
     console.log(`[SIGNUP_SUCCESS] Landlord account provisioned for email: ${email}, UID: ${uid}`);
@@ -65,18 +64,8 @@ export async function POST(req: NextRequest) {
     console.error('[SIGNUP_ERROR]', {
         message: error.message,
         code: error.code,
-        stack: error.stack,
     });
   
-    // Check for config issues before checking specific auth errors
-    if (!admin.apps.length) {
-      return NextResponse.json(
-        { error: 'Firebase Admin SDK not configured. Cannot process signup.' },
-        { status: 503 } // Service Unavailable
-      );
-    }
-
-    // Handle specific Firebase Auth errors from token verification
     switch (error.code) {
       case 'auth/id-token-expired':
         return NextResponse.json({ error: 'The provided token has expired.' }, { status: 401 });

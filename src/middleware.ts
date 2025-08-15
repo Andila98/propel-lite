@@ -9,27 +9,25 @@ const publicPaths = [
   '/register',
   '/forgot-password',
 
-  // Onboarding flow
+  // Onboarding flow is public
   '/onboarding',
 
   // Public APIs & webhooks
   '/api/auth/login',
   '/api/auth/signup',
-  '/api/auth/logout',
   '/api/auth/accept-invite',
-  '/api/webhooks/mpesa',
-  '/api/webhooks/stripe',
+  '/api/webhooks',
 
   // Static assets and internal framework paths
-  '/_next/static',
-  '/_next/image',
+  '/_next',
   '/favicon.ico',
   '/placeholders',
   '/media',
 ];
 
 function isPublic(pathname: string): boolean {
-  if (pathname.startsWith('/onboarding')) return true;
+  // Allow root path for landing page scenarios
+  if (pathname === '/') return true;
   return publicPaths.some(path => pathname.startsWith(path));
 }
 
@@ -41,25 +39,24 @@ function isPublic(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // If the path is public, skip the middleware
   if (isPublic(pathname)) {
-    // console.log(`[MIDDLEWARE_PUBLIC] Allowing access to public path: ${pathname}`);
     return NextResponse.next();
   }
 
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
-      console.log(`[MIDDLEWARE_REDIRECT] No session cookie found for protected path: ${pathname}. Redirecting to login.`);
+      console.log(`[MIDDLEWARE_REDIRECT] No session cookie for protected path: ${pathname}. Redirecting.`);
       const url = request.nextUrl.clone();
       url.pathname = '/login';
+      url.searchParams.set('redirect', pathname); // Pass the original path for redirection after login
       url.searchParams.set('error', 'session_expired');
       return NextResponse.redirect(url);
   }
 
-  // Allow the request to proceed. The actual token verification will happen
-  // in the API route or page component that requires the Node.js runtime.
-  // console.log(`[MIDDLEWARE_PROTECTED] Session cookie found for path: ${pathname}. Allowing request.`);
+  // The session cookie exists, allow the request to proceed.
+  // The actual verification of the token happens in the API routes and server components
+  // using the `verifyApiAuth` utility.
   return NextResponse.next();
 }
 
