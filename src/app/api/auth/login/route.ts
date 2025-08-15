@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     console.log(`[API_LOGIN_ATTEMPT] UID: ${uid}, Email: ${email}`);
 
     // 3. Fetch user data from Firestore
-    const userDocRef = db.collection('users').doc(uid);
+    const userDocRef = db().collection('users').doc(uid);
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
