@@ -3,15 +3,18 @@
 import { IStorage, buildObjectKey, UploadTarget } from './index';
 import { createClient } from '@supabase/supabase-js';
 
+// This client uses the ANON key and is safe for public/client-side use.
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// This client uses the Service Role key and should only be used on the server.
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE!
 );
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const BUCKET = process.env.SUPABASE_BUCKET_IMAGES || 'gallery';
 
