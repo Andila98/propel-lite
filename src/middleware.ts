@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authConfig } from './config/server-config';
+import { auth } from './lib/firebase-admin';
 
 // Paths that do not require authentication
 const publicPaths = [

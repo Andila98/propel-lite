@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { db, admin } from '@/lib/firebase-admin';
+import { firestore, admin } from '@/lib/firebase-admin';
 import type { Message } from '@/lib/types';
 
 // GET /api/tenants/[id]/messages
@@ -15,7 +15,7 @@ export async function GET(
     }
     console.log(`API: Fetching messages for tenant ${tenantId}.`);
 
-    const messagesSnapshot = await db
+    const messagesSnapshot = await firestore
       .collection('tenants')
       .doc(tenantId)
       .collection('messages')
@@ -64,7 +64,7 @@ export async function POST(
     };
     
     console.log(`API: Sending message to tenant ${tenantId}.`);
-    const docRef = await db
+    const docRef = await firestore
       .collection('tenants')
       .doc(tenantId)
       .collection('messages')

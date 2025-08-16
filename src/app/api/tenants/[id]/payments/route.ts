@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import type { Tenant } from 'src/services/tenant-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
       const { role, uid, claims } = decodedToken as any;
 
-      const tenantDoc = await db().collection('users').doc(tenantId).get();
+      const tenantDoc = await firestore.collection('users').doc(tenantId).get();
       if (!tenantDoc.exists) {
         return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 });
       }
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ error: 'Forbidden: You do not have permission to view these payments.' }, { status: 403 });
       }
 
-      const paymentsSnapshot = await db().collection('payments')
+      const paymentsSnapshot = await firestore.collection('payments')
         .where('tenantId', '==', tenantId)
         .orderBy('paidAt', 'desc')
         .get();

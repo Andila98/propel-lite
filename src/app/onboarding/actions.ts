@@ -2,7 +2,7 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { db } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import { verifyServerActionAuth } from '@/lib/server-utils';
 
 export interface ActionState {
@@ -18,7 +18,7 @@ export async function completeOnboarding(): Promise<ActionState> {
   const userId = decodedToken.uid;
 
   try {
-    const userRef = db().collection('users').doc(userId);
+    const userRef = firestore.collection('users').doc(userId);
     await userRef.update({
         profileComplete: true,
     });

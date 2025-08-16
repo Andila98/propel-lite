@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
-import { admin, db, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { admin, firestore, auth as adminAuth } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
@@ -28,10 +28,6 @@ const UserSchema = z.object({
  * 5. Returns the user's role and profile status to the client for redirection.
  */
 export async function POST(request: NextRequest) {
-  if (!isFirebaseAdminInitialized) {
-      return NextResponse.json({ error: 'Server authentication is not configured.' }, { status: 503 });
-  }
-
   try {
     const body = await request.json();
     const { idToken } = body;
@@ -41,11 +37,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Verify the Firebase ID token
-    const decodedIdToken: DecodedIdToken = await admin.auth().verifyIdToken(idToken);
+    const decodedIdToken: DecodedIdToken = await adminAuth.verifyIdToken(idToken);
     const { uid, email } = decodedIdToken;
     
     // 3. Fetch user data from Firestore
-    const userDocRef = db().collection('users').doc(uid);
+    const userDocRef = firestore.collection('users').doc(uid);
     const userDoc = await userDocRef.get();
 
     // CRITICAL: Enforce that user must have a Firestore record to log in.
@@ -69,7 +65,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
 
     const expiresIn = authConfig.cookieSerializeOptions.maxAge! * 1000;
-    const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
 
     response.cookies.set(
         authConfig.cookieName,
@@ -77,7 +73,6 @@ export async function POST(request: NextRequest) {
         authConfig.cookieSerializeOptions
     );
 
-    console.log(`[API_LOGIN_SUCCESS] UID: ${uid}, Role: ${role}, Profile Complete: ${profileComplete}`);
     return response;
 
   } catch (error: any) {

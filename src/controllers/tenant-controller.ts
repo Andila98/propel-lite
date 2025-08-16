@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
 import { verifyApiAuth } from '@/lib/server-utils';
-import { db, admin, auth } from '@/lib/firebase-admin';
+import { firestore, admin, auth } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -29,8 +29,8 @@ const CreateTenantSchema = z.object({
 
 export class TenantController {
   private tenantService = new TenantService();
-  private usersCollection = db().collection('users');
-  private propertiesCollection = db().collection('properties');
+  private usersCollection = firestore.collection('users');
+  private propertiesCollection = firestore.collection('properties');
 
   private async checkAuth(req: NextRequest, allowedRoles: string[]) {
     const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
@@ -107,7 +107,7 @@ export class TenantController {
         };
 
         // Use a transaction to ensure atomicity
-        await db().runTransaction(async (transaction) => {
+        await firestore.runTransaction(async (transaction) => {
             transaction.set(this.usersCollection.doc(userRecord.uid), newTenant);
             transaction.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
         });

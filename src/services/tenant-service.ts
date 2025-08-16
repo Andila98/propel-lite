@@ -4,7 +4,7 @@
  * This centralizes the logic for creating, retrieving, and deleting tenants.
  */
 
-import { db, admin, auth } from '@/lib/firebase-admin';
+import { firestore, admin, auth } from '@/lib/firebase-admin';
 import type { Tenant, Unit } from '@/lib/types';
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
@@ -20,8 +20,8 @@ export type TenantData = {
 };
 
 export class TenantService {
-  private usersCollection = db().collection('users');
-  private propertiesCollection = db().collection('properties');
+  private usersCollection = firestore.collection('users');
+  private propertiesCollection = firestore.collection('properties');
 
   /**
    * Fetches all tenants for a given landlord.
@@ -74,7 +74,7 @@ export class TenantService {
     const tenant = tenantDoc.data() as any;
     
     // Use a transaction to ensure all or nothing is deleted/updated
-    await db().runTransaction(async (transaction) => {
+    await firestore.runTransaction(async (transaction) => {
         // Mark the unit as unoccupied if a unit is assigned
         if (tenant.propertyId && tenant.currentUnitId) {
             const unitRef = this.propertiesCollection.doc(tenant.propertyId).collection('units').doc(tenant.currentUnitId);

@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { db, admin } from '@/lib/firebase-admin';
+import { firestore, admin } from '@/lib/firebase-admin';
 import { verifyApiAuth } from '@/lib/server-utils';
 
 export const runtime = 'nodejs';
@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const { id: propertyId, unitId } = params;
     const updates = await req.json();
 
-    const propertyRef = db().collection('properties').doc(propertyId);
+    const propertyRef = firestore.collection('properties').doc(propertyId);
     const unitRef = propertyRef.collection('units').doc(unitId);
 
     const propertyDoc = await propertyRef.get();
@@ -65,7 +65,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         const { uid: landlordId } = decodedToken!;
         const { id: propertyId, unitId } = params;
 
-        const propertyRef = db().collection('properties').doc(propertyId);
+        const propertyRef = firestore.collection('properties').doc(propertyId);
         const unitRef = propertyRef.collection('units').doc(unitId);
 
         const propertyDoc = await propertyRef.get();

@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { admin, db, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { admin, firestore } from '@/lib/firebase-admin';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -18,10 +18,6 @@ const signupSchema = z.object({
  * 4. Creates a corresponding user profile in the Firestore 'users' collection.
  */
 export async function POST(req: NextRequest) {
-  if (!isFirebaseAdminInitialized) {
-      return NextResponse.json({ error: 'Server authentication is not configured.' }, { status: 503 });
-  }
-
   try {
     const body = await req.json();
     
@@ -42,7 +38,7 @@ export async function POST(req: NextRequest) {
       role: 'landlord', // Default role for signup
     });
 
-    const userRef = db().collection('users').doc(uid);
+    const userRef = firestore.collection('users').doc(uid);
     await userRef.set({
       uid,
       email,

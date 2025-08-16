@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import type { Message, Tenant } from '@/lib/types';
 import { summarizeTenantSentiment } from '@/ai/flows/summarize-tenant-sentiment';
 

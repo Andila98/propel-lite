@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { db, admin } from '@/lib/firebase-admin';
+import { firestore, admin } from '@/lib/firebase-admin';
 import { v4 as uuid } from 'uuid';
 import { verifyApiAuth } from '@/lib/server-utils';
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ error: 'Missing or invalid unit data' }, { status: 400 });
     }
 
-    const propertyRef = db().collection('properties').doc(propertyId);
+    const propertyRef = firestore.collection('properties').doc(propertyId);
     const propertyDoc = await propertyRef.get();
 
     if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {

@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import type { PropertyManager, Property } from 'src/services/property-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
     const managerId = decodedToken.uid;
 
-    const managerDoc = await db().collection('users').doc(managerId).get();
+    const managerDoc = await firestore.collection('users').doc(managerId).get();
     if (!managerDoc.exists) {
         return NextResponse.json({ error: 'Manager profile not found.' }, { status: 404 });
     }
@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json([]);
     }
 
-    const propertiesSnapshot = await db().collection('properties')
-        .where(db.FieldPath.documentId(), 'in', managedPropertyIds)
+    const propertiesSnapshot = await firestore.collection('properties')
+        .where(firestore.FieldPath.documentId(), 'in', managedPropertyIds)
         .get();
 
     const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Property }));

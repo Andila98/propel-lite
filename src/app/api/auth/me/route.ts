@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/server-utils';
-import { db, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import { getStorage } from '@/lib/storage/provider';
 
 export const runtime = 'nodejs';
@@ -14,10 +14,6 @@ export const runtime = 'nodejs';
  * 4. Returns the user's data.
  */
 export async function GET(req: NextRequest) {
-  if (!isFirebaseAdminInitialized) {
-    return NextResponse.json({ error: 'Firebase Admin not configured on the server.' }, { status: 503 });
-  }
-  
   const { decodedToken, error } = await verifyApiAuth(req);
 
   if (error) {
@@ -26,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const { uid } = decodedToken;
-    const userDoc = await db().collection('users').doc(uid).get();
+    const userDoc = await firestore.collection('users').doc(uid).get();
 
     if (!userDoc.exists) {
       console.error(`[API_ME_ERROR] Firestore user document not found for UID: ${uid}`);
