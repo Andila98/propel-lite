@@ -9,6 +9,8 @@ import sharp from 'sharp';
 export const runtime = 'nodejs';
 export const maxDuration = 60; // Vercel edge hint (Node runtime)
 
+const MAX_IMAGES_PER_PROPERTY = 8;
+
 const schema = z.object({
   kind: z.enum(['property', 'profile']),
   propertyId: z.string().optional(),
@@ -45,19 +47,38 @@ export async function POST(req: NextRequest) {
       ? { kind: 'property' as const, propertyId: parsed.data.propertyId!, uploaderUid: uid }
       : { kind: 'profile' as const, uid };
 
-    // 3) Upload to storage
-    const { key, publicUrl } = await storage.upload({
-      file: buffer,
-      mimeType: 'image/webp',
-      originalName: file.name,
-      target,
-    });
-
     // 4) Firestore write (atomic semantics per type)
     if (target.kind === 'property') {
       const ref = firestore.collection('properties').doc(target.propertyId);
+      
+      // Enforce image limit
+      const doc = await ref.get();
+      if (doc.exists) {
+        const images = doc.data()?.images || [];
+        if (images.length >= MAX_IMAGES_PER_PROPERTY) {
+            return NextResponse.json({ error: `Maximum of ${MAX_IMAGES_PER_PROPERTY} images reached for this property.` }, { status: 400 });
+        }
+      }
+
+      // 3) Upload to storage
+      const { key, publicUrl } = await storage.upload({
+        file: buffer,
+        mimeType: 'image/webp',
+        originalName: file.name,
+        target,
+      });
+
       await ref.update({ images: adminFieldValue('arrayUnion', { key, url: publicUrl }) });
+       return NextResponse.json({ ok: true, url: publicUrl, key });
     } else {
+       // 3) Upload to storage
+      const { key, publicUrl } = await storage.upload({
+        file: buffer,
+        mimeType: 'image/webp',
+        originalName: file.name,
+        target,
+      });
+
       const ref = firestore.collection('users').doc(uid);
       // Get current image key to delete (if any)
       const snap = await ref.get();
@@ -67,9 +88,9 @@ export async function POST(req: NextRequest) {
         // best-effort cleanup
         await storage.deleteByKey(prev).catch(() => {});
       }
+       return NextResponse.json({ ok: true, url: publicUrl, key });
     }
 
-    return NextResponse.json({ ok: true, url: publicUrl, key });
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: e.message || 'Upload failed' }, { status: 500 });
