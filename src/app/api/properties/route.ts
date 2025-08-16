@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { db, admin } from '@/lib/firebase-admin';
+import { firestore, admin } from '@/lib/firebase-admin';
 import path from 'path';
 import fs from 'fs';
 import { randomBytes } from 'crypto';

@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import type { AuditLog } from '@/lib/types';
 
 // Mock audit log data for demonstration
@@ -43,7 +43,7 @@ const mockAuditLogs: AuditLog[] = [
 export async function GET() {
     try {
         // In a real implementation, you would fetch from Firestore:
-        // const logsSnapshot = await db.collection('audit_logs').orderBy('timestamp', 'desc').get();
+        // const logsSnapshot = await firestore.collection('audit_logs').orderBy('timestamp', 'desc').get();
         // const logs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         // For now, we return mock data.
         return NextResponse.json(mockAuditLogs);

@@ -1,9 +1,10 @@
 
 // app/api/images/delete/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, admin } from '@/lib/firebase-admin';
 import { getStorage } from '@/lib/storage/provider';
 import { z } from 'zod';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const schema = z.object({
   kind: z.enum(['property', 'profile']),
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (parsed.kind === 'property') {
       // Authorization: ensure requester can modify this property (RBAC/ownership check — implement as needed)
       const ref = firestore.collection('properties').doc(parsed.propertyId!);
-      await ref.update({ images: adminFieldValue('arrayRemove', { key: parsed.key, url: storage.getPublicUrl(parsed.key) }) });
+      await ref.update({ images: FieldValue.arrayRemove({ key: parsed.key, url: storage.getPublicUrl(parsed.key) }) });
       await storage.deleteByKey(parsed.key);
     } else {
       // only allow self profile changes
@@ -46,9 +47,4 @@ export async function POST(req: NextRequest) {
     console.error(e);
     return NextResponse.json({ error: e.message || 'Delete failed' }, { status: 500 });
   }
-}
-
-function adminFieldValue(op: 'arrayRemove', value: any) {
-  const admin = require('firebase-admin');
-  return (admin.firestore.FieldValue as any)[op](value);
 }
