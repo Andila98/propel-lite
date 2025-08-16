@@ -3,6 +3,11 @@
 import { IStorage, buildObjectKey, UploadTarget } from './index';
 import { createClient } from '@supabase/supabase-js';
 
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE!
+);
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -31,6 +36,11 @@ export class SupabaseStorage implements IStorage {
   getPublicUrl(key: string) {
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(key);
     return data.publicUrl;
+  }
+  
+  async getSignedUrl(key: string) {
+    const { data, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUrl(key, 60 * 5); // 5 minute expiry
+    return { signedUrl: data?.signedUrl || '', error: error?.message || null };
   }
 }
 

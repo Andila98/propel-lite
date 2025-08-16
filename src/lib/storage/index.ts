@@ -15,6 +15,8 @@ export interface IStorage {
   deleteByKey(key: string): Promise<void>;
 
   getPublicUrl(key: string): string; // pure function for deterministic URLs
+
+  getSignedUrl?(key: string): Promise<{ signedUrl: string, error: string | null }>;
 }
 
 export function buildObjectKey(target: UploadTarget, fileName: string) {
