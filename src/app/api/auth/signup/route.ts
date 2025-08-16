@@ -6,6 +6,13 @@ import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
+// Stricter schema for the decoded token to ensure `name` and `email` are present.
+const DecodedTokenSchema = z.object({
+  uid: z.string(),
+  email: z.string().email(),
+  name: z.string().min(1, { message: "Display name cannot be empty." }),
+});
+
 const signupSchema = z.object({
   idToken: z.string(),
 });
@@ -31,8 +38,17 @@ export async function POST(req: NextRequest) {
     
     const { idToken } = validationResult.data;
 
-    const decodedToken = await getAuth().verifyIdToken(idToken);
-    const { uid, email, name } = decodedToken;
+    const decodedTokenPayload = await getAuth().verifyIdToken(idToken);
+    
+    // Validate the structure of the decoded token itself.
+    const tokenValidation = DecodedTokenSchema.safeParse(decodedTokenPayload);
+    if (!tokenValidation.success) {
+        return NextResponse.json(
+            { error: 'Invalid token payload', details: tokenValidation.error.flatten().fieldErrors },
+            { status: 400 }
+        );
+    }
+    const { uid, email, name } = tokenValidation.data;
 
     await getAuth().setCustomUserClaims(uid, {
       role: 'landlord', // Default role for signup

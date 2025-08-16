@@ -3,7 +3,6 @@
 
 import { useState, useEffect, type ReactNode } from 'react';
 import { useForm, Controller, useFieldArray, type UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,9 +21,11 @@ import type { Unit } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFormStatus } from 'react-dom';
+import type { FormState } from '@/app/properties/actions';
 
 interface PropertyFormProps {
     formAction: (payload: FormData) => void;
+    initialState?: FormState;
     initialData?: Partial<PropertyFormValues>;
     form?: UseFormReturn<PropertyFormValues>;
     isOnboarding?: boolean;
@@ -40,18 +41,18 @@ function SubmitButton({ isOnboarding }: { isOnboarding: boolean }) {
     )
 }
 
-export function PropertyForm({ formAction, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
+export function PropertyForm({ formAction, initialState, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const defaultForm = useForm<PropertyFormValues>({
-    // We don't need a resolver here anymore as validation is on the server
     defaultValues: initialData || {
       name: "",
       address: "",
       description: "",
       currency: "KES",
+      type: "Apartment",
       units: [],
     },
   });
@@ -64,7 +65,17 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
     }
   }, [initialData]);
 
-  const { register, control, handleSubmit, formState: { errors }, setValue, watch, getValues } = form;
+  const { register, control, handleSubmit, formState, setValue, watch, getValues, setError } = form;
+
+  useEffect(() => {
+    if (initialState?.errors) {
+        for (const [field, messages] of Object.entries(initialState.errors)) {
+            if (messages) {
+                setError(field as keyof PropertyFormValues, { type: 'server', message: messages.join(', ') });
+            }
+        }
+    }
+  }, [initialState, setError]);
 
   const { fields, append, remove, replace } = useFieldArray({
     control,
@@ -148,9 +159,12 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
   };
 
   const handlePropertyTypeChange = (type: 'Apartment' | 'House' | 'Bedsitter') => {
+    setValue("type", type);
     if (type === 'Apartment') {
-      setValue("numberOfUnits", 1);
-      handleUnitGeneration(1);
+      if (!numberOfUnits || numberOfUnits === 0) {
+        setValue("numberOfUnits", 1);
+        handleUnitGeneration(1);
+      }
     } else if (type === 'House' || type === 'Bedsitter') {
       setValue("numberOfUnits", 1);
       const newUnits = [{
@@ -167,6 +181,20 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
   
   const clientAction = (formData: FormData) => {
     const propertyData = getValues();
+    
+    // Client-side validation before submitting
+    const validation = PropertyFormSchema.safeParse(propertyData);
+    if (!validation.success) {
+      toast({
+        title: "Invalid Input",
+        description: "Please check the form for errors before submitting.",
+        variant: "destructive",
+      });
+      // This will trigger the form's own error display
+      handleSubmit(() => {})(); // A bit of a hack to trigger validation display
+      return;
+    }
+
     formData.append('propertyData', JSON.stringify(propertyData));
     if (imageFile) {
         formData.append('media', imageFile);
@@ -199,12 +227,12 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
                           <div className="sm:col-span-2">
                               <Label htmlFor="name">Property Name</Label>
                               <Input id="name" {...register("name")} placeholder="e.g. Greenview Apartments" />
-                              {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                              {formState.errors.name && <p className="text-sm text-destructive mt-1">{formState.errors.name.message}</p>}
                           </div>
                           <div className="sm:col-span-2">
                               <Label htmlFor="address">Address</Label>
                               <Input id="address" {...register("address")} autoComplete="street-address" />
-                              {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
+                              {formState.errors.address && <p className="text-sm text-destructive mt-1">{formState.errors.address.message}</p>}
                           </div>
                            <div>
                                 <Label htmlFor="imageFile">Property Image</Label>
@@ -228,7 +256,7 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
                                     </Select>
                                 )}
                             />
-                            {errors.currency && <p className="text-sm text-destructive mt-1">{errors.currency.message}</p>}
+                            {formState.errors.currency && <p className="text-sm text-destructive mt-1">{formState.errors.currency.message}</p>}
                            </div>
                           <div className="sm:col-span-2">
                             <div className="flex items-center gap-2">
@@ -250,7 +278,7 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
                                   name="type"
                                   control={control}
                                   render={({ field }) => (
-                                      <Select onValueChange={(value) => { field.onChange(value); handlePropertyTypeChange(value as any); }} value={field.value}>
+                                      <Select onValueChange={(value) => handlePropertyTypeChange(value as any)} value={field.value}>
                                       <SelectTrigger id="type">
                                           <SelectValue placeholder="Select a type..." />
                                       </SelectTrigger>
@@ -262,14 +290,14 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
                                       </Select>
                                   )}
                               />
-                              {errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}
+                              {formState.errors.type && <p className="text-sm text-destructive mt-1">{formState.errors.type.message}</p>}
                           </div>
                         </div>
                         
                         <div>
                             <Label htmlFor="description">Property Description</Label>
                             <Textarea id="description" {...register("description")} placeholder="e.g., A beautiful apartment with stunning views..." />
-                            {errors.description && <p className="text-sm text-destructive mt-1">{errors.description.message}</p>}
+                            {formState.errors.description && <p className="text-sm text-destructive mt-1">{formState.errors.description.message}</p>}
                         </div>
                     </div>
                   </CardContent>
@@ -330,7 +358,7 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
                                         handleUnitGeneration(num);
                                     }}
                                 />
-                                {errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{errors.numberOfUnits.message}</p>}
+                                {formState.errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{formState.errors.numberOfUnits.message}</p>}
                             </div>
                             <div className="relative">
                                 <Separator />
@@ -423,9 +451,9 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
                                 </div>
                             </CollapsibleContent>
                         </Collapsible>
-                         {errors.units?.[index] && (
+                         {formState.errors.units?.[index] && (
                             <div className="text-sm text-destructive mt-2">
-                               {Object.values(errors.units[index]).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
+                               {Object.values(formState.errors.units[index]).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
                             </div>
                           )}
                       </Card>
@@ -436,7 +464,7 @@ export function PropertyForm({ formAction, initialData, form: passedForm, isOnbo
                             Add Another Unit
                         </Button>
                     )}
-                    {errors.units && typeof errors.units.message === 'string' && <p className="text-sm text-destructive mt-1">{errors.units.message}</p>}
+                    {formState.errors.units && typeof formState.errors.units.message === 'string' && <p className="text-sm text-destructive mt-1">{formState.errors.units.message}</p>}
                 </div>
             </div>
         </div>

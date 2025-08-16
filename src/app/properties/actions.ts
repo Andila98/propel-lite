@@ -7,13 +7,16 @@ import { propertyService } from '@/services/property-service';
 import { verifyServerActionAuth } from '@/lib/server-utils';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import path from 'path';
-import fs from 'fs/promises';
+import { promises as fs } from 'fs';
 import { randomBytes } from 'crypto';
 
 const uploadDir = path.join(process.cwd(), 'public/media');
 
 export interface FormState {
     error?: string;
+    errors?: {
+        [key in keyof PropertyFormValues]?: string[];
+    };
     success?: boolean;
     propertyId?: string;
 }
@@ -48,15 +51,17 @@ export async function createPropertyAction(
   const validationResult = PropertyFormSchema.safeParse(propertyData);
   if (!validationResult.success) {
       console.error("Server Action Validation Error:", validationResult.error.flatten());
-      const firstError = Object.values(validationResult.error.flatten().fieldErrors)[0]?.[0];
-      return { error: `Invalid property data: ${firstError}` };
+      return { 
+          error: "Invalid property data. Please check the form for errors.",
+          errors: validationResult.error.flatten().fieldErrors,
+       };
   }
 
   const validatedData = validationResult.data;
 
   try {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    await fs.mkdir(uploadDir, { recursive: true });
+    await fs.mkdir(uploadDir, { recursive: true }).catch(() => {});
     
     const randomSuffix = randomBytes(8).toString('hex');
     const fileExtension = path.extname(file.name);

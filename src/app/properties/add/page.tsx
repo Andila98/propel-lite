@@ -7,16 +7,15 @@ import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { PropertyForm } from '@/components/property-form';
-import type { PropertyFormValues } from '@/lib/schemas';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useActionState } from 'react';
-import { createPropertyAction } from '@/app/properties/actions';
+import { createPropertyAction, type FormState } from '@/app/properties/actions';
 
 export default function AddPropertyPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const initialState = { error: undefined, success: false };
+  const initialState: FormState = { error: undefined, errors: undefined, success: false };
   const [state, formAction] = useActionState(createPropertyAction, initialState);
 
   useEffect(() => {
@@ -27,7 +26,7 @@ export default function AddPropertyPage() {
       });
       router.push('/properties');
     }
-    if (state.error) {
+    if (state.error && !state.errors) { // Only show toast for general errors
        toast({
             title: "Upload Failed",
             description: `There was an error saving your property: ${state.error}`,
@@ -47,7 +46,7 @@ export default function AddPropertyPage() {
             </Link>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Add New Property</h2>
         </div>
-        <PropertyForm formAction={formAction} />
+        <PropertyForm formAction={formAction} initialState={state} />
     </div>
   );
 }
