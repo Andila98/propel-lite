@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
-import { admin, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { auth } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -14,10 +14,10 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
-  if (sessionCookie && isFirebaseAdminInitialized) {
+  if (sessionCookie) {
     try {
-      const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie);
-      await admin.auth().revokeRefreshTokens(decodedClaims.uid);
+      const decodedClaims = await auth.verifySessionCookie(sessionCookie);
+      await auth.revokeRefreshTokens(decodedClaims.uid);
       console.log(`[LOGOUT_SUCCESS] Revoked refresh tokens for UID: ${decodedClaims.uid}`);
     } catch (error: any) {
       // This error is common if the cookie is expired, so we don't need to log it as a server error.

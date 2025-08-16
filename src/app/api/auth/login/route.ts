@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
-import { admin, firestore, auth as adminAuth } from '@/lib/firebase-admin';
+import { firestore, auth } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Verify the Firebase ID token
-    const decodedIdToken: DecodedIdToken = await adminAuth.verifyIdToken(idToken);
+    const decodedIdToken: DecodedIdToken = await auth.verifyIdToken(idToken);
     const { uid, email } = decodedIdToken;
     
     // 3. Fetch user data from Firestore
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true, role, profileComplete }, { status: 200 });
 
     const expiresIn = authConfig.cookieSerializeOptions.maxAge! * 1000;
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
 
     response.cookies.set(
         authConfig.cookieName,
