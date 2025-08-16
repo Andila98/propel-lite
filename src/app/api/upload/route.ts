@@ -1,10 +1,9 @@
-
 // app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, admin } from '@/lib/firebase-admin';
 import { getStorage } from '@/lib/storage/provider';
 import { z } from 'zod';
-import sharp from 'sharp';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // Vercel edge hint (Node runtime)
@@ -34,13 +33,8 @@ export async function POST(req: NextRequest) {
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
 
     const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     
-    // Server-side compression with Sharp as a fallback
-    const buffer = await sharp(Buffer.from(arrayBuffer))
-        .resize({ width: 1920, withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
-
     const storage = getStorage();
 
     const target = parsed.data.kind === 'property'
@@ -68,7 +62,7 @@ export async function POST(req: NextRequest) {
         target,
       });
 
-      await ref.update({ images: adminFieldValue('arrayUnion', { key, url: publicUrl }) });
+      await ref.update({ images: FieldValue.arrayUnion({ key, url: publicUrl }) });
        return NextResponse.json({ ok: true, url: publicUrl, key });
     } else {
        // 3) Upload to storage
@@ -95,10 +89,4 @@ export async function POST(req: NextRequest) {
     console.error(e);
     return NextResponse.json({ error: e.message || 'Upload failed' }, { status: 500 });
   }
-}
-
-// tiny helper for arrayUnion via admin SDK
-function adminFieldValue(op: 'arrayUnion', value: any) {
-  const admin = require('firebase-admin');
-  return (admin.firestore.FieldValue as any)[op](value);
 }
