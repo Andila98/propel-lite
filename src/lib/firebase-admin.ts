@@ -1,29 +1,20 @@
 
 import * as admin from 'firebase-admin';
-import { authConfig } from '@/config/server-config';
 
-// Check if all necessary service account details are present.
-const hasCredentials = 
-    authConfig.serviceAccount.projectId &&
-    authConfig.serviceAccount.clientEmail &&
-    authConfig.serviceAccount.privateKey;
-
+// The Firebase Admin SDK will automatically detect the service account file
+// from the GOOGLE_APPLICATION_CREDENTIALS environment variable.
 if (!admin.apps.length) {
-    if (hasCredentials) {
-        try {
-            admin.initializeApp({
-                credential: admin.credential.cert(authConfig.serviceAccount),
-            });
-            console.log('[FIREBASE_ADMIN] Initialized successfully.');
-        } catch (error: any) {
-            console.error('[FIREBASE_ADMIN_INIT_ERROR] Failed to initialize Firebase Admin SDK:', {
-                message: error.message,
-                // Do not log the full error in production as it might contain sensitive details.
-                code: error.code,
-            });
-        }
-    } else {
-        console.warn('[FIREBASE_ADMIN] Service account credentials are not fully configured in environment variables. Admin SDK not initialized.');
+    try {
+        admin.initializeApp();
+        console.log('[FIREBASE_ADMIN] Initialized successfully via Application Default Credentials.');
+    } catch (error: any) {
+        console.error('[FIREBASE_ADMIN_INIT_ERROR] Failed to initialize Firebase Admin SDK:', {
+            message: error.message,
+            code: error.code,
+        });
+        // This will often fail if the GOOGLE_APPLICATION_CREDENTIALS env var is not set
+        // or the file it points to is incorrect.
+        console.error("Please ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable is set correctly.");
     }
 }
 
