@@ -56,7 +56,7 @@ export async function createPropertyAction(
   const validatedData = validationResult.data;
 
   try {
-    const publicUrl = `/placeholders/apartment${Math.floor(Math.random() * 2) + 1}.png`;
+    const publicUrl = `/images/apartment${Math.floor(Math.random() * 2) + 1}.png`;
 
     const createdProperty = await propertyService.createPropertyWithUnits(validatedData, userId, publicUrl);
     

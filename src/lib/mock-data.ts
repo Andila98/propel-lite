@@ -22,7 +22,7 @@ export const mockProperties: Omit<Property, 'createdAt'>[] = [
         address: '123 Oak Avenue, Nairobi',
         landlordId: 'landlord-1',
         managerId: 'manager-1',
-        imageUrl: '/placeholders/apartment1.png',
+        imageUrl: '/images/apartment1.png',
         description: 'A modern apartment block with great amenities and city views.',
     },
     {
@@ -31,7 +31,7 @@ export const mockProperties: Omit<Property, 'createdAt'>[] = [
         type: 'House',
         address: '456 Maple Drive, Karen',
         landlordId: 'landlord-1',
-        imageUrl: '/placeholders/house1.png',
+        imageUrl: '/images/house1.png',
         description: 'A beautiful family home with a spacious backyard and serene environment.',
     },
     {
@@ -41,7 +41,7 @@ export const mockProperties: Omit<Property, 'createdAt'>[] = [
         address: '789 Pine Street, Runda',
         landlordId: 'landlord-1',
         managerId: 'manager-1',
-        imageUrl: '/placeholders/house2.png',
+        imageUrl: '/images/house2.png',
         description: 'A luxurious villa with a private swimming pool and expansive gardens.',
     },
     {
@@ -50,7 +50,7 @@ export const mockProperties: Omit<Property, 'createdAt'>[] = [
         type: 'Bedsitter',
         address: '101 Urban Plaza, Westlands',
         landlordId: 'landlord-1',
-        imageUrl: '/placeholders/apartment2.png',
+        imageUrl: '/images/apartment2.png',
         description: 'Compact and affordable bedsitters perfect for young professionals.',
     }
 ];
