@@ -32,11 +32,7 @@ export async function createPropertyAction(
   const userId = decodedToken.uid;
   
   const propertyDataString = formData.get('propertyData') as string | null;
-  const file = formData.get('media') as File | null;
-
-  if (!file || file.size === 0) {
-      return { error: 'An image file is required.' };
-  }
+  
   if (!propertyDataString) {
       return { error: 'Missing propertyData.' };
   }
@@ -60,17 +56,7 @@ export async function createPropertyAction(
   const validatedData = validationResult.data;
 
   try {
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    await fs.mkdir(uploadDir, { recursive: true }).catch(() => {});
-    
-    const randomSuffix = randomBytes(8).toString('hex');
-    const fileExtension = path.extname(file.name);
-    const fileName = `${Date.now()}-${randomSuffix}${fileExtension}`;
-    const filePath = path.join(uploadDir, fileName);
-    
-    await fs.writeFile(filePath, fileBuffer);
-    
-    const publicUrl = `/media/${fileName}`;
+    const publicUrl = `/placeholders/apartment${Math.floor(Math.random() * 2) + 1}.png`;
 
     const createdProperty = await propertyService.createPropertyWithUnits(validatedData, userId, publicUrl);
     
@@ -82,7 +68,6 @@ export async function createPropertyAction(
 
   } catch (error: any) {
     console.error('[PROPERTY_CREATE_ACTION_ERROR]', error);
-    // In a real app, you might want to delete the uploaded file here if the DB operation fails
     return { error: `Internal Server Error: ${error.message}` };
   }
 }

@@ -43,8 +43,6 @@ function SubmitButton({ isOnboarding }: { isOnboarding: boolean }) {
 
 export function PropertyForm({ formAction, initialState, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const defaultForm = useForm<PropertyFormValues>({
     defaultValues: initialData || {
@@ -59,12 +57,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   
   const form = passedForm || defaultForm;
   
-  useEffect(() => {
-    if (initialData?.imageUrl) {
-        setPreviewUrl(initialData.imageUrl);
-    }
-  }, [initialData]);
-
   const { register, control, handleSubmit, formState, setValue, watch, getValues, setError } = form;
 
   useEffect(() => {
@@ -94,15 +86,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
     });
     const currentNum = numberOfUnits || 0;
     setValue("numberOfUnits", currentNum + 1);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
   };
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,9 +179,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
     }
 
     formData.append('propertyData', JSON.stringify(propertyData));
-    if (imageFile) {
-        formData.append('media', imageFile);
-    }
     formAction(formData);
   }
   
@@ -234,10 +214,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                               <Input id="address" {...register("address")} autoComplete="street-address" />
                               {formState.errors.address && <p className="text-sm text-destructive mt-1">{formState.errors.address.message}</p>}
                           </div>
-                           <div>
-                                <Label htmlFor="imageFile">Property Image</Label>
-                                <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} required />
-                            </div>
                             <div>
                             <Label htmlFor="currency">Currency</Label>
                             <Controller
@@ -301,30 +277,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                         </div>
                     </div>
                   </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Image Preview</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                            {previewUrl ? (
-                                <Image
-                                    src={previewUrl}
-                                    alt="Property Preview"
-                                    width={800}
-                                    height={500}
-                                    className="object-contain w-full h-full"
-                                    data-ai-hint="apartment building"
-                                />
-                            ) : (
-                                <div className="text-muted-foreground flex flex-col items-center">
-                                    <ImageIcon className="h-12 w-12" />
-                                    <p>Image preview will appear here</p>
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
                 </Card>
             </div>
             <div className="space-y-6">

@@ -31,8 +31,9 @@ export default function TestPropertyCreationPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<TestFormValues>();
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -56,13 +57,6 @@ export default function TestPropertyCreationPage() {
     };
   }, [loading]);
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-    }
-  };
-
   const onSubmit: SubmitHandler<TestFormValues> = async (data) => {
     setLoading(true);
     setError(null);
@@ -74,16 +68,9 @@ export default function TestPropertyCreationPage() {
         return;
     }
 
-    if (!imageFile) {
-        toast({ title: "Image required", description: "Please select an image for the test property.", variant: "destructive" });
-        setLoading(false);
-        return;
-    }
-
     try {
       const token = await user.getIdToken();
       const formData = new FormData();
-      formData.append('media', imageFile);
       formData.append('propertyData', JSON.stringify(data));
       
       const response = await fetch('/api/properties', {
@@ -139,11 +126,6 @@ export default function TestPropertyCreationPage() {
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" {...register("address")} />
                 {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
-              </div>
-
-               <div>
-                <Label htmlFor="imageFile">Property Image</Label>
-                <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
               </div>
 
               <Button type="submit" disabled={loading} className="w-full">

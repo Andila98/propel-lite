@@ -33,7 +33,6 @@ export default function EditPropertyPage() {
   const propertyId = id as string;
   const { property: propertyToEdit, loading: propertyLoading } = useProperty(propertyId);
   
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -79,15 +78,6 @@ export default function EditPropertyPage() {
   if (!propertyToEdit) {
     return <div>Property not found.</div>;
   }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,8 +167,6 @@ export default function EditPropertyPage() {
     setLoading(true);
 
     try {
-      // In a real app, you would handle image uploads separately or within the same request if your backend supports multipart/form-data for PUT.
-      // For this example, we assume we are just updating text data.
       const response = await fetch(`/api/properties/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -345,43 +333,6 @@ export default function EditPropertyPage() {
                         </div>
                       </CardContent>
                     </Card>
-                    <div className="space-y-6 lg:hidden">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Property Image</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div>
-                                    <Label htmlFor="imageFile">Upload New Image</Label>
-                                    <Input id="imageFile" type="file" accept="image/*" onChange={handleFileChange} />
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Image Preview</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                    {previewUrl ? (
-                                        <Image
-                                            src={previewUrl}
-                                            alt="Property Preview"
-                                            width={800}
-                                            height={500}
-                                            className="object-contain w-full h-full"
-                                            data-ai-hint="apartment building"
-                                        />
-                                    ) : (
-                                        <div className="text-muted-foreground flex flex-col items-center">
-                                            <ImageIcon className="h-12 w-12" />
-                                            <p>Image preview will appear here</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
 
                     <div className="space-y-6">
                         {(propertyType && fields.length > 0) && <Separator />}
@@ -461,18 +412,7 @@ export default function EditPropertyPage() {
                         )}
                     </div>
                 </div>
-                <div className="lg:col-span-2 space-y-8 hidden lg:block">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Property Image</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div>
-                                <Label htmlFor="imageFileDesktop">Upload New Image</Label>
-                                <Input id="imageFileDesktop" type="file" accept="image/*" onChange={handleFileChange} />
-                            </div>
-                        </CardContent>
-                    </Card>
+                <div className="lg:col-span-2 space-y-8">
                     <Card>
                         <CardHeader>
                             <CardTitle>Image Preview</CardTitle>

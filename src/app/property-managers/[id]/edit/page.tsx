@@ -49,7 +49,6 @@ export default function EditPropertyManagerPage() {
   const managerToEdit = managers.find(m => m.id === managerId);
   const { properties } = useProperties();
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -91,45 +90,10 @@ export default function EditPropertyManagerPage() {
     return name.substring(0, 2);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
-
   const onSubmit = async (data: PropertyManagerFormValues) => {
     setLoading(true);
-    let finalAvatarUrl = managerToEdit?.avatarUrl;
-
     try {
-        if (imageFile) {
-            console.log("Frontend: Starting manager avatar upload...");
-            const formData = new FormData();
-            formData.append('media', imageFile);
-            const propertyData = { title: `${data.name}'s Avatar` };
-            formData.append('propertyData', JSON.stringify(propertyData));
-
-
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Upload failed');
-            }
-
-            const result = await response.json();
-            console.log("Frontend: Avatar uploaded successfully. URL:", result.imageUrl);
-            finalAvatarUrl = result.imageUrl;
-        }
-
-        const updatedManagerData = { ...data, avatarUrl: finalAvatarUrl };
-        console.log("Updated Manager data:", updatedManagerData);
+        console.log("Updated Manager data:", data);
         
         toast({
         title: "Manager Updated!",
@@ -138,7 +102,7 @@ export default function EditPropertyManagerPage() {
         router.push(`/property-managers/${managerId}`);
 
     } catch (err: any) {
-        console.error("Frontend: Error during manager update or avatar upload:", err);
+        console.error("Frontend: Error during manager update:", err);
         toast({
             title: "Update Failed",
             description: `There was an error saving the manager: ${err.message}`,
@@ -180,10 +144,6 @@ export default function EditPropertyManagerPage() {
                                 </AvatarFallback>
                             )}
                         </Avatar>
-                         <div className="grid w-full max-w-sm items-center gap-1.5">
-                            <Label htmlFor="picture">Profile Picture</Label>
-                            <Input id="picture" type="file" accept="image/*" onChange={handleFileChange} />
-                        </div>
                     </div>
 
                   <div>
