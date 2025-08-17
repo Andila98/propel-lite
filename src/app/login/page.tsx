@@ -37,7 +37,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const redirectPath = searchParams.get('redirect') || '/';
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -65,20 +65,21 @@ export default function LoginPage() {
             body: JSON.stringify({ idToken }),
         });
 
+        const responseBody = await response.text();
+
         if (!response.ok) {
             let errorMessage = 'Login failed. An unexpected error occurred.';
             try {
-                const errorData = await response.json();
+                const errorData = JSON.parse(responseBody);
                 errorMessage = errorData.error || errorMessage;
             } catch (jsonError) {
-                const textError = await response.text();
-                console.error('Failed to parse backend error response as JSON. Received:', textError);
+                console.error('Failed to parse backend error response as JSON. Received:', responseBody);
                 errorMessage = `Login failed. Server returned status ${response.status}.`;
             }
             throw new Error(errorMessage);
         }
 
-        const data = await response.json();
+        const data = JSON.parse(responseBody);
 
         toast({
             title: "Login Successful",

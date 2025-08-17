@@ -36,15 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log(`[AUTH_PROVIDER] Fetching user data for UID: ${uid}`);
       const res = await fetch('/api/auth/me');
 
+      const responseBody = await res.text();
+
       if (!res.ok) {
         setUser(null);
         let errorMessage = 'Failed to fetch user session.';
         try {
-            const errorData = await res.json();
+            const errorData = JSON.parse(responseBody);
             errorMessage = errorData.error || errorMessage;
         } catch (jsonError) {
-            const textError = await res.text();
-            console.error('Failed to parse user session error response as JSON. Received:', textError);
+            console.error('Failed to parse user session error response as JSON. Received:', responseBody);
             errorMessage = `Failed to fetch user session. Server returned status ${res.status}.`;
         }
 
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      const userData: User = await res.json();
+      const userData: User = JSON.parse(responseBody);
       setUser(userData);
       console.log(`[AUTH_PROVIDER] User data fetched successfully.`);
 
