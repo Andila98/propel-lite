@@ -37,19 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/api/auth/me');
 
       if (!res.ok) {
-        // Clear local user state if the session is invalid on the server
-        if (res.status === 401 || res.status === 404) {
-            setUser(null);
-        }
-        let errorText = `Failed to fetch user data. Status: ${res.status}.`;
+        setUser(null);
+        let errorMessage = 'Failed to fetch user session.';
         try {
-            const errorJson = await res.json();
-            errorText = errorJson.error || errorText;
-        } catch (e) {
-             errorText = `The server returned an unexpected response. This can happen if server-side configuration is missing.`;
+            const errorData = await res.json();
+            errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+            const textError = await res.text();
+            console.error('Failed to parse user session error response as JSON. Received:', textError);
+            errorMessage = `Failed to fetch user session. Server returned status ${res.status}.`;
         }
-        console.error(`[AUTH_PROVIDER] Error response: ${errorText}`);
-        setError(errorText);
+
+        if (res.status !== 401) { // Don't show an error for normal logouts
+            setError(errorMessage);
+        }
         return;
       }
       
@@ -59,7 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (err: any) {
       console.error('[AUTH_PROVIDER] An unexpected error occurred during fetchUserData:', err);
-      setError(`An error occurred while fetching user data: ${err.message}`);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred while fetching user data.');
+      }
     }
   }, []);
 
@@ -68,6 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe: Unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       console.log(`[AUTH_PROVIDER] onAuthStateChanged triggered. Firebase user state:`, fbUser ? `Logged in (UID: ${fbUser.uid})` : 'Logged out');
       setFirebaseUser(fbUser);
+      setLoading(true); // Set loading to true while we verify the session on the backend
+      setError(null); // Clear previous errors
 
       if (fbUser) {
         await fetchUserData(fbUser.uid);

@@ -65,13 +65,20 @@ export default function LoginPage() {
             body: JSON.stringify({ idToken }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-            const error = new Error(data.error || 'Login failed.');
-            (error as any).status = response.status;
-            throw error;
+            let errorMessage = 'Login failed. An unexpected error occurred.';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (jsonError) {
+                const textError = await response.text();
+                console.error('Failed to parse backend error response as JSON. Received:', textError);
+                errorMessage = `Login failed. Server returned status ${response.status}.`;
+            }
+            throw new Error(errorMessage);
         }
+
+        const data = await response.json();
 
         toast({
             title: "Login Successful",
@@ -91,11 +98,9 @@ export default function LoginPage() {
         console.error("Login page error:", typedError);
         let errorMessage = 'An unexpected error occurred.';
         
-        if (typedError.status === 404) {
-            errorMessage = 'User data not found in our system. Please sign up or contact support.';
-        } else if (typedError.message && !typedError.code) {
-             errorMessage = typedError.message;
-        } else if (typedError.code) { 
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else if (typedError.code) { // Firebase client-side errors
             switch(typedError.code) {
                 case 'auth/invalid-credential':
                     errorMessage = 'Invalid email or password. Please try again.';
