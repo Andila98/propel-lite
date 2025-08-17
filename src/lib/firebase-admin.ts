@@ -1,26 +1,33 @@
 
 import * as admin from 'firebase-admin';
 
-// The Firebase Admin SDK will automatically detect the service account file
-// from the GOOGLE_APPLICATION_CREDENTIALS environment variable.
+let isFirebaseAdminInitialized = false;
+
 if (!admin.apps.length) {
     try {
-        admin.initializeApp();
-        console.log('[FIREBASE_ADMIN] Initialized successfully via Application Default Credentials.');
+        const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        if (!serviceAccountPath) {
+            console.warn('[FIREBASE_ADMIN] GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Firebase Admin SDK will not be initialized.');
+        } else {
+             admin.initializeApp({
+                credential: admin.credential.cert(serviceAccountPath),
+            });
+            console.log('[FIREBASE_ADMIN] Initialized successfully via Application Default Credentials.');
+            isFirebaseAdminInitialized = true;
+        }
     } catch (error: any) {
         console.error('[FIREBASE_ADMIN_INIT_ERROR] Failed to initialize Firebase Admin SDK:', {
             message: error.message,
             code: error.code,
         });
-        // This will often fail if the GOOGLE_APPLICATION_CREDENTIALS env var is not set
-        // or the file it points to is incorrect.
-        console.error("Please ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable is set correctly.");
+        console.error("Please ensure the GOOGLE_APPLICATION_CREDENTIALS environment variable is set correctly and the file is valid JSON.");
     }
+} else {
+    isFirebaseAdminInitialized = true;
 }
 
 // Conditionally export the services only if the app has been initialized.
-const appInitialized = admin.apps.length > 0;
+const auth = isFirebaseAdminInitialized ? admin.auth() : ({} as admin.auth.Auth);
+const firestore = isFirebaseAdminInitialized ? admin.firestore() : ({} as admin.firestore.Firestore);
 
-export const auth = appInitialized ? admin.auth() : {} as admin.auth.Auth;
-export const firestore = appInitialized ? admin.firestore() : {} as admin.firestore.Firestore;
-export { admin };
+export { admin, auth, firestore, isFirebaseAdminInitialized };

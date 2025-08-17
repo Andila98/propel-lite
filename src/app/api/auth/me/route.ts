@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/server-utils';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -12,6 +12,10 @@ export const runtime = 'nodejs';
  * 3. Returns the user's data.
  */
 export async function GET(req: NextRequest) {
+   if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
+  }
+  
   const { decodedToken, error } = await verifyApiAuth(req);
 
   if (error) {

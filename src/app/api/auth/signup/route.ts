@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { admin, firestore } from '@/lib/firebase-admin';
+import { admin, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -25,6 +25,10 @@ const signupSchema = z.object({
  * 4. Creates a corresponding user profile in the Firestore 'users' collection.
  */
 export async function POST(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
+  }
+  
   try {
     const body = await req.json();
     

@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
-import { firestore, auth } from '@/lib/firebase-admin';
+import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
@@ -28,6 +28,10 @@ const UserSchema = z.object({
  * 5. Returns the user's role and profile status to the client for redirection.
  */
 export async function POST(request: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
+  }
+  
   try {
     const body = await request.json();
     const { idToken } = body;
