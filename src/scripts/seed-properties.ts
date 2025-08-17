@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 
 /**
@@ -21,8 +22,8 @@ import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { config } from 'dotenv';
 
-// Load environment variables
-config({ path: '.env' });
+// Load environment variables from .env file
+config();
 
 // Initialize Firebase Admin if not already initialized
 if (!getApps().length) {
@@ -33,7 +34,7 @@ if (!getApps().length) {
   };
 
   if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-      console.error('🔴 Firebase Admin credentials not found in environment variables. Exiting.');
+      console.error('🔴 Firebase Admin credentials not found in environment variables. Make sure your .env file is set up. Exiting.');
       process.exit(1);
   }
 
@@ -51,7 +52,7 @@ const propertiesToSeed = [
         name: 'Greenwood Heights',
         type: 'Apartment' as const,
         address: '123 Oak Avenue, Nairobi',
-        imageUrl: '/placeholders/apartment1.png',
+        imageUrl: '/images/apartment1.png',
         description: 'A modern apartment block with great amenities and city views.',
         currency: 'KES',
         units: [
@@ -65,7 +66,7 @@ const propertiesToSeed = [
         name: 'The Willows',
         type: 'House' as const,
         address: '456 Maple Drive, Karen',
-        imageUrl: '/placeholders/house1.png',
+        imageUrl: '/images/house1.png',
         description: 'A beautiful family home with a spacious backyard and serene environment.',
         currency: 'KES',
         units: [
@@ -77,7 +78,7 @@ const propertiesToSeed = [
         name: 'Pinecrest Villa',
         type: 'House' as const,
         address: '789 Pine Street, Runda',
-        imageUrl: '/placeholders/house2.png',
+        imageUrl: '/images/house2.png',
         description: 'A luxurious villa with a private swimming pool and expansive gardens.',
         currency: 'USD',
         units: [
@@ -89,7 +90,7 @@ const propertiesToSeed = [
         name: 'Cityview Bedsitters',
         type: 'Bedsitter' as const,
         address: '101 Urban Plaza, Westlands',
-        imageUrl: '/placeholders/apartment2.png',
+        imageUrl: '/images/apartment2.png',
         description: 'Compact and affordable bedsitters perfect for young professionals.',
         currency: 'KES',
         units: [
@@ -115,16 +116,10 @@ async function seedProperties() {
     }
     
     const propertiesCollection = db.collection('properties');
+    const batch = db.batch();
 
     for (const prop of propertiesToSeed) {
         const propRef = propertiesCollection.doc(prop.id);
-        const propDoc = await propRef.get();
-
-        if (propDoc.exists) {
-            console.log(`⚠️  Property "${prop.name}" already exists. Skipping.`);
-            continue;
-        }
-
         const { units, ...propertyData } = prop;
         
         const newPropertyData = {
@@ -133,21 +128,24 @@ async function seedProperties() {
             createdAt: FieldValue.serverTimestamp(),
         };
 
-        await propRef.set(newPropertyData);
-        console.log(`✅ Created property: ${prop.name}`);
+        batch.set(propRef, newPropertyData);
+        console.log(`✅ Queued property for creation: ${prop.name}`);
 
         const unitsCollection = propRef.collection('units');
         for (const unit of units) {
+            const unitRef = unitsCollection.doc(unit.id);
             const newUnitData = {
                 ...unit,
                 propertyId: prop.id,
                 landlordId: landlordId,
                 createdAt: FieldValue.serverTimestamp(),
             };
-            await unitsCollection.doc(unit.id).set(newUnitData);
-            console.log(`   - Added unit: ${unit.unitNumber}`);
+            batch.set(unitRef, newUnitData);
+            console.log(`   - Queued unit for creation: ${unit.unitNumber}`);
         }
     }
+
+    await batch.commit();
     console.log('\n🎉 Property seeding complete!');
 }
 

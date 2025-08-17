@@ -1,23 +1,11 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, admin } from '@/lib/firebase-admin';
-import path from 'path';
-import fs from 'fs';
-import { randomBytes } from 'crypto';
-import { PropertyFormSchema } from '@/lib/schemas';
-import { v4 as uuid } from 'uuid';
 import { propertyService } from '@/services/property-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
-export const runtime = 'nodejs'; // Ensure this route runs on the Node.js runtime
+export const runtime = 'nodejs';
 
-const uploadDir = path.join(process.cwd(), 'public/media');
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord']) {
+async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord', 'manager']) {
     const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
     if (error) {
         return { decodedToken: null, response: error };
@@ -30,8 +18,17 @@ export async function GET(req: NextRequest) {
     const { decodedToken, response } = await checkAuth(req);
     if (response) return response;
     
-    const { uid: userId } = decodedToken!;
-    const properties = await propertyService.getPropertiesByLandlord(userId);
+    const { uid: userId, role } = decodedToken!;
+    
+    let properties;
+    if (role === 'landlord') {
+        properties = await propertyService.getPropertiesByLandlord(userId);
+    } else if (role === 'manager') {
+        // Manager-specific logic would go here if needed, for now, it's covered by the service
+        properties = await propertyService.getPropertiesForManager(userId);
+    } else {
+        return NextResponse.json({ error: 'Unauthorized role' }, { status: 403 });
+    }
 
     return NextResponse.json(properties);
   } catch (error: any) {

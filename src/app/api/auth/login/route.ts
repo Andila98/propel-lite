@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Verify the Firebase ID token
     const decodedIdToken: DecodedIdToken = await auth.verifyIdToken(idToken);
-    const { uid, email } = decodedIdToken;
+    const { uid } = decodedIdToken;
     
     // 3. Fetch user data from Firestore
     const userDocRef = firestore.collection('users').doc(uid);

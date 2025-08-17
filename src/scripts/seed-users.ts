@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+
+#!/usr/-bin/env node
 
 /**
  * User Seeding Script for PropelLite/RentEase
@@ -17,8 +18,8 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { config } from 'dotenv';
 
-// Load environment variables
-config({ path: '.env' });
+// Load environment variables from .env file
+config();
 
 // Initialize Firebase Admin if not already initialized
 if (!getApps().length) {
@@ -29,7 +30,7 @@ if (!getApps().length) {
   };
 
   if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-      console.error('🔴 Firebase Admin credentials not found in environment variables. Exiting.');
+      console.error('🔴 Firebase Admin credentials not found in environment variables. Make sure your .env file is set up. Exiting.');
       process.exit(1);
   }
 
@@ -48,38 +49,18 @@ const usersToSeed = [
     password: 'Password123!',
     displayName: 'John Smith',
     role: 'landlord',
-    profile: {
-      firstName: 'John',
-      lastName: 'Smith',
-      phone: '+254700123456',
-    }
   },
   {
     email: 'manager1@demo.com',
     password: 'Password123!',
     displayName: 'Jane Manager',
     role: 'manager',
-    profile: {
-        firstName: 'Jane',
-        lastName: 'Manager',
-        phone: '+254711223344',
-    }
   },
   {
     email: 'tenant1@demo.com',
     password: 'Password123!',
     displayName: 'Mike Wilson',
     role: 'tenant',
-    profile: {
-      firstName: 'Mike',
-      lastName: 'Wilson',
-      phone: '+254700345678',
-      emergencyContact: {
-        name: 'Jane Wilson',
-        relationship: 'Spouse',
-        phone: '+254700456789'
-      }
-    }
   },
 ];
 
@@ -88,7 +69,6 @@ interface UserToSeed {
   password: string;
   displayName: string;
   role: 'landlord' | 'tenant' | 'admin' | 'manager';
-  profile: any;
 }
 
 async function createUser(userData: UserToSeed): Promise<UserRecord | null> {
@@ -130,12 +110,9 @@ async function createUser(userData: UserToSeed): Promise<UserRecord | null> {
       email: userData.email,
       name: userData.displayName,
       role: userData.role,
-      profile: userData.profile,
       createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
       isActive: true,
       profileComplete: true, // Assuming seeded users are complete
-      onboardingStep: 'completed',
     };
 
     await db.collection('users').doc(userRecord.uid).set(userDoc);
@@ -185,6 +162,7 @@ async function seedAllUsers(): Promise<void> {
 
 
 // Run the script
-if (require.main === module) {
-  seedAllUsers();
-}
+seedAllUsers().catch(error => {
+    console.error('❌ Top-level error during user seeding:', error);
+    process.exit(1);
+});

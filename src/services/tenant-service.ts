@@ -6,7 +6,6 @@
 
 import { firestore, admin, auth } from '@/lib/firebase-admin';
 import type { Tenant, Unit } from '@/lib/types';
-import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
 
 export type TenantData = {
@@ -22,6 +21,70 @@ export type TenantData = {
 export class TenantService {
   private usersCollection = firestore.collection('users');
   private propertiesCollection = firestore.collection('properties');
+
+  /**
+   * Creates a new tenant in Auth and Firestore, and assigns them to a unit.
+   * @param tenantData The data for the new tenant.
+   * @param landlordId The UID of the landlord creating the tenant.
+   * @returns The created tenant object.
+   */
+  async createTenant(tenantData: TenantData, landlordId: string): Promise<Tenant> {
+    console.log(`TenantService: Creating new tenant for landlord ${landlordId}`);
+    
+    // Check if unit is already occupied
+    const unitRef = this.propertiesCollection.doc(tenantData.propertyId).collection('units').doc(tenantData.unitId);
+    const unitDoc = await unitRef.get();
+
+    if (!unitDoc.exists) {
+        throw new Error('Unit not found.');
+    }
+    if (unitDoc.data()?.isOccupied) {
+        throw new Error('This unit is already occupied.');
+    }
+
+    // Create Firebase Auth user
+    const tempPassword = randomBytes(16).toString('hex');
+    const userRecord = await auth.createUser({
+      email: tenantData.email,
+      password: tempPassword,
+      displayName: tenantData.name,
+      phoneNumber: tenantData.phone,
+    });
+    
+    console.log(`TenantService: Created auth user ${userRecord.uid}.`);
+
+    await auth.setCustomUserClaims(userRecord.uid, {
+      role: 'tenant',
+      landlordId: landlordId,
+    });
+
+    const newTenant = {
+      uid: userRecord.uid,
+      name: tenantData.name,
+      email: tenantData.email,
+      phone: tenantData.phone || null,
+      role: 'tenant',
+      landlordId,
+      propertyId: tenantData.propertyId,
+      currentUnitId: tenantData.unitId,
+      leaseStart: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseStart)),
+      leaseEnd: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseEnd)),
+      status: 'active',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Use a transaction to ensure atomicity
+    await firestore.runTransaction(async (transaction) => {
+        transaction.set(this.usersCollection.doc(userRecord.uid), newTenant);
+        transaction.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
+    });
+
+    console.log(`TenantService: Successfully created tenant record and updated unit ${tenantData.unitId}`);
+    
+    // TODO: Send welcome email with temp password
+    
+    return { ...newTenant, id: userRecord.uid } as unknown as Tenant;
+  }
 
   /**
    * Fetches all tenants for a given landlord.
@@ -42,15 +105,14 @@ export class TenantService {
   }
 
   /**
-   * Fetches a single tenant by their ID, ensuring they belong to the specified landlord.
+   * Fetches a single tenant by their ID. Authorization must be handled by the caller.
    * @param tenantId The ID of the tenant to fetch.
-   * @param landlordId The UID of the landlord for authorization.
-   * @returns A promise that resolves to the tenant object or null if not found/unauthorized.
+   * @returns A promise that resolves to the tenant object or null if not found.
    */
-  async getTenantById(tenantId: string, landlordId: string): Promise<Tenant | null> {
+  async getTenantById(tenantId: string): Promise<Tenant | null> {
     const doc = await this.usersCollection.doc(tenantId).get();
 
-    if (!doc.exists || doc.data()?.landlordId !== landlordId) {
+    if (!doc.exists) {
       return null;
     }
     
@@ -67,12 +129,12 @@ export class TenantService {
     const tenantRef = this.usersCollection.doc(tenantId);
     const tenantDoc = await tenantRef.get();
     
-    if (!tenantDoc.exists || tenantDoc.data()?.landlordId !== landlordId) {
-        throw new Error("Tenant not found or unauthorized.");
+    const tenant = tenantDoc.data() as Tenant | undefined;
+    
+    if (!tenantDoc.exists || tenant?.landlordId !== landlordId) {
+        throw new Error("Unauthorized or tenant not found.");
     }
 
-    const tenant = tenantDoc.data() as any;
-    
     // Use a transaction to ensure all or nothing is deleted/updated
     await firestore.runTransaction(async (transaction) => {
         // Mark the unit as unoccupied if a unit is assigned
@@ -86,8 +148,10 @@ export class TenantService {
     });
 
     // Delete the user from Firebase Auth
-    await auth().deleteUser(tenantId);
+    await auth.deleteUser(tenantId);
     
     console.log(`TenantService: Successfully deleted tenant ${tenantId} and freed up unit.`);
   }
 }
+
+export const tenantService = new TenantService();

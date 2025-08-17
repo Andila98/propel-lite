@@ -8,8 +8,6 @@ import { firestore, admin } from '@/lib/firebase-admin';
 import { v4 as uuid } from 'uuid';
 import type { FieldValue } from 'firebase-admin/firestore';
 
-// Types moved here for co-location with the service that uses them.
-
 export interface Unit {
   id: string;
   propertyId: string;
@@ -34,19 +32,9 @@ export interface Property {
   currency?: string;
 }
 
-export interface PropertyManager {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  avatarUrl: string;
-  accessLevel: 'Full Manager' | 'Limited Staff';
-  propertiesManaged: string[];
-}
-
-
 class PropertyService {
   private propertiesCollection = firestore.collection('properties');
+  private usersCollection = firestore.collection('users');
 
   /**
    * Fetches all properties for a given landlord.
@@ -72,23 +60,60 @@ class PropertyService {
     console.log(`PropertyService: Found ${properties.length} properties.`);
     return properties;
   }
+  
+   /**
+   * Fetches all properties managed by a given manager.
+   * @param managerId The UID of the manager.
+   * @returns A promise that resolves to an array of properties.
+   */
+  async getPropertiesForManager(managerId: string): Promise<Property[]> {
+    console.log(`PropertyService: Fetching properties for manager ${managerId}`);
+    const managerDoc = await this.usersCollection.doc(managerId).get();
+    
+    if (!managerDoc.exists) {
+        console.warn(`PropertyService: Manager with ID ${managerId} not found.`);
+        return [];
+    }
+    
+    const managedPropertyIds = managerDoc.data()?.propertiesManaged || [];
+
+    if (managedPropertyIds.length === 0) {
+        return [];
+    }
+
+    const propertiesSnapshot = await this.propertiesCollection
+        .where(firestore.FieldPath.documentId(), 'in', managedPropertyIds)
+        .get();
+
+    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Property }));
+    
+    return properties;
+  }
 
   /**
    * Fetches a single property by its ID, ensuring it belongs to the specified landlord.
    * @param propertyId The ID of the property to fetch.
-   * @param landlordId The UID of the landlord for authorization.
+   * @param requesterId The UID of the user requesting the property (landlord or manager).
    * @returns A promise that resolves to the property object or null if not found/unauthorized.
    */
-  async getPropertyById(propertyId: string, landlordId: string): Promise<Property | null> {
-    console.log(`PropertyService: Fetching property ${propertyId} for landlord ${landlordId}`);
+  async getPropertyById(propertyId: string, requesterId: string): Promise<Property | null> {
+    console.log(`PropertyService: Fetching property ${propertyId} for user ${requesterId}`);
     const doc = await this.propertiesCollection.doc(propertyId).get();
 
-    if (!doc.exists || doc.data()?.landlordId !== landlordId) {
-       console.warn(`PropertyService: Property ${propertyId} not found or unauthorized for landlord ${landlordId}`);
-      return null;
+    if (!doc.exists) {
+        return null;
     }
-
-    const propertyData = { id: doc.id, ...doc.data() } as Property;
+    
+    const propertyData = doc.data() as Property;
+    
+    // Authorization Check: Allow landlord or an assigned manager
+    const isOwner = propertyData.landlordId === requesterId;
+    const isManager = propertyData.managerId === requesterId; // Simple check, can be expanded to check a manager's assigned properties array
+    
+    if (!isOwner && !isManager) {
+        console.warn(`PropertyService: Property ${propertyId} unauthorized for user ${requesterId}`);
+        return null;
+    }
 
     // Also fetch units subcollection
     const unitsSnapshot = await doc.ref.collection('units').get();
@@ -97,7 +122,49 @@ class PropertyService {
     (propertyData as any).units = units;
 
     console.log(`PropertyService: Successfully fetched property ${propertyId} with ${units.length} units.`);
-    return propertyData;
+    return { id: doc.id, ...propertyData };
+  }
+  
+  /**
+   * Updates a property.
+   * @param propertyId The ID of the property to update.
+   * @param updates The fields to update.
+   * @param landlordId The UID of the landlord for authorization.
+   */
+  async updateProperty(propertyId: string, updates: Partial<Property>, landlordId: string): Promise<void> {
+    const ref = this.propertiesCollection.doc(propertyId);
+    const doc = await ref.get();
+
+    if (!doc.exists || doc.data()?.landlordId !== landlordId) {
+      throw new Error('Unauthorized or property not found');
+    }
+
+    delete (updates as any).landlordId;
+    delete (updates as any).createdAt;
+    
+    await ref.update({
+      ...updates,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
+  
+  /**
+   * Deletes a property and all its subcollections (units).
+   * @param propertyId The ID of the property to delete.
+   * @param landlordId The UID of the landlord for authorization.
+   */
+  async deleteProperty(propertyId: string, landlordId: string): Promise<void> {
+    const ref = this.propertiesCollection.doc(propertyId);
+    const doc = await ref.get();
+
+    if (!doc.exists || doc.data()?.landlordId !== landlordId) {
+      throw new Error('Unauthorized or property not found');
+    }
+    
+    // Note: Deleting a document does not delete its subcollections.
+    // This would require a more complex Cloud Function for full cleanup.
+    // For this app, we'll just delete the main document.
+    await ref.delete();
   }
 
   /**

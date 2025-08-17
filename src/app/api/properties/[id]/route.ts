@@ -1,12 +1,11 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, admin } from '@/lib/firebase-admin';
-import { PropertyFormSchema } from '@/lib/schemas';
 import { propertyService } from '@/services/property-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
 export const runtime = 'nodejs';
 
+// Helper to centralize auth checks for this route
 async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord']) {
     const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
     if (error) {
@@ -20,7 +19,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { decodedToken, response } = await checkAuth(req);
+    const { decodedToken, response } = await checkAuth(req, ['landlord', 'manager']);
     if (response) return response;
 
     const userId = decodedToken!.uid;
@@ -30,6 +29,7 @@ export async function GET(
         return NextResponse.json({ error: 'Property ID is required' }, { status: 400 });
     }
     
+    // The service now handles the authorization check (is this user allowed to see this property?)
     const property = await propertyService.getPropertyById(propertyId, userId);
 
     if (!property) {
@@ -55,27 +55,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     const userId = decodedToken!.uid;
     const propertyId = params.id;
-    
     const updates = await req.json();
 
-    const ref = firestore.collection('properties').doc(propertyId);
-    const doc = await ref.get();
-
-    if (!doc.exists || doc.data()?.landlordId !== userId) {
-      return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
-    }
-
-    delete updates.landlordId;
-    delete updates.createdAt;
-    
-    await ref.update({
-      ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    // The service handles authorization checks internally
+    await propertyService.updateProperty(propertyId, updates, userId);
     
     return NextResponse.json({ message: 'Property updated' });
   } catch (error: any) {
     console.error(`[PROPERTY_UPDATE_ERROR] for ID ${params.id}:`, error);
+    if (error.message.includes('Unauthorized')) {
+        return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
+    }
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
@@ -92,18 +82,15 @@ export async function DELETE(
     const userId = decodedToken!.uid;
     const propertyId = params.id;
 
-    const ref = firestore.collection('properties').doc(propertyId);
-    const doc = await ref.get();
-
-    if (!doc.exists || doc.data()?.landlordId !== userId) {
-      return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
-    }
-
-    await ref.delete();
+    // The service handles authorization checks internally
+    await propertyService.deleteProperty(propertyId, userId);
 
     return NextResponse.json({ message: 'Property deleted successfully' });
   } catch (error: any) {
     console.error(`[PROPERTY_DELETE_ERROR] for ID ${params.id}:`, error);
+    if (error.message.includes('Unauthorized')) {
+        return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
+    }
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
