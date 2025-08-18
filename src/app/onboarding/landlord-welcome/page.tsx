@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Rocket, Sparkles, PlayCircle } from 'lucide-react';
-import { clearOnboardingData } from '@/hooks/use-onboarding-form';
-import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Stepper } from '@/components/ui/stepper';
@@ -28,11 +26,6 @@ export default function LandlordWelcomePage() {
   const { user } = useAuth();
   
   const landlordName = user?.name || "there"; 
-
-  useEffect(() => {
-    // Clear any partial onboarding data if the user lands here.
-    clearOnboardingData();
-  }, []);
 
   const handleContinue = () => {
     router.push('/onboarding/add-property');
