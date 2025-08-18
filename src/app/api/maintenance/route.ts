@@ -1,7 +1,6 @@
 
 import { NextResponse } from 'next/server';
 import type { MaintenanceRequest } from '@/lib/types';
-import { prioritizeMaintenance } from '@/ai/flows/prioritize-maintenance';
 
 // In a real app, this data would come from Firestore
 const mockMaintenanceRequests: MaintenanceRequest[] = [
@@ -59,12 +58,10 @@ const mockMaintenanceRequests: MaintenanceRequest[] = [
 
 export async function GET() {
     try {
-        console.log("API: Fetching and prioritizing maintenance requests.");
-        const result = await prioritizeMaintenance({ requests: mockMaintenanceRequests });
-        console.log("API: AI prioritization successful.");
-        return NextResponse.json(result.prioritizedRequests);
+        // AI prioritization is not implemented. Returning mock data.
+        return NextResponse.json(mockMaintenanceRequests);
     } catch (error: any) {
-        console.error('API Error: Failed to get prioritized maintenance requests:', error);
+        console.error('API Error: Failed to get maintenance requests:', error);
         return NextResponse.json(
             { error: `Failed to fetch requests: ${error.message}` },
             { status: 500 }
