@@ -1,6 +1,7 @@
 
 import type { Property, Tenant, Payment, ActivityItem } from '@/lib/types';
 import { mockProperties, mockTenants, mockPayments, mockDashboardData } from '@/lib/mock-data';
+import type { GenerateDashboardInsightsOutput } from '@/ai/flows/generate-dashboard-insights';
 
 export interface DashboardData {
     totalProperties: number;
@@ -11,6 +12,7 @@ export interface DashboardData {
     properties: Property[];
     anomalyAlerts: ActivityItem[];
     topPerformer: { address: string; revenue: number } | null;
+    aiInsights?: GenerateDashboardInsightsOutput;
 }
 
 class DashboardService {
