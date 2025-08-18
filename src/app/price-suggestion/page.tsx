@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Loader2, Wand2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,21 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-
-const SuggestionFormSchema = z.object({
-  address: z.string().min(5, "Please enter a valid address."),
-  squareFootage: z.coerce.number().min(100, "Must be at least 100 sqft."),
-  bedrooms: z.coerce.number().min(0, "Cannot be negative.").max(10, "Cannot be more than 10."),
-  bathrooms: z.coerce.number().min(1, "Must have at least 1 bathroom.").max(10, "Cannot be more than 10."),
-  marketData: z.string().min(20, "Please provide some basic market data."),
-  propertyDescription: z.string().optional(),
-});
-type SuggestionFormValues = z.infer<typeof SuggestionFormSchema>;
+import { suggestPriceAction, SuggestionFormSchema, type SuggestionFormValues, type PriceSuggestionState } from './actions';
 
 export default function PriceSuggestionPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
+  const [result, setResult] = useState<PriceSuggestionState | null>(null);
 
   const {
     register,
@@ -39,23 +29,17 @@ export default function PriceSuggestionPage() {
   const onSubmit: SubmitHandler<SuggestionFormValues> = async (data) => {
     setLoading(true);
     setResult(null);
-    console.log("Frontend: Submitting data for price suggestion (mock):", data);
     try {
-      // Mock AI response
-      await new Promise(res => setTimeout(res, 1000));
-      const mockSuggestion = {
-        suggestedPrice: (data.squareFootage * 50) + (data.bedrooms * 10000),
-        reasoning: `Based on the provided market data and property size, a competitive price is calculated. The price is adjusted for the number of bedrooms.`,
-        overrideConsiderations: `Consider increasing the price if the unit has premium finishes, a desirable view, or if recent market trends show a spike in demand for similar properties.`,
-        currency: 'KES'
-      };
-      setResult({ suggestion: mockSuggestion });
+      const res = await suggestPriceAction(data);
+      if (res.error) {
+        throw new Error(res.error);
+      }
+      setResult(res);
     } catch (e: any) {
-        const errorMessage = "An unexpected error occurred.";
-        console.error(`Frontend Error: ${errorMessage}`, e);
+        console.error(`Frontend Error: ${e.message}`, e);
         toast({
             title: "Error",
-            description: errorMessage,
+            description: e.message || "An unexpected error occurred.",
             variant: "destructive",
         });
     } finally {
@@ -127,15 +111,15 @@ export default function PriceSuggestionPage() {
         </Card>
 
         <div className="space-y-4">
-          <Card className={cn("transition-opacity duration-500", !result && "opacity-0")}>
+          <Card className={cn("transition-opacity duration-500", !result && !loading && "opacity-0")}>
             <CardHeader>
               <CardTitle>Suggestion</CardTitle>
               <CardDescription>Our AI-powered recommendation based on your data.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 min-h-[300px] flex items-center justify-center">
               {loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-              {result?.suggestion && (
-                <>
+              {result?.suggestion && !loading &&(
+                <div className="w-full space-y-4">
                   <div>
                     <Label>Suggested Monthly Rent</Label>
                     <p className="text-3xl sm:text-4xl font-bold text-primary">
@@ -150,8 +134,11 @@ export default function PriceSuggestionPage() {
                     <Label>Override Considerations</Label>
                     <p className="text-muted-foreground">{result.suggestion.overrideConsiderations}</p>
                   </div>
-                </>
+                </div>
               )}
+               {!result && !loading && (
+                 <p className="text-muted-foreground">Results will appear here.</p>
+               )}
             </CardContent>
           </Card>
         </div>

@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { Loader2, Wand2, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { getReminderSuggestionAction } from '../reminders/actions'; // Reusing reminder action
+import { generateMessageAction } from './actions';
 import type { Tenant } from '@/lib/types';
 import { useTenants } from '@/hooks/use-tenants';
 
@@ -25,24 +25,30 @@ export default function SmartMessagingPage() {
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
   const { tenants } = useTenants();
   
-  const { handleSubmit, control, watch } = useForm<MessageFormValues>();
+  const { handleSubmit, control } = useForm<MessageFormValues>();
   
-  const selectedTenantId = watch('tenantId');
-  const reminderType = watch('reminderType');
+  const onSubmit: SubmitHandler<MessageFormValues> = async (data) => {
+    setLoading(true);
+    setGeneratedMessage(null);
+    const tenant = tenants.find(t => t.id === data.tenantId);
+    if (!tenant) {
+      toast({ title: "Error", description: "Tenant not found", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
 
-  useEffect(() => {
-    const getSuggestions = async () => {
-        if (selectedTenantId && reminderType) {
-            setLoading(true);
-            const res = await getReminderSuggestionAction({ tenantId: selectedTenantId, reminderType });
-            if (res.suggestion?.messageContent) {
-                setGeneratedMessage(res.suggestion.messageContent);
-            }
-            setLoading(false);
-        }
-    };
-    getSuggestions();
-  }, [selectedTenantId, reminderType]);
+    try {
+      const result = await generateMessageAction({ ...data, tenantName: tenant.name });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      setGeneratedMessage(result.messageContent || '');
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const handleCopy = () => {
     if (generatedMessage) {
@@ -64,7 +70,7 @@ export default function SmartMessagingPage() {
             <CardDescription>Select a tenant and message type to generate a message.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="tenantId">Tenant</Label>
                 <Controller
@@ -102,6 +108,10 @@ export default function SmartMessagingPage() {
                   )}
                 />
               </div>
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? <Loader2 className="animate-spin" /> : <><Wand2 className="mr-2 h-4 w-4" /> Generate Message</>}
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -124,7 +134,7 @@ export default function SmartMessagingPage() {
               )}
                {!loading && !generatedMessage && (
                 <div className="flex justify-center items-center flex-grow">
-                    <p className="text-muted-foreground">Select a tenant and type to see a message.</p>
+                    <p className="text-muted-foreground">Results will appear here.</p>
                 </div>
                )}
             </CardContent>
