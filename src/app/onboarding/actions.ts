@@ -1,38 +1,18 @@
 
 "use server";
 
-import { revalidatePath } from 'next/cache';
-import { admin, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { verifyServerActionAuth } from '@/lib/server-utils';
-
 export interface ActionState {
     error?: string;
     success?: boolean;
 }
 
 export async function completeOnboarding(): Promise<ActionState> {
-  if (!isFirebaseAdminInitialized) {
-    return { error: 'Firebase not configured.' };
-  }
-  const { decodedToken, error: authError } = await verifyServerActionAuth(['landlord']);
-  if (authError) {
-    return { error: authError.error };
-  }
-  const userId = decodedToken.uid;
-
+  // This is a mock server action as Firebase is removed.
   try {
-    const userRef = admin.firestore().collection('users').doc(userId);
-    await userRef.update({
-        profileComplete: true,
-    });
-    
-    // Revalidate the root path to ensure the auth state is fresh
-    revalidatePath('/');
-    
+    console.log("Mock onboarding completion action triggered.");
     return { success: true };
-
   } catch (error: any) {
-    console.error('[COMPLETE_ONBOARDING_ACTION_ERROR]', error);
+    console.error('[MOCK_ONBOARDING_ACTION_ERROR]', error);
     return { error: `Internal Server Error: ${error.message}` };
   }
 }

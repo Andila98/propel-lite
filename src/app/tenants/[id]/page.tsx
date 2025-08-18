@@ -3,7 +3,7 @@
 "use client";
 
 import Link from 'next/link';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -115,7 +115,7 @@ export default function TenantDetailPage() {
   const { toast } = useToast();
   const tenantId = id as string;
   const { tenant, loading: tenantLoading } = useTenant(tenantId);
-  const propertyId = tenant?.currentUnitId?.split('_')[0] ?? '';
+  const propertyId = tenant?.propertyId ?? '';
   const { property, loading: propertyLoading } = useProperty(propertyId);
   const { payments, loading: paymentsLoading } = usePayments(tenantId);
 
@@ -153,7 +153,7 @@ export default function TenantDetailPage() {
   const getRentStatus = (payments: Payment[], rent: number) => {
     if (!payments || !rent) return 'Overdue';
     const paidThisMonth = payments
-      .filter(p => new Date(p.paidAt).getMonth() === new Date().getMonth())
+      .filter(p => new Date(p.date as string).getMonth() === new Date().getMonth())
       .reduce((sum, p) => sum + p.amount, 0);
 
     if (paidThisMonth >= rent) return 'Paid';
@@ -183,15 +183,7 @@ export default function TenantDetailPage() {
 
   const formatDate = (dateValue: any) => {
       if (!dateValue) return 'N/A';
-      let date: Date;
-      if (dateValue.toDate) { // Firestore Timestamp
-          date = dateValue.toDate();
-      } else if (typeof dateValue === 'string' || dateValue instanceof Date) {
-          date = new Date(dateValue);
-      } else {
-        return 'Invalid Date';
-      }
-      return date.toLocaleDateString(undefined, {
+      return new Date(dateValue).toLocaleDateString(undefined, {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
@@ -220,7 +212,7 @@ export default function TenantDetailPage() {
           </div>
         </div>
          <div className="flex items-center gap-2">
-            <Link href={`/tenants/${tenant.uid}/edit`}>
+            <Link href={`/tenants/${tenant.id}/edit`}>
                  <Button variant="outline">
                     <AnimatedEditIcon /> Edit
                 </Button>
@@ -286,7 +278,7 @@ export default function TenantDetailPage() {
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Lease Period</span>
-                        <span className="font-medium">{formatDate(tenant.leaseStart)} to {formatDate(tenant.leaseEnd)}</span>
+                        <span className="font-medium">{formatDate(tenant.leaseStartDate)} to {formatDate(tenant.leaseEndDate)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
@@ -298,7 +290,7 @@ export default function TenantDetailPage() {
                     </div>
                 </CardContent>
               </Card>
-              <SentimentAnalysis tenantId={tenant.uid} />
+              <SentimentAnalysis tenantId={tenant.id} />
             </div>
 
             <div className="lg:col-span-2">
@@ -321,7 +313,7 @@ export default function TenantDetailPage() {
                             <TableBody>
                                 {payments.map((payment) => (
                                     <TableRow key={payment.id}>
-                                        <TableCell>{formatDate(payment.paidAt)}</TableCell>
+                                        <TableCell>{formatDate(payment.date)}</TableCell>
                                         <TableCell>
                                             <Badge variant={'default'}>
                                                 Rent
@@ -346,7 +338,7 @@ export default function TenantDetailPage() {
                     <CardDescription>Direct messaging with {tenant.name}.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChatThread tenantId={tenant.uid} tenantName={tenant.name} />
+                    <ChatThread tenantId={tenant.id} tenantName={tenant.name} />
                 </CardContent>
             </Card>
         </TabsContent>

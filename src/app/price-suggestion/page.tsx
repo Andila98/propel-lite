@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { suggestPriceAction, type PriceSuggestionState } from "./actions";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +26,7 @@ type SuggestionFormValues = z.infer<typeof SuggestionFormSchema>;
 export default function PriceSuggestionPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PriceSuggestionState | null>(null);
+  const [result, setResult] = useState<any | null>(null);
 
   const {
     register,
@@ -40,18 +39,17 @@ export default function PriceSuggestionPage() {
   const onSubmit: SubmitHandler<SuggestionFormValues> = async (data) => {
     setLoading(true);
     setResult(null);
-    console.log("Frontend: Submitting data for price suggestion:", data);
+    console.log("Frontend: Submitting data for price suggestion (mock):", data);
     try {
-      const res = await suggestPriceAction(data);
-      if (res.error) {
-        toast({
-          title: "Error",
-          description: res.error,
-          variant: "destructive",
-        });
-      } else {
-        setResult(res);
-      }
+      // Mock AI response
+      await new Promise(res => setTimeout(res, 1000));
+      const mockSuggestion = {
+        suggestedPrice: (data.squareFootage * 50) + (data.bedrooms * 10000),
+        reasoning: `Based on the provided market data and property size, a competitive price is calculated. The price is adjusted for the number of bedrooms.`,
+        overrideConsiderations: `Consider increasing the price if the unit has premium finishes, a desirable view, or if recent market trends show a spike in demand for similar properties.`,
+        currency: 'KES'
+      };
+      setResult({ suggestion: mockSuggestion });
     } catch (e: any) {
         const errorMessage = "An unexpected error occurred.";
         console.error(`Frontend Error: ${errorMessage}`, e);

@@ -1,42 +1,26 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { propertyService } from '@/services/property-service';
-import { verifyApiAuth } from '@/lib/server-utils';
-
-export const runtime = 'nodejs';
-
-// Helper to centralize auth checks for this route
-async function checkAuth(req: NextRequest, allowedRoles: string[] = ['landlord']) {
-    const { decodedToken, error } = await verifyApiAuth(req, allowedRoles);
-    if (error) {
-        return { decodedToken: null, response: error };
-    }
-    return { decodedToken, response: null };
-}
+import { mockProperties, mockUnits } from '@/lib/mock-data';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { decodedToken, response } = await checkAuth(req, ['landlord', 'manager']);
-    if (response) return response;
-
-    const userId = decodedToken!.uid;
     const propertyId = params.id;
-
-    if (!propertyId) {
-        return NextResponse.json({ error: 'Property ID is required' }, { status: 400 });
-    }
-    
-    // The service now handles the authorization check (is this user allowed to see this property?)
-    const property = await propertyService.getPropertyById(propertyId, userId);
+    const property = mockProperties.find(p => p.id === propertyId);
 
     if (!property) {
-      return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 404 });
+      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
     }
+    
+    // Attach units to the property
+    const propertyWithUnits = {
+        ...property,
+        units: mockUnits.filter(u => u.propertyId === propertyId)
+    };
 
-    return NextResponse.json(property);
+    return NextResponse.json(propertyWithUnits);
     
   } catch (error: any) {
     console.error(`API Error: Failed to fetch property ${params.id}:`, error);
@@ -47,50 +31,28 @@ export async function GET(
   }
 }
 
-
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { decodedToken, response } = await checkAuth(req);
-    if (response) return response;
-    
-    const userId = decodedToken!.uid;
     const propertyId = params.id;
     const updates = await req.json();
-
-    // The service handles authorization checks internally
-    await propertyService.updateProperty(propertyId, updates, userId);
-    
-    return NextResponse.json({ message: 'Property updated' });
+    console.log(`Mock update for property ${propertyId} with data:`, updates);
+    return NextResponse.json({ message: 'Property updated successfully (mock)' });
   } catch (error: any) {
     console.error(`[PROPERTY_UPDATE_ERROR] for ID ${params.id}:`, error);
-    if (error.message.includes('Unauthorized')) {
-        return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
-    }
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
-
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { decodedToken, response } = await checkAuth(req);
-    if (response) return response;
-
-    const userId = decodedToken!.uid;
     const propertyId = params.id;
-
-    // The service handles authorization checks internally
-    await propertyService.deleteProperty(propertyId, userId);
-
-    return NextResponse.json({ message: 'Property deleted successfully' });
+    console.log(`Mock delete for property ${propertyId}`);
+    return NextResponse.json({ message: 'Property deleted successfully (mock)' });
   } catch (error: any) {
     console.error(`[PROPERTY_DELETE_ERROR] for ID ${params.id}:`, error);
-    if (error.message.includes('Unauthorized')) {
-        return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
-    }
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }

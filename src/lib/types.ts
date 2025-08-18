@@ -1,5 +1,4 @@
 
-import type { Timestamp } from "firebase-admin/firestore";
 
 export interface User {
     uid: string;
@@ -7,7 +6,7 @@ export interface User {
     name: string;
     role: 'landlord' | 'tenant' | 'admin' | 'manager';
     landlordId?: string; // For tenants and managers
-    createdAt: Date | Timestamp;
+    createdAt: Date;
     avatarUrl?: string;
     profileComplete: boolean;
 }
@@ -21,10 +20,12 @@ export interface Property {
     managerId?: string;
     imageUrl: string;
     description: string;
-    rent?: number; // Rent can be per-unit
+    rent: number; // For single-unit properties
+    bedrooms: number;
+    bathrooms: number;
     currency?: string;
-    createdAt: Timestamp;
-    units: Unit[];
+    createdAt: Date;
+    units?: Unit[];
 }
 
 export interface Unit {
@@ -50,31 +51,31 @@ export interface Tenant {
     paymentHistory: Payment[];
     landlordId: string;
     currentUnitId?: string;
-    leaseStart: Timestamp;
-    leaseEnd: Timestamp;
+    leaseStartDate: Date;
+    leaseEndDate: Date;
 }
 
 export interface Payment {
     id: string;
     tenantId: string;
-    landlordId: string; // Keep for easier querying
+    landlordId: string; 
     propertyId: string;
     unitId: string;
     amount: number;
-    date?: string; // Legacy
-    paidAt: string | Timestamp;
+    date: string;
     method: 'Mpesa' | 'Stripe' | 'Bank Transfer';
     status: 'pending' | 'confirmed' | 'failed';
-    txRef?: string; // Transaction reference
+    txRef?: string;
     type?: 'Rent' | 'Deposit' | 'Other';
 }
 
 export interface Message {
   id: string;
-  senderId: string; // 'landlord-1' or tenant's UID
-  senderName: string; // 'You' or tenant's name
+  tenantId: string;
+  senderId: string;
+  senderName: string;
   content: string;
-  timestamp: any; // Firestore timestamp
+  timestamp: any; // Can be string or Firestore timestamp
   isRead: boolean;
 }
 

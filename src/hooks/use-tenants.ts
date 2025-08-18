@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Tenant } from '@/lib/types';
+import { mockTenants } from '@/lib/mock-data';
 
 export function useTenants() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -12,17 +13,12 @@ export function useTenants() {
   useEffect(() => {
     const fetchTenants = async () => {
         try {
-            console.log("Hook: useTenants is fetching data from API.");
-            const response = await fetch('/api/tenants');
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to fetch tenants.');
-            }
-            const data = await response.json();
-            setTenants(data);
-            console.log("Hook: Successfully fetched and set tenants.", data.length);
+            console.log("Hook: useTenants is fetching mock data.");
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+            setTenants(mockTenants as Tenant[]);
+            console.log("Hook: Successfully fetched and set mock tenants.", mockTenants.length);
         } catch (err: any) {
-            console.error("Hook Error: Failed to fetch tenants from API:", err);
+            console.error("Hook Error: Failed to fetch mock tenants:", err);
             setError(err.message || "An unknown error occurred.");
         } finally {
             setLoading(false);

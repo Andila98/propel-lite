@@ -1,35 +1,14 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
-import type { PropertyManager, Property } from 'src/services/property-service';
-import { verifyApiAuth } from '@/lib/server-utils';
-
-export const runtime = 'nodejs';
+import { mockProperties, mockPropertyManagers } from '@/lib/mock-data';
 
 export async function GET(req: NextRequest) {
   try {
-    const { decodedToken, error } = await verifyApiAuth(req, ['manager']);
-    if (error) return error;
-
-    const managerId = decodedToken.uid;
-
-    const managerDoc = await firestore.collection('users').doc(managerId).get();
-    if (!managerDoc.exists) {
-        return NextResponse.json({ error: 'Manager profile not found.' }, { status: 404 });
-    }
-    
-    const managerData = managerDoc.data() as PropertyManager; 
-    const managedPropertyIds = managerData.propertiesManaged || [];
-
-    if (managedPropertyIds.length === 0) {
-        return NextResponse.json([]);
-    }
-
-    const propertiesSnapshot = await firestore.collection('properties')
-        .where(firestore.FieldPath.documentId(), 'in', managedPropertyIds)
-        .get();
-
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Property }));
+    // This is a mock implementation since Firebase is removed.
+    // It returns properties managed by the first mock manager.
+    const manager = mockPropertyManagers[0];
+    const managedPropertyIds = manager.propertiesManaged || [];
+    const properties = mockProperties.filter(p => managedPropertyIds.includes(p.id));
     
     return NextResponse.json(properties);
 

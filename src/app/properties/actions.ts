@@ -2,8 +2,7 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { propertyService } from '@/services/property-service';
-import { verifyServerActionAuth } from '@/lib/server-utils';
+import { v4 as uuid } from 'uuid';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 
 export interface FormState {
@@ -22,11 +21,7 @@ export async function createPropertyAction(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { decodedToken, error: authError } = await verifyServerActionAuth(['landlord']);
-  if (authError) {
-    return { error: authError.error };
-  }
-  const userId = decodedToken.uid;
+  // This is a mock implementation since Firebase is removed.
   
   const propertyDataString = formData.get('propertyData') as string | null;
   
@@ -53,18 +48,19 @@ export async function createPropertyAction(
   const validatedData = validationResult.data;
 
   try {
-    const publicUrl = `/images/apartment${Math.floor(Math.random() * 2) + 1}.png`;
-
-    const createdProperty = await propertyService.createPropertyWithUnits(validatedData, userId, publicUrl);
+    const propertyId = uuid();
+    console.log(`Mock creating property with ID ${propertyId} and data:`, validatedData);
+    
+    // In a real app, you would save this to a database.
+    // For now, we just simulate success.
     
     revalidatePath('/properties');
     revalidatePath('/dashboard');
-    revalidatePath('/');
     
-    return { success: true, propertyId: createdProperty.id };
+    return { success: true, propertyId: propertyId };
 
   } catch (error: any) {
-    console.error('[PROPERTY_CREATE_ACTION_ERROR]', error);
+    console.error('[MOCK_PROPERTY_CREATE_ACTION_ERROR]', error);
     return { error: `Internal Server Error: ${error.message}` };
   }
 }

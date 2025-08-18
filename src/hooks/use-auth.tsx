@@ -2,10 +2,8 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser, Unsubscribe } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client-app';
 import { Loader2 } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { mockUsers } from '@/lib/mock-data';
 
 export interface User {
   uid: string;
@@ -18,79 +16,57 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  firebaseUser: FirebaseUser | null;
   loading: boolean;
-  error: string | null;
+  login: (email: string, pass: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchUserData = useCallback(async (uid: string) => {
+  // Check for a mock session on initial load
+  useEffect(() => {
     try {
-      console.log(`[AUTH_PROVIDER] Fetching user data for UID: ${uid}`);
-      const res = await fetch('/api/auth/me');
-
-      const responseBody = await res.text();
-
-      if (!res.ok) {
-        setUser(null);
-        let errorMessage = 'Failed to fetch user session.';
-        try {
-            const errorData = JSON.parse(responseBody);
-            errorMessage = errorData.error || errorMessage;
-        } catch (jsonError) {
-            console.error('Failed to parse user session error response as JSON. Received:', responseBody);
-            errorMessage = `Failed to fetch user session. Server returned status ${res.status}.`;
+        const mockSession = localStorage.getItem('mockSession');
+        if (mockSession) {
+            setUser(JSON.parse(mockSession));
         }
-
-        if (res.status !== 401) { // Don't show an error for normal logouts
-            setError(errorMessage);
-        }
-        return;
-      }
-      
-      const userData: User = JSON.parse(responseBody);
-      setUser(userData);
-      console.log(`[AUTH_PROVIDER] User data fetched successfully.`);
-
-    } catch (err: any) {
-      console.error('[AUTH_PROVIDER] An unexpected error occurred during fetchUserData:', err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unexpected error occurred while fetching user data.');
-      }
+    } catch (e) {
+        console.error("Failed to parse mock session from localStorage", e);
+    } finally {
+        setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    console.log('[AUTH_PROVIDER] Setting up onAuthStateChanged listener.');
-    const unsubscribe: Unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      console.log(`[AUTH_PROVIDER] onAuthStateChanged triggered. Firebase user state:`, fbUser ? `Logged in (UID: ${fbUser.uid})` : 'Logged out');
-      setFirebaseUser(fbUser);
-      setLoading(true); // Set loading to true while we verify the session on the backend
-      setError(null); // Clear previous errors
+  const login = useCallback(async (email: string, pass: string) => {
+    setLoading(true);
+    // Simulate network delay
+    await new Promise(res => setTimeout(res, 500));
+    
+    // In a real app, you'd call your backend here.
+    // For this mock version, we'll just find the first landlord.
+    const mockLandlord = mockUsers.find(u => u.role === 'landlord');
 
-      if (fbUser) {
-        await fetchUserData(fbUser.uid);
-      } else {
-        setUser(null);
-      }
-      
-      setLoading(false);
-    });
+    if (mockLandlord && email === 'landlord@example.com') { // Simple check for demo
+        setUser(mockLandlord as User);
+        localStorage.setItem('mockSession', JSON.stringify(mockLandlord));
+    } else {
+        throw new Error("Invalid mock credentials.");
+    }
+    setLoading(false);
+  }, []);
 
-    return () => {
-        console.log('[AUTH_PROVIDER] Cleaning up onAuthStateChanged listener.');
-        unsubscribe();
-    };
-  }, [fetchUserData]);
+  const logout = useCallback(async () => {
+    setLoading(true);
+    await new Promise(res => setTimeout(res, 500));
+    setUser(null);
+    localStorage.removeItem('mockSession');
+    setLoading(false);
+  }, []);
+
 
   if (loading) {
     return (
@@ -101,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, error }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

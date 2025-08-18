@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Property } from '@/lib/types';
+import { mockProperties, mockUnits } from '@/lib/mock-data';
 
 export function useProperty(propertyId: string) {
   const [property, setProperty] = useState<Property | null>(null);
@@ -18,17 +19,21 @@ export function useProperty(propertyId: string) {
     
     const fetchProperty = async () => {
         try {
-            console.log(`Hook: useProperty fetching data for propertyId: ${propertyId}`);
-            const response = await fetch(`/api/properties/${propertyId}`);
-            if (!response.ok) {
-                if(response.status === 404) {
-                    throw new Error("Property not found.");
-                }
-                throw new Error('Failed to fetch property details.');
+            setLoading(true);
+            console.log(`Hook: useProperty fetching mock data for propertyId: ${propertyId}`);
+            await new Promise(resolve => setTimeout(resolve, 300)); // Simulate delay
+            const data = mockProperties.find(p => p.id === propertyId);
+
+            if (data) {
+                const propertyWithUnits = {
+                    ...data,
+                    units: mockUnits.filter(u => u.propertyId === propertyId)
+                } as Property;
+                setProperty(propertyWithUnits);
+                console.log(`Hook: Successfully fetched mock property:`, data);
+            } else {
+                 throw new Error("Property not found.");
             }
-            const data = await response.json();
-            setProperty(data);
-            console.log(`Hook: Successfully fetched property:`, data);
         } catch (err: any) {
              console.error(`Hook Error: Failed to fetch property ${propertyId}:`, err);
             setError(err.message || "An unknown error occurred.");

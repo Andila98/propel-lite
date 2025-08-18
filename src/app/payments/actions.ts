@@ -1,9 +1,8 @@
 
 "use server";
 
-import { handleFlowError } from '@/ai/genkit';
 import { z } from 'zod';
-import { firestore } from '@/lib/firebase-admin';
+import { mockTenants, mockProperties } from '@/lib/mock-data';
 
 export const ReceiptInputSchema = z.object({
     tenantId: z.string(),
@@ -31,23 +30,18 @@ export interface ReceiptState {
 export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>): Promise<ReceiptState> {
     console.log("Frontend: getReceiptAction called with input:", input);
     try {
-        // This is a mock implementation. In a real app, you would use an AI flow.
-        const tenantDoc = await firestore.collection('users').doc(input.tenantId).get();
-        if (!tenantDoc.exists) throw new Error("Tenant not found");
+        const tenant = mockTenants.find(t => t.id === input.tenantId);
+        if (!tenant) throw new Error("Tenant not found");
         
-        const paymentDoc = await firestore.collection('payments').doc(input.paymentId).get();
-        if (!paymentDoc.exists) throw new Error("Payment not found");
+        const payment = tenant.paymentHistory.find(p => p.id === input.paymentId);
+        if (!payment) throw new Error("Payment not found");
 
-        const tenant = tenantDoc.data();
-        const payment = paymentDoc.data();
-        
-        const propertyDoc = await firestore.collection('properties').doc(payment?.propertyId).get();
-        if (!propertyDoc.exists) throw new Error("Property not found");
-        const property = propertyDoc.data();
+        const property = mockProperties.find(p => p.id === payment?.propertyId);
+        if (!property) throw new Error("Property not found");
 
         const receipt: GenerateReceiptOutput = {
             receiptNumber: `RCPT-${Math.floor(Math.random() * 90000) + 10000}`,
-            paymentDate: new Date(payment?.paidAt.toDate()).toISOString().split('T')[0],
+            paymentDate: new Date(payment?.date as string).toISOString().split('T')[0],
             tenantName: tenant?.name,
             propertyAddress: property?.address,
             amountPaid: payment?.amount,
@@ -58,7 +52,7 @@ export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>
         
         return { receipt };
 
-    } catch (error) {
-        return handleFlowError(error, 'getReceiptAction');
+    } catch (error: any) {
+        return { error: error.message || "An unknown error occurred" };
     }
 }

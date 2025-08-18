@@ -1,49 +1,12 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { isFirebaseAdminInitialized, admin } from '@/lib/firebase-admin';
-import type { Tenant } from 'src/services/tenant-service';
-import { verifyApiAuth } from '@/lib/server-utils';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+import { mockPayments } from '@/lib/mock-data';
 
-export const runtime = 'nodejs';
-
-// GET /api/tenants/[id]/payments
-// Fetches all payments for a specific tenant.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-    if (!isFirebaseAdminInitialized) {
-      return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
-    }
     const { id: tenantId } = params;
     
     try {
-      const { decodedToken, error } = await verifyApiAuth(req, ['landlord', 'manager', 'tenant']);
-      if (error) return error;
-
-      const tenantDoc = await admin.firestore().collection('users').doc(tenantId).get();
-      if (!tenantDoc.exists) {
-        return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 });
-      }
-
-      const tenantData = tenantDoc.data() as Tenant;
-      const landlordId = tenantData.landlordId;
-
-      // Authorization Check
-      const { uid, role, landlordId: managerLandlordId } = decodedToken as DecodedIdToken & { role?: string, landlordId?: string };
-      const isSelf = role === 'tenant' && uid === tenantId;
-      const isOwner = role === 'landlord' && uid === landlordId;
-      const isManagerForLandlord = role === 'manager' && managerLandlordId === landlordId;
-
-      if (!isSelf && !isOwner && !isManagerForLandlord) {
-        return NextResponse.json({ error: 'Forbidden: You do not have permission to view these payments.' }, { status: 403 });
-      }
-
-      const paymentsSnapshot = await admin.firestore().collection('payments')
-        .where('tenantId', '==', tenantId)
-        .orderBy('paidAt', 'desc')
-        .get();
-
-      const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+      const payments = mockPayments.filter(p => p.tenantId === tenantId);
       return NextResponse.json(payments, { status: 200 });
 
     } catch (error: any) {

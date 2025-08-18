@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
 import type { Tenant } from '@/lib/types';
-import { useTenants } from '@/hooks/use-tenants';
 import { useTenant } from '@/hooks/use-tenant';
 import { format } from 'date-fns';
 
@@ -51,10 +50,10 @@ export default function EditTenantPage() {
         name: tenant.name,
         email: tenant.email,
         phone: tenant.phone,
-        propertyId: tenant.currentUnitId?.split('_')[0], // Extract from unitId
+        propertyId: tenant.propertyId,
         currentUnitId: tenant.currentUnitId,
-        leaseStart: tenant.leaseStart.toDate(),
-        leaseEnd: tenant.leaseEnd.toDate(),
+        leaseStart: new Date(tenant.leaseStartDate),
+        leaseEnd: new Date(tenant.leaseEndDate),
       });
     }
   }, [tenant, reset]);
@@ -69,7 +68,7 @@ export default function EditTenantPage() {
 
   const onSubmit = (data: TenantFormValues) => {
     // In a real app, you'd save this to the database.
-    console.log("Updated Tenant data:", data);
+    console.log("Updated Tenant data (mock):", data);
     toast({
       title: "Tenant Updated!",
       description: "The tenant's information has been successfully saved.",

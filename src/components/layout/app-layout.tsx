@@ -3,9 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { DollarSign, MessageCircle, LogIn, Building, UserCog, Banknote, CalendarClock, Settings, LayoutDashboard, FileClock, CalendarCheck, Wrench, BarChartHorizontal } from "lucide-react"
+import { DollarSign, MessageCircle, LogOut, Building, UserCog, Banknote, CalendarClock, Settings, LayoutDashboard, FileClock, CalendarCheck, Wrench, BarChartHorizontal } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 import {
   Sidebar,

@@ -2,10 +2,7 @@
 "use server";
 
 import { z } from 'zod';
-import { generateMessage } from '@/ai/flows/generate-message-flow';
-import { handleFlowError } from '@/ai/genkit';
-import { ai } from '@/ai/genkit';
-import { firestore } from '@/lib/firebase-admin';
+import { mockTenants } from '@/lib/mock-data';
 
 export const ScheduleReminderFormSchema = z.object({
   tenantId: z.string().min(1, "Tenant is required."),
@@ -18,16 +15,6 @@ export type ScheduleReminderFormValues = z.infer<typeof ScheduleReminderFormSche
 const ReminderSuggestionInputSchema = z.object({
   tenantId: z.string(),
   reminderType: z.enum(['rentDue', 'latePayment', 'maintenance']),
-});
-
-const ReminderSuggestionOutputSchema = z.object({
-  messageContent: z.string().describe("The suggested content for the reminder message."),
-  reasoning: z.string().describe("A brief explanation for why this message content was chosen."),
-});
-
-const ScheduleSuggestionOutputSchema = z.object({
-    reminderDate: z.string().describe("The suggested date for the reminder in YYYY-MM-DD format."),
-    reasoning: z.string().describe("A brief explanation for why this date was chosen."),
 });
 
 export interface ScheduleReminderState {
@@ -44,12 +31,10 @@ export async function scheduleReminderAction(
   values: ScheduleReminderFormValues
 ): Promise<ScheduleReminderState> {
   try {
-    console.log("Scheduling reminder with data:", values);
-    // In a real app, this would save to a 'reminders' collection in Firestore
-    // and be picked up by a scheduled function (e.g., Cloud Scheduler).
+    console.log("Scheduling reminder with data (mock):", values);
     return { successMessage: `Reminder for tenant has been successfully scheduled for ${values.scheduledFor}.` };
-  } catch (error) {
-    return handleFlowError(error, 'scheduleReminderAction');
+  } catch (error: any) {
+    return { error: error.message };
   }
 }
 
@@ -57,18 +42,31 @@ export async function getReminderSuggestionAction(
     input: z.infer<typeof ReminderSuggestionInputSchema>
 ): Promise<ScheduleReminderState> {
   try {
-    const tenant = (await firestore.collection('users').doc(input.tenantId).get()).data();
+    const tenant = mockTenants.find(t => t.id === input.tenantId);
     if (!tenant) {
       throw new Error("Tenant not found");
     }
-    const messageResult = await generateMessage({ tenantName: tenant.name, reminderType: input.reminderType });
+
+    let message = '';
+    switch(input.reminderType) {
+        case 'rentDue':
+            message = `Hi ${tenant.name}, just a friendly reminder that your rent is due soon. Thanks!`;
+            break;
+        case 'latePayment':
+            message = `Hi ${tenant.name}, this is a notice that your rent payment is now overdue. Please submit payment as soon as possible.`;
+            break;
+        case 'maintenance':
+            message = `Hi ${tenant.name}, this is to inform you of scheduled maintenance in the building next week. We appreciate your cooperation.`;
+            break;
+    }
+
     return {
       suggestion: {
-        messageContent: messageResult.message,
+        messageContent: message,
       }
     };
-  } catch (error) {
-    return handleFlowError(error, 'getReminderSuggestionAction');
+  } catch (error: any) {
+    return { error: error.message };
   }
 }
 
@@ -76,38 +74,30 @@ export async function getScheduleSuggestionAction(
     input: z.infer<typeof ReminderSuggestionInputSchema>
 ): Promise<ScheduleReminderState> {
     try {
-        const flow = ai.defineFlow(
-            {
-                name: 'scheduleSuggestionFlow',
-                inputSchema: ReminderSuggestionInputSchema,
-                outputSchema: ScheduleSuggestionOutputSchema,
-            },
-            async ({ reminderType }) => {
-                const prompt = `You are a property management assistant. Based on standard practices, suggest a good date to send a reminder of type "${reminderType}". Today's date is ${new Date().toISOString().split('T')[0]}. Provide the date and a brief reason.
+        let reminderDate = new Date();
+        let reasoning = '';
+        switch(input.reminderType) {
+            case 'rentDue':
+                reminderDate.setDate(25);
+                reasoning = "Suggesting a date 3-5 days before the 1st of next month.";
+                break;
+            case 'maintenance':
+                reminderDate.setDate(reminderDate.getDate() + 1);
+                reasoning = "Suggesting a date for tomorrow.";
+                break;
+            default:
+                reminderDate.setDate(15);
+                reasoning = "Suggesting a default date."
+        }
 
-- For 'rentDue', suggest a date 3-5 days before the 1st of next month.
-- For 'leaseRenewal', suggest a date 60 days before a lease ends (assume lease ends in 90 days for this example).
-- For 'maintenance', suggest a date for tomorrow.`;
-
-                const { output } = await ai.generate({
-                    prompt,
-                    model: 'googleai/gemini-1.5-flash',
-                    output: { schema: ScheduleSuggestionOutputSchema },
-                });
-                return output!;
-            }
-        );
-
-        const result = await flow(input);
-        
         return {
             suggestion: {
                 messageContent: '', // Not used in this action
-                reminderDate: result.reminderDate,
-                reasoning: result.reasoning
+                reminderDate: reminderDate.toISOString().split('T')[0],
+                reasoning
             }
         };
-    } catch (error) {
-        return handleFlowError(error, 'getScheduleSuggestionAction');
+    } catch (error: any) {
+        return { error: error.message };
     }
 }

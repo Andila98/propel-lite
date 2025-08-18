@@ -1,44 +1,15 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/server-utils';
-import { admin, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { mockUsers } from '@/lib/mock-data';
 
-export const runtime = 'nodejs';
-
-/**
- * Handles fetching the current authenticated user's profile.
- * 1. Verifies the session cookie from the request.
- * 2. If valid, fetches the user's profile from the 'users' collection in Firestore.
- * 3. Returns the user's data.
- */
 export async function GET(req: NextRequest) {
-   if (!isFirebaseAdminInitialized) {
-    return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
-  }
-  
-  const { decodedToken, error } = await verifyApiAuth(req);
+  // This is a mock implementation since Firebase is removed.
+  // It returns the first landlord user from mock data.
+  const mockLandlord = mockUsers.find(u => u.role === 'landlord');
 
-  if (error) {
-    return error; // Return the unauthorized response
-  }
-
-  try {
-    const { uid } = decodedToken;
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-
-    if (!userDoc.exists) {
-      console.error(`[API_ME_ERROR] Firestore user document not found for UID: ${uid}`);
-      return NextResponse.json({ error: 'User data not found.' }, { status: 404 });
-    }
-
-    const userData = userDoc.data();
-    
-    // Omit sensitive data if necessary before sending to client
-    // For now, we return the full user object
-    return NextResponse.json(userData, { status: 200 });
-
-  } catch (err: any) {
-    console.error(`[API_ME_ERROR] Error fetching user data for UID ${decodedToken.uid}:`, err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  if (mockLandlord) {
+      return NextResponse.json(mockLandlord, { status: 200 });
+  } else {
+      return NextResponse.json({ error: 'Mock user not found.' }, { status: 404 });
   }
 }

@@ -1,12 +1,10 @@
 
-
 "use client";
 
 import { useState, useEffect } from 'react';
 import type { Payment } from '@/lib/types';
+import { mockPayments } from '@/lib/mock-data';
 
-// This hook is currently not used but is set up for future use if needed.
-// It fetches payments for a specific tenant.
 export function usePayments(tenantId: string) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,19 +19,13 @@ export function usePayments(tenantId: string) {
     const fetchPayments = async () => {
         try {
             setLoading(true);
-            console.log(`Hook: usePayments fetching data for tenantId: ${tenantId}`);
-            
-            const response = await fetch(`/api/tenants/${tenantId}/payments`);
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to fetch payments.');
-            }
-            const data = await response.json();
-
+            console.log(`Hook: usePayments fetching mock data for tenantId: ${tenantId}`);
+            await new Promise(resolve => setTimeout(resolve, 300)); // Simulate delay
+            const data = mockPayments.filter(p => p.tenantId === tenantId);
             setPayments(data);
-            console.log(`Hook: Successfully fetched payments for tenant ${tenantId}`);
+            console.log(`Hook: Successfully fetched mock payments for tenant ${tenantId}`);
         } catch (err: any) {
-             console.error(`Hook Error: Failed to fetch payments for tenant ${tenantId}:`, err);
+            console.error(`Hook Error: Failed to fetch mock payments for tenant ${tenantId}:`, err);
             setError(err.message || "An unknown error occurred.");
         } finally {
             setLoading(false);

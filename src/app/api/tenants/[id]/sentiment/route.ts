@@ -1,8 +1,5 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
-import type { Message, Tenant } from '@/lib/types';
-import { summarizeTenantSentiment } from '@/ai/flows/summarize-tenant-sentiment';
 
 export async function GET(
   request: NextRequest,
@@ -10,13 +7,13 @@ export async function GET(
 ) {
   try {
     const tenantId = params.id;
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 });
-    }
-    console.log(`API: Getting sentiment for tenant ${tenantId}.`);
-
-    const sentimentResult = await summarizeTenantSentiment({ tenantId });
-    console.log(`API: Sentiment analysis successful for tenant ${tenantId}. Result: ${sentimentResult.sentiment}`);
+    console.log(`API: Getting mock sentiment for tenant ${tenantId}.`);
+    
+    // Mock response
+    const sentimentResult = {
+        sentiment: 'Positive',
+        summary: 'Tenant expressed satisfaction with the recent maintenance work.'
+    };
     
     return NextResponse.json(sentimentResult);
   } catch (error: any) {

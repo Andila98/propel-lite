@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { generateMessageAction, type GenerateMessageState } from './actions';
+import { getReminderSuggestionAction } from '../reminders/actions'; // Reusing reminder action
 import type { Tenant } from '@/lib/types';
 import { useTenants } from '@/hooks/use-tenants';
 
@@ -22,32 +22,31 @@ type MessageFormValues = {
 export default function SmartMessagingPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<GenerateMessageState | null>(null);
+  const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
   const { tenants } = useTenants();
   
   const { handleSubmit, control, watch } = useForm<MessageFormValues>();
   
   const selectedTenantId = watch('tenantId');
+  const reminderType = watch('reminderType');
 
-  const onSubmit = async (data: MessageFormValues) => {
-    setLoading(true);
-    setResult(null);
-    try {
-      const res = await generateMessageAction(data);
-      if (res.error) {
-        toast({ title: "Error", description: res.error, variant: "destructive" });
-      } else {
-        setResult(res);
-      }
-    } catch (e) {
-      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
-    }
-    setLoading(false);
-  };
+  useEffect(() => {
+    const getSuggestions = async () => {
+        if (selectedTenantId && reminderType) {
+            setLoading(true);
+            const res = await getReminderSuggestionAction({ tenantId: selectedTenantId, reminderType });
+            if (res.suggestion?.messageContent) {
+                setGeneratedMessage(res.suggestion.messageContent);
+            }
+            setLoading(false);
+        }
+    };
+    getSuggestions();
+  }, [selectedTenantId, reminderType]);
   
   const handleCopy = () => {
-    if (result?.messageContent) {
-      navigator.clipboard.writeText(result.messageContent);
+    if (generatedMessage) {
+      navigator.clipboard.writeText(generatedMessage);
       toast({ title: "Copied!", description: "Message content copied to clipboard." });
     }
   };
@@ -65,7 +64,7 @@ export default function SmartMessagingPage() {
             <CardDescription>Select a tenant and message type to generate a message.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="tenantId">Tenant</Label>
                 <Controller
@@ -103,10 +102,6 @@ export default function SmartMessagingPage() {
                   )}
                 />
               </div>
-              
-              <Button type="submit" disabled={loading || !selectedTenantId} className="w-full">
-                {loading ? <Loader2 className="animate-spin" /> : <><Wand2 className="mr-2 h-4 w-4" /> Generate Message</>}
-              </Button>
             </form>
           </CardContent>
         </Card>
@@ -119,14 +114,19 @@ export default function SmartMessagingPage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
                {loading && <div className="flex justify-center items-center flex-grow"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-              {result?.messageContent && (
+              {generatedMessage && !loading && (
                 <div className="relative flex-grow">
-                  <Textarea id="generated-message" value={result.messageContent} readOnly rows={10} className="bg-background h-full resize-none"/>
+                  <Textarea id="generated-message" value={generatedMessage} readOnly rows={10} className="bg-background h-full resize-none"/>
                   <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={handleCopy}>
                     <ClipboardCopy className="h-4 w-4" />
                   </Button>
                 </div>
               )}
+               {!loading && !generatedMessage && (
+                <div className="flex justify-center items-center flex-grow">
+                    <p className="text-muted-foreground">Select a tenant and type to see a message.</p>
+                </div>
+               )}
             </CardContent>
           </Card>
         </div>
@@ -134,5 +134,3 @@ export default function SmartMessagingPage() {
     </div>
   );
 }
-
-    
