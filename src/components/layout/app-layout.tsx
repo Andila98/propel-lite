@@ -132,7 +132,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <ThemeToggle />
              {user && (
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatarUrl} alt={user.name} />
+                <AvatarImage src={user.avatarUrl} />
                 <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
               </Avatar>
             )}

@@ -1,16 +1,14 @@
 
 "use server";
 
-import { ai, handleFlowError } from "@/ai/genkit";
-import { firestore } from "@/lib/firebase-admin";
-import { z } from "zod";
+import { z } from 'zod';
 
-const ReportInputSchema = z.object({
+export const ReportInputSchema = z.object({
     month: z.number().min(0).max(11),
     year: z.number().min(2020),
 });
 
-const ReportOutputSchema = z.object({
+export const ReportOutputSchema = z.object({
   reportTitle: z.string().describe("The title of the report, e.g., 'Performance Report for July 2024'."),
   summary: z.string().describe("A 2-3 sentence executive summary of the month's performance."),
   totalRevenue: z.number().describe("The total revenue collected during the month."),
@@ -28,7 +26,7 @@ export interface ReportState {
 
 export async function generateReportAction(input: z.infer<typeof ReportInputSchema>): Promise<ReportState> {
   try {
-    // This is a simplified mock implementation. A real app would query Firestore for the given month/year.
+    // This is a simplified mock implementation. A real app would query a database for the given month/year.
     const mockData = {
         totalRevenue: 750000,
         occupancyRate: 92.5,
@@ -45,33 +43,20 @@ export async function generateReportAction(input: z.infer<typeof ReportInputSche
             "Consider marketing push for vacant units at Cityview Bedsitters."
         ]
     };
+    
+    // Simulate AI generation delay
+    await new Promise(res => setTimeout(res, 1500));
 
-    const flow = ai.defineFlow(
-        {
-            name: "generateReportFlow",
-            inputSchema: z.any(),
-            outputSchema: ReportOutputSchema,
-        },
-        async (data) => {
-            const prompt = `You are a property management analyst. Based on the following data for ${input.month + 1}/${input.year}, generate a concise performance report.
-            
-            Data: ${JSON.stringify(data, null, 2)}
-            
-            Provide a title, a brief summary, and fill in all the data points in the output schema. Make the highlights and improvement areas sound professional and insightful.`;
-
-            const { output } = await ai.generate({
-                prompt,
-                model: 'googleai/gemini-1.5-flash',
-                output: { schema: ReportOutputSchema },
-            });
-            return output!;
-        }
-    );
-
-    const report = await flow(mockData);
+    // For this mock, we'll just format the data into the expected report structure
+    const report: z.infer<typeof ReportOutputSchema> = {
+        reportTitle: `Performance Report for ${new Date(input.year, input.month).toLocaleString('default', { month: 'long' })} ${input.year}`,
+        summary: `This month saw strong performance with total revenue of KES ${mockData.totalRevenue.toLocaleString()}. Occupancy remains high at ${mockData.occupancyRate}%, though a slight increase in maintenance requests was noted.`,
+        ...mockData,
+    };
 
     return { report };
-  } catch (error) {
-    return handleFlowError(error, 'generateReportAction');
+  } catch (error: any) {
+    console.error('[REPORT_ACTION_ERROR]', error);
+    return { error: 'Failed to generate report due to an internal error.' };
   }
 }
