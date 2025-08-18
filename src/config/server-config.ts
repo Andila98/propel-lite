@@ -1,5 +1,4 @@
 
-import 'dotenv/config';
 import type { CookieSerializeOptions } from 'cookie';
 import { firebaseConfig as publicConfig } from './firebase-config';
 
