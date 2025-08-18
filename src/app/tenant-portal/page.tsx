@@ -25,6 +25,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import Image from 'next/image';
 import type { Tenant, Property } from '@/lib/types';
 import { mockTenants, mockProperties } from '@/lib/mock-data';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Loader2 } from 'lucide-react';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -39,6 +42,89 @@ const StripeIcon = () => (
         <path d="M12.0361 8.34082C12.0361 8.34082 11.9702 5.01526 9.32617 5.01526C6.68216 5.01526 6.74805 8.34082 6.74805 8.34082H12.0361Z" fill="#635BFF"/>
     </svg>
 )
+
+function MaintenanceRequestForm() {
+    const { toast } = useToast();
+    const [description, setDescription] = useState('');
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!description) {
+            toast({ title: 'Error', description: 'Please provide a description of the issue.', variant: 'destructive' });
+            return;
+        }
+
+        setLoading(true);
+
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        console.log("Submitting maintenance request:", { description, imageFile });
+
+        toast({
+            title: 'Request Submitted!',
+            description: 'Your maintenance request has been sent. The AI has pre-analyzed your image to help us understand the issue faster.',
+        });
+
+        // Reset form
+        setDescription('');
+        setImageFile(null);
+        setImagePreview(null);
+        setLoading(false);
+    };
+
+    return (
+         <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Maintenance Request</CardTitle>
+            <CardDescription>Report an issue with your unit. Uploading a photo helps us diagnose it faster.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+                <div>
+                    <Label htmlFor="issue-description">Description of Issue</Label>
+                    <Textarea 
+                        id="issue-description" 
+                        name="issue-description" 
+                        placeholder="e.g., The kitchen sink is leaking." 
+                        rows={4}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+                </div>
+                 <div>
+                    <Label htmlFor="issue-image">Upload Image (Optional)</Label>
+                    <Input id="issue-image" type="file" accept="image/*" onChange={handleFileChange} />
+                </div>
+                {imagePreview && (
+                    <div className="w-full aspect-video relative rounded-md overflow-hidden bg-muted">
+                        <Image src={imagePreview} alt="Issue preview" layout="fill" objectFit="contain" />
+                    </div>
+                )}
+                <Button type="submit" disabled={loading}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Submit Request'}
+                </Button>
+            </form>
+          </CardContent>
+        </Card>
+    )
+}
+
 
 export default function TenantPortalPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -148,21 +234,7 @@ export default function TenantPortalPage() {
           </CardContent>
         </Card>
         
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Maintenance Request</CardTitle>
-            <CardDescription>Report an issue with your unit.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4">
-                <div>
-                    <Label htmlFor="issue-description">Description of Issue</Label>
-                    <Textarea id="issue-description" name="issue-description" placeholder="e.g., The kitchen sink is leaking." rows={4} />
-                </div>
-                <Button>Submit Request</Button>
-            </form>
-          </CardContent>
-        </Card>
+       <MaintenanceRequestForm />
       </div>
     </div>
   );
