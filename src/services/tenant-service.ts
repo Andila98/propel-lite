@@ -4,7 +4,7 @@
  * This centralizes the logic for creating, retrieving, and deleting tenants.
  */
 
-import { admin } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import type { Tenant, Unit } from '@/lib/types';
 import { randomBytes } from 'crypto';
 
@@ -19,8 +19,8 @@ export type TenantData = {
 };
 
 export class TenantService {
-  private usersCollection = admin.firestore().collection('users');
-  private propertiesCollection = admin.firestore().collection('properties');
+  private usersCollection = firestore.collection('users');
+  private propertiesCollection = firestore.collection('properties');
 
   /**
    * Creates a new tenant in Auth and Firestore, and assigns them to a unit.
@@ -62,7 +62,7 @@ export class TenantService {
 
     // Create Firebase Auth user
     const tempPassword = randomBytes(16).toString('hex');
-    const userRecord = await admin.auth().createUser({
+    const userRecord = await auth.createUser({
       email: tenantData.email,
       password: tempPassword,
       displayName: tenantData.name,
@@ -71,7 +71,7 @@ export class TenantService {
     
     console.log(`TenantService: Created auth user ${userRecord.uid}.`);
 
-    await admin.auth().setCustomUserClaims(userRecord.uid, {
+    await auth.setCustomUserClaims(userRecord.uid, {
       role: 'tenant',
       landlordId: landlordId,
     });
@@ -85,14 +85,14 @@ export class TenantService {
       landlordId,
       propertyId: tenantData.propertyId,
       currentUnitId: tenantData.unitId,
-      leaseStart: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseStart)),
-      leaseEnd: admin.firestore.Timestamp.fromDate(new Date(tenantData.leaseEnd)),
+      leaseStart: firestore.Timestamp.fromDate(new Date(tenantData.leaseStart)),
+      leaseEnd: firestore.Timestamp.fromDate(new Date(tenantData.leaseEnd)),
       status: 'active',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: firestore.FieldValue.serverTimestamp(),
     };
 
     // Use a transaction to ensure atomicity
-    await admin.firestore().runTransaction(async (transaction) => {
+    await firestore.runTransaction(async (transaction) => {
         transaction.set(this.usersCollection.doc(userRecord.uid), newTenant);
         transaction.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
     });
@@ -154,11 +154,11 @@ export class TenantService {
     }
 
     // Use a transaction to ensure all or nothing is deleted/updated
-    await admin.firestore().runTransaction(async (transaction) => {
+    await firestore.runTransaction(async (transaction) => {
         // Mark the unit as unoccupied if a unit is assigned
         if (tenant.propertyId && tenant.currentUnitId) {
             const unitRef = this.propertiesCollection.doc(tenant.propertyId).collection('units').doc(tenant.currentUnitId);
-            transaction.update(unitRef, { isOccupied: false, tenantId: admin.firestore.FieldValue.delete() });
+            transaction.update(unitRef, { isOccupied: false, tenantId: firestore.FieldValue.delete() });
         }
         
         // Delete the user from Firestore
@@ -166,7 +166,7 @@ export class TenantService {
     });
 
     // Delete the user from Firebase Auth
-    await admin.auth().deleteUser(tenantId);
+    await auth.deleteUser(tenantId);
     
     console.log(`TenantService: Successfully deleted tenant ${tenantId} and freed up unit.`);
   }

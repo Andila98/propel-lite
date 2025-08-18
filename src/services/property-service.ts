@@ -4,7 +4,7 @@
  * This demonstrates an Object-Oriented approach to organizing backend logic.
  */
 
-import { admin } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import { v4 as uuid } from 'uuid';
 import type { FieldValue } from 'firebase-admin/firestore';
 
@@ -30,11 +30,12 @@ export interface Property {
   imageUrl?: string;
   description: string;
   currency?: string;
+  units: Unit[];
 }
 
 class PropertyService {
-  private propertiesCollection = admin.firestore().collection('properties');
-  private usersCollection = admin.firestore().collection('users');
+  private propertiesCollection = firestore.collection('properties');
+  private usersCollection = firestore.collection('users');
 
   /**
    * Fetches all properties for a given landlord, including their units.
@@ -55,7 +56,7 @@ class PropertyService {
     const properties = await Promise.all(snapshot.docs.map(async (doc) => {
         const propertyData = { id: doc.id, ...doc.data() } as Property;
         const unitsSnapshot = await doc.ref.collection('units').get();
-        (propertyData as any).units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() }));
+        propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
         return propertyData;
     }));
     
@@ -84,13 +85,13 @@ class PropertyService {
     }
 
     const propertiesSnapshot = await this.propertiesCollection
-        .where(admin.firestore.FieldPath.documentId(), 'in', managedPropertyIds)
+        .where(firestore.FieldPath.documentId(), 'in', managedPropertyIds)
         .get();
 
     const properties = await Promise.all(propertiesSnapshot.docs.map(async (doc) => {
         const propertyData = { id: doc.id, ...doc.data() } as Property;
         const unitsSnapshot = await doc.ref.collection('units').get();
-        (propertyData as any).units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() }));
+        propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
         return propertyData;
     }));
     
@@ -125,9 +126,9 @@ class PropertyService {
 
     // Also fetch units subcollection
     const unitsSnapshot = await doc.ref.collection('units').get();
-    const units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() }));
+    const units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
     
-    (propertyData as any).units = units;
+    propertyData.units = units;
 
     console.log(`PropertyService: Successfully fetched property ${propertyId} with ${units.length} units.`);
     return { id: doc.id, ...propertyData };
@@ -152,7 +153,7 @@ class PropertyService {
     
     await ref.update({
       ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: firestore.FieldValue.serverTimestamp()
     });
   }
   
@@ -172,7 +173,7 @@ class PropertyService {
     // This requires a more complex Cloud Function for full cleanup in production.
     // For this app, we'll just delete the main document and its units.
     const unitsSnapshot = await ref.collection('units').get();
-    const batch = admin.firestore().batch();
+    const batch = firestore.batch();
     unitsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
 
@@ -200,13 +201,13 @@ class PropertyService {
       imageUrl,
       description: propertyData.description,
       currency: propertyData.currency,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: firestore.FieldValue.serverTimestamp(),
     };
 
     const units = propertyData.units || [];
 
     // Use a transaction to ensure all or nothing is written
-    await admin.firestore().runTransaction(async (transaction) => {
+    await firestore.runTransaction(async (transaction) => {
         transaction.set(docRef, newPropertyData);
 
         units.forEach((unit: any) => {
@@ -217,7 +218,7 @@ class PropertyService {
                 id: unitId,
                 propertyId: docRef.id,
                 landlordId: landlordId,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                createdAt: firestore.FieldValue.serverTimestamp(),
             });
         });
     });
@@ -227,7 +228,7 @@ class PropertyService {
     // Return a serializable object
     const createdProperty = {
       ...newPropertyData,
-      createdAt: admin.firestore.Timestamp.now(), // Use a serializable timestamp
+      createdAt: firestore.Timestamp.now(), // Use a serializable timestamp
     } as unknown as Property;
     
     return createdProperty;
@@ -255,7 +256,7 @@ class PropertyService {
         propertyId,
         landlordId,
         isOccupied: unitData.isOccupied ?? false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
     };
     
     const unitRef = propertyRef.collection('units').doc(unitId);
@@ -292,7 +293,7 @@ class PropertyService {
 
     await unitRef.update({
       ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: firestore.FieldValue.serverTimestamp()
     });
   }
 

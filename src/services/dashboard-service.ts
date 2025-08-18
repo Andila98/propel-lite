@@ -4,8 +4,8 @@
  * This centralizes the complex queries required for the main dashboard view.
  */
 
-import { admin } from '@/lib/firebase-admin';
-import type { Property, Tenant, Payment, ActivityItem } from '@/lib/types';
+import { firestore } from '@/lib/firebase-admin';
+import type { Property, Tenant, Payment, ActivityItem, Unit } from '@/lib/types';
 
 export interface DashboardData {
     totalProperties: number;
@@ -19,9 +19,9 @@ export interface DashboardData {
 }
 
 class DashboardService {
-    private propertiesCollection = admin.firestore().collection('properties');
-    private usersCollection = admin.firestore().collection('users');
-    private paymentsCollection = admin.firestore().collection('payments');
+    private propertiesCollection = firestore.collection('properties');
+    private usersCollection = firestore.collection('users');
+    private paymentsCollection = firestore.collection('payments');
 
     /**
      * Gathers all necessary data for the landlord's dashboard.
@@ -59,7 +59,13 @@ class DashboardService {
 
     private async getProperties(landlordId: string): Promise<Property[]> {
         const snapshot = await this.propertiesCollection.where('landlordId', '==', landlordId).get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
+        const properties = await Promise.all(snapshot.docs.map(async doc => {
+            const propertyData = { id: doc.id, ...doc.data() } as Property;
+            const unitsSnapshot = await doc.ref.collection('units').get();
+            propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
+            return propertyData;
+        }));
+        return properties;
     }
 
     private async getTenants(landlordId: string): Promise<Tenant[]> {
@@ -109,8 +115,12 @@ class DashboardService {
 
     private calculateOccupancy(properties: Property[]): number {
         if (properties.length === 0) return 0;
-        const occupiedCount = properties.filter(p => (p as any).units?.some((u: any) => u.isOccupied)).length;
-        return occupiedCount / properties.length;
+        const totalUnits = properties.reduce((acc, p) => acc + (p.units?.length || 0), 0);
+        if (totalUnits === 0) return 0;
+        
+        const occupiedUnits = properties.reduce((acc, p) => acc + (p.units?.filter(u => u.isOccupied).length || 0), 0);
+        
+        return occupiedUnits / totalUnits;
     }
 
     private generateAnomalyAlerts(tenants: Tenant[], payments: Payment[], properties: Property[]): ActivityItem[] {

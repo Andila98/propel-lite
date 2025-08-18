@@ -3,7 +3,7 @@
  * @fileOverview A service class for handling all authentication-related backend operations.
  * This centralizes logic for creating users, managing sessions, and handling roles.
  */
-import { admin } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { authConfig } from '@/config/server-config';
 import { z } from 'zod';
@@ -16,8 +16,17 @@ const UserSchema = z.object({
   name: z.string(),
   role: z.enum(['landlord', 'tenant', 'admin', 'manager']),
   createdAt: z.any(),
-  isActive: z.boolean(),
   profileComplete: z.boolean(),
+  // Optional fields that might not be on every user document
+  landlordId: z.string().optional(),
+  phone: z.string().optional(),
+  avatarUrl: z.string().url().optional(),
+  currentUnitId: z.string().optional(),
+  leaseEnd: z.any().optional(),
+  leaseStart: z.any().optional(),
+  paymentHistory: z.array(z.any()).optional(),
+  rentStatus: z.string().optional(),
+  status: z.string().optional(),
 });
 
 class AuthService {
@@ -27,23 +36,22 @@ class AuthService {
      * @returns The created user's UID.
      */
     async provisionUser(idToken: string): Promise<string> {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const decodedToken = await auth.verifyIdToken(idToken);
         const { uid, email, name } = decodedToken;
 
         if (!name) {
             throw new Error("Display name is missing from the token.");
         }
 
-        await admin.auth().setCustomUserClaims(uid, { role: 'landlord' });
+        await auth.setCustomUserClaims(uid, { role: 'landlord' });
 
-        const userRef = admin.firestore().collection('users').doc(uid);
+        const userRef = firestore.collection('users').doc(uid);
         await userRef.set({
             uid,
             email,
             name,
             role: 'landlord',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            isActive: true,
+            createdAt: firestore.FieldValue.serverTimestamp(),
             profileComplete: false,
         });
 
@@ -57,8 +65,8 @@ class AuthService {
      * @returns The user's data including role and profile completion status.
      */
     async verifyAndFetchUser(idToken: string): Promise<{ user: User, decodedToken: DecodedIdToken }> {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const userDoc = await admin.firestore().collection('users').doc(decodedToken.uid).get();
+        const decodedToken = await auth.verifyIdToken(idToken);
+        const userDoc = await firestore.collection('users').doc(decodedToken.uid).get();
 
         if (!userDoc.exists) {
             throw new Error('User data not found in our system.');
@@ -80,7 +88,7 @@ class AuthService {
      */
     async createSession(idToken: string): Promise<string> {
         const expiresIn = authConfig.cookieSerializeOptions.maxAge! * 1000;
-        const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
+        const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
         return sessionCookie;
     }
 
@@ -89,7 +97,7 @@ class AuthService {
      * @param uid The user's UID.
      */
     async revokeSession(uid: string): Promise<void> {
-        await admin.auth().revokeRefreshTokens(uid);
+        await auth.revokeRefreshTokens(uid);
         console.log(`[AUTH_SERVICE] Revoked refresh tokens for UID: ${uid}`);
     }
 }
