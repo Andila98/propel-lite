@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 import { Stepper } from '@/components/ui/stepper';
+import { useProperties } from '@/hooks/use-properties';
+import type { Unit } from '@/lib/types';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
@@ -22,31 +26,67 @@ const onboardingSteps = [
     { id: 'complete', label: 'Complete' },
 ];
 
-const InviteTenantFormSchema = z.object({
+const TenantFormSchema = z.object({
+  name: z.string().min(2, "Please enter a valid name."),
   email: z.string().email("Please enter a valid email address."),
+  phone: z.string().optional(),
+  propertyId: z.string({ required_error: "Please select a property."}),
+  unitId: z.string({ required_error: "Please select a unit." }),
+  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
+  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
 });
-type InviteTenantFormValues = z.infer<typeof InviteTenantFormSchema>;
+type TenantFormValues = z.infer<typeof TenantFormSchema>;
+
 
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { properties } = useProperties();
+  const [loading, setLoading] = useState(false);
 
-  const { form, setOnboardingData } = useOnboardingForm<InviteTenantFormValues>('tenantData', {
-     resolver: zodResolver(InviteTenantFormSchema),
-     defaultValues: { email: "" },
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors },
+  } = useForm<TenantFormValues>({
+    resolver: zodResolver(TenantFormSchema),
   });
 
-  const { register, handleSubmit, formState: { errors } } = form;
+  const selectedPropertyId = watch('propertyId');
+  const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
 
-  const onSubmit = (data: InviteTenantFormValues) => {
-    // In a real app, you'd trigger a backend service to send an invite email.
-    console.log("Tenant invitation data:", data);
-    setOnboardingData(data);
-    toast({
-      title: "Invitation Sent!",
-      description: `An invitation has been sent to ${data.email}.`,
-    });
-    router.push('/onboarding/complete');
+  const onSubmit = async (data: TenantFormValues) => {
+    setLoading(true);
+    try {
+        const response = await fetch('/api/tenants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to create tenant.');
+        }
+
+        toast({
+            title: "Tenant Added!",
+            description: `${data.name} has been successfully added.`,
+        });
+        router.push('/onboarding/complete');
+
+    } catch (error: any) {
+        toast({
+            title: "Creation Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -55,22 +95,95 @@ export default function AddTenantPage() {
         <Stepper steps={onboardingSteps} currentStep={3} />
         <Card>
           <CardHeader>
-            <CardTitle>Step 4: Invite a Tenant</CardTitle>
-            <CardDescription>Send an invitation to the tenant. They can set up their account and fill in their details via a secure link.</CardDescription>
+            <CardTitle>Step 4: Add Your First Tenant (Optional)</CardTitle>
+            <CardDescription>Fill in the tenant's details to assign them to an available unit.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Tenant Email</Label>
-                <Input id="email" type="email" {...register("email")} autoComplete="email" placeholder="tenant@example.com" />
-                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
-              </div>
+               <div>
+                    <Label htmlFor="name">Tenant Full Name</Label>
+                    <Input id="name" {...register("name")} autoComplete="name" />
+                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="email">Tenant Email</Label>
+                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                    </div>
+                     <div>
+                        <Label htmlFor="phone">Phone Number (Optional)</Label>
+                        <Input id="phone" {...register("phone")} autoComplete="tel" />
+                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="propertyId">Property</Label>
+                        <Controller
+                            name="propertyId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <SelectTrigger id="propertyId">
+                                    <SelectValue placeholder="Select a property..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {properties.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="unitId">Available Unit</Label>
+                        <Controller
+                            name="unitId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                                <SelectTrigger id="unitId">
+                                    <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableUnits.map((u: Unit) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                         {errors.unitId && <p className="text-sm text-destructive mt-1">{errors.unitId.message}</p>}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                    <Label htmlFor="leaseStart">Lease Start Date</Label>
+                    <Input id="leaseStart" type="date" {...register("leaseStart")} />
+                    {errors.leaseStart && <p className="text-sm text-destructive mt-1">{errors.leaseStart.message}</p>}
+                    </div>
+                    <div>
+                    <Label htmlFor="leaseEnd">Lease End Date</Label>
+                    <Input id="leaseEnd" type="date" {...register("leaseEnd")} />
+                    {errors.leaseEnd && <p className="text-sm text-destructive mt-1">{errors.leaseEnd.message}</p>}
+                    </div>
+                </div>
               <div className="flex justify-between items-center pt-4">
                 <Link href="/onboarding/complete">
                   <Button variant="link">Skip for now</Button>
                 </Link>
-                <Button type="submit">Send Invite & Finish</Button>
+                 <Button type="submit" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Add Tenant & Finish
+                </Button>
               </div>
             </form>
           </CardContent>

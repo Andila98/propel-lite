@@ -174,7 +174,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
         variant: "destructive",
       });
       // This will trigger the form's own error display
-      handleSubmit(() => {})(); // A bit of a hack to trigger validation display
+      handleSubmit(() => {})()
       return;
     }
 
@@ -405,7 +405,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                         </Collapsible>
                          {formState.errors.units?.[index] && (
                             <div className="text-sm text-destructive mt-2">
-                               {Object.values(formState.errors.units[index]).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
+                               {Object.values(formState.errors.units[index] as object).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
                             </div>
                           )}
                       </Card>

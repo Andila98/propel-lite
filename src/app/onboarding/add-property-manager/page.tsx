@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from "react-hook-form";
@@ -11,9 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { useOnboardingForm } from '@/hooks/use-onboarding-form';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, Loader2, Copy } from 'lucide-react';
 import { Stepper } from '@/components/ui/stepper';
 
 const onboardingSteps = [
@@ -24,32 +24,67 @@ const onboardingSteps = [
     { id: 'complete', label: 'Complete' },
 ];
 
-const PropertyManagerFormSchema = z.object({
-  name: z.string().min(2, "Please enter a valid name."),
+const InviteManagerSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
-  phone: z.string().min(10, "Please enter a valid phone number."),
 });
-type PropertyManagerFormValues = z.infer<typeof PropertyManagerFormSchema>;
+type InviteManagerValues = z.infer<typeof InviteManagerSchema>;
+
 
 export default function AddPropertyManagerPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [invitationLink, setInvitationLink] = useState('');
 
-  const { form, setOnboardingData } = useOnboardingForm<PropertyManagerFormValues>('managerData', {
-    resolver: zodResolver(PropertyManagerFormSchema),
-    defaultValues: { name: "", email: "", phone: "" },
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<InviteManagerValues>({
+    resolver: zodResolver(InviteManagerSchema),
   });
 
-  const { register, handleSubmit, formState: { errors } } = form;
+  const onSubmit = async (data: InviteManagerValues) => {
+    setLoading(true);
+    setInvitationLink('');
+    try {
+        const response = await fetch('/api/auth/invite-manager', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
 
-  const onSubmit = (data: PropertyManagerFormValues) => {
-    // In a real app, you'd save this to the database.
-    console.log("Property Manager data:", data);
-    setOnboardingData(data);
-    toast({
-      title: "Property Manager Added!",
-      description: "The property manager has been successfully added.",
-    });
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to send invitation.');
+        }
+
+        const link = `${window.location.origin}/onboarding/accept-invite?token=${result.token}`;
+        setInvitationLink(link);
+
+        toast({
+            title: "Invitation Sent!",
+            description: "An invitation link has been generated. Share it with the manager.",
+        });
+
+    } catch (error: any) {
+        toast({
+            title: "Failed to Send Invite",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(invitationLink);
+    toast({ title: "Copied!", description: "Invitation link copied to clipboard." });
+  };
+  
+  const handleNextStep = () => {
     router.push('/onboarding/add-tenant');
   };
 
@@ -61,7 +96,7 @@ export default function AddPropertyManagerPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <CardTitle>Step 3: Add a Property Manager</CardTitle>
+                <CardTitle>Step 3: Add a Property Manager (Optional)</CardTitle>
                  <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
@@ -71,37 +106,38 @@ export default function AddPropertyManagerPage() {
                     </TooltipContent>
                   </Tooltip>
               </div>
-              <CardDescription>Enter the details of the property manager. Your progress is saved automatically.</CardDescription>
+              <CardDescription>Enter the manager's email to generate an invitation link.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" {...register("name")} autoComplete="name" />
-                  {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
-                </div>
-
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" {...register("email")} autoComplete="email" />
+                  <Label htmlFor="email">Manager's Email</Label>
+                  <Input id="email" type="email" {...register("email")} autoComplete="email" placeholder="manager@example.com"/>
                   {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
                 </div>
-                
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" type="tel" {...register("phone")} autoComplete="tel" />
-                  {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
-                </div>
-
-                <div className="flex justify-between">
-                  <Link href="/onboarding/add-tenant">
-                    <Button variant="link">Skip for now</Button>
-                  </Link>
-                  <Button type="submit">Next: Add Tenant</Button>
-                </div>
+                 <Button type="submit" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Generate Invite Link
+                </Button>
               </form>
+
+              {invitationLink && (
+                <div className="space-y-2 pt-4 border-t mt-4">
+                    <Label>Invitation Link (Share with the manager)</Label>
+                    <div className="flex gap-2">
+                        <Input value={invitationLink} readOnly />
+                        <Button variant="outline" size="icon" onClick={copyToClipboard}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+              )}
             </CardContent>
           </Card>
+           <div className="flex justify-between">
+              <Button variant="ghost" onClick={() => router.push('/onboarding/add-tenant')}>Skip for now</Button>
+              <Button onClick={handleNextStep}>Next: Add Tenant</Button>
+            </div>
         </div>
       </TooltipProvider>
     </div>

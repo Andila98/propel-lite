@@ -2,21 +2,18 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { propertyService } from '@/services/property-service';
 import { verifyServerActionAuth } from '@/lib/server-utils';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
-import path from 'path';
-import { promises as fs } from 'fs';
-import { randomBytes } from 'crypto';
-
-const uploadDir = path.join(process.cwd(), 'public/media');
 
 export interface FormState {
     error?: string;
     errors?: {
-        [key in keyof PropertyFormValues]?: string[];
-    };
+        [key: string]: string[] | undefined;
+        units?: string[] | undefined;
+    } & {
+        [key in `units.${number}.${keyof PropertyFormValues['units'][0]}`]?: string[];
+    }
     success?: boolean;
     propertyId?: string;
 }

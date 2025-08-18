@@ -5,9 +5,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2 } from 'lucide-react';
-import { useEffect } from 'react';
-import { clearOnboardingData } from '@/hooks/use-onboarding-form';
 import { Stepper } from '@/components/ui/stepper';
+import { useActionState } from 'react';
+import { completeOnboarding } from '../actions';
+import { useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
@@ -18,11 +21,30 @@ const onboardingSteps = [
 ];
 
 export default function OnboardingCompletePage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [state, formAction] = useActionState(completeOnboarding, { success: false });
+
+  // This action marks the user's profile as complete on the backend.
+  useEffect(() => {
+    formAction();
+  }, [formAction]);
 
   useEffect(() => {
-    // Clear the stored onboarding data now that the process is complete
-    clearOnboardingData();
-  }, []);
+    if (state.error) {
+      toast({
+        title: "Error",
+        description: `Could not finalize onboarding: ${state.error}`,
+        variant: "destructive",
+      });
+    }
+     if (state.success) {
+      toast({
+        title: "Setup Complete!",
+        description: "You're all set and ready to go.",
+      });
+    }
+  }, [state, toast]);
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -42,9 +64,7 @@ export default function OnboardingCompletePage() {
             <p className="mb-6 text-muted-foreground">
                 You can now manage your properties, track payments, and communicate with tenants from your dashboard.
             </p>
-            <Link href="/">
-                <Button size="lg">Go to Dashboard</Button>
-            </Link>
+             <Button size="lg" onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
             </CardContent>
         </Card>
        </div>
