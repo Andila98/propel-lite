@@ -1,13 +1,15 @@
+
 import type { Timestamp } from "firebase-admin/firestore";
 
 export interface User {
     uid: string;
     email: string;
     name: string;
-    role: 'landlord' | 'tenant' | 'admin';
+    role: 'landlord' | 'tenant' | 'admin' | 'manager';
     landlordId?: string; // For tenants and managers
-    createdAt: Date;
+    createdAt: Date | Timestamp;
     avatarUrl?: string;
+    profileComplete: boolean;
 }
 
 export interface Property {
@@ -16,15 +18,13 @@ export interface Property {
     address: string;
     type: 'Apartment' | 'House' | 'Bedsitter';
     landlordId: string;
+    managerId?: string;
     imageUrl: string;
     description: string;
-    rent: number;
-    currency: string;
-    bedrooms: number;
-    bathrooms: number;
-    propertyType: 'Apartment' | 'House' | 'Bedsitter';
-    units: Unit[];
+    rent?: number; // Rent can be per-unit
+    currency?: string;
     createdAt: Timestamp;
+    units: Unit[];
 }
 
 export interface Unit {
@@ -46,8 +46,6 @@ export interface Tenant {
     phone?: string;
     avatarUrl?: string;
     propertyId: string;
-    leaseStartDate: string | Date;
-    leaseEndDate: string | Date;
     rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance';
     paymentHistory: Payment[];
     landlordId: string;
@@ -59,14 +57,16 @@ export interface Tenant {
 export interface Payment {
     id: string;
     tenantId: string;
+    landlordId: string; // Keep for easier querying
     propertyId: string;
     unitId: string;
     amount: number;
-    date: string;
+    date?: string; // Legacy
+    paidAt: string | Timestamp;
     method: 'Mpesa' | 'Stripe' | 'Bank Transfer';
     status: 'pending' | 'confirmed' | 'failed';
-    paidAt: string;
     txRef?: string; // Transaction reference
+    type?: 'Rent' | 'Deposit' | 'Other';
 }
 
 export interface Message {

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     if (role === 'landlord') {
         properties = await propertyService.getPropertiesByLandlord(userId);
     } else if (role === 'manager') {
-        // Manager-specific logic would go here if needed, for now, it's covered by the service
+        // The service now handles getting properties for a specific manager
         properties = await propertyService.getPropertiesForManager(userId);
     } else {
         return NextResponse.json({ error: 'Unauthorized role' }, { status: 403 });

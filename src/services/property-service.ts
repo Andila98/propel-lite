@@ -37,9 +37,9 @@ class PropertyService {
   private usersCollection = firestore.collection('users');
 
   /**
-   * Fetches all properties for a given landlord.
+   * Fetches all properties for a given landlord, including their units.
    * @param landlordId The UID of the landlord.
-   * @returns A promise that resolves to an array of properties.
+   * @returns A promise that resolves to an array of properties with units.
    */
   async getPropertiesByLandlord(landlordId: string): Promise<Property[]> {
     console.log(`PropertyService: Fetching properties for landlord ${landlordId}`);
@@ -52,10 +52,12 @@ class PropertyService {
       return [];
     }
 
-    const properties = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    } as Property));
+    const properties = await Promise.all(snapshot.docs.map(async (doc) => {
+        const propertyData = { id: doc.id, ...doc.data() } as Property;
+        const unitsSnapshot = await doc.ref.collection('units').get();
+        (propertyData as any).units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() }));
+        return propertyData;
+    }));
     
     console.log(`PropertyService: Found ${properties.length} properties.`);
     return properties;
@@ -85,13 +87,18 @@ class PropertyService {
         .where(firestore.FieldPath.documentId(), 'in', managedPropertyIds)
         .get();
 
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Property }));
+    const properties = await Promise.all(propertiesSnapshot.docs.map(async (doc) => {
+        const propertyData = { id: doc.id, ...doc.data() } as Property;
+        const unitsSnapshot = await doc.ref.collection('units').get();
+        (propertyData as any).units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() }));
+        return propertyData;
+    }));
     
     return properties;
   }
 
   /**
-   * Fetches a single property by its ID, ensuring it belongs to the specified landlord.
+   * Fetches a single property by its ID, ensuring it belongs to the specified user.
    * @param propertyId The ID of the property to fetch.
    * @param requesterId The UID of the user requesting the property (landlord or manager).
    * @returns A promise that resolves to the property object or null if not found/unauthorized.
@@ -107,8 +114,9 @@ class PropertyService {
     const propertyData = doc.data() as Property;
     
     // Authorization Check: Allow landlord or an assigned manager
+    // In a more complex system, you'd check a manager's assigned properties array.
     const isOwner = propertyData.landlordId === requesterId;
-    const isManager = propertyData.managerId === requesterId; // Simple check, can be expanded to check a manager's assigned properties array
+    const isManager = propertyData.managerId === requesterId; 
     
     if (!isOwner && !isManager) {
         console.warn(`PropertyService: Property ${propertyId} unauthorized for user ${requesterId}`);
@@ -161,9 +169,13 @@ class PropertyService {
       throw new Error('Unauthorized or property not found');
     }
     
-    // Note: Deleting a document does not delete its subcollections.
-    // This would require a more complex Cloud Function for full cleanup.
-    // For this app, we'll just delete the main document.
+    // This requires a more complex Cloud Function for full cleanup in production.
+    // For this app, we'll just delete the main document and its units.
+    const unitsSnapshot = await ref.collection('units').get();
+    const batch = firestore.batch();
+    unitsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
     await ref.delete();
   }
 
@@ -219,6 +231,97 @@ class PropertyService {
     } as unknown as Property;
     
     return createdProperty;
+  }
+
+  /**
+   * Adds a new unit to an existing property.
+   * @param propertyId The ID of the property.
+   * @param unitData The data for the new unit.
+   * @param landlordId The UID of the landlord for authorization.
+   * @returns The newly created unit.
+   */
+  async addUnitToProperty(propertyId: string, unitData: any, landlordId: string) {
+    const propertyRef = this.propertiesCollection.doc(propertyId);
+    const propertyDoc = await propertyRef.get();
+
+    if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {
+      throw new Error('Unauthorized or property not found');
+    }
+    
+    const unitId = uuid();
+    const newUnit = {
+        id: unitId,
+        ...unitData,
+        propertyId,
+        landlordId,
+        isOccupied: unitData.isOccupied ?? false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    
+    const unitRef = propertyRef.collection('units').doc(unitId);
+    await unitRef.set(newUnit);
+
+    return newUnit;
+  }
+
+  /**
+   * Updates an existing unit within a property.
+   * @param propertyId The ID of the property.
+   * @param unitId The ID of the unit to update.
+   * @param updates The fields to update.
+   * @param landlordId The UID of the landlord for authorization.
+   */
+  async updateUnitInProperty(propertyId: string, unitId: string, updates: any, landlordId: string) {
+    const propertyRef = this.propertiesCollection.doc(propertyId);
+    const unitRef = propertyRef.collection('units').doc(unitId);
+
+    const propertyDoc = await propertyRef.get();
+    if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {
+      throw new Error('Unauthorized or property not found');
+    }
+    
+    const unitDoc = await unitRef.get();
+    if (!unitDoc.exists) {
+      throw new Error('Unit not found');
+    }
+    
+    delete updates.id;
+    delete updates.propertyId;
+    delete updates.landlordId;
+    delete updates.createdAt;
+
+    await unitRef.update({
+      ...updates,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  /**
+   * Deletes a unit from a property.
+   * @param propertyId The ID of the property.
+   * @param unitId The ID of the unit to delete.
+   * @param landlordId The UID of the landlord for authorization.
+   */
+  async deleteUnitFromProperty(propertyId: string, unitId: string, landlordId: string) {
+      const propertyRef = this.propertiesCollection.doc(propertyId);
+      const unitRef = propertyRef.collection('units').doc(unitId);
+
+      const propertyDoc = await propertyRef.get();
+      if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {
+          throw new Error('Unauthorized or property not found');
+      }
+      
+      const unitDoc = await unitRef.get();
+      if (!unitDoc.exists) {
+          throw new Error('Unit not found');
+      }
+
+      // Important: Check if the unit is occupied before deleting.
+      if (unitDoc.data()?.isOccupied) {
+          throw new Error('Cannot delete an occupied unit. Please remove the tenant first.');
+      }
+
+      await unitRef.delete();
   }
 }
 

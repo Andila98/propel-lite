@@ -1,7 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, admin } from '@/lib/firebase-admin';
-import { v4 as uuid } from 'uuid';
+import { propertyService } from '@/services/property-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 
 export const runtime = 'nodejs';
@@ -19,26 +18,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ error: 'Missing or invalid unit data' }, { status: 400 });
     }
 
-    const propertyRef = firestore.collection('properties').doc(propertyId);
-    const propertyDoc = await propertyRef.get();
+    const newUnit = await propertyService.addUnitToProperty(propertyId, unitData, landlordId);
 
-    if (!propertyDoc.exists || propertyDoc.data()?.landlordId !== landlordId) {
-      return NextResponse.json({ error: 'Unauthorized or not found' }, { status: 403 });
-    }
-
-    const unitId = uuid();
-    const newUnit = {
-        id: unitId,
-        ...unitData,
-        isOccupied: unitData.isOccupied ?? false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-    
-    await propertyRef.collection('units').doc(unitId).set(newUnit);
-
-    return NextResponse.json({ message: 'Unit added successfully', unitId }, { status: 201 });
+    return NextResponse.json({ message: 'Unit added successfully', unitId: newUnit.id }, { status: 201 });
   } catch (error: any) {
     console.error(`[ADD_UNIT_ERROR] for property ${params.id}:`, error);
+    if (error.message.includes('Unauthorized')) {
+        return NextResponse.json({ error: 'Unauthorized or property not found' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Failed to add unit' }, { status: 500 });
   }
 }
