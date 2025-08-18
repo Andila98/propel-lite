@@ -17,7 +17,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<{ user: User }>;
   logout: () => Promise<void>;
 }
 
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, pass: string) => {
+  const login = useCallback(async (email: string, pass: string): Promise<{ user: User }> => {
     setLoading(true);
     // Simulate network delay
     await new Promise(res => setTimeout(res, 500));
@@ -51,12 +51,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const mockLandlord = mockUsers.find(u => u.role === 'landlord');
 
     if (mockLandlord && email === 'landlord@example.com') { // Simple check for demo
-        setUser(mockLandlord as User);
-        localStorage.setItem('mockSession', JSON.stringify(mockLandlord));
+        const loggedInUser = mockLandlord as User;
+        setUser(loggedInUser);
+        localStorage.setItem('mockSession', JSON.stringify(loggedInUser));
+        setLoading(false);
+        return { user: loggedInUser };
     } else {
+        setLoading(false);
         throw new Error("Invalid mock credentials.");
     }
-    setLoading(false);
   }, []);
 
   const logout = useCallback(async () => {
@@ -68,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
 
-  if (loading) {
+  if (loading && !user) { // Show loader only on initial load without a user
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

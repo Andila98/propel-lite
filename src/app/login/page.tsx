@@ -36,12 +36,20 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-        await login(email, password); // Use the mock login function from useAuth
+        const { user } = await login(email, password); // Get user data from login
         toast({
             title: "Login Successful",
             description: "Welcome back!",
         });
-        router.push('/dashboard');
+        
+        // Intelligent Redirection
+        if (user.role === 'tenant') {
+            router.push('/tenant-portal');
+        } else if (!user.profileComplete) {
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            router.push('/dashboard');
+        }
 
     } catch (error: any) {
         toast({
