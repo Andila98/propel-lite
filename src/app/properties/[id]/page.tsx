@@ -41,7 +41,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Square, BedDouble, Bath, Home, Camera, WifiOff, Eye, FileText, ImageIcon as GalleryIcon } from 'lucide-react';
+import { DollarSign, Square, BedDouble, Bath, Home, Camera, WifiOff, Eye, FileText, ImageIcon as GalleryIcon, Wand2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -57,6 +57,7 @@ import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useState } from 'react';
+import { DamageAnalysisDialog } from '@/components/damage-analysis-dialog';
 
 export default function PropertyDetailPage() {
   const router = useRouter();
@@ -66,6 +67,8 @@ export default function PropertyDetailPage() {
   
   const { property, loading, error } = useProperty(propertyId);
   const { tenants } = useTenants();
+  const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
+
 
   const getTenantForUnit = (unitId: string) => {
     return tenants.find(t => t.currentUnitId === unitId);
@@ -118,6 +121,7 @@ export default function PropertyDetailPage() {
   const propertyImage = property.imageUrl;
 
   return (
+    <>
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -190,6 +194,20 @@ export default function PropertyDetailPage() {
                     </div>
                 </CardContent>
             </Card>
+            <Card className="mt-6 border-primary/20 bg-primary/5">
+                <CardHeader>
+                     <CardTitle className="flex items-center gap-2">
+                        <Wand2 className="h-5 w-5 text-primary" />
+                        AI Tools
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Button className="w-full" onClick={() => setIsDamageDialogOpen(true)}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Run Damage Analysis
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
 
         <div className="lg:col-span-5">
@@ -245,6 +263,8 @@ export default function PropertyDetailPage() {
         </div>
       </div>
     </div>
+    <DamageAnalysisDialog open={isDamageDialogOpen} onOpenChange={setIsDamageDialogOpen} />
+    </>
   );
 }
 
