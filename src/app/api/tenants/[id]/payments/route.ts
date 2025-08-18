@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { firestore } from '@/lib/firebase-admin';
 import type { Tenant } from 'src/services/tenant-service';
 import { verifyApiAuth } from '@/lib/server-utils';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export const runtime = 'nodejs';
 
@@ -15,8 +16,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       const { decodedToken, error } = await verifyApiAuth(req, ['landlord', 'manager', 'tenant']);
       if (error) return error;
 
-      const { role, uid, claims } = decodedToken as any;
-
       const tenantDoc = await firestore.collection('users').doc(tenantId).get();
       if (!tenantDoc.exists) {
         return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 });
@@ -25,11 +24,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       const tenantData = tenantDoc.data() as Tenant;
       const landlordId = tenantData.landlordId;
 
+      // Authorization Check
+      const { uid, role, landlordId: managerLandlordId } = decodedToken as DecodedIdToken & { role?: string, landlordId?: string };
+      const isSelf = role === 'tenant' && uid === tenantId;
       const isOwner = role === 'landlord' && uid === landlordId;
-      const isManager = role === 'manager' && claims.landlordId === landlordId;
-      const isSelf = uid === tenantId;
+      const isManagerForLandlord = role === 'manager' && managerLandlordId === landlordId;
 
-      if (!isOwner && !isManager && !isSelf) {
+      if (!isSelf && !isOwner && !isManagerForLandlord) {
         return NextResponse.json({ error: 'Forbidden: You do not have permission to view these payments.' }, { status: 403 });
       }
 

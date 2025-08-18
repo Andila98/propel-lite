@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
         const { decodedToken, error } = await verifyApiAuth(req, ['landlord', 'manager']);
         if (error) return error;
         
-        const { role, uid, claims } = decodedToken as any;
-        const targetLandlordId = role === 'landlord' ? uid : claims.landlordId;
+        const { role, uid, landlordId: managerLandlordId } = decodedToken as any;
+        const targetLandlordId = role === 'landlord' ? uid : managerLandlordId;
         
         if (!targetLandlordId) {
             return NextResponse.json({ error: 'Landlord ID not found for this user.' }, { status: 400 });
@@ -51,10 +51,10 @@ export async function GET(req: NextRequest) {
 // Creates a new tenant.
 export async function POST(req: NextRequest) {
     try {
-        const { decodedToken, error } = await verifyApiAuth(req, ['landlord']);
+        const { decodedToken, error } = await verifyApiAuth(req, ['landlord', 'manager']);
         if (error) return error;
 
-        const { uid: landlordId } = decodedToken;
+        const { uid: creatorId, role } = decodedToken as { uid: string, role: 'landlord' | 'manager' };
         const body = await req.json();
 
         const validationResult = CreateTenantSchema.safeParse(body);
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
             );
         }
         
-        const createdTenant = await tenantService.createTenant(validationResult.data, landlordId);
+        const createdTenant = await tenantService.createTenant(validationResult.data, creatorId, role);
 
         return NextResponse.json(createdTenant, { status: 201 });
 

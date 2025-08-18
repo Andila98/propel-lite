@@ -25,20 +25,38 @@ export class TenantService {
   /**
    * Creates a new tenant in Auth and Firestore, and assigns them to a unit.
    * @param tenantData The data for the new tenant.
-   * @param landlordId The UID of the landlord creating the tenant.
+   * @param creatorId The UID of the user creating the tenant (can be a landlord or manager).
+   * @param creatorRole The role of the user creating the tenant.
    * @returns The created tenant object.
    */
-  async createTenant(tenantData: TenantData, landlordId: string): Promise<Tenant> {
-    console.log(`TenantService: Creating new tenant for landlord ${landlordId}`);
+  async createTenant(tenantData: TenantData, creatorId: string, creatorRole: 'landlord' | 'manager'): Promise<Tenant> {
+    console.log(`TenantService: User ${creatorId} (${creatorRole}) is creating a new tenant.`);
+    
+    // Determine the landlord ID. If the creator is a manager, we need to fetch their profile to find their landlord.
+    let landlordId: string;
+    if (creatorRole === 'landlord') {
+        landlordId = creatorId;
+    } else {
+        const managerDoc = await this.usersCollection.doc(creatorId).get();
+        if (!managerDoc.exists || !managerDoc.data()?.landlordId) {
+            throw new Error("Manager's landlord association not found.");
+        }
+        landlordId = managerDoc.data()?.landlordId;
+    }
     
     // Check if unit is already occupied
     const unitRef = this.propertiesCollection.doc(tenantData.propertyId).collection('units').doc(tenantData.unitId);
     const unitDoc = await unitRef.get();
+    const unitData = unitDoc.data();
 
     if (!unitDoc.exists) {
         throw new Error('Unit not found.');
     }
-    if (unitDoc.data()?.isOccupied) {
+    // Also check that the unit belongs to the correct landlord
+    if (unitData?.landlordId !== landlordId) {
+        throw new Error('Unit does not belong to the specified landlord.');
+    }
+    if (unitData?.isOccupied) {
         throw new Error('This unit is already occupied.');
     }
 
