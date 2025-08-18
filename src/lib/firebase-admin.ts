@@ -33,10 +33,4 @@ if (typedServiceAccount.project_id) {
     console.warn("[FIREBASE_ADMIN_WARN] Service account credentials are missing or incomplete in service-account.json. Firebase Admin SDK not initialized.");
 }
 
-
-// Conditionally export the services only if the app has been initialized.
-// This prevents other parts of the app from crashing if they try to use an uninitialized service.
-const auth = isFirebaseAdminInitialized ? admin.auth() : ({} as admin.auth.Auth);
-const firestore = isFirebaseAdminInitialized ? admin.firestore() : ({} as admin.firestore.Firestore);
-
-export { admin, auth, firestore, isFirebaseAdminInitialized };
+export { admin, isFirebaseAdminInitialized };

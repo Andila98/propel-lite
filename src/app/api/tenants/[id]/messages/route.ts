@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, admin } from '@/lib/firebase-admin';
+import { isFirebaseAdminInitialized, admin } from '@/lib/firebase-admin';
 import type { Message } from '@/lib/types';
 
 // GET /api/tenants/[id]/messages
@@ -8,6 +8,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
+  }
   try {
     const tenantId = params.id;
     if (!tenantId) {
@@ -15,7 +18,7 @@ export async function GET(
     }
     console.log(`API: Fetching messages for tenant ${tenantId}.`);
 
-    const messagesSnapshot = await firestore
+    const messagesSnapshot = await admin.firestore()
       .collection('tenants')
       .doc(tenantId)
       .collection('messages')
@@ -39,6 +42,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
+  }
   try {
     const tenantId = params.id;
     if (!tenantId) {
@@ -64,7 +70,7 @@ export async function POST(
     };
     
     console.log(`API: Sending message to tenant ${tenantId}.`);
-    const docRef = await firestore
+    const docRef = await admin.firestore()
       .collection('tenants')
       .doc(tenantId)
       .collection('messages')

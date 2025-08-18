@@ -2,7 +2,7 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { firestore } from '@/lib/firebase-admin';
+import { admin, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifyServerActionAuth } from '@/lib/server-utils';
 
 export interface ActionState {
@@ -11,6 +11,9 @@ export interface ActionState {
 }
 
 export async function completeOnboarding(): Promise<ActionState> {
+  if (!isFirebaseAdminInitialized) {
+    return { error: 'Firebase not configured.' };
+  }
   const { decodedToken, error: authError } = await verifyServerActionAuth(['landlord']);
   if (authError) {
     return { error: authError.error };
@@ -18,7 +21,7 @@ export async function completeOnboarding(): Promise<ActionState> {
   const userId = decodedToken.uid;
 
   try {
-    const userRef = firestore.collection('users').doc(userId);
+    const userRef = admin.firestore().collection('users').doc(userId);
     await userRef.update({
         profileComplete: true,
     });

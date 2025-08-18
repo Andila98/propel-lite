@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { isFirebaseAdminInitialized, admin } from '@/lib/firebase-admin';
 import type { Tenant } from 'src/services/tenant-service';
 import { verifyApiAuth } from '@/lib/server-utils';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -10,13 +10,16 @@ export const runtime = 'nodejs';
 // GET /api/tenants/[id]/payments
 // Fetches all payments for a specific tenant.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+      return NextResponse.json({ error: 'Firebase not configured.' }, { status: 500 });
+    }
     const { id: tenantId } = params;
     
     try {
       const { decodedToken, error } = await verifyApiAuth(req, ['landlord', 'manager', 'tenant']);
       if (error) return error;
 
-      const tenantDoc = await firestore.collection('users').doc(tenantId).get();
+      const tenantDoc = await admin.firestore().collection('users').doc(tenantId).get();
       if (!tenantDoc.exists) {
         return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 });
       }
@@ -34,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ error: 'Forbidden: You do not have permission to view these payments.' }, { status: 403 });
       }
 
-      const paymentsSnapshot = await firestore.collection('payments')
+      const paymentsSnapshot = await admin.firestore().collection('payments')
         .where('tenantId', '==', tenantId)
         .orderBy('paidAt', 'desc')
         .get();

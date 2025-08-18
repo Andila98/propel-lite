@@ -4,7 +4,7 @@
  * This centralizes the logic for creating, retrieving, and deleting tenants.
  */
 
-import { firestore, admin, auth } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
 import type { Tenant, Unit } from '@/lib/types';
 import { randomBytes } from 'crypto';
 
@@ -19,8 +19,8 @@ export type TenantData = {
 };
 
 export class TenantService {
-  private usersCollection = firestore.collection('users');
-  private propertiesCollection = firestore.collection('properties');
+  private usersCollection = admin.firestore().collection('users');
+  private propertiesCollection = admin.firestore().collection('properties');
 
   /**
    * Creates a new tenant in Auth and Firestore, and assigns them to a unit.
@@ -62,7 +62,7 @@ export class TenantService {
 
     // Create Firebase Auth user
     const tempPassword = randomBytes(16).toString('hex');
-    const userRecord = await auth.createUser({
+    const userRecord = await admin.auth().createUser({
       email: tenantData.email,
       password: tempPassword,
       displayName: tenantData.name,
@@ -71,7 +71,7 @@ export class TenantService {
     
     console.log(`TenantService: Created auth user ${userRecord.uid}.`);
 
-    await auth.setCustomUserClaims(userRecord.uid, {
+    await admin.auth().setCustomUserClaims(userRecord.uid, {
       role: 'tenant',
       landlordId: landlordId,
     });
@@ -92,7 +92,7 @@ export class TenantService {
     };
 
     // Use a transaction to ensure atomicity
-    await firestore.runTransaction(async (transaction) => {
+    await admin.firestore().runTransaction(async (transaction) => {
         transaction.set(this.usersCollection.doc(userRecord.uid), newTenant);
         transaction.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
     });
@@ -154,7 +154,7 @@ export class TenantService {
     }
 
     // Use a transaction to ensure all or nothing is deleted/updated
-    await firestore.runTransaction(async (transaction) => {
+    await admin.firestore().runTransaction(async (transaction) => {
         // Mark the unit as unoccupied if a unit is assigned
         if (tenant.propertyId && tenant.currentUnitId) {
             const unitRef = this.propertiesCollection.doc(tenant.propertyId).collection('units').doc(tenant.currentUnitId);
@@ -166,7 +166,7 @@ export class TenantService {
     });
 
     // Delete the user from Firebase Auth
-    await auth.deleteUser(tenantId);
+    await admin.auth().deleteUser(tenantId);
     
     console.log(`TenantService: Successfully deleted tenant ${tenantId} and freed up unit.`);
   }

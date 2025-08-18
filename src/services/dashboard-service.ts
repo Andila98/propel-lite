@@ -4,7 +4,7 @@
  * This centralizes the complex queries required for the main dashboard view.
  */
 
-import { firestore } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
 import type { Property, Tenant, Payment, ActivityItem } from '@/lib/types';
 
 export interface DashboardData {
@@ -19,9 +19,9 @@ export interface DashboardData {
 }
 
 class DashboardService {
-    private propertiesCollection = firestore.collection('properties');
-    private usersCollection = firestore.collection('users');
-    private paymentsCollection = firestore.collection('payments');
+    private propertiesCollection = admin.firestore().collection('properties');
+    private usersCollection = admin.firestore().collection('users');
+    private paymentsCollection = admin.firestore().collection('payments');
 
     /**
      * Gathers all necessary data for the landlord's dashboard.

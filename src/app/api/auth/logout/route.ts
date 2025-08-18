@@ -12,14 +12,19 @@ import { authService } from '@/services/auth-service';
  * 3. Clears the session cookie from the browser.
  */
 export async function POST(request: NextRequest) {
-  const { decodedToken } = await verifyApiAuth(request);
-  
-  if (isFirebaseAdminInitialized && decodedToken) {
-    try {
-      await authService.revokeSession(decodedToken.uid);
-    } catch (error: any) {
-      // This error is common if the cookie is expired, so we don't need to log it as a server error.
-      console.log(`[LOGOUT_INFO] Could not revoke refresh tokens, likely because session cookie was already invalid: ${error.code}`);
+  if (!isFirebaseAdminInitialized) {
+     // Even if Firebase isn't set up, we should still clear the cookie.
+     console.warn('[LOGOUT_WARN] Firebase not configured, but proceeding to clear client cookie.');
+  } else {
+    const { decodedToken } = await verifyApiAuth(request);
+    
+    if (decodedToken) {
+      try {
+        await authService.revokeSession(decodedToken.uid);
+      } catch (error: any) {
+        // This error is common if the cookie is expired, so we don't need to log it as a server error.
+        console.log(`[LOGOUT_INFO] Could not revoke refresh tokens, likely because session cookie was already invalid: ${error.code}`);
+      }
     }
   }
 

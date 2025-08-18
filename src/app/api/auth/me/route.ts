@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/server-utils';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { admin, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const { uid } = decodedToken;
-    const userDoc = await firestore.collection('users').doc(uid).get();
+    const userDoc = await admin.firestore().collection('users').doc(uid).get();
 
     if (!userDoc.exists) {
       console.error(`[API_ME_ERROR] Firestore user document not found for UID: ${uid}`);

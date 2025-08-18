@@ -4,7 +4,7 @@
  * This demonstrates an Object-Oriented approach to organizing backend logic.
  */
 
-import { firestore, admin } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
 import { v4 as uuid } from 'uuid';
 import type { FieldValue } from 'firebase-admin/firestore';
 
@@ -33,8 +33,8 @@ export interface Property {
 }
 
 class PropertyService {
-  private propertiesCollection = firestore.collection('properties');
-  private usersCollection = firestore.collection('users');
+  private propertiesCollection = admin.firestore().collection('properties');
+  private usersCollection = admin.firestore().collection('users');
 
   /**
    * Fetches all properties for a given landlord, including their units.
@@ -84,7 +84,7 @@ class PropertyService {
     }
 
     const propertiesSnapshot = await this.propertiesCollection
-        .where(firestore.FieldPath.documentId(), 'in', managedPropertyIds)
+        .where(admin.firestore.FieldPath.documentId(), 'in', managedPropertyIds)
         .get();
 
     const properties = await Promise.all(propertiesSnapshot.docs.map(async (doc) => {
@@ -172,7 +172,7 @@ class PropertyService {
     // This requires a more complex Cloud Function for full cleanup in production.
     // For this app, we'll just delete the main document and its units.
     const unitsSnapshot = await ref.collection('units').get();
-    const batch = firestore.batch();
+    const batch = admin.firestore().batch();
     unitsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
 
@@ -206,7 +206,7 @@ class PropertyService {
     const units = propertyData.units || [];
 
     // Use a transaction to ensure all or nothing is written
-    await firestore.runTransaction(async (transaction) => {
+    await admin.firestore().runTransaction(async (transaction) => {
         transaction.set(docRef, newPropertyData);
 
         units.forEach((unit: any) => {
