@@ -24,3 +24,5 @@ export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>
         return { error: error.message || "An unknown error occurred" };
     }
 }
+
+    

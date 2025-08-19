@@ -60,3 +60,5 @@ export function Receipt({ receipt }: ReceiptProps) {
     </Card>
   );
 }
+
+    

@@ -73,7 +73,7 @@ export default function PaymentsPage() {
             const [tenantsRes, propertiesRes, paymentsRes] = await Promise.all([
                 fetch('/api/tenants'),
                 fetch('/api/properties'),
-                fetch('/api/payments') // A new endpoint to get all payments
+                fetch('/api/payments')
             ]);
 
             const tenantsData: Tenant[] = await tenantsRes.json();
@@ -334,3 +334,5 @@ export default function PaymentsPage() {
     </div>
   );
 }
+
+    

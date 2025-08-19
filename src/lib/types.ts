@@ -1,5 +1,8 @@
 
 import type { Timestamp } from "firebase-admin/firestore";
+import type { GenerateReceiptOutput as GenReceiptOutput } from '@/ai/flows/generate-receipt';
+import type { GenerateInvoiceOutput as GenInvoiceOutput } from '@/ai/flows/generate-invoice';
+
 
 export interface User {
     uid: string;
@@ -156,17 +159,7 @@ export interface DashboardData {
     aiSummary?: string;
 }
 
-export interface GenerateInvoiceOutput {
-  invoiceNumber: string;
-  invoiceDate: string;
-  dueDate: string;
-  tenantName: string;
-  propertyAddress: string;
-  items: {
-    description: string;
-    amount: number;
-  }[];
-  totalAmount: number;
-  currency: string;
-  notes: string;
-}
+export type GenerateReceiptOutput = GenReceiptOutput;
+export type GenerateInvoiceOutput = GenInvoiceOutput;
+
+    
