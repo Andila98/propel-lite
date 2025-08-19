@@ -137,7 +137,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                 unitNumber: row.unitNumber || '',
                 size: row.size || '',
                 rent: parseFloat(row.rent) || 0,
-                isOccupied: row.isOccupied ? row.isOccupied.toLowerCase() === 'true' : false,
+                isOccupied: typeof row.isOccupied === 'string' ? row.isOccupied.toLowerCase() === 'true' : Boolean(row.isOccupied),
               }));
               replace(units as any);
               setValue("numberOfUnits", units.length);
