@@ -63,8 +63,10 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   const { register, control, handleSubmit, formState, setValue, watch, getValues, setError, reset } = form;
 
   useEffect(() => {
-    reset(initialData);
-    setImagePreview(initialData?.imageUrl || null);
+    if (initialData) {
+      reset(initialData);
+      setImagePreview(initialData.imageUrl || null);
+    }
   }, [initialData, reset]);
 
   useEffect(() => {

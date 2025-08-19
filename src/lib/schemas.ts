@@ -24,7 +24,7 @@ export const PropertyFormSchema = z.object({
   currency: z.string().optional().default("KES"),
   units: z.array(UnitSchema).min(1, "At least one unit is required."),
   numberOfUnits: z.coerce.number().optional(),
-  imageUrl: z.string().optional(),
+  imageUrl: z.string().url().optional().nullable(),
 });
 export type PropertyFormValues = z.infer<typeof PropertyFormSchema>;
 

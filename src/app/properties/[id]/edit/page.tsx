@@ -23,7 +23,8 @@ export default function EditPropertyPage() {
   const { property, loading: propertyLoading } = useProperty(propertyId);
   
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
-  const [state, formAction] = useFormState(updatePropertyAction, initialState);
+  const updateActionWithId = updatePropertyAction.bind(null, propertyId);
+  const [state, formAction] = useFormState(updateActionWithId, initialState);
 
   useEffect(() => {
     if (state.success) {
@@ -66,8 +67,6 @@ export default function EditPropertyPage() {
     return <div>Property not found.</div>;
   }
 
-  const actionWithId = formAction.bind(null, propertyId);
-
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center gap-4">
@@ -80,7 +79,7 @@ export default function EditPropertyPage() {
             <h2 className="text-3xl font-bold tracking-tight">Edit Property</h2>
         </div>
         <PropertyForm 
-            formAction={actionWithId}
+            formAction={formAction}
             initialState={state}
             initialData={property}
         />
