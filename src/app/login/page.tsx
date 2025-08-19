@@ -36,7 +36,7 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-        const { user } = await login(email, password); // Get user data from login
+        const { user } = await login(email, password);
         toast({
             title: "Login Successful",
             description: "Welcome back!",

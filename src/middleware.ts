@@ -1,14 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-
-// Since Firebase auth is removed, we will use a simplified middleware.
-// In this mock setup, we assume a user is "logged in" if they have a mock session cookie.
+import { authConfig } from '@/config/server-config';
 
 // Paths that do not require authentication
 const publicPaths = [
   '/login',
   '/register',
-  '/onboarding',
+  '/onboarding/accept-invite', // Needs to be public to accept an invitation
   '/_next',
   '/favicon.ico',
 ];
@@ -22,21 +20,27 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Allow public paths and API routes to pass through without checks.
-  // API routes will handle their own logic (returning mock data).
-  if (isPublic(pathname) || pathname.startsWith('/api/')) {
+  if (isPublic(pathname) || pathname.startsWith('/api/auth/')) {
     return NextResponse.next();
   }
 
-  // Check for the mock session cookie on protected routes.
-  const sessionCookie = request.cookies.get('mockSession')?.value;
+  // Check for the session cookie on protected routes.
+  const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
       console.log(`[MIDDLEWARE_REDIRECT] No session cookie for protected path: ${pathname}. Redirecting.`);
       const url = request.nextUrl.clone();
       url.pathname = '/login';
-      url.searchParams.set('redirect', pathname);
+      if (pathname !== '/dashboard') {
+        url.searchParams.set('redirect', pathname);
+      }
       return NextResponse.redirect(url);
   }
+
+  // On the backend, we would verify the cookie here using the Admin SDK.
+  // Since middleware runs in the edge runtime, we can't use the full Node.js Admin SDK.
+  // A common pattern is to have a lightweight session check here and full verification in API routes/server components.
+  // For this project, we'll trust the presence of the cookie in the middleware and verify it on the backend endpoints.
 
   return NextResponse.next();
 }

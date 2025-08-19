@@ -2,8 +2,11 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { mockUsers } from '@/lib/mock-data';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { auth } from '@/lib/firebase-client';
+import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword } from 'firebase/auth';
 
 export interface User {
   uid: string;
@@ -12,6 +15,7 @@ export interface User {
   role: 'landlord' | 'tenant' | 'admin' | 'manager';
   profileComplete: boolean;
   avatarUrl?: string;
+  token?: string;
 }
 
 interface AuthContextType {
@@ -23,55 +27,80 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function fetchUserSession(firebaseUser: FirebaseUser | null): Promise<User | null> {
+    if (!firebaseUser) return null;
+
+    const token = await firebaseUser.getIdToken();
+    const response = await fetch('/api/auth/me', {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (response.ok) {
+        const userProfile = await response.json();
+        return { ...userProfile, token };
+    }
+
+    if (response.status === 401) { // Session might be expired server-side
+        await firebaseSignOut(auth);
+    }
+    
+    return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  // Check for a mock session on initial load
   useEffect(() => {
-    try {
-        const mockSession = localStorage.getItem('mockSession');
-        if (mockSession) {
-            setUser(JSON.parse(mockSession));
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        try {
+            const userProfile = await fetchUserSession(firebaseUser);
+            setUser(userProfile);
+        } catch (error) {
+            console.error("Error fetching user session:", error);
+            setUser(null);
+        } finally {
+            setLoading(false);
         }
-    } catch (e) {
-        console.error("Failed to parse mock session from localStorage", e);
-    } finally {
-        setLoading(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = useCallback(async (email: string, pass: string): Promise<{ user: User }> => {
-    setLoading(true);
-    // Simulate network delay
-    await new Promise(res => setTimeout(res, 500));
+  const login = useCallback(async (email: string, pass: string): Promise<{ user:User }> => {
     
-    // In a real app, you'd call your backend here.
-    // For this mock version, we'll just find the first landlord.
-    const mockLandlord = mockUsers.find(u => u.role === 'landlord');
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    const idToken = await userCredential.user.getIdToken();
+    
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${idToken}`,
+        },
+    });
 
-    if (mockLandlord && email === 'landlord@example.com') { // Simple check for demo
-        const loggedInUser = mockLandlord as User;
-        setUser(loggedInUser);
-        localStorage.setItem('mockSession', JSON.stringify(loggedInUser));
-        setLoading(false);
-        return { user: loggedInUser };
-    } else {
-        setLoading(false);
-        throw new Error("Invalid mock credentials.");
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Login failed.');
     }
+
+    const userProfile = await response.json();
+    setUser(userProfile);
+    return { user: userProfile };
   }, []);
 
   const logout = useCallback(async () => {
-    setLoading(true);
-    await new Promise(res => setTimeout(res, 500));
+    await firebaseSignOut(auth);
+    await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
-    localStorage.removeItem('mockSession');
-    setLoading(false);
-  }, []);
+    router.push('/login');
+  }, [router]);
 
 
-  if (loading && !user) { // Show loader only on initial load without a user
+  if (loading) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

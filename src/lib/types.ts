@@ -1,4 +1,5 @@
 
+import type { Timestamp } from "firebase/firestore";
 
 export interface User {
     uid: string;
@@ -6,7 +7,7 @@ export interface User {
     name: string;
     role: 'landlord' | 'tenant' | 'admin' | 'manager';
     landlordId?: string; // For tenants and managers
-    createdAt: Date;
+    createdAt: Timestamp;
     avatarUrl?: string;
     profileComplete: boolean;
 }
@@ -24,7 +25,7 @@ export interface Property {
     bedrooms: number;
     bathrooms: number;
     currency?: string;
-    createdAt: Date;
+    createdAt: Timestamp;
     units?: Unit[];
 }
 
@@ -48,11 +49,10 @@ export interface Tenant {
     avatarUrl?: string;
     propertyId: string;
     rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance';
-    paymentHistory: Payment[];
     landlordId: string;
     currentUnitId?: string;
-    leaseStartDate: Date;
-    leaseEndDate: Date;
+    leaseStartDate: Timestamp;
+    leaseEndDate: Timestamp;
 }
 
 export interface Payment {
@@ -62,7 +62,7 @@ export interface Payment {
     propertyId: string;
     unitId: string;
     amount: number;
-    date: string;
+    date: Timestamp;
     method: 'Mpesa' | 'Stripe' | 'Bank Transfer';
     status: 'pending' | 'confirmed' | 'failed';
     txRef?: string;
@@ -75,7 +75,7 @@ export interface Message {
   senderId: string;
   senderName: string;
   content: string;
-  timestamp: any; // Can be string or Firestore timestamp
+  timestamp: Timestamp;
   isRead: boolean;
 }
 
@@ -94,7 +94,7 @@ export interface MaintenanceRequest {
   propertyAddress: string;
   description: string;
   status: 'Pending' | 'In Progress' | 'Completed';
-  submittedDate: string;
+  submittedDate: Timestamp;
   priority?: 'High' | 'Medium' | 'Low';
   reasoning?: string;
 }
@@ -137,7 +137,7 @@ export interface AuditLog {
     action: string;
     entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
     entityName: string;
-    timestamp: string;
+    timestamp: Timestamp;
 }
 
 export interface DashboardData {
