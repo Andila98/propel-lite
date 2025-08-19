@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -9,6 +10,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ohpverffrwflwksxoljv.supabase.co',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
 };

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useForm, Controller, useFieldArray, type UseFormReturn } from "react-hook-form";
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import type { Unit } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFormStatus } from 'react-dom';
-import type { FormState } from '@/app/properties/actions';
+import type { FormState } from '@/app/properties/[id]/edit/actions';
 import { compressFile } from '@/lib/client/compress';
 
 interface PropertyFormProps {
@@ -45,7 +45,8 @@ function SubmitButton({ isOnboarding }: { isOnboarding: boolean }) {
 export function PropertyForm({ formAction, initialState, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   
   const defaultForm = useForm<PropertyFormValues>({
     defaultValues: initialData || {
@@ -101,28 +102,40 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsUploading(true);
       try {
         const compressedFile = await compressFile(file);
-        setImageFile(compressedFile);
         
-        const previewUrl = URL.createObjectURL(compressedFile);
-        setImagePreview(previewUrl);
+        const formData = new FormData();
+        formData.append('file', compressedFile);
 
-      } catch (error) {
-        console.error("Image compression failed:", error);
-        toast({ title: 'Compression Error', description: 'Could not process image.', variant: 'destructive'});
-        // Fallback to original file if compression fails
-        setImageFile(file);
-        const previewUrl = URL.createObjectURL(file);
-        setImagePreview(previewUrl);
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const { url } = await res.json();
+        setValue('imageUrl', url);
+        setImagePreview(url);
+        toast({ title: 'Success', description: 'Image uploaded successfully.'});
+
+      } catch (error: any) {
+        console.error("Image upload failed:", error);
+        toast({ title: 'Upload Error', description: error.message, variant: 'destructive'});
+      } finally {
+        setIsUploading(false);
       }
     }
   };
 
   const removeImage = () => {
-      setImageFile(null);
+      setValue('imageUrl', '');
       setImagePreview(null);
-      setValue('imageUrl', undefined);
   };
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,7 +150,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                 unitNumber: row.unitNumber || '',
                 size: row.size || '',
                 rent: parseFloat(row.rent) || 0,
-                isOccupied: typeof row.isOccupied === 'string' ? row.isOccupied.toLowerCase() === 'true' : Boolean(row.isOccupied),
+                isOccupied: String(row.isOccupied).toLowerCase() === 'true',
               }));
               replace(units as any);
               setValue("numberOfUnits", units.length);
@@ -200,25 +213,31 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   };
   
   const clientAction = (formData: FormData) => {
-    const propertyData = getValues();
+     startTransition(() => {
+        const propertyData = getValues();
     
-    const validation = PropertyFormSchema.safeParse(propertyData);
-    if (!validation.success) {
-      toast({
-        title: "Invalid Input",
-        description: "Please check the form for errors before submitting.",
-        variant: "destructive",
-      });
-      handleSubmit(() => {})()
-      return;
-    }
-    
-    formData.append('propertyData', JSON.stringify(propertyData));
-    if (imageFile) {
-        formData.append('image', imageFile);
-    }
+        const validation = PropertyFormSchema.safeParse(propertyData);
+        if (!validation.success) {
+          toast({
+            title: "Invalid Input",
+            description: "Please check the form for errors before submitting.",
+            variant: "destructive",
+          });
+          handleSubmit(() => {})()
+          return;
+        }
 
-    formAction(formData);
+        const newFormData = new FormData();
+        Object.entries(validation.data).forEach(([key, value]) => {
+            if (key === 'units') {
+                newFormData.append(key, JSON.stringify(value));
+            } else if (value !== undefined && value !== null) {
+                newFormData.append(key, String(value));
+            }
+        });
+        
+        formAction(newFormData);
+     });
   }
   
   const cardHeader = isOnboarding ? (
@@ -236,6 +255,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   return (
     <TooltipProvider>
     <form action={clientAction}>
+        <input type="hidden" {...register('imageUrl')} />
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-6">
                 <Card>
@@ -448,7 +468,8 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                     </CardHeader>
                     <CardContent>
                         <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative group">
-                            {imagePreview ? (
+                            {isUploading && <Loader2 className="h-8 w-8 animate-spin" />}
+                            {!isUploading && imagePreview ? (
                                 <>
                                     <Image
                                         src={imagePreview}
@@ -465,15 +486,17 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                                     </div>
                                 </>
                             ) : (
-                                <div className="text-muted-foreground flex flex-col items-center">
-                                    <ImageIcon className="h-12 w-12" />
-                                    <p>Image preview will appear here</p>
-                                </div>
+                                !isUploading && (
+                                    <div className="text-muted-foreground flex flex-col items-center">
+                                        <ImageIcon className="h-12 w-12" />
+                                        <p>Image preview will appear here</p>
+                                    </div>
+                                )
                             )}
                         </div>
                         <div className="mt-4">
                              <Label htmlFor="image" className="sr-only">Upload Image</Label>
-                             <Input id="image" type="file" accept="image/*" onChange={handleFileChange} />
+                             <Input id="image" type="file" accept="image/*" onChange={handleFileChange} disabled={isUploading}/>
                              {formState.errors.imageUrl && <p className="text-sm text-destructive mt-1">{formState.errors.imageUrl.message}</p>}
                         </div>
                     </CardContent>
@@ -481,7 +504,9 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
             </div>
         </div>
         <div className="mt-8">
-            <SubmitButton isOnboarding={isOnboarding} />
+            <Button type="submit" className="w-full md:w-auto" disabled={isPending || isUploading}>
+                {isPending ? <Loader2 className="animate-spin" /> : (isOnboarding ? "Next: Add Property Manager" : "Save Property")}
+            </Button>
         </div>
     </form>
     </TooltipProvider>

@@ -5,8 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { firestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { createClient } from '@supabase/supabase-js';
-import { v4 as uuidv4 } from 'uuid';
 import { logActivity } from '@/lib/audit-log-service';
 
 export interface FormState {
@@ -21,31 +19,23 @@ export interface FormState {
     propertyId?: string;
 }
 
-const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function updatePropertyAction(
   propertyId: string,
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const propertyDataString = formData.get('propertyData') as string | null;
-  const imageFile = formData.get('image') as File | null;
+   const rawData = {
+    name: formData.get('name'),
+    address: formData.get('address'),
+    type: formData.get('type'),
+    currency: formData.get('currency'),
+    description: formData.get('description'),
+    imageUrl: formData.get('imageUrl'),
+    units: JSON.parse(formData.get('units') as string),
+    numberOfUnits: Number(formData.get('numberOfUnits')),
+  };
   
-  if (!propertyDataString) {
-      return { error: 'Missing propertyData.' };
-  }
-    
-  let propertyData;
-  try {
-      propertyData = JSON.parse(propertyDataString);
-  } catch (e) {
-      return { error: 'Invalid propertyData JSON.' };
-  }
-
-  const validationResult = PropertyFormSchema.safeParse(propertyData);
+  const validationResult = PropertyFormSchema.safeParse(rawData);
   if (!validationResult.success) {
       console.error("Server Action Validation Error:", validationResult.error.flatten());
       return { 
@@ -55,34 +45,8 @@ export async function updatePropertyAction(
   }
 
   const { units, ...mainPropertyData } = validationResult.data;
-  let imageUrl = mainPropertyData.imageUrl || null; 
 
   try {
-    if (imageFile && imageFile.size > 0) {
-        const fileExtension = imageFile.name.split('.').pop();
-        const fileName = `${uuidv4()}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('properties')
-            .upload(fileName, imageFile, {
-                contentType: imageFile.type,
-                upsert: true,
-            });
-
-        if (uploadError) {
-            throw new Error(`Supabase upload failed: ${uploadError.message}`);
-        }
-        
-        const { data: urlData } = supabase.storage
-            .from('properties')
-            .getPublicUrl(uploadData.path);
-            
-        imageUrl = urlData.publicUrl;
-    } else if (imageUrl === null) {
-        // Image was removed but not replaced
-        // TODO: Optionally delete the old image from Supabase
-    }
-
-
     const propertyRef = firestore.collection('properties').doc(propertyId);
     const existingUnitsSnapshot = await propertyRef.collection('units').get();
     const existingUnitIds = new Set(existingUnitsSnapshot.docs.map(doc => doc.id));
@@ -91,7 +55,6 @@ export async function updatePropertyAction(
     await firestore.runTransaction(async (transaction) => {
         transaction.update(propertyRef, {
             ...mainPropertyData,
-            imageUrl: imageUrl,
             updatedAt: FieldValue.serverTimestamp(),
         });
         
