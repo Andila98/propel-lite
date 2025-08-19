@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { mockProperties, mockUnits } from '@/lib/mock-data';
+import { firestore } from '@/lib/firebase-admin';
 
 export async function GET(
   req: NextRequest,
@@ -8,16 +8,19 @@ export async function GET(
 ) {
   try {
     const propertyId = params.id;
-    const property = mockProperties.find(p => p.id === propertyId);
+    const propertyDoc = await firestore.collection('properties').doc(propertyId).get();
 
-    if (!property) {
+    if (!propertyDoc.exists) {
       return NextResponse.json({ error: 'Property not found' }, { status: 404 });
     }
     
-    // Attach units to the property
+    const unitsSnapshot = await propertyDoc.ref.collection('units').get();
+    const units = unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
     const propertyWithUnits = {
-        ...property,
-        units: mockUnits.filter(u => u.propertyId === propertyId)
+        id: propertyDoc.id,
+        ...propertyDoc.data(),
+        units: units
     };
 
     return NextResponse.json(propertyWithUnits);
@@ -35,8 +38,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     const propertyId = params.id;
     const updates = await req.json();
-    console.log(`Mock update for property ${propertyId} with data:`, updates);
-    return NextResponse.json({ message: 'Property updated successfully (mock)' });
+
+    // TODO: Add validation with Zod schema
+    
+    await firestore.collection('properties').doc(propertyId).update(updates);
+    
+    return NextResponse.json({ message: 'Property updated successfully' });
   } catch (error: any) {
     console.error(`[PROPERTY_UPDATE_ERROR] for ID ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
@@ -49,8 +56,15 @@ export async function DELETE(
 ) {
   try {
     const propertyId = params.id;
-    console.log(`Mock delete for property ${propertyId}`);
-    return NextResponse.json({ message: 'Property deleted successfully (mock)' });
+    const propertyRef = firestore.collection('properties').doc(propertyId);
+    
+    // In a real app, you might want to delete subcollections in a more robust way
+    // (e.g., using a Firebase Function) as direct deletion of subcollections
+    // isn't supported in the client/admin SDKs directly for nested data.
+    // For now, we delete the main document.
+    await propertyRef.delete();
+    
+    return NextResponse.json({ message: 'Property deleted successfully' });
   } catch (error: any) {
     console.error(`[PROPERTY_DELETE_ERROR] for ID ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });

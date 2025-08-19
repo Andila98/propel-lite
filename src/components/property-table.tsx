@@ -71,7 +71,7 @@ export function PropertyTable({ properties }: PropertyTableProps) {
             >
               <TableCell>
                 <Image
-                  src={prop.imageUrl}
+                  src={prop.imageUrl || 'https://placehold.co/100x100.png'}
                   alt={prop.address}
                   width={50}
                   height={50}

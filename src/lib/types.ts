@@ -1,5 +1,5 @@
 
-import type { Timestamp } from "firebase/firestore";
+import type { Timestamp } from "firebase-admin/firestore";
 
 export interface User {
     uid: string;
@@ -19,25 +19,28 @@ export interface Property {
     type: 'Apartment' | 'House' | 'Bedsitter';
     landlordId: string;
     managerId?: string;
-    imageUrl: string;
+    imageUrl?: string;
     description: string;
-    rent: number; // For single-unit properties
-    bedrooms: number;
-    bathrooms: number;
     currency?: string;
     createdAt: Timestamp;
-    units?: Unit[];
+    updatedAt?: Timestamp;
+    // These are not stored directly in the property document in Firestore
+    // but are added on when fetching the data.
+    units: Unit[]; 
+    // The fields below are deprecated from the main doc and live in the units subcollection
+    rent?: number; 
+    bedrooms?: number;
+    bathrooms?: number;
 }
 
 export interface Unit {
     id: string;
-    propertyId: string;
-    landlordId: string;
     unitNumber: string;
     rent: number;
     size: string;
     isOccupied: boolean;
     tenantId?: string;
+    // propertyId and landlordId are inherited from the parent property
 }
 
 export interface Tenant {
@@ -53,6 +56,7 @@ export interface Tenant {
     currentUnitId?: string;
     leaseStartDate: Timestamp;
     leaseEndDate: Timestamp;
+    paymentHistory: Payment[];
 }
 
 export interface Payment {
@@ -63,7 +67,7 @@ export interface Payment {
     unitId: string;
     amount: number;
     date: Timestamp;
-    method: 'Mpesa' | 'Stripe' | 'Bank Transfer';
+    method: 'Mpesa' | 'Stripe' | 'Bank Transfer' | 'Card' | 'Other';
     status: 'pending' | 'confirmed' | 'failed';
     txRef?: string;
     type?: 'Rent' | 'Deposit' | 'Other';
@@ -94,7 +98,7 @@ export interface MaintenanceRequest {
   propertyAddress: string;
   description: string;
   status: 'Pending' | 'In Progress' | 'Completed';
-  submittedDate: Timestamp;
+  submittedDate: string;
   priority?: 'High' | 'Medium' | 'Low';
   reasoning?: string;
 }
@@ -137,7 +141,7 @@ export interface AuditLog {
     action: string;
     entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
     entityName: string;
-    timestamp: Timestamp;
+    timestamp: string;
 }
 
 export interface DashboardData {

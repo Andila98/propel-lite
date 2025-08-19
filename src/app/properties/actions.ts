@@ -2,8 +2,9 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { v4 as uuid } from 'uuid';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
+import { firestore } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export interface FormState {
     error?: string;
@@ -21,8 +22,6 @@ export async function createPropertyAction(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  // This is a mock implementation since Firebase is removed.
-  
   const propertyDataString = formData.get('propertyData') as string | null;
   
   if (!propertyDataString) {
@@ -45,22 +44,34 @@ export async function createPropertyAction(
        };
   }
 
-  const validatedData = validationResult.data;
+  const { units, ...mainPropertyData } = validationResult.data;
 
   try {
-    const propertyId = uuid();
-    console.log(`Mock creating property with ID ${propertyId} and data:`, validatedData);
-    
-    // In a real app, you would save this to a database.
-    // For now, we just simulate success.
+    const propertyRef = firestore.collection('properties').doc();
+
+    await firestore.runTransaction(async (transaction) => {
+        // Create the main property document
+        transaction.set(propertyRef, {
+            ...mainPropertyData,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+            // TODO: Add landlordId from session
+        });
+
+        // Create a subcollection for units
+        units.forEach(unit => {
+            const unitRef = propertyRef.collection('units').doc();
+            transaction.set(unitRef, unit);
+        });
+    });
     
     revalidatePath('/properties');
     revalidatePath('/dashboard');
     
-    return { success: true, propertyId: propertyId };
+    return { success: true, propertyId: propertyRef.id };
 
   } catch (error: any) {
-    console.error('[MOCK_PROPERTY_CREATE_ACTION_ERROR]', error);
+    console.error('[CREATE_PROPERTY_ACTION_ERROR]', error);
     return { error: `Internal Server Error: ${error.message}` };
   }
 }

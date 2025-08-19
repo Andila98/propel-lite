@@ -1,12 +1,7 @@
 
-"use client";
-
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
-import type { Tenant, Unit } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { notFound } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -14,67 +9,41 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Square, BedDouble, Bath, Home, Camera, WifiOff, Eye, FileText, ImageIcon as GalleryIcon, Wand2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useProperty } from '@/hooks/use-property';
-import { useTenants } from '@/hooks/use-tenants';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
-import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
-import { useState } from 'react';
+import type { Property, Unit } from '@/lib/types';
+import { firestore } from '@/lib/firebase-admin';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Camera, Wand2 } from 'lucide-react';
 import { DamageAnalysisDialog } from '@/components/damage-analysis-dialog';
-
-export default function PropertyDetailPage() {
-  const router = useRouter();
-  const { id } = useParams();
-  const { toast } = useToast();
-  const propertyId = id as string;
-  
-  const { property, loading, error } = useProperty(propertyId);
-  const { tenants } = useTenants();
-  const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
+import { DeletePropertyButton } from './delete-property-button';
 
 
-  const getTenantForUnit = (unitId: string) => {
-    return tenants.find(t => t.currentUnitId === unitId);
+async function getProperty(id: string): Promise<Property | null> {
+  const propertyDoc = await firestore.collection('properties').doc(id).get();
+
+  if (!propertyDoc.exists) {
+    return null;
   }
 
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+  const propertyData = propertyDoc.data() as Property;
+
+  const unitsSnapshot = await propertyDoc.ref.collection('units').get();
+  const units = unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Unit[];
+  
+  return {
+    id: propertyDoc.id,
+    ...propertyData,
+    units,
+    // Convert Firestore Timestamps to Dates
+    createdAt: (propertyData.createdAt as any)?.toDate(),
+    updatedAt: (propertyData.updatedAt as any)?.toDate(),
+  };
+}
+
+const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
@@ -82,43 +51,12 @@ export default function PropertyDetailPage() {
     }).format(amount);
   };
 
-  if (loading) {
-    return <PropertyDetailSkeleton />;
-  }
-
-  if (error) {
-    return (
-        <div className="flex flex-col items-center justify-center h-64 text-center text-destructive p-4">
-            <WifiOff className="h-12 w-12 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Failed to Load Property</h3>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <Button onClick={() => router.push('/properties')} className="mt-4">Go to Properties</Button>
-        </div>
-    );
-  }
+export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const property = await getProperty(params.id);
 
   if (!property) {
-    return <div>Property not found.</div>;
+    notFound();
   }
-
-  const handleDelete = async () => {
-    try {
-        const response = await fetch(`/api/properties/${propertyId}`, { method: 'DELETE' });
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to delete property');
-        }
-        toast({
-            title: "Property Deleted",
-            description: `The property at ${property.address} has been deleted.`,
-        });
-        router.push('/properties');
-    } catch (err: any) {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const propertyImage = property.imageUrl;
 
   return (
     <>
@@ -142,26 +80,7 @@ export default function PropertyDetailPage() {
                     <AnimatedEditIcon /> Edit
                 </Button>
             </Link>
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                        <AnimatedDeleteIcon /> Delete
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the
-                        property and all associated units and data.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <DeletePropertyButton propertyId={property.id} propertyAddress={property.address} />
         </div>
       </div>
         
@@ -169,8 +88,8 @@ export default function PropertyDetailPage() {
         <div className="lg:col-span-3">
              <Card className="overflow-hidden">
                 <Image
-                    src={propertyImage || "https://placehold.co/800x500.png"}
-                    alt={property.name}
+                    src={property.imageUrl || "https://placehold.co/800x500.png"}
+                    alt={property.name || 'Property Image'}
                     width={800}
                     height={500}
                     className="w-full object-cover"
@@ -186,12 +105,6 @@ export default function PropertyDetailPage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground">{property.description}</p>
-                     <div className="grid grid-cols-2 gap-4 text-sm pt-4">
-                        <div className="flex items-center gap-2">
-                            <Home className="h-4 w-4 text-muted-foreground" />
-                            <span>Type: <span className="font-semibold capitalize">{property.type}</span></span>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
             <Card className="mt-6 border-primary/20 bg-primary/5">
@@ -202,10 +115,8 @@ export default function PropertyDetailPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Button className="w-full" onClick={() => setIsDamageDialogOpen(true)}>
-                        <Camera className="mr-2 h-4 w-4" />
-                        Run Damage Analysis
-                    </Button>
+                    {/* The Dialog is a client component, so we wrap it to avoid making this whole page a client component */}
+                    <DamageAnalysisDialogWrapper />
                 </CardContent>
             </Card>
         </div>
@@ -224,13 +135,10 @@ export default function PropertyDetailPage() {
                                 <TableHead>Size</TableHead>
                                 <TableHead>Rent</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Tenant</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {property.units.map((unit: Unit) => {
-                                const tenant = getTenantForUnit(unit.id);
-                                return (
+                            {property.units.map((unit: Unit) => (
                                     <TableRow key={unit.id}>
                                         <TableCell className="font-medium">{unit.unitNumber}</TableCell>
                                         <TableCell>{unit.size}</TableCell>
@@ -240,22 +148,9 @@ export default function PropertyDetailPage() {
                                                 {unit.isOccupied ? 'Occupied' : 'Vacant'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
-                                            {tenant ? (
-                                                <Link href={`/tenants/${tenant.id}`} className="flex items-center gap-2 hover:underline">
-                                                    <Avatar className="h-6 w-6">
-                                                        <AvatarImage src={tenant.avatarUrl} data-ai-hint="person portrait" />
-                                                        <AvatarFallback>{tenant.name.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
-                                                    {tenant.name}
-                                                </Link>
-                                            ) : (
-                                                <span className="text-muted-foreground text-xs">N/A</span>
-                                            )}
-                                        </TableCell>
                                     </TableRow>
                                 )
-                            })}
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
@@ -263,39 +158,21 @@ export default function PropertyDetailPage() {
         </div>
       </div>
     </div>
-    <DamageAnalysisDialog open={isDamageDialogOpen} onOpenChange={setIsDamageDialogOpen} />
     </>
   );
 }
 
-
-function PropertyDetailSkeleton() {
+// Helper component to keep the main page a Server Component
+function DamageAnalysisDialogWrapper() {
+    "use client"
+    const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
     return (
-        <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <Skeleton className="h-8 w-8 rounded-md" />
-                    <div>
-                        <Skeleton className="h-8 w-64" />
-                        <Skeleton className="h-4 w-48 mt-2" />
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Skeleton className="h-9 w-24" />
-                    <Skeleton className="h-9 w-24" />
-                </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div className="lg:col-span-3">
-                    <Skeleton className="aspect-video w-full" />
-                </div>
-                <div className="lg:col-span-2">
-                    <Skeleton className="h-48 w-full" />
-                </div>
-                <div className="lg:col-span-5">
-                    <Skeleton className="h-64 w-full mt-4" />
-                </div>
-            </div>
-        </div>
+        <>
+        <Button className="w-full" onClick={() => setIsDamageDialogOpen(true)}>
+            <Camera className="mr-2 h-4 w-4" />
+            Run Damage Analysis
+        </Button>
+        <DamageAnalysisDialog open={isDamageDialogOpen} onOpenChange={setIsDamageDialogOpen} />
+        </>
     )
 }
