@@ -20,17 +20,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, type User } from '@/hooks/use-auth';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('landlord@example.com');
   const [password, setPassword] = useState('password123');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
+  const handleRedirect = (user: User) => {
+    if (user.role === 'tenant') {
+        router.push('/tenant-portal');
+    } else if (!user.profileComplete) {
+        router.push('/onboarding/landlord-welcome');
+    } else {
+        router.push('/dashboard');
+    }
+  }
+
   const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -41,16 +52,7 @@ export default function LoginPage() {
             title: "Login Successful",
             description: "Welcome back!",
         });
-        
-        // Intelligent Redirection
-        if (user.role === 'tenant') {
-            router.push('/tenant-portal');
-        } else if (!user.profileComplete) {
-            router.push('/onboarding/landlord-welcome');
-        } else {
-            router.push('/dashboard');
-        }
-
+        handleRedirect(user);
     } catch (error: any) {
         toast({
             title: "Login Failed",
@@ -62,11 +64,24 @@ export default function LoginPage() {
     }
   }, [email, password, router, toast, login]);
   
-  const handleSocialLogin = (provider: string) => {
-     toast({
-        title: "Coming Soon!",
-        description: `${provider} login is not yet implemented.`,
-      });
+  const handleSocialLogin = async () => {
+    setIsSocialLoading(true);
+    try {
+        const { user } = await loginWithGoogle();
+        toast({
+            title: `Welcome, ${user.name}!`,
+            description: "You've successfully signed in.",
+        });
+        handleRedirect(user);
+    } catch (error: any) {
+         toast({
+            title: "Social Login Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsSocialLoading(false);
+    }
   }
 
   return (
@@ -80,7 +95,7 @@ export default function LoginPage() {
           <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
-          <fieldset disabled={isLoading} className="space-y-4">
+          <fieldset disabled={isLoading || isSocialLoading} className="space-y-4">
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -138,8 +153,12 @@ export default function LoginPage() {
                 Sign up
             </Link>
           </p>
-          <Button variant="outline" className="w-full" onClick={() => handleSocialLogin('Google')}>
-            <GoogleIcon className="mr-2 h-4 w-4" />
+          <Button variant="outline" className="w-full" onClick={handleSocialLogin} disabled={isLoading || isSocialLoading}>
+            {isSocialLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GoogleIcon className="mr-2 h-4 w-4" />
+            )}
             Sign in with Google
           </Button>
         </CardFooter>

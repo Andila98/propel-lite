@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
-import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 export interface User {
   uid: string;
@@ -22,6 +22,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<{ user: User }>;
+  loginWithGoogle: () => Promise<{ user: User }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -88,11 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = useCallback(async (email: string, pass: string): Promise<{ user:User }> => {
-    
-    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    const idToken = await userCredential.user.getIdToken();
-    
+  const processLogin = useCallback(async (idToken: string): Promise<{ user: User }> => {
     const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -109,6 +106,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(userProfile);
     return { user: userProfile };
   }, []);
+
+  const login = useCallback(async (email: string, pass: string): Promise<{ user:User }> => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    const idToken = await userCredential.user.getIdToken();
+    return processLogin(idToken);
+  }, [processLogin]);
+  
+  const loginWithGoogle = useCallback(async (): Promise<{ user: User }> => {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const idToken = await userCredential.user.getIdToken();
+    return processLogin(idToken);
+  }, [processLogin]);
 
   const logout = useCallback(async () => {
     await firebaseSignOut(auth);
@@ -127,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -140,5 +150,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    
