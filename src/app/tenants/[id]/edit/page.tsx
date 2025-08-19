@@ -15,11 +15,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
-import type { Tenant } from '@/lib/types';
+import type { Tenant, Unit } from '@/lib/types';
 import { useTenant } from '@/hooks/use-tenant';
 import { format, parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
 
-const TenantFormSchema = z.object({
+const TenantUpdateSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
   email: z.string().email("Please enter a valid email address."),
   phone: z.string().optional(),
@@ -28,56 +30,101 @@ const TenantFormSchema = z.object({
   leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
   leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
 });
-type TenantFormValues = z.infer<typeof TenantFormSchema>;
+type TenantUpdateValues = z.infer<typeof TenantUpdateSchema>;
 
 export default function EditTenantPage() {
   const router = useRouter();
   const { id } = useParams();
   const { toast } = useToast();
   const tenantId = id as string;
-  const { properties } = useProperties();
+  const { properties, loading: propertiesLoading } = useProperties();
   const { tenant, loading: tenantLoading } = useTenant(tenantId);
+  const [saving, setSaving] = useState(false);
 
-  const form = useForm<TenantFormValues>({
-    resolver: zodResolver(TenantFormSchema),
+  const form = useForm<TenantUpdateValues>({
+    resolver: zodResolver(TenantUpdateSchema),
   });
   
-  const { register, handleSubmit, control, formState: { errors }, reset } = form;
+  const { register, handleSubmit, control, formState: { errors }, reset, watch } = form;
 
   useEffect(() => {
     if (tenant) {
+      const leaseStart = tenant.leaseStart ? (tenant.leaseStart as any).seconds ? new Date((tenant.leaseStart as any).seconds * 1000) : new Date(tenant.leaseStart as any) : new Date();
+      const leaseEnd = tenant.leaseEnd ? (tenant.leaseEnd as any).seconds ? new Date((tenant.leaseEnd as any).seconds * 1000) : new Date(tenant.leaseEnd as any) : new Date();
+
       reset({
         name: tenant.name,
         email: tenant.email,
-        phone: tenant.phone,
+        phone: tenant.phone || '',
         propertyId: tenant.propertyId,
         currentUnitId: tenant.currentUnitId,
-        leaseStart: format(parseISO(tenant.leaseStart as unknown as string), 'yyyy-MM-dd'),
-        leaseEnd: format(parseISO(tenant.leaseEnd as unknown as string), 'yyyy-MM-dd'),
+        leaseStart: format(leaseStart, 'yyyy-MM-dd'),
+        leaseEnd: format(leaseEnd, 'yyyy-MM-dd'),
       });
     }
   }, [tenant, reset]);
 
-  if (tenantLoading) {
-    return <div>Loading...</div>; // TODO Skeleton
+
+  const onSubmit = async (data: TenantUpdateValues) => {
+    setSaving(true);
+    try {
+        const response = await fetch(`/api/tenants/${tenantId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to update tenant.');
+        }
+        
+        toast({
+            title: "Tenant Updated!",
+            description: "The tenant's information has been successfully saved.",
+        });
+        router.push(`/tenants/${tenantId}`);
+
+    } catch (err: any) {
+        toast({
+            title: "Update Failed",
+            description: err.message,
+            variant: "destructive"
+        });
+    } finally {
+        setSaving(false);
+    }
+  };
+  
+  const selectedPropertyId = watch('propertyId');
+  const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units || [];
+
+  if (tenantLoading || propertiesLoading) {
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+             <div className="flex items-center gap-4">
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-8 w-48" />
+            </div>
+             <Card className="max-w-2xl mx-auto">
+                <CardHeader>
+                    <Skeleton className="h-8 w-64" />
+                    <Skeleton className="h-4 w-full max-w-sm" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
+            </Card>
+        </div>
+    )
   }
 
   if (!tenant) {
     return <div>Tenant not found.</div>;
   }
-
-  const onSubmit = (data: TenantFormValues) => {
-    // In a real app, you'd save this to the database.
-    console.log("Updated Tenant data (mock):", data);
-    toast({
-      title: "Tenant Updated!",
-      description: "The tenant's information has been successfully saved.",
-    });
-    router.push(`/tenants/${tenantId}`);
-  };
-  
-  const selectedPropertyId = form.watch('propertyId');
-  const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units || [];
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -148,7 +195,7 @@ export default function EditTenantPage() {
                                     <SelectValue placeholder="Select a unit..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableUnits.map(u => (
+                                    {availableUnits.map((u: Unit) => (
                                         <SelectItem key={u.id} value={u.id}>{u.unitNumber}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -173,7 +220,10 @@ export default function EditTenantPage() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                    <Button type="submit">Save Changes</Button>
+                    <Button type="submit" disabled={saving}>
+                         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
                 </div>
                 </form>
             </CardContent>
