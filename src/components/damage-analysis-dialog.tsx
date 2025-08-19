@@ -12,25 +12,16 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UploadCloud, AlertTriangle, CheckCircle, Wand2 } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
+import type { AnalyzeDamageOutput } from '@/ai/flows/analyze-damage-flow';
+
 
 interface DamageAnalysisDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface AnalyzeDamageOutput {
-    hasDamage: boolean;
-    damageSummary: string;
-    detectedIssues: {
-        issueType: string;
-        description: string;
-        severity: 'Low' | 'Medium' | 'High';
-    }[];
 }
 
 export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialogProps) {
@@ -55,7 +46,7 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
   };
 
   const handleAnalyze = async () => {
-    if (!file || !previewUrl) {
+    if (!file) {
       toast({
         title: 'No file selected',
         description: 'Please upload an image to analyze.',
@@ -67,26 +58,23 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
     setLoading(true);
     setResult(null);
 
+    const formData = new FormData();
+    formData.append('image', file);
+
     try {
-      // Mock analysis
-      await new Promise(res => setTimeout(res, 2000));
-      const mockResult: AnalyzeDamageOutput = {
-          hasDamage: true,
-          damageSummary: "Detected a moderate water stain and minor scuff marks.",
-          detectedIssues: [
-              {
-                  issueType: "Water Stain",
-                  description: "A circular water stain is visible on the ceiling in the corner.",
-                  severity: "Medium"
-              },
-              {
-                  issueType: "Scuff Mark",
-                  description: "Several black scuff marks are present on the wall near the doorway.",
-                  severity: "Low"
-              }
-          ]
-      };
-      setResult(mockResult);
+        const response = await fetch('/api/properties/analyze-damage', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Analysis failed');
+        }
+
+      const analysisResult: AnalyzeDamageOutput = await response.json();
+      setResult(analysisResult);
+
     } catch (error: any) {
       toast({
         title: 'Analysis Failed',
