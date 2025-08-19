@@ -2,6 +2,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { firestore } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
+import { PropertyFormSchema } from '@/lib/schemas';
 
 async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batchSize: number) {
     const query = collectionRef.limit(batchSize);
@@ -61,9 +62,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const propertyId = params.id;
     const updates = await req.json();
 
-    // TODO: Add validation with Zod schema
+    // Validate the incoming data
+    const validationResult = PropertyFormSchema.partial().safeParse(updates);
+    if (!validationResult.success) {
+      return NextResponse.json({ error: 'Invalid property data', details: validationResult.error.flatten() }, { status: 400 });
+    }
     
-    await firestore.collection('properties').doc(propertyId).update(updates);
+    await firestore.collection('properties').doc(propertyId).update(validationResult.data);
     
     return NextResponse.json({ message: 'Property updated successfully' });
   } catch (error: any) {

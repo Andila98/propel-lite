@@ -1,16 +1,21 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { firestore } from '@/lib/firebase-admin';
+import { UnitSchema } from '@/lib/schemas';
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string; unitId: string } }) {
   try {
     const { id: propertyId, unitId } = params;
     const updates = await req.json();
 
-    // TODO: Add Zod validation
+    const validationResult = UnitSchema.partial().safeParse(updates);
+    if (!validationResult.success) {
+      return NextResponse.json({ error: 'Invalid unit data', details: validationResult.error.flatten() }, { status: 400 });
+    }
+    
     const unitRef = firestore.collection('properties').doc(propertyId).collection('units').doc(unitId);
     
-    await unitRef.update(updates);
+    await unitRef.update(validationResult.data);
     
     return NextResponse.json({ message: 'Unit updated successfully' });
   } catch (error: any) {
