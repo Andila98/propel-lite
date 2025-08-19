@@ -2,6 +2,27 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { firestore } from '@/lib/firebase-admin';
 
+async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batchSize: number) {
+    const query = collectionRef.limit(batchSize);
+    let deleted = 0;
+
+    while (true) {
+        const snapshot = await query.get();
+        if (snapshot.size === 0) {
+            return { totalDeleted: deleted };
+        }
+
+        const batch = firestore.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        deleted += snapshot.size;
+    }
+}
+
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -58,10 +79,11 @@ export async function DELETE(
     const propertyId = params.id;
     const propertyRef = firestore.collection('properties').doc(propertyId);
     
-    // In a real app, you might want to delete subcollections in a more robust way
-    // (e.g., using a Firebase Function) as direct deletion of subcollections
-    // isn't supported in the client/admin SDKs directly for nested data.
-    // For now, we delete the main document.
+    // Delete all units in the subcollection first
+    const unitsRef = propertyRef.collection('units');
+    await deleteCollection(unitsRef, 50); // Batch delete units
+
+    // Then delete the property document itself
     await propertyRef.delete();
     
     return NextResponse.json({ message: 'Property deleted successfully' });

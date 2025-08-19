@@ -116,6 +116,7 @@ export default function TenantDetailPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   
   useEffect(() => {
     async function fetchData() {
@@ -161,6 +162,7 @@ export default function TenantDetailPage() {
   }
 
   const handleDelete = async () => {
+    setDeleting(true);
     try {
         const response = await fetch(`/api/tenants/${tenantId}`, {
             method: 'DELETE',
@@ -174,12 +176,15 @@ export default function TenantDetailPage() {
             description: `${tenant.name} has been removed from your records.`,
         });
         router.push('/tenants');
+        router.refresh();
     } catch(err: any) {
         toast({
             title: "Error",
             description: err.message,
             variant: "destructive",
         });
+    } finally {
+        setDeleting(false);
     }
   };
   
@@ -265,12 +270,14 @@ export default function TenantDetailPage() {
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
                         This action cannot be undone. This will permanently delete the
-                        tenant and all associated data.
+                        tenant and all associated data, including their login account.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                        {deleting ? <Loader2 className="animate-spin" /> : "Continue"}
+                    </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -383,5 +390,3 @@ export default function TenantDetailPage() {
     </div>
   );
 }
-
-    

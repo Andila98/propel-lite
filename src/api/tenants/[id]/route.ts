@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, auth } from '@/lib/firebase-admin';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
         if (!tenantDoc.exists) {
             // It's possible the tenant was created in Auth but the Firestore doc failed.
-            // Let's try to find them by email as a fallback.
+            // Let's try to find them by uid as a fallback.
             const tenantByEmail = await firestore.collection('tenants').where('uid', '==', tenantId).limit(1).get();
             if(tenantByEmail.empty) {
                 return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
@@ -29,12 +29,43 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     try {
-        await firestore.collection('tenants').doc(params.id).delete();
+        const tenantId = params.id;
+        const tenantRef = firestore.collection('tenants').doc(tenantId);
+        const tenantDoc = await tenantRef.get();
+
+        if (!tenantDoc.exists) {
+            return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 });
+        }
+
+        const tenantData = tenantDoc.data();
+        const propertyId = tenantData?.propertyId;
+        const unitId = tenantData?.currentUnitId;
+        const uid = tenantData?.uid;
+
+        // Start a batch write
+        const batch = firestore.batch();
+
+        // 1. Un-assign the tenant from their unit
+        if (propertyId && unitId) {
+            const unitRef = firestore.collection('properties').doc(propertyId).collection('units').doc(unitId);
+            batch.update(unitRef, { isOccupied: false, tenantId: null });
+        }
+
+        // 2. Delete the tenant document from Firestore
+        batch.delete(tenantRef);
+        
+        // 3. Commit the Firestore changes
+        await batch.commit();
+        
+        // 4. Delete the user from Firebase Authentication
+        if (uid) {
+            await auth.deleteUser(uid);
+        }
+
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
     } catch (error: any) {
       console.error(`[API_TENANT_DELETE_ERROR] Failed to delete tenant ${params.id}:`, error);
       return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
-
     

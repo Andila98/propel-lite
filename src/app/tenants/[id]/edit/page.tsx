@@ -17,7 +17,7 @@ import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useProperties } from '@/hooks/use-properties';
 import type { Tenant } from '@/lib/types';
 import { useTenant } from '@/hooks/use-tenant';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const TenantFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
@@ -25,8 +25,8 @@ const TenantFormSchema = z.object({
   phone: z.string().optional(),
   propertyId: z.string({ required_error: "Please select a property."}),
   currentUnitId: z.string({ required_error: "Please select a unit."}),
-  leaseStart: z.date({ required_error: "Lease start date is required."}),
-  leaseEnd: z.date({ required_error: "Lease end date is required."}),
+  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
+  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
 });
 type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
@@ -52,8 +52,8 @@ export default function EditTenantPage() {
         phone: tenant.phone,
         propertyId: tenant.propertyId,
         currentUnitId: tenant.currentUnitId,
-        leaseStart: new Date(tenant.leaseStartDate),
-        leaseEnd: new Date(tenant.leaseEndDate),
+        leaseStart: format(parseISO(tenant.leaseStart as unknown as string), 'yyyy-MM-dd'),
+        leaseEnd: format(parseISO(tenant.leaseEnd as unknown as string), 'yyyy-MM-dd'),
       });
     }
   }, [tenant, reset]);
@@ -162,24 +162,12 @@ export default function EditTenantPage() {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                     <Label htmlFor="leaseStart">Lease Start Date</Label>
-                    <Controller
-                        name="leaseStart"
-                        control={control}
-                        render={({ field }) => (
-                             <Input id="leaseStart" type="date" value={field.value ? format(field.value, 'yyyy-MM-dd') : ''} onChange={e => field.onChange(new Date(e.target.value))} />
-                        )}
-                    />
+                    <Input id="leaseStart" type="date" {...register("leaseStart")} />
                     {errors.leaseStart && <p className="text-sm text-destructive mt-1">{errors.leaseStart.message}</p>}
                     </div>
                     <div>
                     <Label htmlFor="leaseEnd">Lease End Date</Label>
-                    <Controller
-                        name="leaseEnd"
-                        control={control}
-                        render={({ field }) => (
-                            <Input id="leaseEnd" type="date" value={field.value ? format(field.value, 'yyyy-MM-dd') : ''} onChange={e => field.onChange(new Date(e.target.value))} />
-                        )}
-                    />
+                    <Input id="leaseEnd" type="date" {...register("leaseEnd")} />
                     {errors.leaseEnd && <p className="text-sm text-destructive mt-1">{errors.leaseEnd.message}</p>}
                     </div>
                 </div>
