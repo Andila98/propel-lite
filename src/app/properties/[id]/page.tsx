@@ -1,4 +1,6 @@
 
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -13,35 +15,16 @@ import { Button } from '@/components/ui/button';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import type { Property, Unit } from '@/lib/types';
-import { firestore } from '@/lib/firebase-admin';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Wand2 } from 'lucide-react';
+import { Camera, Wand2, Loader2 } from 'lucide-react';
 import { DamageAnalysisDialog } from '@/components/damage-analysis-dialog';
 import { DeletePropertyButton } from './delete-property-button';
+import { useProperty } from '@/hooks/use-property';
+import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-
-async function getProperty(id: string): Promise<Property | null> {
-  const propertyDoc = await firestore.collection('properties').doc(id).get();
-
-  if (!propertyDoc.exists) {
-    return null;
-  }
-
-  const propertyData = propertyDoc.data() as Property;
-
-  const unitsSnapshot = await propertyDoc.ref.collection('units').get();
-  const units = unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Unit[];
-  
-  return {
-    id: propertyDoc.id,
-    ...propertyData,
-    units,
-    // Convert Firestore Timestamps to Dates
-    createdAt: (propertyData.createdAt as any)?.toDate(),
-    updatedAt: (propertyData.updatedAt as any)?.toDate(),
-  };
-}
 
 const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
     return new Intl.NumberFormat('en-US', {
@@ -51,11 +34,40 @@ const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
     }).format(amount);
   };
 
-export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const property = await getProperty(params.id);
+export default function PropertyDetailPage() {
+  const { id } = useParams();
+  const propertyId = id as string;
+  const { property, loading: propertyLoading } = useProperty(propertyId);
+  const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
+
+  if (propertyLoading) {
+    return (
+       <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-10 w-10" />
+                <div>
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-64 mt-2" />
+                </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-3">
+                    <Skeleton className="h-[400px] w-full" />
+                </div>
+                <div className="lg:col-span-2 space-y-6">
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                </div>
+                <div className="lg:col-span-5">
+                    <Skeleton className="h-64 w-full" />
+                </div>
+            </div>
+       </div>
+    );
+  }
 
   if (!property) {
-    notFound();
+    return notFound();
   }
 
   return (
@@ -75,12 +87,12 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             </div>
         </div>
         <div className="flex items-center gap-2">
-            <Link href={`/properties/${property.id}/edit`}>
+            <Link href={`/properties/${propertyId}/edit`}>
                  <Button variant="outline">
                     <AnimatedEditIcon /> Edit
                 </Button>
             </Link>
-            <DeletePropertyButton propertyId={property.id} propertyAddress={property.address} />
+            <DeletePropertyButton propertyId={propertyId} propertyAddress={property.address} />
         </div>
       </div>
         
@@ -115,8 +127,10 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {/* The Dialog is a client component, so we wrap it to avoid making this whole page a client component */}
-                    <DamageAnalysisDialogWrapper />
+                    <Button className="w-full" onClick={() => setIsDamageDialogOpen(true)}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Run Damage Analysis
+                    </Button>
                 </CardContent>
             </Card>
         </div>
@@ -142,7 +156,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                                     <TableRow key={unit.id}>
                                         <TableCell className="font-medium">{unit.unitNumber}</TableCell>
                                         <TableCell>{unit.size}</TableCell>
-                                        <TableCell>{formatCurrency(unit.rent, property.currency)}</TableCell>
+                                        <TableCell>{formatCurrency(unit.rent, property.currency || 'KES')}</TableCell>
                                         <TableCell>
                                             <Badge variant={unit.isOccupied ? 'secondary' : 'outline'}>
                                                 {unit.isOccupied ? 'Occupied' : 'Vacant'}
@@ -158,21 +172,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
         </div>
       </div>
     </div>
+    <DamageAnalysisDialog open={isDamageDialogOpen} onOpenChange={setIsDamageDialogOpen} />
     </>
   );
-}
-
-// Helper component to keep the main page a Server Component
-function DamageAnalysisDialogWrapper() {
-    "use client"
-    const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
-    return (
-        <>
-        <Button className="w-full" onClick={() => setIsDamageDialogOpen(true)}>
-            <Camera className="mr-2 h-4 w-4" />
-            Run Damage Analysis
-        </Button>
-        <DamageAnalysisDialog open={isDamageDialogOpen} onOpenChange={setIsDamageDialogOpen} />
-        </>
-    )
 }
