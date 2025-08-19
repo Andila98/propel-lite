@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { generateMessage } from '@/ai/flows/generate-message-flow';
-import { generateInvoice, type GenerateInvoiceOutput } from '@/ai/flows/generate-invoice';
+import { generateInvoice, type GenerateInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
 

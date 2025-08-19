@@ -44,7 +44,6 @@ const aiTools = [
 
 const utilityPages = [
     { href: "/settings", label: "Settings", icon: Settings, roles: ['landlord'] },
-    { href: "/tenant-portal", label: "Tenant Portal", icon: AnimatedUsersIcon, roles: ['tenant'] },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -60,6 +59,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
     return name.substring(0, 2);
   };
+  
+  if (userRole === 'tenant') {
+    return (
+       <div className="flex flex-col min-h-screen">
+        <header className="flex h-14 items-center justify-between border-b px-4 md:px-6">
+           <Link href="/" className="flex items-center gap-2 font-semibold">
+              <PropelLiteLogo className="h-6 w-6" />
+              <span className="group-data-[collapsible=icon]:hidden">RentEase Tenant Portal</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <LogoutButton />
+            </div>
+        </header>
+        <main className="flex-1">{children}</main>
+      </div>
+    )
+  }
   
   const filteredNavItems = navItems.filter(item => userRole && item.roles.includes(userRole));
   const filteredAiTools = aiTools.filter(item => userRole && item.roles.includes(userRole));

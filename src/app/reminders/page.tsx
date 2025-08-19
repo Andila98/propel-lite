@@ -59,7 +59,9 @@ export default function RemindersPage() {
             toast({ title: "Error", description: `Could not generate message: ${suggestionResult.error}`, variant: 'destructive'});
         } else {
             setValue('message', suggestionResult.suggestion?.messageContent || '');
-            setInvoice(suggestionResult.invoice || null);
+            if (suggestionResult.invoice) {
+              setInvoice(suggestionResult.invoice);
+            }
         }
         
         if (scheduleResult.error) {
@@ -89,7 +91,7 @@ export default function RemindersPage() {
     } else {
       toast({ title: "Success!", description: result.successMessage });
       setFinalResult(result);
-      form.reset();
+      form.reset({ reminderType: 'rentDue', message: '', tenantId: undefined, scheduledFor: undefined });
       setInvoice(null);
     }
     setLoading(false);
@@ -116,7 +118,7 @@ export default function RemindersPage() {
                     name="tenantId"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
                         <SelectTrigger id="tenantId"><SelectValue placeholder="Select a tenant..." /></SelectTrigger>
                         <SelectContent>
                             {tenants.map(tenant => (
@@ -135,7 +137,7 @@ export default function RemindersPage() {
                     name="reminderType"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                         <SelectTrigger id="reminderType"><SelectValue placeholder="Select a type..." /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="rentDue">Rent Due</SelectItem>

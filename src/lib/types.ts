@@ -1,7 +1,7 @@
 
 import type { Timestamp } from "firebase-admin/firestore";
 import type { GenerateReceiptOutput as GenReceiptOutput } from '@/ai/flows/generate-receipt';
-import type { GenerateInvoiceOutput as GenInvoiceOutput } from '@/ai/flows/generate-invoice';
+import type { GenerateInvoiceOutput as GenInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
 
 
 export interface User {
@@ -129,11 +129,11 @@ export const permissionLabels: Record<Permission, string> = {
 
 export interface PropertyManager {
   id: string;
+  uid: string;
   name: string;
   email: string;
   phone: string;
   avatarUrl?: string;
-  accessLevel: 'Full Manager' | 'Limited Staff';
   propertiesManaged: string[]; // Array of property IDs
   permissions: Record<Permission, boolean>;
 }
@@ -161,5 +161,3 @@ export interface DashboardData {
 
 export type GenerateReceiptOutput = GenReceiptOutput;
 export type GenerateInvoiceOutput = GenInvoiceOutput;
-
-    
