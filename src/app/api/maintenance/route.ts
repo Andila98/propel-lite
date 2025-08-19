@@ -1,20 +1,38 @@
 
 import { NextResponse } from 'next/server';
-import { mockMaintenanceRequests } from '@/lib/mock-data';
+import { firestore } from '@/lib/firebase-admin';
 import type { MaintenanceRequest } from '@/lib/types';
+import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance';
 
 export async function GET() {
     try {
-        // AI-based priority is hardcoded in mock data for this version
-        const requestsWithPriority = [...mockMaintenanceRequests];
-        
-        // Sort by priority: High > Medium > Low
-        requestsWithPriority.sort((a, b) => {
-            const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-            return (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) - (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
+        const requestsSnapshot = await firestore.collection('maintenanceRequests').where('status', '==', 'Pending').get();
+        let requests: MaintenanceRequest[] = requestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
+
+        // AI-based priority assignment
+        const requestsToPrioritize = requests.filter(r => !r.priority);
+        const priorityPromises = requestsToPrioritize.map(async request => {
+            try {
+                const { priority, reasoning } = await prioritizeMaintenanceRequest({ description: request.description });
+                // Update Firestore document with priority
+                await firestore.collection('maintenanceRequests').doc(request.id).update({ priority, reasoning });
+                return { ...request, priority, reasoning };
+            } catch (aiError) {
+                console.error(`AI prioritization failed for request ${request.id}:`, aiError);
+                return { ...request, priority: 'Medium', reasoning: 'AI analysis failed, assigned default priority.' }; // Fallback
+            }
         });
 
-        return NextResponse.json(requestsWithPriority);
+        const prioritizedRequests = await Promise.all(priorityPromises);
+
+        // Merge back with already prioritized requests
+        requests = requests.map(r => prioritizedRequests.find(pr => pr.id === r.id) || r);
+        
+        // Sort by priority: High > Medium > Low
+        const priorityOrder: Record<string, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
+        requests.sort((a, b) => (priorityOrder[b.priority!] || 0) - (priorityOrder[a.priority!] || 0));
+
+        return NextResponse.json(requests);
 
     } catch (error: any) {
         console.error('API Error: Failed to get maintenance requests:', error);

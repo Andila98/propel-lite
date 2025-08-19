@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -31,13 +31,11 @@ import Link from 'next/link';
 import { Receipt as ReceiptIcon, Loader2 } from 'lucide-react';
 import { getReceiptAction, type ReceiptState } from './actions';
 import { Receipt } from '@/components/receipt';
-import { useTenants } from '@/hooks/use-tenants';
-import { useProperties } from '@/hooks/use-properties';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Pie, PieChart, Cell, Tooltip } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { subMonths, format } from 'date-fns';
+import { subMonths, format, parseISO } from 'date-fns';
 
 const chartConfig = {
   payments: {
@@ -62,25 +60,54 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(false);
   const [receiptResult, setReceiptResult] = useState<ReceiptState | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-  const { tenants, loading: tenantsLoading } = useTenants();
-  const { properties, loading: propertiesLoading } = useProperties();
   
-  const allPayments = useMemo(() => {
-    return tenants.flatMap(tenant => 
-        (tenant.paymentHistory || []).map(payment => ({
-            ...payment,
-            tenantId: tenant.id,
-            tenantName: tenant.name,
-            propertyId: tenant.propertyId,
-            property: properties.find(p => p.id === tenant.propertyId)
-        }))
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [tenants, properties]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [payments, setPayments] = useState<(Payment & { tenantName?: string, propertyAddress?: string})[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
+  useEffect(() => {
+    async function fetchData() {
+        setDataLoading(true);
+        try {
+            const [tenantsRes, propertiesRes, paymentsRes] = await Promise.all([
+                fetch('/api/tenants'),
+                fetch('/api/properties'),
+                fetch('/api/payments') // A new endpoint to get all payments
+            ]);
+
+            const tenantsData: Tenant[] = await tenantsRes.json();
+            const propertiesData: Property[] = await propertiesRes.json();
+            let paymentsData: Payment[] = await paymentsRes.json();
+
+            const paymentsWithDetails = paymentsData.map(p => {
+                const tenant = tenantsData.find(t => t.id === p.tenantId);
+                const property = propertiesData.find(prop => prop.id === p.propertyId);
+                return {
+                    ...p,
+                    tenantName: tenant?.name,
+                    propertyAddress: property?.address,
+                    property: property,
+                }
+            })
+
+            setTenants(tenantsData);
+            setProperties(propertiesData);
+            setPayments(paymentsWithDetails);
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error", description: "Failed to fetch payment data.", variant: "destructive" });
+        } finally {
+            setDataLoading(false);
+        }
+    }
+    fetchData();
+  }, [toast]);
+  
   const { latePaymentData, paymentMethodData } = useMemo(() => {
       const now = new Date();
       const latePayments: Record<string, number> = {};
-      const paymentMethods: Record<string, number> = { 'M-Pesa': 0, 'Stripe': 0, 'Other': 0 };
+      const paymentMethods: Record<string, number> = { 'M-Pesa': 0, 'Stripe': 0, 'Card': 0, 'Other': 0 };
 
       for (let i = 5; i >= 0; i--) {
         const month = subMonths(now, i);
@@ -88,9 +115,9 @@ export default function PaymentsPage() {
         latePayments[monthKey] = 0;
       }
 
-      allPayments.forEach(payment => {
+      payments.forEach(payment => {
           if (payment.type === 'Rent') {
-              const paymentDate = new Date(payment.date);
+              const paymentDate = parseISO(payment.date as string);
               if (paymentDate.getDate() > 5) { // Assuming rent due on 1st, late after 5th
                   const monthKey = format(paymentDate, 'MMM');
                   if (monthKey in latePayments) {
@@ -102,7 +129,7 @@ export default function PaymentsPage() {
           const method = payment.method;
           if (method.toLowerCase().includes('mpesa')) {
               paymentMethods['M-Pesa']++;
-          } else if (method.toLowerCase().includes('card')) {
+          } else if (method.toLowerCase().includes('stripe') || method.toLowerCase().includes('card')) {
               paymentMethods['Stripe']++;
           } else {
               paymentMethods['Other']++;
@@ -110,11 +137,13 @@ export default function PaymentsPage() {
       });
       
       const latePaymentChartData = Object.entries(latePayments).map(([month, count]) => ({ month, latePayments: count }));
-      const paymentMethodChartData = Object.entries(paymentMethods).map(([name, value]) => ({ name, value, fill: `var(--color-${name.toLowerCase().replace('-','')})`}));
+      const paymentMethodChartData = Object.entries(paymentMethods)
+        .filter(([,value]) => value > 0)
+        .map(([name, value]) => ({ name, value, fill: `var(--color-${name.toLowerCase().replace('-','')})`}));
 
       return { latePaymentData: latePaymentChartData, paymentMethodData: paymentMethodChartData };
 
-  }, [allPayments]);
+  }, [payments]);
 
   const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
     setLoading(true);
@@ -168,7 +197,7 @@ export default function PaymentsPage() {
   );
 
   const renderAnalytics = () => {
-       if (tenantsLoading || propertiesLoading) {
+       if (dataLoading) {
            return (
              <div className="grid gap-4 md:grid-cols-2">
                  <Skeleton className="h-64" />
@@ -200,16 +229,20 @@ export default function PaymentsPage() {
                         <CardDescription>Breakdown of how tenants prefer to pay.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ChartContainer config={chartConfig} className="h-48 w-full">
-                           <PieChart>
-                                <ChartTooltipContent nameKey="name" />
-                                <Pie data={paymentMethodData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                                    {paymentMethodData.map(entry => (
-                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                    ))}
-                                </Pie>
-                           </PieChart>
-                        </ChartContainer>
+                       {paymentMethodData.length > 0 ? (
+                            <ChartContainer config={chartConfig} className="h-48 w-full">
+                            <PieChart>
+                                    <ChartTooltipContent nameKey="name" />
+                                    <Pie data={paymentMethodData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
+                                        {paymentMethodData.map(entry => (
+                                            <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                            </PieChart>
+                            </ChartContainer>
+                       ) : (
+                           <div className="flex items-center justify-center h-48 text-muted-foreground">No payment data available.</div>
+                       )}
                     </CardContent>
                 </Card>
             </div>
@@ -232,7 +265,7 @@ export default function PaymentsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {(tenantsLoading || propertiesLoading) ? renderSkeleton() : (
+          {dataLoading ? renderSkeleton() : (
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -245,17 +278,17 @@ export default function PaymentsPage() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {allPayments.map((payment: any) => (
+                {payments.map((payment: any) => (
                     <TableRow key={payment.id}>
                     <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
                     <TableCell>
                         <Link href={`/tenants/${payment.tenantId}`} className="text-primary hover:underline">
-                            {payment.tenantName}
+                            {payment.tenantName || 'N/A'}
                         </Link>
                     </TableCell>
                     <TableCell>
                         <Link href={`/properties/${payment.propertyId}`} className="text-primary hover:underline">
-                            {payment.property?.address || 'N/A'}
+                            {payment.propertyAddress || 'N/A'}
                         </Link>
                     </TableCell>
                     <TableCell>
@@ -269,6 +302,7 @@ export default function PaymentsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleGenerateReceipt(payment.tenantId, payment.id)}
+                            disabled={loading}
                         >
                             <ReceiptIcon className="mr-2 h-4 w-4" />
                             Receipt
@@ -300,5 +334,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-
-    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -10,25 +10,54 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { useTenants } from '@/hooks/use-tenants';
-import { useProperties } from '@/hooks/use-properties';
-import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, format } from 'date-fns';
+import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import type { Tenant, Property } from '@/lib/types';
+import type { Tenant, Property, Payment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 type TenantWithDetails = Tenant & { propertyAddress?: string; propertyCurrency?: string; balance: number };
 
 export default function RentSchedulePage() {
-  const { tenants, loading: tenantsLoading } = useTenants();
-  const { properties, loading: propertiesLoading } = useProperties();
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const { toast } = useToast();
 
   const rentDueDate = 1; // Assuming rent is due on the 1st of the month
+
+  useEffect(() => {
+    async function fetchData() {
+        setDataLoading(true);
+        try {
+             const [tenantsRes, propertiesRes, paymentsRes] = await Promise.all([
+                fetch('/api/tenants'),
+                fetch('/api/properties'),
+                fetch('/api/payments')
+            ]);
+
+            const tenantsData: Tenant[] = await tenantsRes.json();
+            const propertiesData: Property[] = await propertiesRes.json();
+            const paymentsData: Payment[] = await paymentsRes.json();
+            
+            setTenants(tenantsData);
+            setProperties(propertiesData);
+            setPayments(paymentsData);
+        } catch (error) {
+            toast({ title: "Error", description: "Could not load schedule data.", variant: "destructive" });
+        } finally {
+            setDataLoading(false);
+        }
+    }
+    fetchData();
+  }, [toast]);
+
 
   const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
     return new Intl.NumberFormat('en-US', {
@@ -38,7 +67,7 @@ export default function RentSchedulePage() {
   };
 
   const rentStatusByDay = useMemo(() => {
-    if (tenantsLoading || propertiesLoading) return {};
+    if (dataLoading) return {};
 
     const statuses: Record<string, TenantWithDetails[]> = {};
     const interval = { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
@@ -51,11 +80,13 @@ export default function RentSchedulePage() {
 
             tenants.forEach(tenant => {
                 const property = properties.find(p => p.id === tenant.propertyId);
-                const rentAmount = property?.rent || 0;
+                const unit = property?.units.find(u => u.id === tenant.currentUnitId);
+                const rentAmount = unit?.rent || 0;
                 
-                const paymentsThisMonth = tenant.paymentHistory
+                const paymentsThisMonth = payments
                     .filter(p => {
-                        const paymentDate = new Date(p.date);
+                        if (p.tenantId !== tenant.id) return false;
+                        const paymentDate = parseISO(p.date as string);
                         return paymentDate.getMonth() === currentDate.getMonth() && paymentDate.getFullYear() === currentDate.getFullYear() && p.type === 'Rent';
                     })
                     .reduce((acc, p) => acc + p.amount, 0);
@@ -81,7 +112,7 @@ export default function RentSchedulePage() {
     });
 
     return statuses;
-  }, [tenants, properties, currentDate, tenantsLoading, propertiesLoading, rentDueDate]);
+  }, [tenants, properties, payments, currentDate, dataLoading, rentDueDate]);
 
   const modifiers = useMemo(() => {
     const modifiers: Record<string, Date[]> = {
@@ -142,7 +173,7 @@ export default function RentSchedulePage() {
   }
 
   const renderContent = () => {
-    if (tenantsLoading || propertiesLoading) {
+    if (dataLoading) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Skeleton className="h-[320px] w-full" />

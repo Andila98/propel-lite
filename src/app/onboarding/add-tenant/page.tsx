@@ -13,10 +13,13 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Stepper } from '@/components/ui/stepper';
 import { useProperties } from '@/hooks/use-properties';
-import type { Unit } from '@/lib/types';
-import { useState } from 'react';
+import type { Unit, Property } from '@/lib/types';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TenantFormSchema } from '@/lib/schemas';
+type TenantFormValues = z.infer<typeof TenantFormSchema>;
+
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
@@ -26,23 +29,30 @@ const onboardingSteps = [
     { id: 'complete', label: 'Complete' },
 ];
 
-const TenantFormSchema = z.object({
-  name: z.string().min(2, "Please enter a valid name."),
-  email: z.string().email("Please enter a valid email address."),
-  phone: z.string().optional(),
-  propertyId: z.string({ required_error: "Please select a property."}),
-  unitId: z.string({ required_error: "Please select a unit." }),
-  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
-  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
-});
-type TenantFormValues = z.infer<typeof TenantFormSchema>;
-
-
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { properties } = useProperties();
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProperties() {
+        setPropertiesLoading(true);
+        try {
+            const res = await fetch('/api/properties');
+            if (!res.ok) throw new Error("Failed to fetch properties");
+            const data = await res.json();
+            setProperties(data);
+        } catch (error) {
+            toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
+        } finally {
+            setPropertiesLoading(false);
+        }
+    }
+    fetchProperties();
+  }, [toast]);
+
 
   const {
     register,
@@ -126,9 +136,9 @@ export default function AddTenantPage() {
                             name="propertyId"
                             control={control}
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={propertiesLoading}>
                                 <SelectTrigger id="propertyId">
-                                    <SelectValue placeholder="Select a property..." />
+                                    <SelectValue placeholder={propertiesLoading ? "Loading..." : "Select a property..."} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {properties.map(p => (
