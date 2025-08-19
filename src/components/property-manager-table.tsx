@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye, ShieldCheck } from 'lucide-react';
+import { MoreHorizontal, Eye, ShieldCheck, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
 import { AnimatedEditIcon } from './icons/animated-edit-icon';
@@ -42,6 +42,7 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
   const router = useRouter();
   const { toast } = useToast();
   const [managerToDelete, setManagerToDelete] = useState<PropertyManager | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleViewDetails = (managerId: string) => {
     router.push(`/property-managers/${managerId}`);
@@ -51,15 +52,39 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
     router.push(`/property-managers/${managerId}/edit`);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!managerToDelete) return;
-    // In a real app, you'd make an API call to delete the manager.
-    console.log(`Deleting manager: ${managerToDelete.id}`);
-    toast({
-      title: "Manager Deleted",
-      description: `${managerToDelete.name} has been removed from your records.`,
-    });
-    setManagerToDelete(null);
+    setIsDeleting(true);
+    
+    try {
+        const response = await fetch(`/api/managers/${managerToDelete.id}`, {
+            method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete manager.');
+        }
+
+        toast({
+            title: "Manager Deleted",
+            description: `${managerToDelete.name} has been removed from your records.`,
+        });
+
+        // Refresh the page or update the state to remove the deleted manager from the UI
+        router.refresh(); 
+
+    } catch (err: any) {
+        console.error("Delete manager error:", err);
+        toast({
+            title: "Error Deleting Manager",
+            description: err.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsDeleting(false);
+        setManagerToDelete(null);
+    }
   };
 
   return (
@@ -142,16 +167,17 @@ export function PropertyManagerTable({ managers }: { managers: PropertyManager[]
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete {managerToDelete?.name}
-              and all associated data from our servers.
+              and their login account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeleting}
               className="bg-destructive hover:bg-destructive/90"
               onClick={handleDelete}
             >
-              Continue
+              {isDeleting ? <Loader2 className="animate-spin" /> : "Continue"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

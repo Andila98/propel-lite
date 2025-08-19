@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, auth } from '@/lib/firebase-admin';
 
 // GET a specific manager
 export async function GET(
@@ -55,9 +55,19 @@ export async function DELETE(
 ) {
   try {
     const managerId = params.id;
+    const managerRef = firestore.collection('managers').doc(managerId);
+    const managerDoc = await managerRef.get();
+
+    if (!managerDoc.exists) {
+        return NextResponse.json({ error: 'Manager not found.' }, { status: 404 });
+    }
     
-    // Deleting the Firestore document. The Auth user must be deleted separately if needed.
-    await firestore.collection('managers').doc(managerId).delete();
+    // The manager's document ID is their Firebase Auth UID.
+    // First, delete the Firestore document.
+    await managerRef.delete();
+    
+    // Then, delete the user from Firebase Authentication.
+    await auth.deleteUser(managerId);
     
     return NextResponse.json({ message: 'Manager deleted successfully' });
   } catch (error: any) {
