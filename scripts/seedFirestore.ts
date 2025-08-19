@@ -13,7 +13,7 @@ async function seedPropertiesAndUnits() {
       type: 'Apartment',
       description: 'Modern apartments in the heart of the city.',
       currency: 'KES',
-      imageUrl: 'https://placehold.co/800x500.png',
+      imageUrl: 'https://ohpverffrwflwksxoljv.supabase.co/storage/v1/object/public/properties/property1.jpg',
       landlordId: 'landlord_user_id',
       createdAt: new Date(),
       units: [
@@ -29,7 +29,7 @@ async function seedPropertiesAndUnits() {
       type: 'House',
       description: 'A spacious villa with a beautiful garden.',
       currency: 'KES',
-      imageUrl: 'https://placehold.co/800x500.png',
+      imageUrl: 'https://ohpverffrwflwksxoljv.supabase.co/storage/v1/object/public/properties/property2.jpg',
       landlordId: 'landlord_user_id',
       createdAt: new Date(),
       units: [
@@ -117,7 +117,7 @@ async function seedPayments(tenants: any[]) {
     const paymentsCollection = firestore.collection('payments');
     const paymentsData = [
         { tenantId: 'tenant1_user_id', propertyId: 'prop1', unitId: 'unit1a', amount: 50000, date: new Date(), method: 'Mpesa', type: 'Rent' },
-        { tenantId: 'tenant2_user_id', propertyId: 'prop2', unitId: 'unit2a', amount: 50000, date: subMonths(new Date(), 1), method: 'Card', type: 'Rent' },
+        { tenantId: 'tenant2_user_id', propertyId: 'prop2', unitId: 'unit2a', amount: 50000, date: new Date(new Date().setMonth(new Date().getMonth() - 1)), method: 'Card', type: 'Rent' },
         { tenantId: 'tenant3_user_id', propertyId: 'prop1', unitId: 'unit1c', amount: 35000, date: new Date(), method: 'Stripe', type: 'Rent' },
     ];
 
