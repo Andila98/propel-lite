@@ -35,15 +35,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { Tenant, Property, Payment } from '@/lib/types';
+import type { Tenant, Property, Payment, Message } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
-import { useTenant } from '@/hooks/use-tenant';
-import { useProperty } from '@/hooks/use-property';
-import { usePayments } from '@/hooks/use-payments';
+
 
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
     const [sentiment, setSentiment] = useState<{ sentiment: string, summary: string } | null>(null);
@@ -113,13 +111,49 @@ export default function TenantDetailPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const tenantId = id as string;
-  const { tenant, loading: tenantLoading } = useTenant(tenantId);
-  const propertyId = tenant?.propertyId ?? '';
-  const { property, loading: propertyLoading } = useProperty(propertyId);
-  const { payments, loading: paymentsLoading } = usePayments(tenantId);
 
-  if (tenantLoading || propertyLoading) {
-    return <div>Loading...</div>; // TODO: Add skeleton
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    async function fetchData() {
+        if (!tenantId) return;
+        setLoading(true);
+        try {
+            const [tenantRes, paymentsRes] = await Promise.all([
+                fetch(`/api/tenants/${tenantId}`),
+                fetch(`/api/tenants/${tenantId}/payments`),
+            ]);
+
+            if (!tenantRes.ok) throw new Error('Failed to fetch tenant details.');
+            const tenantData: Tenant = await tenantRes.json();
+            setTenant(tenantData);
+
+            if (!paymentsRes.ok) throw new Error('Failed to fetch payment history.');
+            const paymentsData: Payment[] = await paymentsRes.json();
+            setPayments(paymentsData);
+            
+            if (tenantData.propertyId) {
+                 const propertyRes = await fetch(`/api/properties/${tenantData.propertyId}`);
+                 if (!propertyRes.ok) throw new Error('Failed to fetch property details.');
+                 const propertyData: Property = await propertyRes.json();
+                 setProperty(propertyData);
+            }
+
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchData();
+  }, [tenantId, toast]);
+
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin" /></div>;
   }
   
   if (!tenant) {
@@ -159,8 +193,10 @@ export default function TenantDetailPage() {
     if (paidThisMonth > 0) return 'Partially Paid';
     return 'Overdue';
   }
-
-  const rentStatus = getRentStatus(payments, property?.rent || 0);
+  
+  const unit = property?.units.find(u => u.id === tenant.currentUnitId);
+  const rentAmount = unit?.rent || 0;
+  const rentStatus = getRentStatus(payments, rentAmount);
 
 
   const renderStatusBadge = (status: string) => {
@@ -182,7 +218,9 @@ export default function TenantDetailPage() {
 
   const formatDate = (dateValue: any) => {
       if (!dateValue) return 'N/A';
-      return new Date(dateValue).toLocaleDateString(undefined, {
+      // Handle both Firestore Timestamp objects and date strings
+      const date = dateValue.seconds ? new Date(dateValue.seconds * 1000) : new Date(dateValue);
+      return date.toLocaleDateString(undefined, {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
@@ -232,7 +270,7 @@ export default function TenantDetailPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Continue</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -270,7 +308,7 @@ export default function TenantDetailPage() {
                   <CardTitle>Lease Details</CardTitle>
                   <CardDescription>
                     <Link href={`/properties/${property?.id}`} className="text-primary hover:underline">
-                        {property?.address}
+                        {property?.address} - Unit {unit?.unitNumber}
                     </Link>
                   </CardDescription>
                 </CardHeader>
@@ -281,7 +319,7 @@ export default function TenantDetailPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
-                        <span className="font-medium">{formatCurrency(property?.rent || 0, property?.currency)}</span>
+                        <span className="font-medium">{formatCurrency(rentAmount, property?.currency)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Rent Status</span>
@@ -299,7 +337,7 @@ export default function TenantDetailPage() {
                         <CardDescription>Recent payments from {tenant.name}.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                       {paymentsLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : (
+                       {loading ? <Loader2 className="h-8 w-8 animate-spin" /> : (
                          <Table>
                             <TableHeader>
                                 <TableRow>

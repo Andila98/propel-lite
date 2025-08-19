@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import type { PropertyManager, Permission } from '@/lib/types';
+import type { PropertyManager, Permission, Property } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,7 +14,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, Phone, ShieldCheck, CheckCircle, XCircle, Building } from 'lucide-react';
+import { Mail, Phone, ShieldCheck, CheckCircle, XCircle, Building, Loader2 } from 'lucide-react';
 import { PropertyTable } from '@/components/property-table';
 import {
   AlertDialog,
@@ -31,36 +31,73 @@ import { useToast } from '@/hooks/use-toast';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
-import { useProperties } from '@/hooks/use-properties';
 import { permissionLabels } from '@/lib/types';
-import { useManagers } from '@/hooks/use-managers';
-
 
 export default function PropertyManagerDetailPage() {
   const router = useRouter();
   const { id } = useParams();
   const { toast } = useToast();
   const managerId = id as string;
-  const { managers } = useManagers();
-  const manager = managers.find(m => m.id === managerId);
-  const { properties } = useProperties();
 
-  if (!manager) {
-    return <div>Loading...</div>;
+  const [manager, setManager] = useState<PropertyManager | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+        if (!managerId) return;
+        setLoading(true);
+        try {
+            const [managerRes, propertiesRes] = await Promise.all([
+                fetch(`/api/managers/${managerId}`),
+                fetch('/api/properties')
+            ]);
+            
+            if (!managerRes.ok) throw new Error("Failed to fetch manager details.");
+            const managerData = await managerRes.json();
+            setManager(managerData);
+
+            if (!propertiesRes.ok) throw new Error("Failed to fetch properties.");
+            const propertiesData = await propertiesRes.json();
+            setProperties(propertiesData);
+
+        } catch(err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchData();
+  }, [managerId, toast]);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin" /></div>;
   }
   
-  const managedProperties = properties.filter(p => manager.propertiesManaged.includes(p.id));
+  if (!manager) {
+    return <div>Manager not found.</div>;
+  }
+  
+  const managedProperties = properties.filter(p => manager.propertiesManaged?.includes(p.id));
 
-  const handleDelete = () => {
-    console.log(`Deleting manager: ${manager.id}`);
-    toast({
-      title: "Manager Deleted",
-      description: `${manager.name} has been removed from your records.`,
-    });
-    router.push('/property-managers');
+  const handleDelete = async () => {
+    try {
+        const response = await fetch(`/api/managers/${managerId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to delete manager.');
+        }
+        toast({
+          title: "Manager Deleted",
+          description: `${manager.name} has been removed from your records.`,
+        });
+        router.push('/property-managers');
+    } catch(err: any) {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
   };
   
-  const activePermissions = Object.entries(manager.permissions)
+  const activePermissions = Object.entries(manager.permissions || {})
     .filter(([, value]) => value)
     .map(([key]) => permissionLabels[key as Permission]);
 
@@ -106,7 +143,7 @@ export default function PropertyManagerDetailPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Continue</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -159,7 +196,7 @@ export default function PropertyManagerDetailPage() {
               <CardDescription>Properties assigned to {manager.name}.</CardDescription>
             </CardHeader>
             <CardContent>
-              <PropertyTable properties={managedProperties} tenants={[]} />
+              <PropertyTable properties={managedProperties} />
             </CardContent>
           </Card>
         </div>

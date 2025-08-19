@@ -1,12 +1,14 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { mockPayments } from '@/lib/mock-data';
+import { firestore } from '@/lib/firebase-admin';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     const { id: tenantId } = params;
     
     try {
-      const payments = mockPayments.filter(p => p.tenantId === tenantId);
+      const paymentsSnapshot = await firestore.collection('payments').where('tenantId', '==', tenantId).orderBy('date', 'desc').get();
+      const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
       return NextResponse.json(payments, { status: 200 });
 
     } catch (error: any) {

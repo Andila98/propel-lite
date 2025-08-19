@@ -20,9 +20,7 @@ import type { PropertyManager, Property } from '@/lib/types';
 import { permissionLabels, type Permission } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { useProperties } from '@/hooks/use-properties';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useManagers } from '@/hooks/use-managers';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
@@ -45,12 +43,11 @@ export default function EditPropertyManagerPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const managerId = id as string;
-  const { managers } = useManagers();
-  const managerToEdit = managers.find(m => m.id === managerId);
-  const { properties } = useProperties();
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [managerToEdit, setManagerToEdit] = useState<PropertyManager | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const form = useForm<PropertyManagerFormValues>({
     resolver: zodResolver(PropertyManagerFormSchema),
@@ -64,18 +61,45 @@ export default function EditPropertyManagerPage() {
   });
 
   useEffect(() => {
-    if (managerToEdit) {
-      form.reset({
-        name: managerToEdit.name,
-        email: managerToEdit.email,
-        phone: managerToEdit.phone,
-        permissions: managerToEdit.permissions,
-        propertiesManaged: managerToEdit.propertiesManaged,
-      });
-      setPreviewUrl(managerToEdit.avatarUrl);
-    }
-  }, [managerToEdit, form]);
+    async function fetchData() {
+        if (!managerId) return;
+        setLoading(true);
+        try {
+            const [managerRes, propertiesRes] = await Promise.all([
+                fetch(`/api/managers/${managerId}`),
+                fetch('/api/properties')
+            ]);
 
+            if (!managerRes.ok) throw new Error('Failed to fetch manager details.');
+            const managerData = await managerRes.json();
+            setManagerToEdit(managerData);
+
+            if (!propertiesRes.ok) throw new Error('Failed to fetch properties.');
+            const propertiesData = await propertiesRes.json();
+            setProperties(propertiesData);
+            
+            form.reset({
+                name: managerData.name,
+                email: managerData.email,
+                phone: managerData.phone,
+                permissions: managerData.permissions,
+                propertiesManaged: managerData.propertiesManaged,
+            });
+
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchData();
+  }, [managerId, form, toast]);
+
+
+  if (loading) {
+    return <div>Loading...</div>; // TODO: Skeleton
+  }
+  
   if (!managerToEdit) {
     return <div>Manager not found.</div>;
   }
@@ -91,13 +115,22 @@ export default function EditPropertyManagerPage() {
   };
 
   const onSubmit = async (data: PropertyManagerFormValues) => {
-    setLoading(true);
+    setSaving(true);
     try {
-        console.log("Updated Manager data:", data);
+        const response = await fetch(`/api/managers/${managerId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Update failed');
+        }
         
         toast({
-        title: "Manager Updated!",
-        description: "The manager's information has been successfully saved.",
+            title: "Manager Updated!",
+            description: "The manager's information has been successfully saved.",
         });
         router.push(`/property-managers/${managerId}`);
 
@@ -109,11 +142,11 @@ export default function EditPropertyManagerPage() {
             variant: "destructive"
         });
     } finally {
-        setLoading(false);
+        setSaving(false);
     }
   };
   
-  const avatarImage = previewUrl;
+  const avatarImage = managerToEdit.avatarUrl;
 
   return (
     <TooltipProvider>
@@ -253,8 +286,8 @@ export default function EditPropertyManagerPage() {
             </Card>
 
               <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
+                  <Button type="submit" disabled={saving}>
+                    {saving ? <Loader2 className="animate-spin" /> : "Save Changes"}
                   </Button>
               </div>
         </form>

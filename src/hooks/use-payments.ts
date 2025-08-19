@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import type { Payment } from '@/lib/types';
-import { mockPayments } from '@/lib/mock-data';
 
 export function usePayments(tenantId: string) {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -19,13 +18,12 @@ export function usePayments(tenantId: string) {
     const fetchPayments = async () => {
         try {
             setLoading(true);
-            console.log(`Hook: usePayments fetching mock data for tenantId: ${tenantId}`);
-            await new Promise(resolve => setTimeout(resolve, 300)); // Simulate delay
-            const data = mockPayments.filter(p => p.tenantId === tenantId);
+            const response = await fetch(`/api/tenants/${tenantId}/payments`);
+            if (!response.ok) throw new Error("Failed to fetch payment history.");
+            const data = await response.json();
             setPayments(data);
-            console.log(`Hook: Successfully fetched mock payments for tenant ${tenantId}`);
         } catch (err: any) {
-            console.error(`Hook Error: Failed to fetch mock payments for tenant ${tenantId}:`, err);
+            console.error(`Hook Error: Failed to fetch payments for tenant ${tenantId}:`, err);
             setError(err.message || "An unknown error occurred.");
         } finally {
             setLoading(false);

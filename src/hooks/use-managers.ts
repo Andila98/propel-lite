@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import type { PropertyManager } from '@/lib/types';
-import { mockPropertyManagers } from '@/lib/mock-data';
 
 export function useManagers() {
   const [managers, setManagers] = useState<PropertyManager[]>([]);
@@ -13,12 +12,13 @@ export function useManagers() {
   useEffect(() => {
     const fetchManagers = async () => {
         try {
-            // In a real app, you would fetch this from '/api/managers'
-            console.log("Hook: useManagers is fetching data.");
-            // Simulating an API call
-            await new Promise(resolve => setTimeout(resolve, 500));
-            setManagers(mockPropertyManagers);
-            console.log("Hook: Successfully fetched and set managers.", mockPropertyManagers.length);
+            setLoading(true);
+            const response = await fetch('/api/managers');
+            if (!response.ok) {
+                throw new Error('Failed to fetch property managers.');
+            }
+            const data = await response.json();
+            setManagers(data);
         } catch (err: any) {
             console.error("Hook Error: Failed to fetch managers:", err);
             setError(err.message || "An unknown error occurred.");
@@ -32,5 +32,3 @@ export function useManagers() {
 
   return { managers, loading, error };
 }
-
-    
