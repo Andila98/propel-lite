@@ -1,6 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { firestore } from '@/lib/firebase-admin';
+import { logActivity } from '@/lib/audit-log-service';
 
 async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batchSize: number) {
     const query = collectionRef.limit(batchSize);
@@ -79,6 +80,12 @@ export async function DELETE(
     const propertyId = params.id;
     const propertyRef = firestore.collection('properties').doc(propertyId);
     
+    const propertyDoc = await propertyRef.get();
+    if (!propertyDoc.exists) {
+        return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+    }
+    const propertyData = propertyDoc.data();
+    
     // Delete all units in the subcollection first
     const unitsRef = propertyRef.collection('units');
     await deleteCollection(unitsRef, 50); // Batch delete units
@@ -86,6 +93,9 @@ export async function DELETE(
     // Then delete the property document itself
     await propertyRef.delete();
     
+    // TODO: Get actor name from session
+    await logActivity('Admin', `Deleted property "${propertyData?.name}"`, { type: 'Property', name: propertyData?.name || propertyId });
+
     return NextResponse.json({ message: 'Property deleted successfully' });
   } catch (error: any) {
     console.error(`[PROPERTY_DELETE_ERROR] for ID ${params.id}:`, error);

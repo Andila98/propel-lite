@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { logActivity } from '@/lib/audit-log-service';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -63,10 +64,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
             await auth.deleteUser(uid);
         }
 
+        // TODO: Get actor name from session
+        await logActivity('Admin', `Deleted tenant "${tenantData?.name}"`, { type: 'Tenant', name: tenantData?.name || tenantId });
+
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
     } catch (error: any) {
       console.error(`[API_TENANT_DELETE_ERROR] Failed to delete tenant ${params.id}:`, error);
       return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
-    

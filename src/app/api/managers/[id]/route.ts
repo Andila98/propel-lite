@@ -1,6 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { firestore, auth } from '@/lib/firebase-admin';
+import { logActivity } from '@/lib/audit-log-service';
 
 // GET a specific manager
 export async function GET(
@@ -39,6 +40,9 @@ export async function PUT(
 
     await firestore.collection('managers').doc(managerId).update(updates);
     
+    // TODO: Get actor name from session
+    await logActivity('Admin', `Updated manager profile for "${updates.name}"`, { type: 'Manager', name: updates.name });
+    
     return NextResponse.json({ message: 'Manager updated successfully' });
     
   } catch (error: any) {
@@ -61,6 +65,7 @@ export async function DELETE(
     if (!managerDoc.exists) {
         return NextResponse.json({ error: 'Manager not found.' }, { status: 404 });
     }
+    const managerData = managerDoc.data();
     
     // The manager's document ID is their Firebase Auth UID.
     // First, delete the Firestore document.
@@ -68,6 +73,9 @@ export async function DELETE(
     
     // Then, delete the user from Firebase Authentication.
     await auth.deleteUser(managerId);
+
+    // TODO: Get actor name from session
+    await logActivity('Admin', `Deleted manager "${managerData?.name}"`, { type: 'Manager', name: managerData?.name || managerId });
     
     return NextResponse.json({ message: 'Manager deleted successfully' });
   } catch (error: any) {

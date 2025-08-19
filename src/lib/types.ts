@@ -142,9 +142,9 @@ export interface AuditLog {
     id: string;
     managerName: string;
     action: string;
-    entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
+    entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager' | 'User';
     entityName: string;
-    timestamp: string;
+    timestamp: string | Timestamp;
 }
 
 export interface DashboardData {

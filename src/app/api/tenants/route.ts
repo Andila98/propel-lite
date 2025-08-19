@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { TenantFormSchema } from '@/lib/schemas';
+import { logActivity } from '@/lib/audit-log-service';
 
 
 export async function GET(req: NextRequest) {
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
             isOccupied: true,
             tenantId: tenantRef.id
         });
+
+        // TODO: Get actor name from session
+        await logActivity('Admin', `Created tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
         
         // In a real app, you would now send an email to the tenant
         // with their login details and a password reset link.

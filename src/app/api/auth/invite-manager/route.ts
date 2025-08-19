@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { auth } from '@/lib/firebase-admin';
 import { z } from 'zod';
+import { logActivity } from '@/lib/audit-log-service';
 
 const InviteRequestSchema = z.object({
   email: z.string().email(),
@@ -40,6 +41,9 @@ export async function POST(req: NextRequest) {
             process.env.JWT_SECRET || 'default_secret',
             { expiresIn: '3d' }
         );
+
+        // TODO: Get actor name from session
+        await logActivity('Admin', `Invited manager with email "${email}"`, { type: 'Manager', name: email });
 
         // In a real app, you would also send an email with this link.
         // For now, we return the token to the client to display the link.

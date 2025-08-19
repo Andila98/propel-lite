@@ -7,6 +7,7 @@ import { firestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { logActivity } from '@/lib/audit-log-service';
 
 export interface FormState {
     error?: string;
@@ -117,6 +118,9 @@ export async function updatePropertyAction(
             }
         }
     });
+
+    // TODO: Get actor name from session
+    await logActivity('Admin', `Updated property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
     
     revalidatePath('/properties');
     revalidatePath(`/properties/${propertyId}`);
