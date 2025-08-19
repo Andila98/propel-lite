@@ -3,6 +3,18 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
+import { z } from 'zod';
+
+const TenantUpdateSchema = z.object({
+  name: z.string().min(2, "Please enter a valid name."),
+  email: z.string().email("Please enter a valid email address."),
+  phone: z.string().optional(),
+  propertyId: z.string({ required_error: "Please select a property."}),
+  currentUnitId: z.string({ required_error: "Please select a unit."}),
+  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
+  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
+});
+
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -28,6 +40,54 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        const tenantId = params.id;
+        const body = await req.json();
+
+        const validationResult = TenantUpdateSchema.safeParse(body);
+        if(!validationResult.success) {
+            return NextResponse.json({ error: 'Invalid data', details: validationResult.error.flatten() }, { status: 400 });
+        }
+        
+        const tenantRef = firestore.collection('tenants').doc(tenantId);
+        const tenantDoc = await tenantRef.get();
+
+        if (!tenantDoc.exists) {
+            return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 });
+        }
+        
+        const tenantData = tenantDoc.data();
+        const updateData = {
+            ...validationResult.data,
+            leaseStart: new Date(validationResult.data.leaseStart),
+            leaseEnd: new Date(validationResult.data.leaseEnd),
+        };
+
+        // Note: This logic assumes a tenant can be moved between properties/units.
+        // A more complex app might require a separate "move tenant" flow.
+        await tenantRef.update(updateData);
+        
+        // Update user record in Auth if email or name changed
+        if (updateData.email !== tenantData?.email || updateData.name !== tenantData?.name) {
+            await auth.updateUser(tenantId, {
+                email: updateData.email,
+                displayName: updateData.name,
+            });
+        }
+        
+        // TODO: Get actor name from session
+        await logActivity('Admin', `Updated tenant profile for "${updateData.name}"`, { type: 'Tenant', name: updateData.name });
+
+        return NextResponse.json({ message: 'Tenant updated successfully.' }, { status: 200 });
+
+    } catch (error: any) {
+        console.error(`[API_TENANT_UPDATE_ERROR] Failed to update tenant ${params.id}:`, error);
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    }
+}
+
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     try {
