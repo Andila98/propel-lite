@@ -10,12 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import type { Tenant } from '@/lib/types';
 import { useTenants } from '@/hooks/use-tenants';
+import { generateMessageAction } from './actions';
 
 type MessageFormValues = {
   tenantId: string;
-  reminderType: 'rentDue' | 'latePayment' | 'maintenance';
+  reminderType: 'rentDue' | 'latePayment' | 'maintenance' | 'leaseRenewal';
 };
 
 export default function SmartMessagingPage() {
@@ -29,31 +29,15 @@ export default function SmartMessagingPage() {
   const onSubmit: SubmitHandler<MessageFormValues> = async (data) => {
     setLoading(true);
     setGeneratedMessage(null);
-    const tenant = tenants.find(t => t.id === data.tenantId);
-    if (!tenant) {
-      toast({ title: "Error", description: "Tenant not found", variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
+    
     try {
-      // Mock AI generation
-      await new Promise(res => setTimeout(res, 1000));
+      const result = await generateMessageAction(data);
+       if (result.error) {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+      } else {
+        setGeneratedMessage(result.messageContent || '');
+      }
 
-      let message = '';
-        switch(data.reminderType) {
-            case 'rentDue':
-                message = `Hi ${tenant?.name}, this is a friendly reminder that your rent is due soon. Thanks!`;
-                break;
-            case 'latePayment':
-                message = `Hi ${tenant?.name}, this is a notice that your rent is now overdue. Please make a payment as soon as possible.`;
-                break;
-            case 'maintenance':
-                message = `Hi ${tenant?.name}, just a heads up about scheduled maintenance in the building next week. We'll provide more details soon.`;
-                break;
-        }
-
-      setGeneratedMessage(message);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -113,6 +97,7 @@ export default function SmartMessagingPage() {
                       <SelectContent>
                         <SelectItem value="rentDue">Rent Due Reminder</SelectItem>
                         <SelectItem value="latePayment">Late Payment Notice</SelectItem>
+                        <SelectItem value="leaseRenewal">Lease Renewal Notice</SelectItem>
                         <SelectItem value="maintenance">Maintenance Update</SelectItem>
                       </SelectContent>
                     </Select>

@@ -23,11 +23,11 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
-import type { Tenant, Property } from '@/lib/types';
-import { mockTenants, mockProperties } from '@/lib/mock-data';
+import type { Tenant, Property, Payment, MaintenanceRequest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -43,7 +43,7 @@ const StripeIcon = () => (
     </svg>
 )
 
-function MaintenanceRequestForm() {
+function MaintenanceRequestForm({ tenant, property }: { tenant: Tenant; property: Property;}) {
     const { toast } = useToast();
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -68,24 +68,42 @@ function MaintenanceRequestForm() {
             toast({ title: 'Error', description: 'Please provide a description of the issue.', variant: 'destructive' });
             return;
         }
-
         setLoading(true);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const requestData = {
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          propertyId: property.id,
+          propertyAddress: property.address,
+          description: description,
+          status: 'Pending',
+          submittedDate: new Date().toISOString()
+        }
 
-        console.log("Submitting maintenance request:", { description, imageFile });
+        try {
+          const response = await fetch('/api/maintenance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+          });
 
-        toast({
-            title: 'Request Submitted!',
-            description: 'Your maintenance request has been sent. The AI has pre-analyzed your image to help us understand the issue faster.',
-        });
-
-        // Reset form
-        setDescription('');
-        setImageFile(null);
-        setImagePreview(null);
-        setLoading(false);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to submit request');
+          }
+           toast({
+              title: 'Request Submitted!',
+              description: 'Your maintenance request has been sent. The AI has pre-analyzed your image to help us understand the issue faster.',
+          });
+           // Reset form
+          setDescription('');
+          setImageFile(null);
+          setImagePreview(null);
+        } catch (err: any) {
+          toast({ title: 'Submission Failed', description: err.message, variant: 'destructive'});
+        } finally {
+          setLoading(false);
+        }
     };
 
     return (
@@ -127,24 +145,67 @@ function MaintenanceRequestForm() {
 
 
 export default function TenantPortalPage() {
+  const { user } = useAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-      // In a real app, this would be fetched based on the logged-in user
-      setTenant(mockTenants[0]);
-      setProperty(mockProperties.find(p => p.id === mockTenants[0].propertyId) || null);
-  }, []);
+    async function fetchData() {
+      if (!user) return;
 
-  // In a real app, this would be fetched from the landlord's settings
-  const landlordPaymentSettings = {
-      mpesaEnabled: true,
-      stripeEnabled: true
+      try {
+        setLoading(true);
+        // User object from Auth context has the tenantId (which is the user.uid)
+        const tenantRes = await fetch(`/api/tenants/${user.uid}`);
+        if (!tenantRes.ok) throw new Error('Failed to fetch your details.');
+        const tenantData: Tenant = await tenantRes.json();
+        setTenant(tenantData);
+
+        const [propertyRes, paymentsRes] = await Promise.all([
+          fetch(`/api/properties/${tenantData.propertyId}`),
+          fetch(`/api/tenants/${tenantData.id}/payments`)
+        ]);
+
+        if (!propertyRes.ok) throw new Error('Failed to fetch property details.');
+        if (!paymentsRes.ok) throw new Error('Failed to fetch payments.');
+        
+        setProperty(await propertyRes.json());
+        setPayments(await paymentsRes.json());
+
+      } catch (err: any) {
+        toast({ title: "Error", description: err.message, variant: "destructive"});
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [user, toast]);
+
+  if (loading) {
+    return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
-
+  
   if (!tenant || !property) {
-    return <div>Could not load tenant data.</div>;
+    return <div className="p-8">Could not load your portal data. Please contact support.</div>;
   }
+  
+  const getRentStatus = (payments: Payment[], rent: number) => {
+    if (!payments || !rent) return 'Overdue';
+    const paidThisMonth = payments
+      .filter(p => new Date(p.date as any).getMonth() === new Date().getMonth())
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    if (paidThisMonth >= rent) return 'Paid';
+    if (paidThisMonth > 0) return 'Partially Paid';
+    return 'Overdue';
+  }
+  
+  const unit = property.units.find(u => u.id === tenant.currentUnitId);
+  const rentAmount = unit?.rent || 0;
+  const rentStatus = getRentStatus(payments, rentAmount);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -161,19 +222,19 @@ export default function TenantPortalPage() {
           <CardContent className="grid gap-4">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Monthly Rent</span>
-              <span>Ksh{property.rent.toLocaleString()}</span>
+              <span>{rentAmount.toLocaleString('en-US', { style: 'currency', currency: property.currency || 'KES' })}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease Start</span>
-              <span>{new Date(tenant.leaseStartDate).toLocaleDateString()}</span>
+              <span>{new Date((tenant.leaseStartDate as any).seconds * 1000).toLocaleDateString()}</span>
             </div>
              <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease End</span>
-              <span>{new Date(tenant.leaseEndDate).toLocaleDateString()}</span>
+              <span>{new Date((tenant.leaseEndDate as any).seconds * 1000).toLocaleDateString()}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Rent Status</span>
-              <span className={`font-semibold ${tenant.rentStatus === 'Paid' ? 'text-green-600' : 'text-destructive'}`}>{tenant.rentStatus}</span>
+              <span className={`font-semibold ${rentStatus === 'Paid' ? 'text-green-600' : 'text-destructive'}`}>{rentStatus}</span>
             </div>
           </CardContent>
           <CardFooter>
@@ -189,18 +250,14 @@ export default function TenantPortalPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
-                        {landlordPaymentSettings.mpesaEnabled && (
-                            <Button variant="outline" className="justify-start gap-4 p-6">
-                                <MpesaIcon />
-                                Pay with M-Pesa
-                            </Button>
-                        )}
-                        {landlordPaymentSettings.stripeEnabled && (
-                             <Button variant="outline" className="justify-start gap-4 p-6">
-                                <StripeIcon />
-                                Pay with Card (Stripe)
-                            </Button>
-                        )}
+                        <Button variant="outline" className="justify-start gap-4 p-6">
+                            <MpesaIcon />
+                            Pay with M-Pesa
+                        </Button>
+                        <Button variant="outline" className="justify-start gap-4 p-6">
+                            <StripeIcon />
+                            Pay with Card (Stripe)
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -222,10 +279,10 @@ export default function TenantPortalPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tenant.paymentHistory.map((payment, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
-                    <TableCell>Ksh{payment.amount.toLocaleString()}</TableCell>
+                {payments.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>{new Date((payment.date as any).seconds * 1000).toLocaleDateString()}</TableCell>
+                    <TableCell>{payment.amount.toLocaleString('en-US', { style: 'currency', currency: property.currency || 'KES' })}</TableCell>
                     <TableCell>{payment.method}</TableCell>
                   </TableRow>
                 ))}
@@ -234,7 +291,7 @@ export default function TenantPortalPage() {
           </CardContent>
         </Card>
         
-       <MaintenanceRequestForm />
+       <MaintenanceRequestForm tenant={tenant} property={property} />
       </div>
     </div>
   );

@@ -12,11 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { PriceSuggestionSchema, type PriceSuggestionValues } from '@/lib/schemas';
-
-interface PriceSuggestionState {
-  error?: string;
-  suggestion?: any;
-};
+import { suggestPriceAction, type PriceSuggestionState } from './actions';
 
 export default function PriceSuggestionPage() {
   const { toast } = useToast();
@@ -35,18 +31,12 @@ export default function PriceSuggestionPage() {
     setLoading(true);
     setResult(null);
     try {
-      // This is a mock implementation
-      console.log("Submitting for price suggestion:", data);
-      await new Promise(res => setTimeout(res, 1500));
-      const mockResult = {
-        suggestion: {
-          suggestedPrice: (data.squareFootage * 150) + (data.bedrooms * 10000),
-          reasoning: "Based on the provided square footage and number of bedrooms in a prime location.",
-          overrideConsiderations: "If the unit has luxury finishes, you could increase the price by 10%.",
-          currency: "KES"
-        }
-      };
-      setResult(mockResult);
+      const res = await suggestPriceAction(data);
+       if (res.error) {
+        toast({ title: "Error", description: res.error, variant: "destructive" });
+      } else {
+        setResult(res);
+      }
     } catch (e: any) {
         console.error(`Frontend Error: ${e.message}`, e);
         toast({

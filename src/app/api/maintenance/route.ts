@@ -1,31 +1,32 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { firestore } from '@/lib/firebase-admin';
 import type { MaintenanceRequest } from '@/lib/types';
 import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance';
 
 export async function GET() {
     try {
-        const requestsSnapshot = await firestore.collection('maintenanceRequests').where('status', '==', 'Pending').get();
+        const requestsSnapshot = await firestore.collection('maintenanceRequests').orderBy('submittedDate', 'desc').get();
         let requests: MaintenanceRequest[] = requestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
 
-        // AI-based priority assignment
-        const requestsToPrioritize = requests.filter(r => !r.priority);
-        const priorityPromises = requestsToPrioritize.map(async request => {
+        // AI-based priority assignment for pending requests
+        const requestsToPrioritize = requests.filter(r => r.status === 'Pending' && !r.priority);
+        const priorityPromises = requestsToPrioritize.map(async (request) => {
             try {
                 const { priority, reasoning } = await prioritizeMaintenanceRequest({ description: request.description });
-                // Update Firestore document with priority
                 await firestore.collection('maintenanceRequests').doc(request.id).update({ priority, reasoning });
                 return { ...request, priority, reasoning };
             } catch (aiError) {
                 console.error(`AI prioritization failed for request ${request.id}:`, aiError);
-                return { ...request, priority: 'Medium', reasoning: 'AI analysis failed, assigned default priority.' }; // Fallback
+                // Assign a default priority if AI fails
+                await firestore.collection('maintenanceRequests').doc(request.id).update({ priority: 'Medium', reasoning: 'AI analysis failed.' });
+                return { ...request, priority: 'Medium', reasoning: 'AI analysis failed, assigned default priority.' };
             }
         });
 
         const prioritizedRequests = await Promise.all(priorityPromises);
 
-        // Merge back with already prioritized requests
+        // Merge prioritized requests back into the main list
         requests = requests.map(r => prioritizedRequests.find(pr => pr.id === r.id) || r);
         
         // Sort by priority: High > Medium > Low
@@ -40,5 +41,16 @@ export async function GET() {
             { error: `Failed to fetch requests: ${error.message}` },
             { status: 500 }
         );
+    }
+}
+
+export async function POST(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const newRequestRef = await firestore.collection('maintenanceRequests').add(body);
+        return NextResponse.json({ id: newRequestRef.id, ...body }, { status: 201 });
+    } catch(error: any) {
+        console.error('API Error: Failed to create maintenance request:', error);
+        return NextResponse.json({ error: 'Failed to create request'}, { status: 500 });
     }
 }

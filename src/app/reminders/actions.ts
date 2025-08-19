@@ -4,15 +4,8 @@
 import { z } from 'zod';
 import { generateMessage } from '@/ai/flows/generate-message-flow';
 import { generateInvoice, type GenerateInvoiceOutput } from '@/ai/flows/generate-invoice';
-import { isFirebaseAdminInitialized, firestore } from '@/lib/firebase-admin';
-
-export const ScheduleReminderFormSchema = z.object({
-  tenantId: z.string().min(1, "Tenant is required."),
-  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance']),
-  scheduledFor: z.string({ required_error: "A date is required."}),
-  message: z.string().min(10, "Message is required."),
-});
-export type ScheduleReminderFormValues = z.infer<typeof ScheduleReminderFormSchema>;
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
 
 const ReminderSuggestionInputSchema = z.object({
   tenantId: z.string(),
@@ -33,22 +26,27 @@ export interface ScheduleReminderState {
 export async function scheduleReminderAction(
   values: ScheduleReminderFormValues
 ): Promise<ScheduleReminderState> {
+  const validationResult = ScheduleReminderFormSchema.safeParse(values);
+  if (!validationResult.success) {
+    return { error: "Invalid data provided." };
+  }
+  
   try {
     if (!isFirebaseAdminInitialized) {
         throw new Error("AI features are not configured. Please contact support.");
     }
     // In a real app, you would save this to a 'reminders' collection
     // or integrate with a task scheduling service like Google Cloud Tasks.
-    console.log("Scheduling reminder with data:", values);
+    console.log("Scheduling reminder with data:", validationResult.data);
     
-    // For this prototype, we'll just log it.
     await firestore.collection('reminders').add({
-        ...values,
+        ...validationResult.data,
+        scheduledFor: new Date(validationResult.data.scheduledFor),
         status: 'scheduled',
         createdAt: firestore.FieldValue.serverTimestamp(),
     });
 
-    return { successMessage: `Reminder for tenant has been successfully scheduled for ${values.scheduledFor}.` };
+    return { successMessage: `Reminder for tenant has been successfully scheduled for ${validationResult.data.scheduledFor}.` };
 
   } catch (error: any) {
     console.error("[SCHEDULE_REMINDER_ACTION_ERROR]", error);
@@ -64,7 +62,7 @@ export async function getReminderSuggestionAction(
         throw new Error("AI features are not configured. Please contact support.");
     }
 
-    const tenantDoc = await firestore.collection('users').doc(input.tenantId).get();
+    const tenantDoc = await firestore.collection('tenants').doc(input.tenantId).get();
     if (!tenantDoc.exists) {
       throw new Error("Tenant not found");
     }
