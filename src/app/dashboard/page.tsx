@@ -42,6 +42,8 @@ import { useAuth } from "@/hooks/use-auth"
 import { useManagers } from "@/hooks/use-managers"
 import { Separator } from "@/components/ui/separator"
 import type { DashboardData } from "@/lib/types"
+import { LatePaymentsChart } from "@/components/charts/late-payments-chart"
+import { PaymentMethodsChart } from "@/components/charts/payment-methods-chart"
 
 
 function AiInsightsCard({ summary }: { summary: string }) {
@@ -180,6 +182,13 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        <div className="lg:col-span-2">
+            <LatePaymentsChart data={data.latePaymentData} />
+        </div>
+        <div className="lg:col-span-2">
+            <PaymentMethodsChart data={data.paymentMethodData} />
+        </div>
+        
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("dashboard.propertiesShowcase")}</CardTitle>
@@ -192,29 +201,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t("dashboard.topPerformer")}</CardTitle>
-            <CardDescription>
-              {t("dashboard.topPerformerDesc", { context: timeframe })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {data.topPerformer ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{data.topPerformer.address}</CardTitle>
-                  <CardDescription>
-                    {formatCurrency(data.topPerformer.revenue)} in revenue this{" "}
-                    {timeframe}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ) : (
-              <p>{t("dashboard.noRevenue")}</p>
-            )}
-          </CardContent>
-        </Card>
+        
         {user?.role === "landlord" && (
           <>
             <Card className="lg:col-span-2">

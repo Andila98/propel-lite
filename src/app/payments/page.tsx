@@ -33,27 +33,6 @@ import { getReceiptAction, type ReceiptState } from './actions';
 import { Receipt } from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Pie, PieChart, Cell, Tooltip } from "recharts";
-import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { subMonths, format, parseISO } from 'date-fns';
-
-const chartConfig = {
-  payments: {
-    label: "Payments",
-  },
-  mpesa: {
-    label: "M-Pesa",
-    color: "hsl(var(--chart-1))",
-  },
-  stripe: {
-    label: "Stripe",
-    color: "hsl(var(--chart-2))",
-  },
-  other: {
-    label: "Other",
-    color: "hsl(var(--chart-3))",
-  }
-} satisfies ChartConfig
 
 export default function PaymentsPage() {
   const { toast } = useToast();
@@ -104,46 +83,6 @@ export default function PaymentsPage() {
     fetchData();
   }, [toast]);
   
-  const { latePaymentData, paymentMethodData } = useMemo(() => {
-      const now = new Date();
-      const latePayments: Record<string, number> = {};
-      const paymentMethods: Record<string, number> = { 'M-Pesa': 0, 'Stripe': 0, 'Card': 0, 'Other': 0 };
-
-      for (let i = 5; i >= 0; i--) {
-        const month = subMonths(now, i);
-        const monthKey = format(month, 'MMM');
-        latePayments[monthKey] = 0;
-      }
-
-      payments.forEach(payment => {
-          if (payment.type === 'Rent') {
-              const paymentDate = parseISO(payment.date as string);
-              if (paymentDate.getDate() > 5) { // Assuming rent due on 1st, late after 5th
-                  const monthKey = format(paymentDate, 'MMM');
-                  if (monthKey in latePayments) {
-                      latePayments[monthKey]++;
-                  }
-              }
-          }
-
-          const method = payment.method;
-          if (method.toLowerCase().includes('mpesa')) {
-              paymentMethods['M-Pesa']++;
-          } else if (method.toLowerCase().includes('stripe') || method.toLowerCase().includes('card')) {
-              paymentMethods['Stripe']++;
-          } else {
-              paymentMethods['Other']++;
-          }
-      });
-      
-      const latePaymentChartData = Object.entries(latePayments).map(([month, count]) => ({ month, latePayments: count }));
-      const paymentMethodChartData = Object.entries(paymentMethods)
-        .filter(([,value]) => value > 0)
-        .map(([name, value]) => ({ name, value, fill: `var(--color-${name.toLowerCase().replace('-','')})`}));
-
-      return { latePaymentData: latePaymentChartData, paymentMethodData: paymentMethodChartData };
-
-  }, [payments]);
 
   const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
     setLoading(true);
@@ -196,66 +135,10 @@ export default function PaymentsPage() {
     </Table>
   );
 
-  const renderAnalytics = () => {
-       if (dataLoading) {
-           return (
-             <div className="grid gap-4 md:grid-cols-2">
-                 <Skeleton className="h-64" />
-                 <Skeleton className="h-64" />
-             </div>
-           )
-       }
-       return (
-            <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Late Payment Trends</CardTitle>
-                        <CardDescription>Number of late rent payments over the last 6 months.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={{}} className="h-48 w-full">
-                           <BarChart accessibilityLayer data={latePaymentData}>
-                                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                                <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
-                                <ChartTooltipContent />
-                                <Bar dataKey="latePayments" fill="var(--color-payments)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Payment Method Preferences</CardTitle>
-                        <CardDescription>Breakdown of how tenants prefer to pay.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                       {paymentMethodData.length > 0 ? (
-                            <ChartContainer config={chartConfig} className="h-48 w-full">
-                            <PieChart>
-                                    <ChartTooltipContent nameKey="name" />
-                                    <Pie data={paymentMethodData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                                        {paymentMethodData.map(entry => (
-                                            <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                        ))}
-                                    </Pie>
-                            </PieChart>
-                            </ChartContainer>
-                       ) : (
-                           <div className="flex items-center justify-center h-48 text-muted-foreground">No payment data available.</div>
-                       )}
-                    </CardContent>
-                </Card>
-            </div>
-       )
-  }
-
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Payments History</h2>
-      </div>
-       <div className="space-y-4">
-        {renderAnalytics()}
       </div>
       <Card>
         <CardHeader>
@@ -334,5 +217,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-
-    

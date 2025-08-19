@@ -155,11 +155,10 @@ export interface DashboardData {
     occupancyRate: number;
     properties: Property[];
     anomalyAlerts: ActivityItem[];
-    topPerformer: { address: string; revenue: number } | null;
     aiSummary?: string;
+    latePaymentData: { month: string; latePayments: number }[];
+    paymentMethodData: { name: string; value: number; fill: string }[];
 }
 
 export type GenerateReceiptOutput = GenReceiptOutput;
 export type GenerateInvoiceOutput = GenInvoiceOutput;
-
-    
