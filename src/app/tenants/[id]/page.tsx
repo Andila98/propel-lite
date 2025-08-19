@@ -315,7 +315,7 @@ export default function TenantDetailPage() {
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Lease Period</span>
-                        <span className="font-medium">{formatDate(tenant.leaseStartDate)} to {formatDate(tenant.leaseEndDate)}</span>
+                        <span className="font-medium">{formatDate(tenant.leaseStart)} to {formatDate(tenant.leaseEnd)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
@@ -383,3 +383,5 @@ export default function TenantDetailPage() {
     </div>
   );
 }
+
+    

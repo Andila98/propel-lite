@@ -19,6 +19,7 @@ import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'landlord' | 'tenant'>('landlord');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -34,10 +36,18 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-        // This is a mock registration since Firebase is removed.
-        console.log('Registering user (mock):', { displayName, email });
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ displayName, email, password, role }),
+        });
 
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create account.');
+        }
+        
         toast({
             title: "Account Created!",
             description: "Your account has been successfully created. Please log in.",
@@ -47,7 +57,7 @@ export default function RegisterPage() {
     } catch (error: any) {
         toast({
             title: "Registration Failed",
-            description: "An unexpected error occurred during mock registration.",
+            description: error.message,
             variant: "destructive",
         });
     } finally {
@@ -75,6 +85,33 @@ export default function RegisterPage() {
         <form onSubmit={handleRegister}>
           <fieldset disabled={isLoading} className="space-y-4">
             <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label>I am a...</Label>
+                    <RadioGroup 
+                        defaultValue="landlord" 
+                        className="grid grid-cols-2 gap-4"
+                        onValueChange={(value: 'landlord' | 'tenant') => setRole(value)}
+                    >
+                        <div>
+                        <RadioGroupItem value="landlord" id="r1" className="peer sr-only" />
+                        <Label
+                            htmlFor="r1"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                            Landlord
+                        </Label>
+                        </div>
+                        <div>
+                        <RadioGroupItem value="tenant" id="r2" className="peer sr-only" />
+                        <Label
+                            htmlFor="r2"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                            Tenant
+                        </Label>
+                        </div>
+                    </RadioGroup>
+                </div>
                <div className="space-y-2">
                 <Label htmlFor="displayName">Full Name</Label>
                 <Input
@@ -149,3 +186,5 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+    

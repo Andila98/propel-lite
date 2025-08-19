@@ -1,18 +1,36 @@
 
 "use server";
 
+import { auth, firestore } from "@/lib/firebase-admin";
+import { cookies } from "next/headers";
+import { authConfig } from "@/config/server-config";
+
+
 export interface ActionState {
     error?: string;
     success?: boolean;
 }
 
 export async function completeOnboarding(): Promise<ActionState> {
-  // This is a mock server action as Firebase is removed.
   try {
-    console.log("Mock onboarding completion action triggered.");
+    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return { error: 'You must be logged in to complete onboarding.' };
+    }
+
+    const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+    
+    // Set a custom claim to indicate the profile is now complete
+    await auth.setCustomUserClaims(decodedClaims.uid, { 
+        ...decodedClaims, // Preserve existing claims
+        profileComplete: true 
+    });
+    
     return { success: true };
   } catch (error: any) {
-    console.error('[MOCK_ONBOARDING_ACTION_ERROR]', error);
+    console.error('[COMPLETE_ONBOARDING_ACTION_ERROR]', error);
     return { error: `Internal Server Error: ${error.message}` };
   }
 }
+
+    

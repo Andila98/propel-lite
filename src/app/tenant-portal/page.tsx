@@ -93,7 +93,7 @@ function MaintenanceRequestForm({ tenant, property }: { tenant: Tenant; property
           }
            toast({
               title: 'Request Submitted!',
-              description: 'Your maintenance request has been sent. The AI has pre-analyzed your image to help us understand the issue faster.',
+              description: 'Your maintenance request has been sent.',
           });
            // Reset form
           setDescription('');
@@ -207,6 +207,17 @@ export default function TenantPortalPage() {
   const rentAmount = unit?.rent || 0;
   const rentStatus = getRentStatus(payments, rentAmount);
 
+  const formatDate = (dateValue: any) => {
+      if (!dateValue) return 'N/A';
+      const date = dateValue.seconds ? new Date(dateValue.seconds * 1000) : new Date(dateValue);
+      return date.toLocaleDateString();
+  };
+
+  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(amount);
+  };
+
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -222,15 +233,15 @@ export default function TenantPortalPage() {
           <CardContent className="grid gap-4">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Monthly Rent</span>
-              <span>{rentAmount.toLocaleString('en-US', { style: 'currency', currency: property.currency || 'KES' })}</span>
+              <span>{formatCurrency(rentAmount, property.currency)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease Start</span>
-              <span>{new Date((tenant.leaseStartDate as any).seconds * 1000).toLocaleDateString()}</span>
+              <span>{formatDate(tenant.leaseStart)}</span>
             </div>
              <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease End</span>
-              <span>{new Date((tenant.leaseEndDate as any).seconds * 1000).toLocaleDateString()}</span>
+              <span>{formatDate(tenant.leaseEnd)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Rent Status</span>
@@ -281,8 +292,8 @@ export default function TenantPortalPage() {
               <TableBody>
                 {payments.map((payment) => (
                   <TableRow key={payment.id}>
-                    <TableCell>{new Date((payment.date as any).seconds * 1000).toLocaleDateString()}</TableCell>
-                    <TableCell>{payment.amount.toLocaleString('en-US', { style: 'currency', currency: property.currency || 'KES' })}</TableCell>
+                    <TableCell>{formatDate(payment.date)}</TableCell>
+                    <TableCell>{formatCurrency(payment.amount, property.currency)}</TableCell>
                     <TableCell>{payment.method}</TableCell>
                   </TableRow>
                 ))}
@@ -296,3 +307,5 @@ export default function TenantPortalPage() {
     </div>
   );
 }
+
+    

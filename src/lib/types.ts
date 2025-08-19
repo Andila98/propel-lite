@@ -24,7 +24,7 @@ export interface Property {
     managerId?: string;
     imageUrl?: string;
     description: string;
-    currency?: string;
+    currency: string;
     createdAt: Timestamp;
     updatedAt?: Timestamp;
     // These are not stored directly in the property document in Firestore
@@ -56,9 +56,9 @@ export interface Tenant {
     propertyId: string;
     rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance';
     landlordId: string;
-    currentUnitId?: string;
-    leaseStartDate: Timestamp;
-    leaseEndDate: Timestamp;
+    currentUnitId: string;
+    leaseStart: Timestamp;
+    leaseEnd: Timestamp;
     paymentHistory: Payment[];
 }
 
@@ -69,7 +69,7 @@ export interface Payment {
     propertyId: string;
     unitId: string;
     amount: number;
-    date: Timestamp;
+    date: string; // Keep as string for client-side compatibility
     method: 'Mpesa' | 'Stripe' | 'Bank Transfer' | 'Card' | 'Other';
     status: 'pending' | 'confirmed' | 'failed';
     txRef?: string;
@@ -161,3 +161,5 @@ export interface DashboardData {
 
 export type GenerateReceiptOutput = GenReceiptOutput;
 export type GenerateInvoiceOutput = GenInvoiceOutput;
+
+    

@@ -23,6 +23,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass: string) => Promise<{ user: User }>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 async function fetchUserSession(firebaseUser: FirebaseUser | null): Promise<User | null> {
     if (!firebaseUser) return null;
 
-    const token = await firebaseUser.getIdToken();
+    const token = await firebaseUser.getIdToken(true); // Force refresh
     const response = await fetch('/api/auth/me', {
         headers: {
             Authorization: `Bearer ${token}`,
@@ -54,8 +55,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const refreshUser = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+        setLoading(true);
+        try {
+            const userProfile = await fetchUserSession(firebaseUser);
+            setUser(userProfile);
+        } catch (error) {
+            console.error("Error refreshing user session:", error);
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setLoading(true);
         try {
             const userProfile = await fetchUserSession(firebaseUser);
             setUser(userProfile);
@@ -100,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
 
-  if (loading) {
+  if (loading && !user) { // Only show full-screen loader on initial load
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -109,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -122,3 +140,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    
