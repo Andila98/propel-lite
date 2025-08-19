@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
 
@@ -21,6 +21,14 @@ export async function GET(req: NextRequest) {
 
     const userRecord = await auth.getUser(decodedToken.uid);
 
+    let permissions = {};
+    if (userRecord.customClaims?.role === 'manager') {
+        const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
+        if (managerDoc.exists) {
+            permissions = managerDoc.data()?.permissions || {};
+        }
+    }
+
     const userProfile: User = {
         uid: userRecord.uid,
         email: userRecord.email!,
@@ -28,6 +36,7 @@ export async function GET(req: NextRequest) {
         role: (userRecord.customClaims?.role as any) || 'tenant',
         profileComplete: userRecord.customClaims?.profileComplete || false,
         avatarUrl: userRecord.photoURL,
+        permissions: permissions,
     };
     
     return NextResponse.json(userProfile, { status: 200 });

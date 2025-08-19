@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
 import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import type { Permission } from '@/lib/types';
 
 export interface User {
   uid: string;
@@ -16,6 +17,7 @@ export interface User {
   profileComplete: boolean;
   avatarUrl?: string;
   token?: string;
+  permissions?: Record<Permission, boolean>;
 }
 
 interface AuthContextType {

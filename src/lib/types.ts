@@ -13,6 +13,7 @@ export interface User {
     createdAt: Timestamp;
     avatarUrl?: string;
     profileComplete: boolean;
+    permissions?: Record<Permission, boolean>;
 }
 
 export interface Property {
@@ -107,6 +108,7 @@ export interface MaintenanceRequest {
 }
 
 export type Permission = 
+  | 'canAddProperties'
   | 'canEditProperties'
   | 'canDeleteProperties'
   | 'canAddTenants'
@@ -117,6 +119,7 @@ export type Permission =
   | 'canManageSettings';
 
 export const permissionLabels: Record<Permission, string> = {
+  canAddProperties: 'Add Properties',
   canEditProperties: 'Edit Properties',
   canDeleteProperties: 'Delete Properties',
   canAddTenants: 'Add Tenants',

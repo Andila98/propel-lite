@@ -24,6 +24,7 @@ import { useProperty } from '@/hooks/use-property';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 
 const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
@@ -39,6 +40,10 @@ export default function PropertyDetailPage() {
   const propertyId = id as string;
   const { property, loading: propertyLoading } = useProperty(propertyId);
   const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
+  const { user } = useAuth();
+  
+  const canEdit = user?.role === 'landlord' || user?.permissions?.canEditProperties;
+  const canDelete = user?.role === 'landlord' || user?.permissions?.canDeleteProperties;
 
   if (propertyLoading) {
     return (
@@ -87,12 +92,16 @@ export default function PropertyDetailPage() {
             </div>
         </div>
         <div className="flex items-center gap-2">
-            <Link href={`/properties/${propertyId}/edit`}>
-                 <Button variant="outline">
-                    <AnimatedEditIcon /> Edit
-                </Button>
-            </Link>
-            <DeletePropertyButton propertyId={propertyId} propertyAddress={property.address} />
+            {canEdit && (
+                <Link href={`/properties/${propertyId}/edit`}>
+                    <Button variant="outline">
+                        <AnimatedEditIcon /> Edit
+                    </Button>
+                </Link>
+            )}
+            {canDelete && (
+                <DeletePropertyButton propertyId={propertyId} propertyAddress={property.address} />
+            )}
         </div>
       </div>
         

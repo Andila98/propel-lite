@@ -55,7 +55,7 @@ export default function TenantsPage() {
     </div>
   );
   
-  const canAddTenants = user?.role === 'landlord' || user?.role === 'manager';
+  const canAddTenants = user?.role === 'landlord' || user?.permissions?.canAddTenants;
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
