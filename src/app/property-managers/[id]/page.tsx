@@ -163,7 +163,7 @@ export default function PropertyManagerDetailPage() {
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{manager.phone}</span>
+                <span className="text-sm">{manager.phone || "Not Provided"}</span>
               </div>
             </CardContent>
           </Card>

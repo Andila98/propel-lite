@@ -21,6 +21,7 @@ import { permissionLabels, type Permission } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
@@ -32,7 +33,7 @@ const permissionsSchema = z.object(
 const PropertyManagerFormSchema = z.object({
   name: z.string().min(2, "Please enter a valid name."),
   email: z.string().email("Please enter a valid email address."),
-  phone: z.string().min(10, "Please enter a valid phone number."),
+  phone: z.string().min(10, "Please enter a valid phone number.").optional(),
   permissions: permissionsSchema,
   propertiesManaged: z.array(z.string()).optional(),
 });
@@ -82,8 +83,8 @@ export default function EditPropertyManagerPage() {
                 name: managerData.name,
                 email: managerData.email,
                 phone: managerData.phone,
-                permissions: managerData.permissions,
-                propertiesManaged: managerData.propertiesManaged,
+                permissions: managerData.permissions || {},
+                propertiesManaged: managerData.propertiesManaged || [],
             });
 
         } catch (err: any) {
@@ -199,91 +200,89 @@ export default function EditPropertyManagerPage() {
                   </div>
                 </CardContent>
             </Card>
-
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Permissions</CardTitle>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p className="max-w-xs">Define what actions this manager is allowed to perform across the properties they are assigned to.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
-                    <CardDescription>Select the permissions for this manager.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {Object.keys(permissionLabels).map((key) => (
-                            <div key={key} className="flex items-center space-x-2">
-                                <Controller
-                                    name={`permissions.${key as Permission}`}
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Checkbox
-                                            id={key}
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    )}
-                                />
-                                <Label htmlFor={key} className="font-normal">
-                                    {permissionLabels[key as Permission]}
-                                </Label>
-                            </div>
-                        ))}
-                    </div>
-                    {errors.permissions && <p className="text-sm text-destructive mt-1">{String(errors.permissions.message)}</p>}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> Assigned Properties</CardTitle>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p className="max-w-xs">Grant this manager access to specific properties. They will only be able to see and manage the properties you select here.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
-                    <CardDescription>Select which properties this manager can access.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Controller
-                        name="propertiesManaged"
-                        control={control}
-                        render={({ field }) => (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {properties.map((property) => (
-                                <div key={property.id} className="flex items-start space-x-2">
-                                <Checkbox
-                                    id={`property-${property.id}`}
-                                    checked={field.value?.includes(property.id)}
-                                    onCheckedChange={(checked) => {
-                                    const currentValues = field.value || [];
-                                    return checked
-                                        ? field.onChange([...currentValues, property.id])
-                                        : field.onChange(currentValues.filter((id) => id !== property.id));
-                                    }}
-                                />
-                                <Label htmlFor={`property-${property.id}`} className="font-normal -mt-0.5">
-                                    {property.address}
-                                </Label>
+            
+            <Accordion type="multiple" defaultValue={['permissions', 'properties']} className="w-full space-y-4">
+                <Card>
+                    <AccordionItem value="permissions" className="border-b-0">
+                        <AccordionTrigger className="p-6 hover:no-underline">
+                             <div className="flex items-center gap-3">
+                                <ShieldCheck className="h-5 w-5"/>
+                                <div>
+                                    <CardTitle className="text-lg">Permissions</CardTitle>
+                                    <CardDescription className="text-sm text-left">Define what actions this manager can perform.</CardDescription>
                                 </div>
-                            ))}
                             </div>
-                        )}
-                    />
-                    {errors.propertiesManaged && <p className="text-sm text-destructive mt-1">{errors.propertiesManaged.message}</p>}
-                </CardContent>
-            </Card>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-6 pt-0">
+                            <Separator className="mb-6"/>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {Object.keys(permissionLabels).map((key) => (
+                                    <div key={key} className="flex items-center space-x-2">
+                                        <Controller
+                                            name={`permissions.${key as Permission}`}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Checkbox
+                                                    id={key}
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            )}
+                                        />
+                                        <Label htmlFor={key} className="font-normal">
+                                            {permissionLabels[key as Permission]}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Card>
+
+                 <Card>
+                    <AccordionItem value="properties" className="border-b-0">
+                        <AccordionTrigger className="p-6 hover:no-underline">
+                             <div className="flex items-center gap-3">
+                                <Building className="h-5 w-5"/>
+                                <div>
+                                    <CardTitle className="text-lg">Assigned Properties</CardTitle>
+                                    <CardDescription className="text-sm text-left">Grant access to specific properties.</CardDescription>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-6 pt-0">
+                             <Separator className="mb-6"/>
+                             <Controller
+                                name="propertiesManaged"
+                                control={control}
+                                render={({ field }) => (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {properties.map((property) => (
+                                        <div key={property.id} className="flex items-start space-x-2">
+                                        <Checkbox
+                                            id={`property-${property.id}`}
+                                            checked={field.value?.includes(property.id)}
+                                            onCheckedChange={(checked) => {
+                                            const currentValues = field.value || [];
+                                            return checked
+                                                ? field.onChange([...currentValues, property.id])
+                                                : field.onChange(currentValues.filter((id) => id !== property.id));
+                                            }}
+                                        />
+                                        <Label htmlFor={`property-${property.id}`} className="font-normal -mt-0.5">
+                                            {property.name || property.address}
+                                        </Label>
+                                        </div>
+                                    ))}
+                                    </div>
+                                )}
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Card>
+
+            </Accordion>
+           
 
               <div className="flex justify-end pt-4">
                   <Button type="submit" disabled={saving}>

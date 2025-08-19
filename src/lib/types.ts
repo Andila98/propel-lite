@@ -132,7 +132,7 @@ export interface PropertyManager {
   uid: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   avatarUrl?: string;
   propertiesManaged: string[]; // Array of property IDs
   permissions: Record<Permission, boolean>;
