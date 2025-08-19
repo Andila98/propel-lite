@@ -79,7 +79,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {filteredNavItems.map(({ href, label, icon: Icon }) => (
               <SidebarMenuItem key={href}>
                 <Link href={href}>
-                    <SidebarMenuButton tooltip={label} isActive={pathname === href}>
+                    <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard')}>
                         <Icon />
                         <span>{label}</span>
                     </SidebarMenuButton>
@@ -96,7 +96,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {filteredAiTools.map(({ href, label, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
                   <Link href={href}>
-                      <SidebarMenuButton tooltip={label} isActive={pathname === href}>
+                      <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href)}>
                           <Icon />
                           <span>{label}</span>
                       </SidebarMenuButton>
@@ -112,7 +112,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
              {filteredUtilityPages.map(({ href, label, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
                     <Link href={href}>
-                        <SidebarMenuButton tooltip={label} isActive={pathname === href}>
+                        <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href)}>
                             <Icon />
                             <span>{label}</span>
                         </SidebarMenuButton>

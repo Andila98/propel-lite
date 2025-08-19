@@ -171,10 +171,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(data.occupancyRate * 100).toFixed(1)}%
+              {(data.occupancyRate).toFixed(1)}%
             </div>
             <Progress
-              value={data.occupancyRate * 100}
+              value={data.occupancyRate}
               className="h-2 mt-2"
             />
           </CardContent>

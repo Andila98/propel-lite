@@ -27,7 +27,7 @@ async function getAggregatedData() {
     const unitsSnapshot = await firestore.collectionGroup('units').get();
     const totalUnits = unitsSnapshot.size;
     const occupiedUnits = unitsSnapshot.docs.filter(doc => doc.data().isOccupied).length;
-    const occupancyRate = totalUnits > 0 ? occupiedUnits / totalUnits : 0;
+    const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
     
     // In a real app, revenueChange and topPerformer would involve more complex queries,
     // potentially comparing with the previous month's data.
@@ -39,7 +39,7 @@ async function getAggregatedData() {
         totalTenants: tenants.length,
         totalRevenue,
         revenueChange,
-        occupancyRate,
+        occupancyRate: occupancyRate,
         properties: properties.slice(0, 5), // Limit for carousel
         topPerformer
     };
