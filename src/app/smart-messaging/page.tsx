@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { generateMessageAction } from './actions';
 import type { Tenant } from '@/lib/types';
 import { useTenants } from '@/hooks/use-tenants';
 
@@ -38,11 +37,23 @@ export default function SmartMessagingPage() {
     }
 
     try {
-      const result = await generateMessageAction({ ...data, tenantName: tenant.name });
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      setGeneratedMessage(result.messageContent || '');
+      // Mock AI generation
+      await new Promise(res => setTimeout(res, 1000));
+
+      let message = '';
+        switch(data.reminderType) {
+            case 'rentDue':
+                message = `Hi ${tenant?.name}, this is a friendly reminder that your rent is due soon. Thanks!`;
+                break;
+            case 'latePayment':
+                message = `Hi ${tenant?.name}, this is a notice that your rent is now overdue. Please make a payment as soon as possible.`;
+                break;
+            case 'maintenance':
+                message = `Hi ${tenant?.name}, just a heads up about scheduled maintenance in the building next week. We'll provide more details soon.`;
+                break;
+        }
+
+      setGeneratedMessage(message);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {

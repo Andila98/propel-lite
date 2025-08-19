@@ -1,27 +1,12 @@
 
 import { NextResponse } from 'next/server';
 import { mockMaintenanceRequests } from '@/lib/mock-data';
-import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance';
 import type { MaintenanceRequest } from '@/lib/types';
 
 export async function GET() {
     try {
-        const requestsWithPriority = await Promise.all(
-            mockMaintenanceRequests.map(async (req) => {
-                // Only run AI if priority is not already set
-                if (!req.priority) {
-                    try {
-                        const priorityResult = await prioritizeMaintenanceRequest({ description: req.description });
-                        return { ...req, ...priorityResult };
-                    } catch (aiError: any) {
-                        console.warn(`[AI_PRIORITY_ERROR] for request ${req.id}: ${aiError.message}. Falling back to 'Medium'.`);
-                        // Fallback to a default priority if AI fails
-                        return { ...req, priority: 'Medium', reasoning: 'AI analysis failed.' } as MaintenanceRequest;
-                    }
-                }
-                return req;
-            })
-        );
+        // AI-based priority is hardcoded in mock data for this version
+        const requestsWithPriority = [...mockMaintenanceRequests];
         
         // Sort by priority: High > Medium > Low
         requestsWithPriority.sort((a, b) => {

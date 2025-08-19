@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Loader2, Wand2, Calendar as CalendarIcon, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,29 +11,26 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { scheduleReminderAction, getReminderSuggestionAction, getScheduleSuggestionAction, ScheduleReminderFormValues, ScheduleReminderState } from './actions';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Invoice } from '@/components/invoice';
-import type { GenerateInvoiceOutput } from '@/ai/flows/generate-invoice';
 import type { Tenant } from '@/lib/types';
 import { useTenants } from '@/hooks/use-tenants';
+import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
+import type { GenerateInvoiceOutput } from '@/lib/types';
 
-const ScheduleReminderFormSchema = z.object({
-  tenantId: z.string().min(1, "Tenant is required."),
-  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance']),
-  scheduledFor: z.date({ required_error: "A date is required."}),
-  message: z.string().min(10, "Message is required."),
-});
+
+interface ScheduleReminderState {
+    error?: string;
+    successMessage?: string;
+}
 
 export default function RemindersPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [suggestionResult, setSuggestionResult] = useState<ScheduleReminderState | null>(null);
-  const [scheduleSuggestion, setScheduleSuggestion] = useState<any>(null);
   const [invoice, setInvoice] = useState<GenerateInvoiceOutput | null>(null);
   const [finalResult, setFinalResult] = useState<ScheduleReminderState | null>(null);
   const { tenants } = useTenants();
@@ -55,49 +51,63 @@ export default function RemindersPage() {
     const getSuggestions = async () => {
         if (tenantId && reminderType) {
             setLoading(true);
-            setSuggestionResult(null);
             setInvoice(null);
             
-            const messagePromise = getReminderSuggestionAction({ tenantId, reminderType });
-            const schedulePromise = getScheduleSuggestionAction({ tenantId, reminderType });
+            // Mocking AI suggestions
+            await new Promise(res => setTimeout(res, 1000));
             
-            const [messageRes, scheduleRes] = await Promise.all([messagePromise, schedulePromise]);
-
-            if (messageRes.suggestion?.messageContent) {
-                setValue('message', messageRes.suggestion.messageContent);
-                setSuggestionResult(messageRes);
+            const tenant = tenants.find(t => t.id === tenantId);
+            
+            let message = '';
+            switch(reminderType) {
+                case 'rentDue':
+                    message = `Hi ${tenant?.name}, this is a friendly reminder that your rent is due soon. Thanks!`;
+                    // Mock invoice generation
+                    setInvoice({
+                        invoiceNumber: `INV-2024-${Math.floor(Math.random() * 1000)}`,
+                        invoiceDate: new Date().toISOString(),
+                        dueDate: new Date(new Date().setMonth(new Date().getMonth() + 1, 1)).toISOString(),
+                        tenantName: tenant?.name || 'N/A',
+                        propertyAddress: 'Mock Address',
+                        items: [{ description: 'Monthly Rent', amount: 50000 }],
+                        totalAmount: 50000,
+                        currency: 'KES',
+                        notes: 'Thank you for your timely payment.'
+                    });
+                    break;
+                case 'maintenance':
+                    message = `Hi ${tenant?.name}, just a heads up about scheduled maintenance in the building next week. We'll provide more details soon.`;
+                    break;
+                default:
+                     message = `Hello ${tenant?.name}, this is a reminder regarding your lease. Please contact us at your earliest convenience.`;
             }
-            if (messageRes.invoice) {
-              setInvoice(messageRes.invoice);
-            }
-            if (scheduleRes.suggestion?.reminderDate) {
-                setValue('scheduledFor', new Date(scheduleRes.suggestion.reminderDate));
-                setScheduleSuggestion(scheduleRes.suggestion)
-            }
+            setValue('message', message);
+            
+            const scheduleDate = new Date();
+            scheduleDate.setDate(scheduleDate.getDate() + 5);
+            setValue('scheduledFor', scheduleDate);
             
             setLoading(false);
         }
     };
     getSuggestions();
-  }, [tenantId, reminderType, setValue]);
+  }, [tenantId, reminderType, setValue, tenants]);
 
   const onSubmit = async (data: ScheduleReminderFormValues) => {
     setLoading(true);
     setFinalResult(null);
-    const submissionData = {
-        ...data,
-        scheduledFor: format(data.scheduledFor, 'yyyy-MM-dd'),
-    }
-    const res = await scheduleReminderAction(submissionData);
-    if (res.error) {
-      toast({ title: "Error", description: res.error, variant: "destructive" });
+    
+    // Mocking the schedule action
+    await new Promise(res => setTimeout(res, 1000));
+    const result: ScheduleReminderState = { successMessage: `Reminder for tenant has been successfully scheduled for ${format(data.scheduledFor, 'yyyy-MM-dd')}.` };
+    
+    if (result.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
     } else {
-      toast({ title: "Success!", description: res.successMessage });
-      setFinalResult(res);
+      toast({ title: "Success!", description: result.successMessage });
+      setFinalResult(result);
       form.reset();
       setInvoice(null);
-      setSuggestionResult(null);
-      setScheduleSuggestion(null);
     }
     setLoading(false);
   };
@@ -185,7 +195,6 @@ export default function RemindersPage() {
                     </Popover>
                     )}
                 />
-                 {scheduleSuggestion?.reasoning && <p className="text-xs text-muted-foreground mt-1">AI Suggestion: {scheduleSuggestion.reasoning}</p>}
                  {form.formState.errors.scheduledFor && <p className="text-sm text-destructive mt-1">{form.formState.errors.scheduledFor.message}</p>}
               </div>
 

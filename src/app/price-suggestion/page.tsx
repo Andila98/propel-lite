@@ -11,7 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { suggestPriceAction, SuggestionFormSchema, type SuggestionFormValues, type PriceSuggestionState } from './actions';
+import { PriceSuggestionSchema, type PriceSuggestionValues } from '@/lib/schemas';
+
+interface PriceSuggestionState {
+  error?: string;
+  suggestion?: any;
+};
 
 export default function PriceSuggestionPage() {
   const { toast } = useToast();
@@ -22,19 +27,26 @@ export default function PriceSuggestionPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SuggestionFormValues>({
-    resolver: zodResolver(SuggestionFormSchema),
+  } = useForm<PriceSuggestionValues>({
+    resolver: zodResolver(PriceSuggestionSchema),
   });
 
-  const onSubmit: SubmitHandler<SuggestionFormValues> = async (data) => {
+  const onSubmit: SubmitHandler<PriceSuggestionValues> = async (data) => {
     setLoading(true);
     setResult(null);
     try {
-      const res = await suggestPriceAction(data);
-      if (res.error) {
-        throw new Error(res.error);
-      }
-      setResult(res);
+      // This is a mock implementation
+      console.log("Submitting for price suggestion:", data);
+      await new Promise(res => setTimeout(res, 1500));
+      const mockResult = {
+        suggestion: {
+          suggestedPrice: (data.squareFootage * 150) + (data.bedrooms * 10000),
+          reasoning: "Based on the provided square footage and number of bedrooms in a prime location.",
+          overrideConsiderations: "If the unit has luxury finishes, you could increase the price by 10%.",
+          currency: "KES"
+        }
+      };
+      setResult(mockResult);
     } catch (e: any) {
         console.error(`Frontend Error: ${e.message}`, e);
         toast({

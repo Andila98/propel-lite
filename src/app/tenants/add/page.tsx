@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,18 +16,8 @@ import { useProperties } from '@/hooks/use-properties';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Unit } from '@/lib/types';
+import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 
-
-const TenantFormSchema = z.object({
-  name: z.string().min(2, "Please enter a valid name."),
-  email: z.string().email("Please enter a valid email address."),
-  phone: z.string().optional(),
-  propertyId: z.string({ required_error: "Please select a property."}),
-  unitId: z.string({ required_error: "Please select a unit." }),
-  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
-  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
-});
-type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
 export default function AddTenantPage() {
   const router = useRouter();

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -37,17 +38,13 @@ import { RecentActivities } from "@/components/recent-activities"
 import { PropertyManagerList } from "@/components/property-manager-list"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { DashboardData } from "@/services/dashboard-service"
 import { useAuth } from "@/hooks/use-auth"
 import { useManagers } from "@/hooks/use-managers"
-import type { GenerateDashboardInsightsOutput } from "@/ai/flows/generate-dashboard-insights"
 import { Separator } from "@/components/ui/separator"
+import type { DashboardData } from "@/lib/types"
 
-interface DashboardDataWithAI extends DashboardData {
-    aiInsights?: GenerateDashboardInsightsOutput;
-}
 
-function AiInsightsCard({ insights }: { insights: GenerateDashboardInsightsOutput }) {
+function AiInsightsCard({ summary }: { summary: string }) {
     return (
         <Card className="lg:col-span-4 bg-primary/5 border-primary/20">
             <CardHeader>
@@ -55,57 +52,15 @@ function AiInsightsCard({ insights }: { insights: GenerateDashboardInsightsOutpu
                     <Sparkles className="h-5 w-5 text-primary"/>
                     AI-Powered Insights
                 </CardTitle>
-                <CardDescription>{insights.naturalLanguageSummary}</CardDescription>
+                <CardDescription>{summary}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                 <Separator />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-start gap-3">
-                        <TrendingUp className="h-4 w-4 mt-1 text-green-500" />
-                        <div>
-                            <p className="font-semibold">Revenue Forecast</p>
-                            <p className="text-muted-foreground">{insights.revenueForecast}</p>
-                        </div>
-                    </div>
-                     <div className="flex items-start gap-3">
-                        <BarChart className="h-4 w-4 mt-1 text-blue-500" />
-                        <div>
-                            <p className="font-semibold">Occupancy Forecast</p>
-                            <p className="text-muted-foreground">{insights.occupancyForecast}</p>
-                        </div>
-                    </div>
-                     <div className="flex items-start gap-3">
-                        <TrendingDown className="h-4 w-4 mt-1 text-red-500" />
-                        <div>
-                            <p className="font-semibold">Late Payment Prediction</p>
-                            <p className="text-muted-foreground">{insights.latePaymentPrediction}</p>
-                        </div>
-                    </div>
-                </div>
-                {insights.anomalyAlerts && insights.anomalyAlerts.length > 0 && (
-                    <>
-                    <Separator />
-                    <div>
-                        <p className="font-semibold text-sm flex items-center gap-2 mb-2">
-                             <AlertTriangle className="h-4 w-4 text-yellow-500"/>
-                            AI Anomaly Alerts
-                        </p>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                            {insights.anomalyAlerts.map((alert, i) => (
-                                <li key={i}>{alert}</li>
-                            ))}
-                        </ul>
-                    </div>
-                    </>
-                )}
-            </CardContent>
         </Card>
     )
 }
 
 export default function DashboardPage() {
   const { t } = useTranslation()
-  const [data, setData] = useState<DashboardDataWithAI | null>(null)
+  const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [timeframe, setTimeframe] = useState("month")
@@ -161,7 +116,7 @@ export default function DashboardPage() {
 
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {data.aiInsights && <AiInsightsCard insights={data.aiInsights} />}
+        {data.aiSummary && <AiInsightsCard summary={data.aiSummary} />}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -320,7 +275,7 @@ function DashboardSkeleton() {
           <Skeleton className="h-4 w-full" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-10 w-full" />
         </CardContent>
       </Card>
       {[...Array(4)].map((_, i) => (

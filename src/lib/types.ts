@@ -139,3 +139,30 @@ export interface AuditLog {
     entityName: string;
     timestamp: string;
 }
+
+export interface DashboardData {
+    totalProperties: number;
+    totalTenants: number;
+    totalRevenue: number;
+    revenueChange: number;
+    occupancyRate: number;
+    properties: Property[];
+    anomalyAlerts: ActivityItem[];
+    topPerformer: { address: string; revenue: number } | null;
+    aiSummary?: string;
+}
+
+export interface GenerateInvoiceOutput {
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string;
+  tenantName: string;
+  propertyAddress: string;
+  items: {
+    description: string;
+    amount: number;
+  }[];
+  totalAmount: number;
+  currency: string;
+  notes: string;
+}

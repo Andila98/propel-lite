@@ -15,13 +15,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UploadCloud, AlertTriangle, CheckCircle, Wand2 } from 'lucide-react';
-import { analyzePropertyDamage, type AnalyzeDamageOutput } from '@/ai/flows/analyze-property-damage';
 import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
 
 interface DamageAnalysisDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface AnalyzeDamageOutput {
+    hasDamage: boolean;
+    damageSummary: string;
+    detectedIssues: {
+        issueType: string;
+        description: string;
+        severity: 'Low' | 'Medium' | 'High';
+    }[];
 }
 
 export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialogProps) {
@@ -59,8 +68,25 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
     setResult(null);
 
     try {
-      const result = await analyzePropertyDamage({ photoDataUri: previewUrl });
-      setResult(result);
+      // Mock analysis
+      await new Promise(res => setTimeout(res, 2000));
+      const mockResult: AnalyzeDamageOutput = {
+          hasDamage: true,
+          damageSummary: "Detected a moderate water stain and minor scuff marks.",
+          detectedIssues: [
+              {
+                  issueType: "Water Stain",
+                  description: "A circular water stain is visible on the ceiling in the corner.",
+                  severity: "Medium"
+              },
+              {
+                  issueType: "Scuff Mark",
+                  description: "Several black scuff marks are present on the wall near the doorway.",
+                  severity: "Low"
+              }
+          ]
+      };
+      setResult(mockResult);
     } catch (error: any) {
       toast({
         title: 'Analysis Failed',
