@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray, type UseFormReturn } from "react-hook-form";
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Image as ImageIcon, Upload, Info, Loader2 } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, Upload, Info, Loader2, XCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
@@ -22,6 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFormStatus } from 'react-dom';
 import type { FormState } from '@/app/properties/actions';
+import { compressFile } from '@/lib/client/compress';
 
 interface PropertyFormProps {
     formAction: (payload: FormData) => void;
@@ -43,6 +44,8 @@ function SubmitButton({ isOnboarding }: { isOnboarding: boolean }) {
 
 export function PropertyForm({ formAction, initialState, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const defaultForm = useForm<PropertyFormValues>({
     defaultValues: initialData || {
@@ -57,7 +60,12 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   
   const form = passedForm || defaultForm;
   
-  const { register, control, handleSubmit, formState, setValue, watch, getValues, setError } = form;
+  const { register, control, handleSubmit, formState, setValue, watch, getValues, setError, reset } = form;
+
+  useEffect(() => {
+    reset(initialData);
+    setImagePreview(initialData?.imageUrl || null);
+  }, [initialData, reset]);
 
   useEffect(() => {
     if (initialState?.errors) {
@@ -86,6 +94,33 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
     });
     const currentNum = numberOfUnits || 0;
     setValue("numberOfUnits", currentNum + 1);
+  };
+  
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressedFile = await compressFile(file);
+        setImageFile(compressedFile);
+        
+        const previewUrl = URL.createObjectURL(compressedFile);
+        setImagePreview(previewUrl);
+
+      } catch (error) {
+        console.error("Image compression failed:", error);
+        toast({ title: 'Compression Error', description: 'Could not process image.', variant: 'destructive'});
+        // Fallback to original file if compression fails
+        setImageFile(file);
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+      }
+    }
+  };
+
+  const removeImage = () => {
+      setImageFile(null);
+      setImagePreview(null);
+      setValue('imageUrl', undefined);
   };
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,7 +200,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   const clientAction = (formData: FormData) => {
     const propertyData = getValues();
     
-    // Client-side validation before submitting
     const validation = PropertyFormSchema.safeParse(propertyData);
     if (!validation.success) {
       toast({
@@ -173,12 +207,15 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
         description: "Please check the form for errors before submitting.",
         variant: "destructive",
       });
-      // This will trigger the form's own error display
       handleSubmit(() => {})()
       return;
     }
-
+    
     formData.append('propertyData', JSON.stringify(propertyData));
+    if (imageFile) {
+        formData.append('image', imageFile);
+    }
+
     formAction(formData);
   }
   
@@ -197,8 +234,8 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   return (
     <TooltipProvider>
     <form action={clientAction}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-3 space-y-6">
                 <Card>
                   {cardHeader}
                   <CardContent>
@@ -278,9 +315,8 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                     </div>
                   </CardContent>
                 </Card>
-            </div>
-            <div className="space-y-6">
-                {propertyType === "Apartment" && (
+
+                 {propertyType === "Apartment" && (
                     <Card>
                         <CardHeader>
                             <div className="flex items-center gap-2">
@@ -369,7 +405,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                           </div>
                           <div>
                             <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
-                            <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`)} />
+                            <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`, { valueAsNumber: true })} />
                           </div>
                           <div className="flex items-center space-x-2 pt-6">
                                <Controller
@@ -386,23 +422,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                               <Label htmlFor={`units.${index}.isOccupied`}>Occupied</Label>
                             </div>
                         </div>
-                         <Collapsible className="mt-4">
-                            <CollapsibleTrigger asChild>
-                                <Button variant="link" className="p-0 h-auto">
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Images/Documents
-                                </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="space-y-4 pt-4">
-                                 <div>
-                                    <Label htmlFor={`unit-gallery-${index}`}>Unit Images</Label>
-                                    <Input id={`unit-gallery-${index}`} type="file" multiple accept="image/*" />
-                                </div>
-                                <div>
-                                    <Label htmlFor={`unit-docs-${index}`}>Unit Documents</Label>
-                                    <Input id={`unit-docs-${index}`} type="file" multiple accept=".pdf,.doc,.docx" />
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
                          {formState.errors.units?.[index] && (
                             <div className="text-sm text-destructive mt-2">
                                {Object.values(formState.errors.units[index] as object).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
@@ -418,6 +437,45 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                     )}
                     {formState.errors.units && typeof formState.errors.units.message === 'string' && <p className="text-sm text-destructive mt-1">{formState.errors.units.message}</p>}
                 </div>
+            </div>
+            <div className="lg:col-span-2 space-y-6">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Property Image</CardTitle>
+                        <CardDescription>Upload a main image for the property.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative group">
+                            {imagePreview ? (
+                                <>
+                                    <Image
+                                        src={imagePreview}
+                                        alt="Property Preview"
+                                        width={800}
+                                        height={500}
+                                        className="object-contain w-full h-full"
+                                        data-ai-hint="apartment building"
+                                    />
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button size="icon" variant="destructive" type="button" onClick={removeImage}>
+                                            <XCircle className="h-5 w-5" />
+                                        </Button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-muted-foreground flex flex-col items-center">
+                                    <ImageIcon className="h-12 w-12" />
+                                    <p>Image preview will appear here</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-4">
+                             <Label htmlFor="image" className="sr-only">Upload Image</Label>
+                             <Input id="image" type="file" accept="image/*" onChange={handleFileChange} />
+                             {formState.errors.imageUrl && <p className="text-sm text-destructive mt-1">{formState.errors.imageUrl.message}</p>}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
         <div className="mt-8">

@@ -2,18 +2,21 @@
 // lib/client/compress.ts
 import imageCompression from 'browser-image-compression';
 
-export async function compressFile(input: File) {
-  const maxMB = Number(process.env.NEXT_PUBLIC_MAX_IMAGE_MB || 5);
-  const compressed = await imageCompression(input, {
-    maxSizeMB: maxMB,
-    maxWidthOrHeight: 1920,
-    initialQuality: 0.8,
+export async function compressFile(input: File): Promise<File> {
+  const options = {
+    maxSizeMB: 1,          // Max file size in MB
+    maxWidthOrHeight: 1920, // Max width or height
     useWebWorker: true,
-    fileType: 'image/webp',
-  });
-  return new File([await compressed.arrayBuffer()], renameToWebp(input.name), { type: 'image/webp' });
-}
+    initialQuality: 0.8,
+  };
 
-function renameToWebp(name: string) {
-  return name.replace(/\.(jpe?g|png|gif|bmp|tiff?)$/i, '') + '.webp';
+  try {
+    const compressedFile = await imageCompression(input, options);
+    console.log(`Compressed file size: ${compressedFile.size / 1024 / 1024} MB`);
+    return compressedFile;
+  } catch (error) {
+    console.error('Image compression error:', error);
+    // Return original file if compression fails
+    return input;
+  }
 }
