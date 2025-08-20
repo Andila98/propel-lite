@@ -67,6 +67,8 @@ export async function getReminderSuggestionAction(
       throw new Error("Tenant not found");
     }
     const tenantName = tenantDoc.data()?.name;
+    
+    console.log(`[GET_REMINDER_SUGGESTION_ACTION] Generating suggestion for tenant ${tenantName}, type: ${input.reminderType}`);
 
     const [messageRes, invoiceRes] = await Promise.all([
         generateMessage({ tenantName, reminderType: input.reminderType }),
@@ -110,6 +112,8 @@ export async function getScheduleSuggestionAction(
                 reminderDate.setDate(15);
                 reasoning = "Suggesting a default date."
         }
+        
+        console.log(`[GET_SCHEDULE_SUGGESTION_ACTION] Suggested date: ${reminderDate.toISOString()}`);
 
         return {
             suggestion: {

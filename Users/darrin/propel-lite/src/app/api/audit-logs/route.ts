@@ -6,6 +6,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export async function GET() {
     if (!isFirebaseAdminInitialized) {
+        console.error('API Error: Firestore is not configured.');
         return NextResponse.json(
             { error: `Firestore is not configured. Please check server credentials.` },
             { status: 500 }
