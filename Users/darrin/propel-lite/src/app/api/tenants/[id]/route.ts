@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore, auth } from '@/lib/firebase-admin';
+import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { z } from 'zod';
@@ -17,6 +17,10 @@ const TenantUpdateSchema = z.object({
 
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const tenantId = params.id;
         // The tenant document ID should be the same as the Firebase Auth UID
@@ -41,6 +45,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const tenantId = params.id;
         const body = await req.json();
@@ -88,6 +96,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+    
     try {
         const tenantId = params.id;
         const tenantRef = firestore.collection('tenants').doc(tenantId);

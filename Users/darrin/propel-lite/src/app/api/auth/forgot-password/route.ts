@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 
 const ForgotPasswordSchema = z.object({
@@ -8,6 +8,10 @@ const ForgotPasswordSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
   try {
     const body = await request.json();
     const validation = ForgotPasswordSchema.safeParse(body);

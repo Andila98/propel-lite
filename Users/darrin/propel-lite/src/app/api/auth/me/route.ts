@@ -1,10 +1,14 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
 
 export async function GET(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
   const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
   const authToken = req.headers.get('Authorization')?.split('Bearer ')[1];
 

@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -12,6 +12,10 @@ const SignUpSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const body = await req.json();
         const validation = SignUpSchema.safeParse(body);

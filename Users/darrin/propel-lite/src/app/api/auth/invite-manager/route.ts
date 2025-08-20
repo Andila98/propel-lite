@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { auth } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { logActivity } from '@/lib/audit-log-service';
 
@@ -22,6 +22,10 @@ async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const landlordId = await getUserIdFromRequest(req);
         if (!landlordId) {

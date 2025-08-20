@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
@@ -19,6 +19,10 @@ const RequestBodySchema = z.object({
 
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const body = await req.json();
         const validation = RequestBodySchema.safeParse(body);
