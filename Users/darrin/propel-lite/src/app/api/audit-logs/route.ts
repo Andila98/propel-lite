@@ -6,7 +6,6 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export async function GET() {
     if (!isFirebaseAdminInitialized) {
-        console.error('API Error: Firestore is not configured.');
         return NextResponse.json(
             { error: `Firestore is not configured. Please check server credentials.` },
             { status: 500 }
@@ -27,7 +26,6 @@ export async function GET() {
         return NextResponse.json(logs);
 
     } catch (error: any) {
-        console.error('API Error: Failed to fetch audit logs:', error);
         return NextResponse.json(
             { error: `Failed to fetch audit logs: ${error.message}` },
             { status: 500 }

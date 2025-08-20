@@ -13,12 +13,10 @@ export async function GET() {
         const requestsToPrioritize = requests.filter(r => r.status === 'Pending' && !r.priority);
         const priorityPromises = requestsToPrioritize.map(async (request) => {
             try {
-                console.log(`[MAINTENANCE_API] Prioritizing request: ${request.id}`);
                 const { priority, reasoning } = await prioritizeMaintenanceRequest({ description: request.description });
                 await firestore.collection('maintenanceRequests').doc(request.id).update({ priority, reasoning });
                 return { ...request, priority, reasoning };
             } catch (aiError) {
-                console.error(`[MAINTENANCE_API] AI prioritization failed for request ${request.id}:`, aiError);
                 // Assign a default priority if AI fails
                 await firestore.collection('maintenanceRequests').doc(request.id).update({ priority: 'Medium', reasoning: 'AI analysis failed.' });
                 return { ...request, priority: 'Medium', reasoning: 'AI analysis failed, assigned default priority.' };
@@ -37,7 +35,6 @@ export async function GET() {
         return NextResponse.json(requests);
 
     } catch (error: any) {
-        console.error('API Error: Failed to get maintenance requests:', error);
         return NextResponse.json(
             { error: `Failed to fetch requests: ${error.message}` },
             { status: 500 }
@@ -48,11 +45,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        console.log('[MAINTENANCE_API] Creating new maintenance request:', body);
         const newRequestRef = await firestore.collection('maintenanceRequests').add(body);
         return NextResponse.json({ id: newRequestRef.id, ...body }, { status: 201 });
     } catch(error: any) {
-        console.error('API Error: Failed to create maintenance request:', error);
         return NextResponse.json({ error: 'Failed to create request'}, { status: 500 });
     }
 }

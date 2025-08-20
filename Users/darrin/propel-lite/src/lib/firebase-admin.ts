@@ -16,12 +16,8 @@ if (!isFirebaseAdminInitialized) {
         projectId: serviceAccount.project_id,
       });
       isFirebaseAdminInitialized = true;
-      console.log('[FIREBASE_ADMIN] Initialized successfully from environment variable.');
-    } else {
-        console.log('[FIREBASE_ADMIN] Service account credentials not found. Some server-side features may be disabled.');
     }
   } catch (error: any) {
-    console.error('[FIREBASE_ADMIN] Failed to initialize:', error.message);
   }
 }
 

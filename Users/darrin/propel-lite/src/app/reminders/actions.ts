@@ -38,7 +38,6 @@ export async function scheduleReminderAction(
   try {
     // In a real app, you would save this to a 'reminders' collection
     // or integrate with a task scheduling service like Google Cloud Tasks.
-    console.log("Scheduling reminder with data:", validationResult.data);
     
     await firestore.collection('reminders').add({
         ...validationResult.data,
@@ -50,7 +49,6 @@ export async function scheduleReminderAction(
     return { successMessage: `Reminder for tenant has been successfully scheduled for ${validationResult.data.scheduledFor}.` };
 
   } catch (error: any) {
-    console.error("[SCHEDULE_REMINDER_ACTION_ERROR]", error);
     return { error: error.message };
   }
 }
@@ -68,8 +66,6 @@ export async function getReminderSuggestionAction(
     }
     const tenantName = tenantDoc.data()?.name;
     
-    console.log(`[GET_REMINDER_SUGGESTION_ACTION] Generating suggestion for tenant ${tenantName}, type: ${input.reminderType}`);
-
     const [messageRes, invoiceRes] = await Promise.all([
         generateMessage({ tenantName, reminderType: input.reminderType }),
         input.reminderType === 'rentDue' ? generateInvoice({ tenantId: input.tenantId }) : Promise.resolve(null)
@@ -83,7 +79,6 @@ export async function getReminderSuggestionAction(
     };
 
   } catch (error: any) {
-    console.error("[GET_REMINDER_SUGGESTION_ACTION_ERROR]", error);
     return { error: error.message };
   }
 }
@@ -113,8 +108,6 @@ export async function getScheduleSuggestionAction(
                 reasoning = "Suggesting a default date."
         }
         
-        console.log(`[GET_SCHEDULE_SUGGESTION_ACTION] Suggested date: ${reminderDate.toISOString()}`);
-
         return {
             suggestion: {
                 messageContent: '', // Not used in this action
@@ -123,7 +116,6 @@ export async function getScheduleSuggestionAction(
             }
         };
     } catch (error: any) {
-        console.error("[GET_SCHEDULE_SUGGESTION_ACTION_ERROR]", error);
         return { error: error.message };
     }
 }

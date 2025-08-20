@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(result);
     } catch (error: any) {
-        console.error('[ANALYZE_DAMAGE_API_ERROR]', error);
         return NextResponse.json({ error: 'Failed to analyze image.' }, { status: 500 });
     }
 }

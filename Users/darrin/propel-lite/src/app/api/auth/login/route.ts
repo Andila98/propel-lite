@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
     } else {
         // This is a new user (likely from social login)
         // Create a basic profile for them. They must complete onboarding.
-        console.log(`New user detected: ${userRecord.uid}. Creating basic profile.`);
         const newUserRole = 'landlord'; // Default new sign-ups to landlord
         
         await firestore.collection('users').doc(userRecord.uid).set({
@@ -70,7 +69,6 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error('Login Error:', error);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }

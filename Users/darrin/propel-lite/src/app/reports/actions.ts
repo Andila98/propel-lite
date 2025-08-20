@@ -28,7 +28,6 @@ export interface ReportState {
 
 export async function generateReportAction(input: z.infer<typeof ReportInputSchema>): Promise<ReportState> {
   if (!isFirebaseAdminInitialized) {
-    console.error("[GENERATE_REPORT_ACTION] AI features are not configured.");
     return { error: "AI features are not configured. Please check server credentials." };
   }
   
@@ -38,11 +37,9 @@ export async function generateReportAction(input: z.infer<typeof ReportInputSche
   }
 
   try {
-    console.log("[GENERATE_REPORT_ACTION] Generating report for:", validationResult.data);
     const report = await generateReport(validationResult.data);
     return { report };
   } catch (error: any) {
-    console.error('[REPORT_ACTION_ERROR]', error);
     return { error: 'Failed to generate report due to an internal error.' };
   }
 }

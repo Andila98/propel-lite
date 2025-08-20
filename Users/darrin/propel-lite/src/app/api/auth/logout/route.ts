@@ -12,11 +12,9 @@ export async function POST(request: NextRequest) {
       try {
           const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
           await auth.revokeRefreshTokens(decodedClaims.sub);
-          console.log(`[LOGOUT] Revoked refresh tokens for user: ${decodedClaims.sub}`);
       } catch (error: any) {
           // Ignore errors if the cookie is already invalid.
           if (error.code !== 'auth/session-cookie-revoked' && error.code !== 'auth/id-token-revoked') {
-            console.warn(`[LOGOUT] Could not revoke refresh token, session might be expired. Error: ${error.message}`);
           }
       }
   }
@@ -29,6 +27,5 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ success: true }, { status: 200 });
   response.headers.set('Set-Cookie', expiredCookie);
-  console.log('[LOGOUT] User logged out successfully.');
   return response;
 }

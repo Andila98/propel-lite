@@ -16,7 +16,6 @@ type LogInput = Omit<AuditLog, 'id' | 'timestamp'>;
 export async function logActivity(actorName: string, action: string, entity: { type: AuditLog['entityType']; name: string; id?: string; }) {
   try {
     if (!firestore) {
-        console.warn("[AUDIT_LOG_SERVICE] Firestore not initialized. Skipping log for action:", action);
         return;
     }
 
@@ -28,10 +27,8 @@ export async function logActivity(actorName: string, action: string, entity: { t
       timestamp: FieldValue.serverTimestamp() as any, // Cast for type compatibility
     };
     
-    console.log(`[AUDIT_LOG] User: ${actorName}, Action: ${action}, Entity: ${entity.type} - ${entity.name}`);
     await firestore.collection('auditLogs').add(logEntry);
   } catch (error) {
-    console.error('[AUDIT_LOG_SERVICE_ERROR] Failed to log activity:', error);
     // We don't re-throw the error because logging should not block the primary operation.
   }
 }

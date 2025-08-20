@@ -21,7 +21,6 @@ async function deleteCollection(collectionRef: FirebaseFirestore.CollectionRefer
         await batch.commit();
 
         deleted += snapshot.size;
-        console.log(`[DELETE_COLLECTION] Deleted ${deleted} documents...`);
     }
 }
 
@@ -50,7 +49,6 @@ export async function GET(
     return NextResponse.json(propertyWithUnits);
     
   } catch (error: any) {
-    console.error(`API Error: Failed to fetch property ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to fetch property: ${error.message}` },
       { status: 500 }
@@ -70,11 +68,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
     
     await firestore.collection('properties').doc(propertyId).update(validationResult.data);
-    console.log(`[PROPERTY_UPDATE] Successfully updated property ${propertyId}.`);
     
     return NextResponse.json({ message: 'Property updated successfully' });
   } catch (error: any) {
-    console.error(`[PROPERTY_UPDATE_ERROR] for ID ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
@@ -95,19 +91,16 @@ export async function DELETE(
     
     // Delete all units in the subcollection first
     const unitsRef = propertyRef.collection('units');
-    console.log(`[PROPERTY_DELETE] Deleting units for property ${propertyId}...`);
     await deleteCollection(unitsRef, 50); // Batch delete units
 
     // Then delete the property document itself
     await propertyRef.delete();
-    console.log(`[PROPERTY_DELETE] Successfully deleted property ${propertyId}.`);
     
     // TODO: Get actor name from session
     await logActivity('Admin', `Deleted property "${propertyData?.name}"`, { type: 'Property', name: propertyData?.name || propertyId });
 
     return NextResponse.json({ message: 'Property deleted successfully' });
   } catch (error: any) {
-    console.error(`[PROPERTY_DELETE_ERROR] for ID ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }

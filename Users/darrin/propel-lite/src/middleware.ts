@@ -29,7 +29,6 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
-      console.log(`[MIDDLEWARE_REDIRECT] No session cookie for protected path: ${pathname}. Redirecting.`);
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       if (pathname !== '/dashboard') {

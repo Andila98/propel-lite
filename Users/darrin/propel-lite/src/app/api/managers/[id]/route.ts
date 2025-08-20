@@ -19,7 +19,6 @@ export async function GET(
     return NextResponse.json({ id: managerDoc.id, ...managerDoc.data() });
     
   } catch (error: any) {
-    console.error(`API Error: Failed to fetch manager ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to fetch manager: ${error.message}` },
       { status: 500 }
@@ -46,7 +45,6 @@ export async function PUT(
     return NextResponse.json({ message: 'Manager updated successfully' });
     
   } catch (error: any) {
-    console.error(`[MANAGER_UPDATE_ERROR] for ID ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
@@ -79,7 +77,6 @@ export async function DELETE(
     
     return NextResponse.json({ message: 'Manager deleted successfully' });
   } catch (error: any) {
-    console.error(`[MANAGER_DELETE_ERROR] for ID ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }

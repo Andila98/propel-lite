@@ -12,7 +12,6 @@ async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
         return decodedClaims.uid;
     } catch (error) {
-        console.error("[MESSAGES_API] Could not verify session cookie:", error);
         return null;
     }
 }
@@ -33,7 +32,6 @@ export async function GET(
 
     return NextResponse.json(messages);
   } catch (error: any) {
-    console.error(`API Error: Failed to fetch messages for tenant ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to fetch messages: ${error.message}` },
       { status: 500 }
@@ -57,7 +55,6 @@ export async function POST(
     
     // In a real app, you would fetch landlord details.
     const landlordName = "Landlord"; 
-    console.log(`[MESSAGES_API] Sending message from ${userId} to ${tenantId}`);
 
     const newMessage = {
       tenantId: tenantId,
@@ -79,7 +76,6 @@ export async function POST(
     return NextResponse.json(sentMessage, { status: 201 });
 
   } catch (error: any) {
-    console.error(`API Error: Failed to send message for tenant ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to send message: ${error.message}` },
       { status: 500 }

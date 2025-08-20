@@ -17,10 +17,7 @@ export interface ReceiptState {
 }
 
 export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>): Promise<ReceiptState> {
-    console.log("[GET_RECEIPT_ACTION] Called with input:", input);
-    
     if (!isFirebaseAdminInitialized) {
-        console.error("[GET_RECEIPT_ACTION] AI features are not configured.");
         return { error: "AI features are not configured. Please contact support." };
     }
     
@@ -28,7 +25,6 @@ export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>
         const receipt = await generateReceipt(input);
         return { receipt };
     } catch (error: any) {
-        console.error("[GET_RECEIPT_ACTION] Error generating receipt:", error);
         return { error: error.message || "An unknown error occurred" };
     }
 }

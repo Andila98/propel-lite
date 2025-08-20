@@ -26,8 +26,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     // We intentionally don't reveal if an email doesn't exist to prevent user enumeration attacks.
     // So, we log the error on the server but return a generic success message to the client.
-    console.error('[FORGOT_PASSWORD_ERROR]', error);
-    
     // Check for specific, non-revealing errors you might want to handle differently,
     // but for most cases, the generic response is safest.
     if (error.code === 'auth/user-not-found') {

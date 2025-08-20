@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(payments, { status: 200 });
 
     } catch (error: any) {
-        console.error(`[API_PAYMENTS_GET_ERROR]`, error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
