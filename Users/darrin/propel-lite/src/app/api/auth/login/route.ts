@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
     
     if (landlordDoc.exists || tenantDoc.exists || managerDoc.exists) {
+        console.log(`[LOGIN_API] User ${userRecord.uid} exists. Building profile from existing data.`);
         // User exists, build profile from existing data
          userProfile = {
             uid: userRecord.uid,
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     } else {
         // This is a new user (likely from social login)
         // Create a basic profile for them. They must complete onboarding.
+        console.log(`[LOGIN_API] New user detected: ${userRecord.uid}. Creating basic profile.`);
         const newUserRole = 'landlord'; // Default new sign-ups to landlord
         
         await firestore.collection('users').doc(userRecord.uid).set({
@@ -73,6 +75,9 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
+    console.error('[LOGIN_API_ERROR]', error);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
+
+    
