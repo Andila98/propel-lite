@@ -1,9 +1,11 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { analyzeDamage } from '@/ai/flows/analyze-damage-flow';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
+        console.error('[API_ANALYZE_DAMAGE] Firebase Admin is not initialized.');
         return NextResponse.json({ error: 'AI features are not configured.' }, { status: 500 });
     }
 
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(result);
     } catch (error: any) {
-        console.error('[ANALYZE_DAMAGE_API_ERROR]', error);
-        return NextResponse.json({ error: 'Failed to analyze image.' }, { status: 500 });
+        console.error('[API_ANALYZE_DAMAGE_ERROR]', error);
+        return NextResponse.json({ error: `Failed to analyze image: ${error.message}` }, { status: 500 });
     }
 }

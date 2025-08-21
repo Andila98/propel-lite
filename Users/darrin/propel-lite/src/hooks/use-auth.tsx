@@ -1,108 +1,154 @@
-import type { Config } from 'tailwindcss';
 
-const config: Config = {
-  darkMode: ['class'],
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
-    extend: {
-      fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
-      },
-      colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
+"use client";
+
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { auth } from '@/lib/firebase-client';
+import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import type { Permission } from '@/lib/types';
+
+export interface User {
+  uid: string;
+  email: string;
+  name: string;
+  role: 'landlord' | 'tenant' | 'admin' | 'manager';
+  profileComplete: boolean;
+  avatarUrl?: string;
+  token?: string;
+  permissions?: Record<Permission, boolean>;
+}
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, pass: string) => Promise<{ user: User }>;
+  loginWithGoogle: () => Promise<{ user: User }>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function fetchUserSession(firebaseUser: FirebaseUser | null): Promise<User | null> {
+    if (!firebaseUser) return null;
+
+    const token = await firebaseUser.getIdToken(true); // Force refresh
+    const response = await fetch('/api/auth/me', {
+        headers: {
+            Authorization: `Bearer ${token}`,
         },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
+    });
+
+    if (response.ok) {
+        const userProfile = await response.json();
+        return { ...userProfile, token };
+    }
+
+    if (response.status === 401) { // Session might be expired server-side
+        await firebaseSignOut(auth);
+    }
+    
+    return null;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const refreshUser = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+        setLoading(true);
+        try {
+            const userProfile = await fetchUserSession(firebaseUser);
+            setUser(userProfile);
+        } catch (error) {
+            console.error("Error refreshing user session:", error);
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setLoading(true);
+        try {
+            const userProfile = await fetchUserSession(firebaseUser);
+            setUser(userProfile);
+        } catch (error) {
+            console.error("Error fetching user session:", error);
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const processLogin = useCallback(async (idToken: string): Promise<{ user: User }> => {
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${idToken}`,
         },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate')],
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Login failed.');
+    }
+
+    const userProfile = await response.json();
+    setUser(userProfile);
+    return { user: userProfile };
+  }, []);
+
+  const login = useCallback(async (email: string, pass: string): Promise<{ user:User }> => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    const idToken = await userCredential.user.getIdToken();
+    return processLogin(idToken);
+  }, [processLogin]);
+  
+  const loginWithGoogle = useCallback(async (): Promise<{ user: User }> => {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const idToken = await userCredential.user.getIdToken();
+    return processLogin(idToken);
+  }, [processLogin]);
+
+  const logout = useCallback(async () => {
+    await firebaseSignOut(auth);
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setUser(null);
+    router.push('/login');
+  }, [router]);
+
+
+  if (loading && !user) { // Only show full-screen loader on initial load
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
-
-export default config;

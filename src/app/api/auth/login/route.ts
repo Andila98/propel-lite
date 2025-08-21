@@ -1,12 +1,17 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import { serialize } from 'cookie';
 import type { User } from '@/hooks/use-auth';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      console.error('[API_LOGIN] Firebase Admin is not initialized.');
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
   const authToken = request.headers.get('Authorization')?.split('Bearer ')[1];
 
   if (!authToken) {
@@ -70,7 +75,7 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error('Login Error:', error);
+    console.error('[API_LOGIN_ERROR]', error);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }

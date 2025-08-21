@@ -6,12 +6,7 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "postinstall": "patch-package",
-    "db:seed": "tsx scripts/seedFirestore.ts",
-    "firebase:emulators": "firebase emulators:start --import=./firebase-export --export-on-exit"
+    "lint": "next lint"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.0.0",
@@ -57,7 +52,6 @@
     "next": "15.4.6",
     "next-themes": "^0.3.0",
     "papaparse": "^5.3.14",
-    "patch-package": "^8.0.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -72,7 +66,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@testing-library/react": "^16.0.0",
     "@types/cookie": "^0.6.0",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20",
@@ -80,12 +73,8 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/uuid": "^10.0.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "jsdom": "^24.1.0",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.4",
-    "vitest": "^2.0.4"
+    "typescript": "^5.5.4"
   }
 }

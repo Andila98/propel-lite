@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore, auth } from '@/lib/firebase-admin';
+import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { z } from 'zod';
@@ -17,6 +17,11 @@ const TenantUpdateSchema = z.object({
 
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+        console.error(`[API_TENANT_ID] Firebase Admin is not initialized.`);
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+    
     try {
         const tenantId = params.id;
         // The tenant document ID should be the same as the Firebase Auth UID
@@ -36,12 +41,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ id: tenantDoc.id, ...tenantDoc.data() }, { status: 200 });
 
     } catch (error: any) {
-        console.error(`[API_TENANT_GET_ERROR] Failed to fetch tenant ${params.id}:`, error);
+        console.error(`[API_TENANT_ID_GET_ERROR] Failed to fetch tenant ${params.id}:`, error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+        console.error(`[API_TENANT_ID] Firebase Admin is not initialized.`);
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const tenantId = params.id;
         const body = await req.json();
@@ -83,13 +93,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ message: 'Tenant updated successfully.' }, { status: 200 });
 
     } catch (error: any) {
-        console.error(`[API_TENANT_UPDATE_ERROR] Failed to update tenant ${params.id}:`, error);
+        console.error(`[API_TENANT_ID_UPDATE_ERROR] Failed to update tenant ${params.id}:`, error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
 
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+        console.error(`[API_TENANT_ID] Firebase Admin is not initialized.`);
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const tenantId = params.id;
         const tenantRef = firestore.collection('tenants').doc(tenantId);
@@ -129,7 +144,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
     } catch (error: any) {
-      console.error(`[API_TENANT_DELETE_ERROR] Failed to delete tenant ${params.id}:`, error);
+      console.error(`[API_TENANT_ID_DELETE_ERROR] Failed to delete tenant ${params.id}:`, error);
       return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

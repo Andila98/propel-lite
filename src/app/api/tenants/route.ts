@@ -1,12 +1,17 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore, auth } from '@/lib/firebase-admin';
+import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { TenantFormSchema } from '@/lib/schemas';
 import { logActivity } from '@/lib/audit-log-service';
 
 
 export async function GET(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        console.error('[API_TENANTS] Firebase Admin is not initialized.');
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const tenantsSnapshot = await firestore.collection('tenants').get();
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -18,6 +23,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        console.error('[API_TENANTS] Firebase Admin is not initialized.');
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const body = await req.json();
         const validationResult = TenantFormSchema.safeParse(body);

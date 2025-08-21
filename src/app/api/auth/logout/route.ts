@@ -2,20 +2,20 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
 import { serialize } from 'cookie';
-import { auth } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   const sessionCookie = cookies().get(authConfig.cookieName)?.value;
 
-  if (sessionCookie) {
+  if (sessionCookie && isFirebaseAdminInitialized) {
       try {
           // Optional: Revoke the session cookie for immediate invalidation.
           const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
           await auth.revokeRefreshTokens(decodedClaims.sub);
       } catch (error) {
           // Ignore errors if the cookie is already invalid.
-          console.log("Could not revoke refresh token, session might be expired.", error);
+          console.log("[API_LOGOUT] Could not revoke refresh token, session might be expired.", error);
       }
   }
 

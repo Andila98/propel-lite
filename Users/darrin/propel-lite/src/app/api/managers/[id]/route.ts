@@ -1,108 +1,100 @@
-import type { Config } from 'tailwindcss';
 
-const config: Config = {
-  darkMode: ['class'],
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
-    extend: {
-      fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
-      },
-      colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate')],
-};
+import { type NextRequest, NextResponse } from 'next/server';
+import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { logActivity } from '@/lib/audit-log-service';
 
-export default config;
+// GET a specific manager
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MANAGER_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
+  try {
+    const managerId = params.id;
+    const managerDoc = await firestore.collection('managers').doc(managerId).get();
+
+    if (!managerDoc.exists) {
+      return NextResponse.json({ error: 'Manager not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ id: managerDoc.id, ...managerDoc.data() });
+    
+  } catch (error: any) {
+    console.error(`[API_MANAGER_ID_GET_ERROR] Failed to fetch manager ${params.id}:`, error);
+    return NextResponse.json(
+      { error: `Failed to fetch manager: ${error.message}` },
+      { status: 500 }
+    );
+  }
+}
+
+// UPDATE a manager's details
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MANAGER_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
+  try {
+    const managerId = params.id;
+    const updates = await req.json();
+
+    // TODO: Add Zod validation for the update payload
+
+    await firestore.collection('managers').doc(managerId).update(updates);
+    
+    // TODO: Get actor name from session
+    await logActivity('Admin', `Updated manager profile for "${updates.name}"`, { type: 'Manager', name: updates.name });
+    
+    return NextResponse.json({ message: 'Manager updated successfully' });
+    
+  } catch (error: any) {
+    console.error(`[API_MANAGER_ID_UPDATE_ERROR] for ID ${params.id}:`, error);
+    return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
+  }
+}
+
+
+// DELETE a manager
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MANAGER_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
+  try {
+    const managerId = params.id;
+    const managerRef = firestore.collection('managers').doc(managerId);
+    const managerDoc = await managerRef.get();
+
+    if (!managerDoc.exists) {
+        return NextResponse.json({ error: 'Manager not found.' }, { status: 404 });
+    }
+    const managerData = managerDoc.data();
+    
+    // The manager's document ID is their Firebase Auth UID.
+    // First, delete the Firestore document.
+    await managerRef.delete();
+    
+    // Then, delete the user from Firebase Authentication.
+    await auth.deleteUser(managerId);
+
+    // TODO: Get actor name from session
+    await logActivity('Admin', `Deleted manager "${managerData?.name}"`, { type: 'Manager', name: managerData?.name || managerId });
+    
+    return NextResponse.json({ message: 'Manager deleted successfully' });
+  } catch (error: any) {
+    console.error(`[API_MANAGER_ID_DELETE_ERROR] for ID ${params.id}:`, error);
+    return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
+  }
+}

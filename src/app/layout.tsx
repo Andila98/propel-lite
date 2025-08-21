@@ -18,8 +18,10 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   // Pages that should not use the main AppLayout (sidebar, header, etc.)
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/onboarding/accept-invite');
-  const isPublicFlow = isAuthPage;
+  const isPublicFlow = pathname.startsWith('/login') 
+    || pathname.startsWith('/register') 
+    || pathname.startsWith('/forgot-password')
+    || pathname.startsWith('/onboarding/accept-invite');
 
   return (
     <html lang="en" suppressHydrationWarning>

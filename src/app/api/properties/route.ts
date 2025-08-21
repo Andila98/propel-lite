@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
 import type { Property, Unit } from '@/lib/types';
 import { PropertyFormSchema } from '@/lib/schemas';
@@ -8,6 +8,11 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 
 export async function GET(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      console.error('[API_PROPERTIES] Firebase Admin is not initialized.');
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
   try {
     const propertiesSnapshot = await firestore.collection('properties').get();
     if (propertiesSnapshot.empty) {
@@ -32,12 +37,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(properties);
 
   } catch (error: any) {
-    console.error('[PROPERTIES_GET_ERROR]', error);
+    console.error('[API_PROPERTIES_GET_ERROR]', error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      console.error('[API_PROPERTIES] Firebase Admin is not initialized.');
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
   try {
     const body = await req.json();
     const validationResult = PropertyFormSchema.safeParse(body);
@@ -71,7 +81,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: propertyRef.id, ...validationResult.data }, { status: 201 });
 
   } catch (error: any) {
-    console.error('[PROPERTY_CREATE_ERROR]', error);
+    console.error('[API_PROPERTY_CREATE_ERROR]', error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }

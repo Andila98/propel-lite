@@ -1,108 +1,41 @@
-import type { Config } from 'tailwindcss';
 
-const config: Config = {
-  darkMode: ['class'],
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
-    extend: {
-      fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
-      },
-      colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate')],
-};
+"use server";
 
-export default config;
+import { z } from 'zod';
+import { generateReport } from '@/ai/flows/generate-report-flow';
+
+export const ReportInputSchema = z.object({
+    month: z.number().min(0).max(11),
+    year: z.number().min(2020),
+});
+
+export const ReportOutputSchema = z.object({
+  reportTitle: z.string().describe("The title of the report, e.g., 'Performance Report for July 2024'."),
+  summary: z.string().describe("A 2-3 sentence executive summary of the month's performance."),
+  totalRevenue: z.number().describe("The total revenue collected during the month."),
+  occupancyRate: z.number().describe("The overall occupancy rate as a percentage (e.g., 95.5)."),
+  latePayments: z.number().describe("The number of late rent payments recorded."),
+  newMaintenanceRequests: z.number().describe("The number of new maintenance requests submitted."),
+  highlights: z.array(z.string()).describe("A list of 2-3 positive highlights for the month."),
+  areasForImprovement: z.array(z.string()).describe("A list of 2-3 areas that need attention or could be improved."),
+});
+
+export interface ReportState {
+    error?: string;
+    report?: z.infer<typeof ReportOutputSchema>;
+}
+
+export async function generateReportAction(input: z.infer<typeof ReportInputSchema>): Promise<ReportState> {
+  const validationResult = ReportInputSchema.safeParse(input);
+  if (!validationResult.success) {
+      return { error: 'Invalid date provided.' };
+  }
+
+  try {
+    const report = await generateReport(validationResult.data);
+    return { report };
+  } catch (error: any) {
+    console.error('[REPORT_ACTION_ERROR]', error);
+    return { error: 'Failed to generate report due to an internal error.' };
+  }
+}
