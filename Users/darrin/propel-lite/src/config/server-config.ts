@@ -1,13 +1,10 @@
 
 import type { CookieSerializeOptions } from 'cookie';
-import { firebaseConfig as publicConfig } from '@/config/firebase-config';
 
 // This file is responsible for reading environment variables and creating a configuration object.
-// It uses simple fallbacks to empty strings to prevent build-time errors if variables are not set.
 // The actual logic to handle missing credentials should be in the service that consumes this config (e.g., firebase-admin.ts).
 
 export const authConfig = {
-    apiKey: publicConfig.apiKey,
     cookieName: 'PropelAuth',
     cookieSerializeOptions: {
         path: '/',
