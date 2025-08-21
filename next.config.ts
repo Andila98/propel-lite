@@ -15,6 +15,12 @@ const nextConfig = {
         hostname: 'ohpverffrwflwksxoljv.supabase.co',
         port: '',
         pathname: '/**',
+      },
+       {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

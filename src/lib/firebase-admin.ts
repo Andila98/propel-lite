@@ -5,7 +5,6 @@ let isFirebaseAdminInitialized = admin.apps.length > 0;
 
 if (!isFirebaseAdminInitialized) {
   try {
-    // Prefer environment variables for deployment environments
     const serviceAccountString = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 
       ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('ascii')
       : null;
@@ -15,11 +14,12 @@ if (!isFirebaseAdminInitialized) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id,
+        storageBucket: `${serviceAccount.project_id}.appspot.com`
       });
       isFirebaseAdminInitialized = true;
       console.log('[FIREBASE_ADMIN] Initialized successfully from environment variable.');
     } else {
-        console.log('[FIREBASE_ADMIN] Service account credentials not found. Some server-side features may be disabled.');
+        console.warn('[FIREBASE_ADMIN] Service account credentials not found. Server-side features relying on Firebase will be disabled.');
     }
   } catch (error: any) {
     console.error('[FIREBASE_ADMIN] Failed to initialize:', error.message);
