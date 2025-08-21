@@ -1,98 +1,108 @@
+import type { Config } from 'tailwindcss';
 
-"use server";
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
 
-import { revalidatePath } from 'next/cache';
-import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
-import { firestore } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
-import { logActivity } from '@/lib/audit-log-service';
-
-export interface FormState {
-    error?: string;
-    errors?: {
-        [key: string]: string[] | undefined;
-        units?: string[] | undefined;
-    } & {
-        [key in `units.${number}.${keyof PropertyFormValues['units'][0]}`]?: string[];
-    }
-    success?: boolean;
-    propertyId?: string;
-}
-
-export async function updatePropertyAction(
-  propertyId: string,
-  prevState: FormState,
-  formData: FormData
-): Promise<FormState> {
-   const rawData = {
-    name: formData.get('name'),
-    address: formData.get('address'),
-    type: formData.get('type'),
-    currency: formData.get('currency'),
-    description: formData.get('description'),
-    imageUrl: formData.get('imageUrl'),
-    units: JSON.parse(formData.get('units') as string),
-    numberOfUnits: Number(formData.get('numberOfUnits')),
-  };
-  
-  const validationResult = PropertyFormSchema.safeParse(rawData);
-  if (!validationResult.success) {
-      return { 
-          error: "Invalid property data. Please check the form for errors.",
-          errors: validationResult.error.flatten().fieldErrors,
-       };
-  }
-
-  const { units, ...mainPropertyData } = validationResult.data;
-
-  try {
-    const propertyRef = firestore.collection('properties').doc(propertyId);
-    const existingUnitsSnapshot = await propertyRef.collection('units').get();
-    const existingUnitIds = new Set(existingUnitsSnapshot.docs.map(doc => doc.id));
-
-
-    await firestore.runTransaction(async (transaction) => {
-        transaction.update(propertyRef, {
-            ...mainPropertyData,
-            updatedAt: FieldValue.serverTimestamp(),
-        });
-        
-        const newUnitIds = new Set<string>();
-
-        for (const unit of units) {
-            let unitRef;
-            if (unit.id && existingUnitIds.has(unit.id)) {
-                // Update existing unit
-                unitRef = propertyRef.collection('units').doc(unit.id);
-                transaction.update(unitRef, unit);
-                newUnitIds.add(unit.id);
-            } else {
-                // Add new unit
-                unitRef = propertyRef.collection('units').doc();
-                transaction.set(unitRef, unit);
-            }
-        }
-        
-        // Delete units that are no longer in the list
-        for (const unitDoc of existingUnitsSnapshot.docs) {
-            if (!newUnitIds.has(unitDoc.id)) {
-                transaction.delete(unitDoc.ref);
-            }
-        }
-    });
-
-    // TODO: Get actor name from session
-    await logActivity('Admin', `Updated property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
-    
-    revalidatePath('/properties');
-    revalidatePath(`/properties/${propertyId}`);
-    revalidatePath(`/properties/${propertyId}/edit`);
-    revalidatePath('/dashboard');
-    
-    return { success: true, propertyId: propertyRef.id };
-
-  } catch (error: any) {
-    console.error(`[UPDATE_PROPERTY_ACTION_ERROR] Failed to update property ${propertyId}:`, error);
-    return { error: `Internal Server Error: ${error.message}` };
-  }
-}
+export default config;

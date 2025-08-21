@@ -1,64 +1,108 @@
+import type { Config } from 'tailwindcss';
 
-import { NextResponse, type NextRequest } from 'next/server';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import type { MaintenanceRequest } from '@/lib/types';
-import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance';
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
 
-export async function GET() {
-    if (!isFirebaseAdminInitialized) {
-        console.error('[API_MAINTENANCE] Firebase Admin is not initialized.');
-        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-    }
-    try {
-        const requestsSnapshot = await firestore.collection('maintenanceRequests').orderBy('submittedDate', 'desc').get();
-        let requests: MaintenanceRequest[] = requestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
-
-        // AI-based priority assignment for pending requests
-        const requestsToPrioritize = requests.filter(r => r.status === 'Pending' && !r.priority);
-        const priorityPromises = requestsToPrioritize.map(async (request) => {
-            try {
-                const { priority, reasoning } = await prioritizeMaintenanceRequest({ description: request.description });
-                await firestore.collection('maintenanceRequests').doc(request.id).update({ priority, reasoning });
-                return { ...request, priority, reasoning };
-            } catch (aiError) {
-                console.error(`[API_MAINTENANCE_ERROR] AI prioritization failed for request ${request.id}:`, aiError);
-                // Assign a default priority if AI fails
-                await firestore.collection('maintenanceRequests').doc(request.id).update({ priority: 'Medium', reasoning: 'AI analysis failed.' });
-                return { ...request, priority: 'Medium', reasoning: 'AI analysis failed, assigned default priority.' };
-            }
-        });
-
-        const prioritizedRequests = await Promise.all(priorityPromises);
-
-        // Merge prioritized requests back into the main list
-        requests = requests.map(r => prioritizedRequests.find(pr => pr.id === r.id) || r);
-        
-        // Sort by priority: High > Medium > Low
-        const priorityOrder: Record<string, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
-        requests.sort((a, b) => (priorityOrder[b.priority!] || 0) - (priorityOrder[a.priority!] || 0));
-
-        return NextResponse.json(requests);
-
-    } catch (error: any) {
-        console.error('[API_MAINTENANCE_ERROR] Failed to fetch requests:', error);
-        return NextResponse.json(
-            { error: `Failed to fetch requests: ${error.message}` },
-            { status: 500 }
-        );
-    }
-}
-
-export async function POST(req: NextRequest) {
-     if (!isFirebaseAdminInitialized) {
-        console.error('[API_MAINTENANCE] Firebase Admin is not initialized.');
-        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-    }
-    try {
-        const body = await req.json();
-        const newRequestRef = await firestore.collection('maintenanceRequests').add(body);
-        return NextResponse.json({ id: newRequestRef.id, ...body }, { status: 201 });
-    } catch(error: any) {
-        console.error('[API_MAINTENANCE_ERROR] Failed to create request:', error);
-        return NextResponse.json({ error: 'Failed to create request'}, { status: 500 });
-    }
-}
+export default config;

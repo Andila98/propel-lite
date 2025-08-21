@@ -1,86 +1,108 @@
+import type { Config } from 'tailwindcss';
 
-import { NextResponse, type NextRequest } from 'next/server';
-import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
-import { TenantFormSchema } from '@/lib/schemas';
-import { logActivity } from '@/lib/audit-log-service';
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
 
-
-export async function GET(req: NextRequest) {
-    if (!isFirebaseAdminInitialized) {
-        console.error('[API_TENANTS] Firebase Admin is not initialized.');
-        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-    }
-
-    try {
-        const tenantsSnapshot = await firestore.collection('tenants').get();
-        const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        return NextResponse.json(tenants, { status: 200 });
-    } catch (error: any) {
-      console.error('[API_TENANTS_ERROR] Failed to list tenants:', error);
-      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
-    }
-}
-
-export async function POST(req: NextRequest) {
-    if (!isFirebaseAdminInitialized) {
-        console.error('[API_TENANTS] Firebase Admin is not initialized.');
-        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-    }
-
-    try {
-        const body = await req.json();
-        const validationResult = TenantFormSchema.safeParse(body);
-
-        if(!validationResult.success) {
-            return NextResponse.json({ error: 'Invalid data', details: validationResult.error.flatten() }, { status: 400 });
-        }
-        
-        const { unitId, ...tenantData } = validationResult.data;
-
-        // 1. Create a user account in Firebase Auth for the tenant
-        // A random password is created; the tenant would reset it on first login.
-        const randomPassword = Math.random().toString(36).slice(-8);
-        const userRecord = await auth.createUser({
-            email: tenantData.email,
-            password: randomPassword,
-            displayName: tenantData.name,
-        });
-        
-        // 2. Set custom claims for the tenant role
-        await auth.setCustomUserClaims(userRecord.uid, { role: 'tenant', profileComplete: true });
-
-        const newTenant = {
-            ...tenantData,
-            uid: userRecord.uid, // Link to the Auth user
-            currentUnitId: unitId,
-            rentStatus: 'Paid', // Default status
-            createdAt: FieldValue.serverTimestamp(),
-        };
-        
-        // 3. Create the tenant document in Firestore using their Auth UID as the document ID
-        const tenantRef = firestore.collection('tenants').doc(userRecord.uid);
-        await tenantRef.set(newTenant);
-        
-        // 4. Update the unit to mark it as occupied
-        await firestore.collection('properties').doc(tenantData.propertyId).collection('units').doc(unitId).update({
-            isOccupied: true,
-            tenantId: tenantRef.id
-        });
-
-        // TODO: Get actor name from session
-        await logActivity('Admin', `Created tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
-        
-        // In a real app, you would now send an email to the tenant
-        // with their login details and a password reset link.
-
-        return NextResponse.json({ id: tenantRef.id, ...newTenant }, { status: 201 });
-
-    } catch (error: any) {
-      console.error('[API_TENANTS_ERROR] Failed to create tenant:', error);
-       if (error.code === 'auth/email-already-exists') {
-            return NextResponse.json({ error: 'An account with this email already exists. Please use a different email.' }, { status: 409 });
-        }
-      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
-    }
-}
+export default config;

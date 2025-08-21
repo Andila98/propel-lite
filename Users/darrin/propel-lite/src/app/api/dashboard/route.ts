@@ -1,117 +1,108 @@
+import type { Config } from 'tailwindcss';
 
-import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import type { Property, Tenant, Payment, DashboardData } from '@/lib/types';
-import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
-import { subMonths, format, parseISO } from 'date-fns';
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
 
-async function getAggregatedData() {
-    const propertiesSnapshot = await firestore.collection('properties').get();
-    const tenantsSnapshot = await firestore.collection('tenants').get();
-    const paymentsSnapshot = await firestore.collection('payments').get();
-
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Property[];
-    const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Tenant[];
-    const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as any).toDate().toISOString() })) as Payment[];
-    
-    // Calculate total revenue for the current month
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const totalRevenue = payments
-        .filter(p => {
-            const paymentDate = new Date(p.date);
-            return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
-        })
-        .reduce((sum, p) => sum + p.amount, 0);
-
-    // Calculate occupancy rate
-    const unitsSnapshot = await firestore.collectionGroup('units').get();
-    const totalUnits = unitsSnapshot.size;
-    const occupiedUnits = unitsSnapshot.docs.filter(doc => doc.data().isOccupied).length;
-    const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
-    
-    const revenueChange = 0.15; // Mocking this for now as it requires historical data logic
-    
-    // Calculate late payment and payment method analytics
-      const now = new Date();
-      const latePayments: Record<string, number> = {};
-      const paymentMethods: Record<string, number> = { 'M-Pesa': 0, 'Stripe': 0, 'Card': 0, 'Other': 0 };
-
-      for (let i = 5; i >= 0; i--) {
-        const month = subMonths(now, i);
-        const monthKey = format(month, 'MMM');
-        latePayments[monthKey] = 0;
-      }
-
-      payments.forEach(payment => {
-          if (payment.type === 'Rent') {
-              const paymentDate = parseISO(payment.date as string);
-              if (paymentDate.getDate() > 5) { // Assuming rent due on 1st, late after 5th
-                  const monthKey = format(paymentDate, 'MMM');
-                  if (monthKey in latePayments) {
-                      latePayments[monthKey]++;
-                  }
-              }
-          }
-
-          const method = payment.method;
-          if (method.toLowerCase().includes('mpesa')) {
-              paymentMethods['M-Pesa']++;
-          } else if (method.toLowerCase().includes('stripe') || method.toLowerCase().includes('card')) {
-              paymentMethods['Stripe']++;
-          } else {
-              paymentMethods['Other']++;
-          }
-      });
-      
-      const latePaymentData = Object.entries(latePayments).map(([month, count]) => ({ month, latePayments: count }));
-      const paymentMethodData = Object.entries(paymentMethods)
-        .filter(([,value]) => value > 0)
-        .map(([name, value]) => ({ name, value, fill: `var(--color-${name.toLowerCase().replace('-','')})`}));
-
-
-    return {
-        totalProperties: properties.length,
-        totalTenants: tenants.length,
-        totalRevenue,
-        revenueChange,
-        occupancyRate: occupancyRate,
-        properties: properties.slice(0, 5), // Limit for carousel
-        latePaymentData,
-        paymentMethodData
-    };
-}
-
-export async function GET(req: NextRequest) {
-  if (!isFirebaseAdminInitialized) {
-      console.error('[API_DASHBOARD] Firebase Admin is not initialized.');
-      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-  }
-  try {
-    const initialData = await getAggregatedData();
-    
-    const aiSummaryResult = await generateDashboardInsights({
-      totalRevenue: initialData.totalRevenue,
-      occupancyRate: initialData.occupancyRate,
-      totalProperties: initialData.totalProperties,
-      totalTenants: initialData.totalTenants,
-    });
-    
-    const dashboardData: DashboardData = {
-        ...initialData,
-        aiSummary: aiSummaryResult.summary,
-        anomalyAlerts: aiSummaryResult.anomalies.map((desc, i) => ({
-            id: `anomaly-${i}`,
-            type: desc.toLowerCase().includes('vacancy') ? 'vacancy-rate' : 'income-drop',
-            description: desc,
-            date: 'Just now'
-        }))
-    }
-
-    return NextResponse.json(dashboardData);
-    
-  } catch (error: any) {
-    console.error('[API_DASHBOARD_ERROR]', error);
-    return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
-  }
-}
+export default config;

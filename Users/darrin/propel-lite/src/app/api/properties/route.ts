@@ -1,86 +1,108 @@
+import type { Config } from 'tailwindcss';
 
-import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { logActivity } from '@/lib/audit-log-service';
-import type { Property, Unit } from '@/lib/types';
-import { PropertyFormSchema } from '@/lib/schemas';
-import { FieldValue } from 'firebase-admin/firestore';
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
 
-
-export async function GET(req: NextRequest) {
-  if (!isFirebaseAdminInitialized) {
-    console.error('[API_PROPERTIES] Firebase Admin is not initialized.');
-    return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-  }
-
-  try {
-    const propertiesSnapshot = await firestore.collection('properties').get();
-    if (propertiesSnapshot.empty) {
-      return NextResponse.json([]);
-    }
-    const properties = await Promise.all(propertiesSnapshot.docs.map(async (doc) => {
-        const propertyData = doc.data() as Omit<Property, 'id' | 'units'>;
-        
-        const unitsSnapshot = await doc.ref.collection('units').get();
-        const units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() })) as Unit[];
-        
-        const createdAt = (propertyData.createdAt as any)?.toDate ? (propertyData.createdAt as any).toDate() : new Date();
-
-        return {
-          id: doc.id,
-          ...propertyData,
-          units: units,
-          createdAt: createdAt.toISOString(),
-        };
-      }));
-
-    return NextResponse.json(properties);
-
-  } catch (error: any) {
-    console.error('[API_PROPERTIES_ERROR] Failed to list properties:', error);
-    return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  if (!isFirebaseAdminInitialized) {
-    console.error('[API_PROPERTIES] Firebase Admin is not initialized.');
-    return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-  }
-  try {
-    const body = await req.json();
-    const validationResult = PropertyFormSchema.safeParse(body);
-    
-    if (!validationResult.success) {
-      return NextResponse.json({ error: 'Invalid property data', details: validationResult.error.flatten() }, { status: 400 });
-    }
-    
-    const { units, ...mainPropertyData } = validationResult.data;
-    
-    const propertyRef = firestore.collection('properties').doc();
-    
-    await firestore.runTransaction(async (transaction) => {
-        transaction.set(propertyRef, {
-            ...mainPropertyData,
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
-            // In a real multi-user app, this would come from the authenticated user's session
-            landlordId: 'default_landlord_id' 
-        });
-
-        units.forEach(unit => {
-            const unitRef = propertyRef.collection('units').doc();
-            transaction.set(unitRef, unit);
-        });
-    });
-
-    // TODO: Get actor name from session
-    await logActivity('Admin', `Created property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
-
-    return NextResponse.json({ id: propertyRef.id, ...validationResult.data }, { status: 201 });
-
-  } catch (error: any) {
-    console.error('[API_PROPERTIES_ERROR] Failed to create property:', error);
-    return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
-  }
-}
+export default config;

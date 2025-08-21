@@ -1,82 +1,108 @@
+import type { Config } from 'tailwindcss';
 
-import { type NextRequest, NextResponse } from 'next/server';
-import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { authConfig } from '@/config/server-config';
-import { serialize } from 'cookie';
-import type { User } from '@/hooks/use-auth';
-import { FieldValue } from 'firebase-admin/firestore';
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
 
-export async function POST(request: NextRequest) {
-  if (!isFirebaseAdminInitialized) {
-      console.error('[API_LOGIN] Firebase Admin is not initialized.');
-      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-  }
-
-  const authToken = request.headers.get('Authorization')?.split('Bearer ')[1];
-
-  if (!authToken) {
-    return NextResponse.json({ error: 'Missing authorization token.' }, { status: 401 });
-  }
-
-  try {
-    const decodedToken = await auth.verifyIdToken(authToken);
-    const expiresIn = 60 * 60 * 24 * 14 * 1000; // 14 days
-    const sessionCookie = await auth.createSessionCookie(authToken, { expiresIn });
-
-    let userRecord = await auth.getUser(decodedToken.uid);
-    let userProfile: User;
-
-    // Check if user exists in any of our role collections
-    const landlordDoc = await firestore.collection('users').doc(userRecord.uid).get();
-    const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
-    const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
-    
-    if (landlordDoc.exists || tenantDoc.exists || managerDoc.exists) {
-        console.log(`[LOGIN_API] User ${userRecord.uid} exists. Building profile from existing data.`);
-        // User exists, build profile from existing data
-         userProfile = {
-            uid: userRecord.uid,
-            email: userRecord.email!,
-            name: userRecord.displayName || 'Unnamed User',
-            role: (userRecord.customClaims?.role as any) || 'tenant', // Default role
-            profileComplete: userRecord.customClaims?.profileComplete || false,
-            avatarUrl: userRecord.photoURL,
-        };
-    } else {
-        // This is a new user (likely from social login)
-        // Create a basic profile for them. They must complete onboarding.
-        console.log(`[LOGIN_API] New user detected: ${userRecord.uid}. Creating basic profile.`);
-        const newUserRole = 'landlord'; // Default new sign-ups to landlord
-        
-        await firestore.collection('users').doc(userRecord.uid).set({
-            uid: userRecord.uid,
-            name: userRecord.displayName,
-            email: userRecord.email,
-            role: newUserRole,
-            createdAt: FieldValue.serverTimestamp(),
-        });
-        
-        // Set custom claims for the new user, ensuring onboarding is required
-        await auth.setCustomUserClaims(userRecord.uid, { role: newUserRole, profileComplete: false });
-        
-        userProfile = {
-            uid: userRecord.uid,
-            email: userRecord.email!,
-            name: userRecord.displayName || 'Unnamed User',
-            role: newUserRole,
-            profileComplete: false,
-            avatarUrl: userRecord.photoURL,
-        };
-    }
-    
-    const cookie = serialize(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
-
-    const response = NextResponse.json(userProfile, { status: 200 });
-    response.headers.set('Set-Cookie', cookie);
-    return response;
-
-  } catch (error: any) {
-    console.error('[API_LOGIN_ERROR]', error);
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-}
+export default config;

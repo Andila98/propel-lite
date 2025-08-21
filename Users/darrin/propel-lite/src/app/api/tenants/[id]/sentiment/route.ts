@@ -1,64 +1,108 @@
+import type { Config } from 'tailwindcss';
 
-'use server';
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
 
-import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-
-const SentimentAnalysisInputSchema = z.object({
-  messages: z.array(z.string()).describe('A list of messages in the conversation thread.')
-});
-
-const SentimentAnalysisOutputSchema = z.object({
-  sentiment: z.enum(['Positive', 'Neutral', 'Negative']).describe('The overall sentiment of the conversation.'),
-  summary: z.string().describe('A 1-2 sentence summary of the key topics discussed and the tenant\'s sentiment.'),
-});
-
-const sentimentAnalysisPrompt = ai.definePrompt({
-    name: 'sentimentAnalysisPrompt',
-    input: { schema: SentimentAnalysisInputSchema },
-    output: { schema: SentimentAnalysisOutputSchema },
-    prompt: `Analyze the sentiment of the following conversation with a tenant. Determine if the overall sentiment is Positive, Neutral, or Negative. Provide a brief summary of what was discussed.
-
-Conversation:
-{{#each messages}}
-- {{this}}
-{{/each}}
-`,
-});
-
-async function analyzeSentiment(messages: string[]) {
-  const { output } = await sentimentAnalysisPrompt({ messages });
-  return output!;
-}
-
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  if (!isFirebaseAdminInitialized) {
-      console.error('[API_TENANT_SENTIMENT] Firebase Admin is not initialized.');
-      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
-  }
-  try {
-    const tenantId = params.id;
-    
-    // For now, we'll return a placeholder since we don't have a live conversation to analyze.
-    // A full implementation would fetch messages from Firestore and pass them to the AI.
-    const mockSentiment = {
-      sentiment: 'Positive',
-      summary: 'Tenant expressed satisfaction with the recent maintenance work. No outstanding issues.'
-    };
-    
-    return NextResponse.json(mockSentiment);
-
-  } catch (error: any) {
-    console.error(`[API_TENANT_SENTIMENT_ERROR] Failed to get sentiment for tenant ${params.id}:`, error);
-    return NextResponse.json(
-      { error: `Failed to analyze sentiment: ${error.message}` },
-      { status: 500 }
-    );
-  }
-}
+export default config;
