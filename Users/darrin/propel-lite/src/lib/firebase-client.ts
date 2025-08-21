@@ -1,17 +1,24 @@
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage }from 'firebase/storage';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { firebaseConfig } from '@/config/firebase-config';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
-// Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const auth = getAuth(app);
-export const firestore = getFirestore(app);
-export const storage = getStorage(app);
+const auth = getAuth(app);
+const firestore = getFirestore(app);
+const storage = getStorage(app);
+
+// Connect to emulators if running locally
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  console.log('[FIREBASE_CLIENT] Localhost detected, connecting to emulators...');
+  connectAuthEmulator(auth, 'http://localhost:9099');
+  connectFirestoreEmulator(firestore, 'localhost', 8080);
+  connectStorageEmulator(storage, 'localhost', 9199);
+}
 
 // Initialize Analytics only if it's supported in the browser
 if (typeof window !== 'undefined') {
@@ -21,3 +28,5 @@ if (typeof window !== 'undefined') {
         }
     });
 }
+
+export { auth, firestore, storage };
