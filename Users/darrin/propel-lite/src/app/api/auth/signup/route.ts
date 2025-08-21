@@ -8,7 +8,6 @@ const SignUpSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
     displayName: z.string().min(2),
-    role: z.enum(['landlord', 'tenant']),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,7 +24,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid input.', details: validation.error.flatten() }, { status: 400 });
         }
         
-        const { email, password, displayName, role } = validation.data;
+        const { email, password, displayName } = validation.data;
+        const role = 'landlord'; // Hardcode role to landlord for all self-signups
 
         const userRecord = await auth.createUser({
             email,
@@ -38,16 +38,13 @@ export async function POST(req: NextRequest) {
         await auth.setCustomUserClaims(userRecord.uid, { role, profileComplete: false });
         
         // Create a corresponding document in Firestore for the landlord.
-        // Tenant profiles are created when they are assigned to a property.
-        if (role === 'landlord') {
-            await firestore.collection('users').doc(userRecord.uid).set({
-                uid: userRecord.uid,
-                name: displayName,
-                email: email,
-                role: role,
-                createdAt: FieldValue.serverTimestamp(),
-            });
-        }
+        await firestore.collection('users').doc(userRecord.uid).set({
+            uid: userRecord.uid,
+            name: displayName,
+            email: email,
+            role: role,
+            createdAt: FieldValue.serverTimestamp(),
+        });
         
         return NextResponse.json({
             message: 'User account created successfully.',
