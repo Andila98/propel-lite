@@ -1,17 +1,16 @@
 
 import { NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { AuditLog } from '@/lib/types';
-import { FieldValue } from 'firebase-admin/firestore';
+import { toISOString } from '@/lib/utils';
 
 export async function GET() {
+    if (!isFirebaseAdminInitialized) {
+        console.error('[API_AUDIT_LOGS] Firebase Admin is not initialized.');
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
-        if (!firestore) {
-             return NextResponse.json(
-                { error: `Firestore is not configured.` },
-                { status: 500 }
-            );
-        }
         const logsSnapshot = await firestore.collection('auditLogs').orderBy('timestamp', 'desc').limit(50).get();
         
         const logs = logsSnapshot.docs.map(doc => {
@@ -19,14 +18,14 @@ export async function GET() {
             return {
                 id: doc.id,
                 ...data,
-                timestamp: (data.timestamp.toDate() as Date).toISOString(),
+                timestamp: toISOString(data.timestamp),
             }
         }) as AuditLog[];
 
         return NextResponse.json(logs);
 
     } catch (error: any) {
-        console.error('API Error: Failed to fetch audit logs:', error);
+        console.error('[API_AUDIT_LOGS_ERROR] Failed to fetch audit logs:', error);
         return NextResponse.json(
             { error: `Failed to fetch audit logs: ${error.message}` },
             { status: 500 }

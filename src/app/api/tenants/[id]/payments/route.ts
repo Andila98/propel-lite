@@ -1,10 +1,16 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { Payment } from '@/lib/types';
+import { toISOString } from '@/lib/utils';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     const { id: tenantId } = params;
+
+    if (!isFirebaseAdminInitialized) {
+        console.error('[API_TENANT_PAYMENTS] Firebase Admin is not initialized.');
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
     
     try {
       const paymentsSnapshot = await firestore.collection('payments')
@@ -18,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
               id: doc.id, 
               ...data,
               // Convert Firestore Timestamp to ISO string for client
-              date: (data.date as any)?.toDate ? (data.date as any).toDate().toISOString() : data.date,
+              date: toISOString(data.date),
           } as Payment;
       });
 

@@ -1,9 +1,10 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { Property, Tenant, Payment, DashboardData } from '@/lib/types';
 import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { subMonths, format, parseISO } from 'date-fns';
+import { toISOString } from '@/lib/utils';
 
 async function getAggregatedData() {
     const propertiesSnapshot = await firestore.collection('properties').get();
@@ -12,14 +13,14 @@ async function getAggregatedData() {
 
     const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Property[];
     const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Tenant[];
-    const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: (doc.data().date as any).toDate().toISOString() })) as Payment[];
+    const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: toISOString(doc.data().date) })) as Payment[];
     
     // Calculate total revenue for the current month
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     const totalRevenue = payments
         .filter(p => {
-            const paymentDate = new Date(p.date);
+            const paymentDate = new Date(p.date as string);
             return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
         })
         .reduce((sum, p) => sum + p.amount, 0);
@@ -83,6 +84,11 @@ async function getAggregatedData() {
 }
 
 export async function GET(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    console.error('[API_DASHBOARD] Firebase Admin is not initialized.');
+    return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
   try {
     const initialData = await getAggregatedData();
     
@@ -107,7 +113,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(dashboardData);
     
   } catch (error: any) {
-    console.error(`[API_DASHBOARD_ERROR]:`, error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('[API_DASHBOARD_ERROR]:', error);
+    return NextResponse.json({ error: `An unexpected error occurred: ${error.message}` }, { status: 500 });
   }
 }

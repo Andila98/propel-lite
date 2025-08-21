@@ -1,27 +1,22 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { auth } from '@/lib/firebase-admin';
+import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { logActivity } from '@/lib/audit-log-service';
+import { getUserIdFromRequest } from '@/lib/auth-utils';
+
 
 const InviteRequestSchema = z.object({
   email: z.string().email(),
 });
 
-async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
-    const sessionCookie = req.cookies.get('PropelAuth')?.value;
-    if (!sessionCookie) return null;
-
-    try {
-        const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
-        return decodedClaims.uid;
-    } catch (error) {
-        return null;
-    }
-}
-
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        console.error('[API_INVITE_MANAGER] Firebase Admin is not initialized.');
+        return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+    }
+
     try {
         const landlordId = await getUserIdFromRequest(req);
         if (!landlordId) {
@@ -55,7 +50,7 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: any) {
-        console.error('[INVITE_MANAGER_ERROR]', error);
+        console.error('[API_INVITE_MANAGER_ERROR]', error);
         return NextResponse.json({ error: 'Failed to generate invitation link.' }, { status: 500 });
     }
 }
