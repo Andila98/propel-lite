@@ -19,6 +19,8 @@ import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,6 +28,7 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'landlord' | 'tenant'>('landlord');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -37,7 +40,7 @@ export default function RegisterPage() {
         const response = await fetch('/api/auth/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ displayName, email, password, role: 'landlord' }), // Default role
+            body: JSON.stringify({ displayName, email, password, role }),
         });
 
         const data = await response.json();
@@ -83,6 +86,23 @@ export default function RegisterPage() {
         <form onSubmit={handleRegister}>
           <fieldset disabled={isLoading} className="space-y-4">
             <CardContent className="space-y-4">
+                <div className="space-y-3">
+                    <Label>Select Account Type</Label>
+                    <div className="flex items-center justify-center space-x-4">
+                        <Label htmlFor="role-toggle" className={cn("font-normal", role === 'tenant' && "text-muted-foreground")}>
+                            Tenant
+                        </Label>
+                        <Switch
+                            id="role-toggle"
+                            checked={role === 'landlord'}
+                            onCheckedChange={(checked) => setRole(checked ? 'landlord' : 'tenant')}
+                            aria-label="Account type toggle"
+                        />
+                        <Label htmlFor="role-toggle" className={cn("font-normal", role === 'landlord' && "text-muted-foreground")}>
+                            Landlord
+                        </Label>
+                    </div>
+                </div>
                <div className="space-y-2">
                 <Label htmlFor="displayName">Full Name</Label>
                 <Input

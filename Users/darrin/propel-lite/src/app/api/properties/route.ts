@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
 import type { Property, Unit } from '@/lib/types';
 import { PropertyFormSchema } from '@/lib/schemas';
@@ -8,6 +8,10 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 
 export async function GET(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
+
   try {
     const propertiesSnapshot = await firestore.collection('properties').get();
     if (propertiesSnapshot.empty) {
@@ -37,6 +41,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const body = await req.json();
     const validationResult = PropertyFormSchema.safeParse(body);
