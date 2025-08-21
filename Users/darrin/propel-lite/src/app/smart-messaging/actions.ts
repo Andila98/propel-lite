@@ -11,6 +11,7 @@ export type GenerateMessageState = {
 
 export async function generateMessageAction(input: { tenantId: string; reminderType: string}): Promise<GenerateMessageState> {
   if (!isFirebaseAdminInitialized) {
+    console.error('[GENERATE_MESSAGE_ACTION] AI features are not configured.');
     return { error: "AI features are not configured. Please contact support." };
   }
 
@@ -24,6 +25,7 @@ export async function generateMessageAction(input: { tenantId: string; reminderT
     const result = await generateMessage({ tenantName, reminderType: input.reminderType });
     return { messageContent: result.message };
   } catch (error: any) {
+    console.error('[GENERATE_MESSAGE_ACTION_ERROR]', error);
     return { error: error.message || "Failed to generate message." };
   }
 }

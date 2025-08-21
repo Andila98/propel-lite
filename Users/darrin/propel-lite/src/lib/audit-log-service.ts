@@ -1,7 +1,7 @@
 
 'use server';
 
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { AuditLog } from '@/lib/types';
 
@@ -15,7 +15,9 @@ type LogInput = Omit<AuditLog, 'id' | 'timestamp'>;
  */
 export async function logActivity(actorName: string, action: string, entity: { type: AuditLog['entityType']; name: string; id?: string; }) {
   try {
-    if (!firestore) {
+    if (!isFirebaseAdminInitialized) {
+        // Silently fail if firestore is not available. This prevents crashes in environments
+        // where server credentials might not be set up (like some CI/CD stages).
         return;
     }
 
@@ -29,6 +31,7 @@ export async function logActivity(actorName: string, action: string, entity: { t
     
     await firestore.collection('auditLogs').add(logEntry);
   } catch (error) {
+    console.error('[AUDIT_LOG_SERVICE] Failed to log activity:', error);
     // We don't re-throw the error because logging should not block the primary operation.
   }
 }

@@ -27,6 +27,7 @@ export async function scheduleReminderAction(
   values: ScheduleReminderFormValues
 ): Promise<ScheduleReminderState> {
   if (!isFirebaseAdminInitialized) {
+    console.error('[SCHEDULE_REMINDER_ACTION] Server is not configured.');
     return { error: "Cannot schedule reminder: Server is not configured. Please check credentials." };
   }
 
@@ -49,6 +50,7 @@ export async function scheduleReminderAction(
     return { successMessage: `Reminder for tenant has been successfully scheduled for ${validationResult.data.scheduledFor}.` };
 
   } catch (error: any) {
+    console.error('[SCHEDULE_REMINDER_ACTION_ERROR]', error);
     return { error: error.message };
   }
 }
@@ -57,6 +59,7 @@ export async function getReminderSuggestionAction(
     input: z.infer<typeof ReminderSuggestionInputSchema>
 ): Promise<ScheduleReminderState> {
   if (!isFirebaseAdminInitialized) {
+    console.error('[GET_REMINDER_SUGGESTION_ACTION] AI features are not configured.');
     return { error: "AI features are not configured. Please check server credentials." };
   }
   try {
@@ -79,6 +82,7 @@ export async function getReminderSuggestionAction(
     };
 
   } catch (error: any) {
+    console.error('[GET_REMINDER_SUGGESTION_ACTION_ERROR]', error);
     return { error: error.message };
   }
 }
@@ -116,6 +120,7 @@ export async function getScheduleSuggestionAction(
             }
         };
     } catch (error: any) {
+        console.error('[GET_SCHEDULE_SUGGESTION_ACTION_ERROR]', error);
         return { error: error.message };
     }
 }

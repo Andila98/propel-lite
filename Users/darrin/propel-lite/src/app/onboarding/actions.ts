@@ -28,6 +28,7 @@ export async function completeOnboarding(): Promise<ActionState> {
     
     return { success: true };
   } catch (error: any) {
+    console.error('[COMPLETE_ONBOARDING_ACTION_ERROR]', error);
     return { error: `Internal Server Error: ${error.message}` };
   }
 }

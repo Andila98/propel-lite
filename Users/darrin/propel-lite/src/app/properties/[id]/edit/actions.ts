@@ -92,6 +92,7 @@ export async function updatePropertyAction(
     return { success: true, propertyId: propertyRef.id };
 
   } catch (error: any) {
+    console.error(`[UPDATE_PROPERTY_ACTION_ERROR] Failed to update property ${propertyId}:`, error);
     return { error: `Internal Server Error: ${error.message}` };
   }
 }
