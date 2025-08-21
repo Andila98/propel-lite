@@ -1,6 +1,68 @@
 
 import { firestore, auth } from '../src/lib/firebase-admin';
-import { add, format } from 'date-fns';
+import { add } from 'date-fns';
+
+async function seedUsers() {
+    console.log('Seeding users (landlord, manager)...');
+    const users = [
+        {
+            uid: 'landlord_user_id',
+            email: 'landlord@example.com',
+            password: 'password123',
+            displayName: 'John Landlord',
+            customClaims: { role: 'landlord', profileComplete: true },
+        },
+        {
+            uid: 'manager_user_id',
+            email: 'manager@example.com',
+            password: 'password123',
+            displayName: 'Jane Manager',
+            customClaims: { role: 'manager', landlordId: 'landlord_user_id' },
+        }
+    ];
+
+    for (const user of users) {
+        try {
+            await auth.createUser({
+                uid: user.uid,
+                email: user.email,
+                password: user.password,
+                displayName: user.displayName,
+            });
+            await auth.setCustomUserClaims(user.uid, user.customClaims);
+            console.log(`Created user: ${user.displayName}`);
+
+            if (user.customClaims.role === 'landlord') {
+                await firestore.collection('users').doc(user.uid).set({
+                    uid: user.uid,
+                    name: user.displayName,
+                    email: user.email,
+                    role: 'landlord',
+                    createdAt: new Date(),
+                });
+            } else if (user.customClaims.role === 'manager') {
+                 await firestore.collection('managers').doc(user.uid).set({
+                    uid: user.uid,
+                    name: user.displayName,
+                    email: user.email,
+                    landlordId: 'landlord_user_id',
+                    createdAt: new Date(),
+                    permissions: { canViewPayments: true, canEditProperties: true, canAddTenants: true },
+                    propertiesManaged: ['prop1']
+                });
+            }
+
+        } catch (e: any) {
+            if (e.code === 'auth/uid-already-exists' || e.code === 'auth/email-already-exists') {
+                console.log(`User ${user.email} already exists, skipping creation.`);
+            } else {
+                throw e;
+            }
+        }
+    }
+     console.log('Users seeded.');
+}
+
 
 async function seedPropertiesAndUnits() {
   console.log('Seeding properties and units...');
@@ -14,6 +76,7 @@ async function seedPropertiesAndUnits() {
       description: 'Modern apartments in the heart of the city.',
       currency: 'KES',
       imageUrl: 'https://ohpverffrwflwksxoljv.supabase.co/storage/v1/object/public/properties/property1.jpg',
+      landlordId: 'landlord_user_id',
       createdAt: new Date(),
       units: [
         { id: 'unit1a', unitNumber: 'A1', size: '2 Bedroom', rent: 50000, isOccupied: true },
@@ -29,6 +92,7 @@ async function seedPropertiesAndUnits() {
       description: 'A spacious villa with a beautiful garden.',
       currency: 'KES',
       imageUrl: 'https://ohpverffrwflwksxoljv.supabase.co/storage/v1/object/public/properties/property2.jpg',
+      landlordId: 'landlord_user_id',
       createdAt: new Date(),
       units: [
         { id: 'unit2a', unitNumber: 'Main House', size: '4 Bedroom', rent: 120000, isOccupied: true },
@@ -49,7 +113,7 @@ async function seedPropertiesAndUnits() {
   return propertiesData;
 }
 
-async function seedTenants(properties: any[]) {
+async function seedTenants() {
   console.log('Seeding tenants...');
   const tenantsCollection = firestore.collection('tenants');
   
@@ -94,11 +158,16 @@ async function seedTenants(properties: any[]) {
             password: 'password123',
             displayName: tenant.name,
         });
-        await auth.setCustomUserClaims(tenant.uid, { role: 'tenant' });
+        await auth.setCustomUserClaims(tenant.uid, { role: 'tenant', profileComplete: true });
+        console.log(`Created tenant: ${tenant.name}`);
     } catch(e: any) {
-        if (e.code !== 'auth/uid-already-exists' && e.code !== 'auth/email-already-exists') throw e;
+        if (e.code === 'auth/uid-already-exists' || e.code === 'auth/email-already-exists') {
+             console.log(`Tenant ${tenant.email} already exists, skipping creation.`);
+        } else {
+            throw e;
+        }
     }
-    await tenantsCollection.doc(tenant.uid).set({ ...tenant });
+    await tenantsCollection.doc(tenant.uid).set({ ...tenant, landlordId: 'landlord_user_id' });
   }
   
   // Update unit occupancy
@@ -110,7 +179,7 @@ async function seedTenants(properties: any[]) {
   return tenantsData;
 }
 
-async function seedPayments(tenants: any[]) {
+async function seedPayments() {
     console.log('Seeding payments...');
     const paymentsCollection = firestore.collection('payments');
     const paymentsData = [
@@ -120,12 +189,12 @@ async function seedPayments(tenants: any[]) {
     ];
 
     for (const payment of paymentsData) {
-        await paymentsCollection.add({ ...payment });
+        await paymentsCollection.add({ ...payment, landlordId: 'landlord_user_id' });
     }
     console.log('Payments seeded.');
 }
 
-async function seedMaintenanceRequests(tenants: any[]) {
+async function seedMaintenanceRequests() {
     console.log('Seeding maintenance requests...');
     const requestsCollection = firestore.collection('maintenanceRequests');
     const requestsData = [
@@ -159,13 +228,15 @@ async function seedMaintenanceRequests(tenants: any[]) {
 
 async function main() {
   try {
-    const properties = await seedPropertiesAndUnits();
-    const tenants = await seedTenants(properties);
-    await seedPayments(tenants);
-    await seedMaintenanceRequests(tenants);
+    await seedUsers();
+    await seedPropertiesAndUnits();
+    await seedTenants();
+    await seedPayments();
+    await seedMaintenanceRequests();
     console.log('Database seeding completed successfully.');
   } catch (error) {
     console.error('Error seeding database:', error);
+    process.exit(1);
   }
 }
 
