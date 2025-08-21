@@ -9,6 +9,7 @@ const ForgotPasswordSchema = z.object({
 
 export async function POST(request: NextRequest) {
   if (!isFirebaseAdminInitialized) {
+      console.error('[API_FORGOT_PASSWORD] Firebase Admin is not initialized.');
       return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
   }
 
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'If an account with this email exists, a password reset link has been sent.' }, { status: 200 });
 
   } catch (error: any) {
+    console.error('[API_FORGOT_PASSWORD_ERROR]', error);
     // We intentionally don't reveal if an email doesn't exist to prevent user enumeration attacks.
     // So, we log the error on the server but return a generic success message to the client.
     // Check for specific, non-revealing errors you might want to handle differently,

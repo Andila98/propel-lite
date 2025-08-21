@@ -13,6 +13,7 @@ const SignUpSchema = z.object({
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
+        console.error('[API_SIGNUP] Firebase Admin is not initialized.');
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
 
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
         }, { status: 201 });
 
     } catch (error: any) {
+        console.error('[API_SIGNUP_ERROR]', error);
         if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
         }

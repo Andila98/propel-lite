@@ -20,6 +20,7 @@ const RequestBodySchema = z.object({
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
+        console.error('[API_ACCEPT_INVITE] Firebase Admin is not initialized.');
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
 
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
         await auth.setCustomUserClaims(userRecord.uid, { 
             role: tokenData.role,
             landlordId: tokenData.landlordId,
+            profileComplete: true, // Managers who accept invites are considered complete
         });
 
         // 4. Create the manager profile in Firestore
@@ -68,6 +70,7 @@ export async function POST(req: NextRequest) {
         }, { status: 201 });
 
     } catch (error: any) {
+        console.error('[API_ACCEPT_INVITE_ERROR]', error);
         if (error instanceof jwt.JsonWebTokenError) {
             return NextResponse.json({ error: 'Invalid or expired invitation link.' }, { status: 400 });
         }

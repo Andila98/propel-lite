@@ -13,13 +13,12 @@ export default function HomePage() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        // User is logged in, redirect based on role
+        // User is logged in, redirect based on role and onboarding status
         if (user.role === 'tenant') {
             router.replace('/tenant-portal');
         } else if (!user.profileComplete) {
             router.replace('/onboarding/landlord-welcome');
-        }
-        else {
+        } else {
             router.replace('/dashboard');
         }
       } else {

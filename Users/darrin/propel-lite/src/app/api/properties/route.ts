@@ -9,6 +9,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export async function GET(req: NextRequest) {
   if (!isFirebaseAdminInitialized) {
+    console.error('[API_PROPERTIES] Firebase Admin is not initialized.');
     return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
   }
 
@@ -36,12 +37,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(properties);
 
   } catch (error: any) {
+    console.error('[API_PROPERTIES_ERROR] Failed to list properties:', error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   if (!isFirebaseAdminInitialized) {
+    console.error('[API_PROPERTIES] Firebase Admin is not initialized.');
     return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
   }
   try {
@@ -77,6 +80,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: propertyRef.id, ...validationResult.data }, { status: 201 });
 
   } catch (error: any) {
+    console.error('[API_PROPERTIES_ERROR] Failed to create property:', error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }

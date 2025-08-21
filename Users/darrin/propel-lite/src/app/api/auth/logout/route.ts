@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       } catch (error: any) {
           // Ignore errors if the cookie is already invalid.
           if (error.code !== 'auth/session-cookie-revoked' && error.code !== 'auth/id-token-revoked') {
+            console.error('[API_LOGOUT_ERROR] Could not revoke refresh token:', error);
           }
       }
   }

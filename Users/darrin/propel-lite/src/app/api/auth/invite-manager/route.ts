@@ -17,12 +17,14 @@ async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
         return decodedClaims.uid;
     } catch (error) {
+        console.error('[API_INVITE_MANAGER_ERROR] Error verifying session cookie:', error);
         return null;
     }
 }
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
+        console.error('[API_INVITE_MANAGER] Firebase Admin is not initialized.');
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
 
@@ -57,6 +59,7 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: any) {
+        console.error('[API_INVITE_MANAGER_ERROR] Failed to generate invitation:', error);
         return NextResponse.json({ error: 'Failed to generate invitation link.' }, { status: 500 });
     }
 }

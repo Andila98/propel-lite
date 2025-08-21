@@ -8,6 +8,7 @@ import { logActivity } from '@/lib/audit-log-service';
 
 export async function GET(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
+        console.error('[API_TENANTS] Firebase Admin is not initialized.');
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
 
@@ -16,12 +17,14 @@ export async function GET(req: NextRequest) {
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(tenants, { status: 200 });
     } catch (error: any) {
+      console.error('[API_TENANTS_ERROR] Failed to list tenants:', error);
       return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
+        console.error('[API_TENANTS] Firebase Admin is not initialized.');
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
 
@@ -74,6 +77,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ id: tenantRef.id, ...newTenant }, { status: 201 });
 
     } catch (error: any) {
+      console.error('[API_TENANTS_ERROR] Failed to create tenant:', error);
        if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email already exists. Please use a different email.' }, { status: 409 });
         }

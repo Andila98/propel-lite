@@ -17,7 +17,7 @@ async function seedUsers() {
             email: 'manager@example.com',
             password: 'password123',
             displayName: 'Jane Manager',
-            customClaims: { role: 'manager', landlordId: 'landlord_user_id' },
+            customClaims: { role: 'manager', landlordId: 'landlord_user_id', profileComplete: true },
         }
     ];
 

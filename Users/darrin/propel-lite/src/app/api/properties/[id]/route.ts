@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
 import { PropertyFormSchema } from '@/lib/schemas';
 
@@ -29,6 +29,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_PROPERTIES_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const propertyId = params.id;
     const propertyDoc = await firestore.collection('properties').doc(propertyId).get();
@@ -49,6 +53,7 @@ export async function GET(
     return NextResponse.json(propertyWithUnits);
     
   } catch (error: any) {
+    console.error(`[API_PROPERTIES_ID_ERROR] Failed to fetch property ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to fetch property: ${error.message}` },
       { status: 500 }
@@ -57,6 +62,10 @@ export async function GET(
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_PROPERTIES_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const propertyId = params.id;
     const updates = await req.json();
@@ -71,6 +80,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     return NextResponse.json({ message: 'Property updated successfully' });
   } catch (error: any) {
+    console.error(`[API_PROPERTIES_ID_ERROR] Failed to update property ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
@@ -79,6 +89,10 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_PROPERTIES_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const propertyId = params.id;
     const propertyRef = firestore.collection('properties').doc(propertyId);
@@ -101,6 +115,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Property deleted successfully' });
   } catch (error: any) {
+    console.error(`[API_PROPERTIES_ID_ERROR] Failed to delete property ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }

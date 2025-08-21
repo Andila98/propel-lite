@@ -18,6 +18,7 @@ const TenantUpdateSchema = z.object({
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     if (!isFirebaseAdminInitialized) {
+        console.error(`[API_TENANTS_ID] Firebase Admin is not initialized.`);
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
 
@@ -40,12 +41,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ id: tenantDoc.id, ...tenantDoc.data() }, { status: 200 });
 
     } catch (error: any) {
+        console.error(`[API_TENANTS_ID_ERROR] Failed to fetch tenant ${params.id}:`, error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     if (!isFirebaseAdminInitialized) {
+        console.error(`[API_TENANTS_ID] Firebase Admin is not initialized.`);
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
 
@@ -90,6 +93,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ message: 'Tenant updated successfully.' }, { status: 200 });
 
     } catch (error: any) {
+        console.error(`[API_TENANTS_ID_ERROR] Failed to update tenant ${params.id}:`, error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -97,6 +101,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     if (!isFirebaseAdminInitialized) {
+        console.error(`[API_TENANTS_ID] Firebase Admin is not initialized.`);
         return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
     }
     
@@ -139,6 +144,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
     } catch (error: any) {
+      console.error(`[API_TENANTS_ID_ERROR] Failed to delete tenant ${params.id}:`, error);
       return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

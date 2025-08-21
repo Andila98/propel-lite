@@ -6,6 +6,7 @@ import type { User } from '@/hooks/use-auth';
 
 export async function GET(req: NextRequest) {
   if (!isFirebaseAdminInitialized) {
+      console.error('[API_ME] Firebase Admin is not initialized.');
       return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
   }
 
@@ -45,7 +46,8 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(userProfile, { status: 200 });
     
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[API_ME_ERROR]', error);
     // Clear cookie if invalid? Handled by logout on frontend.
     return NextResponse.json({ error: 'Unauthorized: Invalid token or session.' }, { status: 401 });
   }

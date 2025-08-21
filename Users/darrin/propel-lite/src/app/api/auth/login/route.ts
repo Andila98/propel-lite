@@ -8,6 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request: NextRequest) {
   if (!isFirebaseAdminInitialized) {
+      console.error('[API_LOGIN] Firebase Admin is not initialized.');
       return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
   }
 
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
             createdAt: FieldValue.serverTimestamp(),
         });
         
-        // Set custom claims for the new user
+        // Set custom claims for the new user, ensuring onboarding is required
         await auth.setCustomUserClaims(userRecord.uid, { role: newUserRole, profileComplete: false });
         
         userProfile = {
@@ -75,9 +76,7 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error('[LOGIN_API_ERROR]', error);
+    console.error('[API_LOGIN_ERROR]', error);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
-
-    

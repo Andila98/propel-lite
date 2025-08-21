@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore, auth } from '@/lib/firebase-admin';
+import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
 
 // GET a specific manager
@@ -8,6 +8,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MANAGERS_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const managerId = params.id;
     const managerDoc = await firestore.collection('managers').doc(managerId).get();
@@ -19,6 +23,7 @@ export async function GET(
     return NextResponse.json({ id: managerDoc.id, ...managerDoc.data() });
     
   } catch (error: any) {
+    console.error(`[API_MANAGERS_ID_ERROR] Failed to fetch manager ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to fetch manager: ${error.message}` },
       { status: 500 }
@@ -31,6 +36,10 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MANAGERS_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const managerId = params.id;
     const updates = await req.json();
@@ -45,6 +54,7 @@ export async function PUT(
     return NextResponse.json({ message: 'Manager updated successfully' });
     
   } catch (error: any) {
+    console.error(`[API_MANAGERS_ID_ERROR] Failed to update manager ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
@@ -55,6 +65,10 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MANAGERS_ID] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const managerId = params.id;
     const managerRef = firestore.collection('managers').doc(managerId);
@@ -77,6 +91,7 @@ export async function DELETE(
     
     return NextResponse.json({ message: 'Manager deleted successfully' });
   } catch (error: any) {
+    console.error(`[API_MANAGERS_ID_ERROR] Failed to delete manager ${params.id}:`, error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }

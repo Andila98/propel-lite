@@ -2,7 +2,7 @@
 'use server';
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
@@ -38,6 +38,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error('[API_TENANT_SENTIMENT] Firebase Admin is not initialized.');
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const tenantId = params.id;
     
@@ -51,6 +55,7 @@ export async function GET(
     return NextResponse.json(mockSentiment);
 
   } catch (error: any) {
+    console.error(`[API_TENANT_SENTIMENT_ERROR] Failed to get sentiment for tenant ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to analyze sentiment: ${error.message}` },
       { status: 500 }

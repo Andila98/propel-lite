@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { auth } from '@/lib/firebase-admin';
 
@@ -12,6 +12,7 @@ async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
         return decodedClaims.uid;
     } catch (error) {
+        console.error('[API_MESSAGES_ERROR] Could not verify session cookie:', error);
         return null;
     }
 }
@@ -20,6 +21,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MESSAGES] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const tenantId = params.id;
     const messagesSnapshot = await firestore
@@ -32,6 +37,7 @@ export async function GET(
 
     return NextResponse.json(messages);
   } catch (error: any) {
+    console.error(`[API_MESSAGES_ERROR] Failed to fetch messages for tenant ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to fetch messages: ${error.message}` },
       { status: 500 }
@@ -43,6 +49,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!isFirebaseAdminInitialized) {
+      console.error(`[API_MESSAGES] Firebase Admin is not initialized.`);
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const userId = await getUserIdFromRequest(request);
     if (!userId) {
@@ -76,6 +86,7 @@ export async function POST(
     return NextResponse.json(sentMessage, { status: 201 });
 
   } catch (error: any) {
+    console.error(`[API_MESSAGES_ERROR] Failed to send message for tenant ${params.id}:`, error);
     return NextResponse.json(
       { error: `Failed to send message: ${error.message}` },
       { status: 500 }

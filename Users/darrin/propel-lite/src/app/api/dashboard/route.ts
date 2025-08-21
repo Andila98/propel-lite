@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { Property, Tenant, Payment, DashboardData } from '@/lib/types';
 import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { subMonths, format, parseISO } from 'date-fns';
@@ -83,6 +83,10 @@ async function getAggregatedData() {
 }
 
 export async function GET(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+      console.error('[API_DASHBOARD] Firebase Admin is not initialized.');
+      return NextResponse.json({ error: 'Firebase is not initialized. Please check server credentials.' }, { status: 500 });
+  }
   try {
     const initialData = await getAggregatedData();
     
@@ -107,6 +111,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(dashboardData);
     
   } catch (error: any) {
+    console.error('[API_DASHBOARD_ERROR]', error);
     return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
   }
 }
