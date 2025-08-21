@@ -1,17 +1,15 @@
 
 "use client";
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Rocket, User, Building } from 'lucide-react';
+import { Rocket, Sparkles, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import { Stepper } from '@/components/ui/stepper';
+import { useAuth } from '@/hooks/use-auth';
+import { completeOnboarding } from '../actions';
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
@@ -21,52 +19,77 @@ const onboardingSteps = [
     { id: 'complete', label: 'Complete' },
 ];
 
+
 export default function WelcomePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [role, setRole] = useState<'landlord' | 'tenant' | null>(null);
+  const { user } = useAuth();
+  
+  const landlordName = user?.name || "there"; 
 
   const handleContinue = () => {
-    if (role === 'landlord') {
-      router.push('/onboarding/landlord-welcome');
-    } else if (role === 'tenant') {
-      // For now, tenant onboarding can lead to a simplified portal or complete page.
-      // We will redirect to the tenant portal for this example.
-      toast({
-        title: "Welcome, Tenant!",
-        description: "You're being redirected to your portal.",
-      });
-      router.push('/tenant-portal');
-    } else {
-      toast({
-        title: "Selection Required",
-        description: "Please select a role to continue.",
+    router.push('/onboarding/add-property');
+  };
+
+  const handleQuickStart = async () => {
+    toast({
+      title: "Quick Start Initialized!",
+      description: "We're setting up your account with sample data.",
+    });
+
+    const result = await completeOnboarding();
+
+    if (result.error) {
+       toast({
+        title: "Error",
+        description: result.error,
         variant: "destructive",
       });
+      return;
     }
+    
+    // For this prototype, we just navigate to the end of onboarding.
+    // The dashboard already loads mock data if the DB is empty.
+    router.push('/onboarding/complete');
   };
 
   return (
-    <div className="flex-1 p-4 md:p-8">
-      <div className="mx-auto max-w-2xl space-y-8">
-         <div className="hidden sm:block">
-            <Stepper steps={onboardingSteps} currentStep={-1} />
-        </div>
-        <Card className="w-full text-center">
-          <CardHeader>
+    <div className="container mx-auto p-4 md:p-8">
+      <div className="mx-auto max-w-4xl space-y-8">
+        <Stepper steps={onboardingSteps} currentStep={0} />
+        <Card className="w-full">
+          <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Rocket className="h-8 w-8" />
             </div>
-            <CardTitle className="text-3xl">Welcome to RentEase!</CardTitle>
-            <CardDescription className="text-lg">
-              Let's get your account set up. First, tell us who you are.
+            <CardTitle className="text-3xl">Welcome to RentEase, {landlordName}!</CardTitle>
+            <CardDescription className="text-lg text-muted-foreground px-6">
+              Let’s get your rental business set up. You can add your properties manually or use our Quick Start to explore with sample data.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-muted-foreground">Select your account type to get started.</p>
-            <Button size="lg" onClick={() => router.push('/onboarding/landlord-welcome')}>
-              I'm a Landlord
-            </Button>
+            <div className="aspect-video w-full max-w-xl mx-auto rounded-lg overflow-hidden relative group cursor-pointer bg-muted">
+                <Image 
+                    src="https://placehold.co/1280x720.png"
+                    alt="Onboarding video thumbnail"
+                    layout="fill"
+                    objectFit="cover"
+                    data-ai-hint="app interface screenshot"
+                />
+                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <PlayCircle className="h-16 w-16 text-white/80 group-hover:scale-110 transition-transform" />
+                </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" onClick={handleContinue}>
+                Start Manual Setup
+                </Button>
+                <Button size="lg" variant="outline" onClick={handleQuickStart}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Quick Start with Sample Data
+                </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

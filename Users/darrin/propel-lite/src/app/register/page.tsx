@@ -19,17 +19,17 @@ import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { loginWithGoogle } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'landlord' | 'tenant'>('landlord');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -40,7 +40,7 @@ export default function RegisterPage() {
         const response = await fetch('/api/auth/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ displayName, email, password, role }),
+            body: JSON.stringify({ displayName, email, password, role: 'landlord' }),
         });
 
         const data = await response.json();
@@ -51,7 +51,7 @@ export default function RegisterPage() {
         
         toast({
             title: "Account Created!",
-            description: "Your account has been successfully created. Please log in.",
+            description: "Your account has been successfully created. Please log in to continue setup.",
         });
         router.push('/login');
 
@@ -66,11 +66,29 @@ export default function RegisterPage() {
     }
   };
   
-  const handleSocialLogin = (provider: string) => {
-     toast({
-        title: "Coming Soon!",
-        description: `${provider} login is not yet implemented.`,
-      });
+  const handleSocialLogin = async () => {
+    setIsSocialLoading(true);
+    try {
+        const { user } = await loginWithGoogle();
+        toast({
+            title: `Welcome, ${user.name}!`,
+            description: "You've successfully signed in.",
+        });
+        
+        if (!user.profileComplete) {
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            router.push('/dashboard');
+        }
+    } catch (error: any) {
+         toast({
+            title: "Social Login Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsSocialLoading(false);
+    }
   }
 
   return (
@@ -84,25 +102,8 @@ export default function RegisterPage() {
           <CardDescription>Get started managing your properties today.</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
-          <fieldset disabled={isLoading} className="space-y-4">
+          <fieldset disabled={isLoading || isSocialLoading} className="space-y-4">
             <CardContent className="space-y-4">
-                <div className="space-y-3">
-                    <Label>Select Account Type</Label>
-                    <div className="flex items-center justify-center space-x-4">
-                        <Label htmlFor="role-toggle" className={cn("font-normal", role === 'tenant' && "text-muted-foreground")}>
-                            Tenant
-                        </Label>
-                        <Switch
-                            id="role-toggle"
-                            checked={role === 'landlord'}
-                            onCheckedChange={(checked) => setRole(checked ? 'landlord' : 'tenant')}
-                            aria-label="Account type toggle"
-                        />
-                        <Label htmlFor="role-toggle" className={cn("font-normal", role === 'landlord' && "text-muted-foreground")}>
-                            Landlord
-                        </Label>
-                    </div>
-                </div>
                <div className="space-y-2">
                 <Label htmlFor="displayName">Full Name</Label>
                 <Input
@@ -143,6 +144,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-9 text-muted-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -168,8 +170,12 @@ export default function RegisterPage() {
                 Sign in
             </Link>
           </p>
-          <Button variant="outline" className="w-full" onClick={() => handleSocialLogin('Google')}>
-            <GoogleIcon className="mr-2 h-4 w-4" />
+          <Button variant="outline" className="w-full" onClick={handleSocialLogin} disabled={isLoading || isSocialLoading}>
+             {isSocialLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GoogleIcon className="mr-2 h-4 w-4" />
+            )}
             Sign up with Google
           </Button>
         </CardFooter>
