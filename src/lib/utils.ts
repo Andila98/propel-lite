@@ -13,14 +13,27 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function toISOString(dateValue: any): string | null {
     if (!dateValue) return null;
-    // Check if it's a Firestore Timestamp
-    if (typeof dateValue === 'object' && dateValue !== null && 'toDate' in dateValue && typeof dateValue.toDate === 'function') {
+    
+    // Handle client-side date objects or ISO strings
+    if (dateValue instanceof Date) {
+        return dateValue.toISOString();
+    }
+    if (typeof dateValue === 'string') {
+        const date = new Date(dateValue);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString();
+        }
+    }
+
+    // Handle server-side Firestore Timestamps
+    if (typeof dateValue === 'object' && dateValue !== null && typeof dateValue.toDate === 'function') {
         return (dateValue as Timestamp).toDate().toISOString();
     }
-    // Check if it's already a valid date string or Date object
-    const date = new Date(dateValue);
-    if (!isNaN(date.getTime())) {
-        return date.toISOString();
+
+    // Handle client-side Firestore Timestamps (which might just be objects with seconds/nanos)
+    if (typeof dateValue === 'object' && 'seconds' in dateValue && 'nanoseconds' in dateValue) {
+        return new Date(dateValue.seconds * 1000).toISOString();
     }
+
     return null;
 }

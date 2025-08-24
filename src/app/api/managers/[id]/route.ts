@@ -2,6 +2,23 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
+import { z } from 'zod';
+import { permissionLabels, type Permission } from '@/lib/types';
+
+
+const ManagerUpdateSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  permissions: z.object(
+    Object.keys(permissionLabels).reduce((acc, key) => {
+      acc[key as Permission] = z.boolean().default(false);
+      return acc;
+    }, {} as Record<Permission, z.ZodBoolean>)
+  ).optional(),
+  propertiesManaged: z.array(z.string()).optional(),
+});
+
 
 // GET a specific manager
 export async function GET(
@@ -44,9 +61,13 @@ export async function PUT(
 
   try {
     const managerId = params.id;
-    const updates = await req.json();
+    const body = await req.json();
 
-    // TODO: Add Zod validation for the update payload
+    const validationResult = ManagerUpdateSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json({ error: 'Invalid data provided.', details: validationResult.error.flatten() }, { status: 400 });
+    }
+    const updates = validationResult.data;
 
     await firestore.collection('managers').doc(managerId).update(updates);
     
