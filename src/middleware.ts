@@ -1,15 +1,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
+import { auth } from '@/lib/firebase-admin';
 
 // Paths that do not require authentication
 const publicPaths = [
   '/login',
   '/register',
+  '/forgot-password',
   '/onboarding/accept-invite', // Needs to be public to accept an invitation
   '/_next',
   '/favicon.ico',
 ];
+
+const tenantOnlyPaths = ['/tenant-portal'];
 
 function isPublic(pathname: string): boolean {
   if (pathname === '/') return true;
@@ -19,7 +23,7 @@ function isPublic(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Allow public paths and API routes to pass through without checks.
+  // Allow public paths and most API routes to pass through without session checks.
   if (isPublic(pathname) || pathname.startsWith('/api/auth/')) {
     return NextResponse.next();
   }
@@ -28,21 +32,41 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
-      console.log(`[MIDDLEWARE_REDIRECT] No session cookie for protected path: ${pathname}. Redirecting.`);
       const url = request.nextUrl.clone();
       url.pathname = '/login';
-      if (pathname !== '/dashboard') {
-        url.searchParams.set('redirect', pathname);
-      }
+      url.searchParams.set('redirect', pathname);
       return NextResponse.redirect(url);
   }
 
-  // On the backend, we would verify the cookie here using the Admin SDK.
-  // Since middleware runs in the edge runtime, we can't use the full Node.js Admin SDK.
-  // A common pattern is to have a lightweight session check here and full verification in API routes/server components.
-  // For this project, we'll trust the presence of the cookie in the middleware and verify it on the backend endpoints.
+  try {
+    // Verify the cookie on the edge
+    const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+    const userRole = decodedClaims.role;
 
-  return NextResponse.next();
+    // If a tenant tries to access a non-tenant page, redirect to their portal
+    if (userRole === 'tenant' && !tenantOnlyPaths.some(p => pathname.startsWith(p))) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/tenant-portal';
+        return NextResponse.redirect(url);
+    }
+    
+    // If a non-tenant tries to access the tenant portal, redirect them to the dashboard
+    if (userRole !== 'tenant' && tenantOnlyPaths.some(p => pathname.startsWith(p))) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/dashboard';
+        return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next();
+
+  } catch (error) {
+    console.warn(`[MIDDLEWARE_AUTH_ERROR] Invalid session cookie for path: ${pathname}. Redirecting.`, error);
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    // Clear the invalid cookie
+    url.cookies.delete(authConfig.cookieName);
+    return NextResponse.redirect(url);
+  }
 }
 
 // Match all paths except for the ones starting with specific asset folders.
