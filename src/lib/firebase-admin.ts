@@ -6,7 +6,7 @@ let isFirebaseAdminInitialized = admin.apps.length > 0;
 if (!isFirebaseAdminInitialized) {
   try {
     const serviceAccountString = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 
-      ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('ascii')
+      ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf-8')
       : null;
 
     if (serviceAccountString) {
@@ -26,8 +26,23 @@ if (!isFirebaseAdminInitialized) {
   }
 }
 
-const firestore = isFirebaseAdminInitialized ? admin.firestore() : null as unknown as admin.firestore.Firestore;
-const auth = isFirebaseAdminInitialized ? admin.auth() : null as unknown as admin.auth.Auth;
-const storage = isFirebaseAdminInitialized ? admin.storage() : null as unknown as admin.storage.Storage;
+// Use a function to get the services, ensuring they are only accessed if initialized.
+const getFirestore = () => {
+    if (!isFirebaseAdminInitialized) throw new Error("Firebase Admin not initialized.");
+    return admin.firestore();
+}
 
-export { admin, firestore, auth, storage, isFirebaseAdminInitialized };
+const getAuth = () => {
+    if (!isFirebaseAdminInitialized) throw new Error("Firebase Admin not initialized.");
+    return admin.auth();
+}
+
+const getStorage = () => {
+    if (!isFirebaseAdminInitialized) throw new Error("Firebase Admin not initialized.");
+    return admin.storage();
+}
+
+export { admin, getFirestore, getAuth, getStorage, isFirebaseAdminInitialized };
+export const firestore = isFirebaseAdminInitialized ? getFirestore() : null as unknown as admin.firestore.Firestore;
+export const auth = isFirebaseAdminInitialized ? getAuth() : null as unknown as admin.auth.Auth;
+export const storage = isFirebaseAdminInitialized ? getStorage() : null as unknown as admin.storage.Storage;
