@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import {
@@ -18,15 +17,28 @@ import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useAuth, type User } from '@/hooks/use-auth';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { loginWithGoogle } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleRedirect = (user: User) => {
+    if (user.role === 'tenant') {
+        router.push('/tenant-portal');
+    } else if (!user.profileComplete) {
+        router.push('/onboarding/landlord-welcome');
+    } else {
+        router.push('/dashboard');
+    }
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,28 +74,42 @@ export default function RegisterPage() {
     }
   };
   
-  const handleSocialLogin = (provider: string) => {
-     toast({
-        title: "Coming Soon!",
-        description: `${provider} login is not yet implemented.`,
-      });
+  const handleSocialLogin = async () => {
+    setIsSocialLoading(true);
+    try {
+        const { user } = await loginWithGoogle();
+        toast({
+            title: `Welcome, ${user.name}!`,
+            description: "You've successfully signed in.",
+        });
+        handleRedirect(user);
+    } catch (error: any) {
+         toast({
+            title: "Social Login Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsSocialLoading(false);
+    }
   }
 
+
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
+      <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
              <div className="mb-4 flex justify-center">
                 <PropelLiteLogo className="h-12 w-12" />
             </div>
-            <h1 className="text-3xl font-bold">Create an account</h1>
-            <p className="text-balance text-muted-foreground">
+            <CardTitle className="text-2xl">Create an account</CardTitle>
+            <CardDescription>
               Enter your details below to create your landlord account.
-            </p>
-          </div>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
            <form onSubmit={handleRegister}>
-              <fieldset disabled={isLoading} className="grid gap-4">
+              <fieldset disabled={isLoading || isSocialLoading} className="grid gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="displayName">Full Name</Label>
                     <Input
@@ -129,11 +155,19 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full">
                     {isLoading ? <Loader2 className="animate-spin" /> : "Create Account"}
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => handleSocialLogin('Google')}>
-                    <GoogleIcon className="mr-2 h-4 w-4" />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full" type="button" onClick={handleSocialLogin}>
+                    {isSocialLoading ? <Loader2 className="animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
                     Sign up with Google
                 </Button>
               </fieldset>
@@ -144,18 +178,8 @@ export default function RegisterPage() {
               Sign in
             </Link>
           </div>
-        </div>
-      </div>
-       <div className="hidden bg-muted lg:block">
-        <Image
-          src="https://placehold.co/1080x1920.png"
-          alt="Image"
-          width="1920"
-          height="1080"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-          data-ai-hint="luxury apartments exterior"
-        />
-      </div>
+          </CardContent>
+      </Card>
     </div>
   );
 }

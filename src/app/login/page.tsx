@@ -3,7 +3,6 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
@@ -13,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useAuth, type User } from '@/hooks/use-auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -77,18 +77,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <div className="mb-4 flex justify-center">
-                <PropelLiteLogo className="h-12 w-12" />
-            </div>
-            <h1 className="text-3xl font-bold">Welcome back</h1>
-            <p className="text-balance text-muted-foreground">
-              Enter your credentials to access your dashboard
-            </p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <div className="mb-4 flex justify-center">
+              <PropelLiteLogo className="h-12 w-12" />
           </div>
+          <CardTitle className="text-2xl">Welcome Back</CardTitle>
+          <CardDescription>
+            Enter your credentials to access your dashboard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={handleLogin}>
             <fieldset disabled={isLoading || isSocialLoading} className="grid gap-4">
                 <div className="grid gap-2">
@@ -134,7 +134,15 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full">
                    {isLoading ? <Loader2 className="animate-spin" /> : "Login"}
                 </Button>
-                <Button variant="outline" className="w-full" onClick={handleSocialLogin}>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full" type="button" onClick={handleSocialLogin}>
                     {isSocialLoading ? <Loader2 className="animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
                     Login with Google
                 </Button>
@@ -146,18 +154,8 @@ export default function LoginPage() {
               Sign up
             </Link>
           </div>
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:block">
-        <Image
-          src="https://placehold.co/1080x1920.png"
-          alt="Image"
-          width="1920"
-          height="1080"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-          data-ai-hint="modern architecture"
-        />
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
