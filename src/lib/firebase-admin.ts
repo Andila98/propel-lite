@@ -26,23 +26,9 @@ if (!isFirebaseAdminInitialized) {
   }
 }
 
-// Use a function to get the services, ensuring they are only accessed if initialized.
-const getFirestore = () => {
-    if (!isFirebaseAdminInitialized) throw new Error("Firebase Admin not initialized.");
-    return admin.firestore();
-}
+const firestore: admin.firestore.Firestore = isFirebaseAdminInitialized ? admin.firestore() : null as any;
+const auth: admin.auth.Auth = isFirebaseAdminInitialized ? admin.auth() : null as any;
+const storage: admin.storage.Storage = isFirebaseAdminInitialized ? admin.storage() : null as any;
 
-const getAuth = () => {
-    if (!isFirebaseAdminInitialized) throw new Error("Firebase Admin not initialized.");
-    return admin.auth();
-}
 
-const getStorage = () => {
-    if (!isFirebaseAdminInitialized) throw new Error("Firebase Admin not initialized.");
-    return admin.storage();
-}
-
-export { admin, getFirestore, getAuth, getStorage, isFirebaseAdminInitialized };
-export const firestore = isFirebaseAdminInitialized ? getFirestore() : null as unknown as admin.firestore.Firestore;
-export const auth = isFirebaseAdminInitialized ? getAuth() : null as unknown as admin.auth.Auth;
-export const storage = isFirebaseAdminInitialized ? getStorage() : null as unknown as admin.storage.Storage;
+export { admin, firestore, auth, storage, isFirebaseAdminInitialized };

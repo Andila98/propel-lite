@@ -1,7 +1,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
+import type { User } from '@/hooks/use-auth';
 
 export const runtime = 'nodejs';
 
@@ -17,24 +18,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token format' }, { status: 401 });
     }
     
+    // 1. Verify the ID token with Firebase Auth
     const decodedToken = await auth.verifyIdToken(idToken);
+    const userRecord = await auth.getUser(decodedToken.uid);
 
-    // Generate a session cookie.
-    // The session cookie will have the same claims as the ID token.
+    // 2. Fetch the user's profile from Firestore
+    let userProfileDoc;
+    let userRole = 'tenant'; // Default role
+    let firestoreProfile: any = {};
+    
+    const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
+    if (managerDoc.exists) {
+        userProfileDoc = managerDoc;
+        userRole = 'manager';
+        firestoreProfile = userProfileDoc.data();
+    } else {
+        const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
+        if (tenantDoc.exists) {
+            userProfileDoc = tenantDoc;
+            userRole = 'tenant';
+            firestoreProfile = userProfileDoc.data();
+        } else {
+           // Fallback to landlord if no specific profile found
+           // This covers the case where a landlord signs up but hasn't created other profiles yet.
+           userRole = 'landlord';
+        }
+    }
+    
+    // 3. Combine Auth and Firestore data
+    const userProfile: User = {
+        uid: userRecord.uid,
+        email: userRecord.email!,
+        name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
+        role: firestoreProfile.role || userRole,
+        profileComplete: firestoreProfile.profileComplete ?? userRecord.customClaims?.profileComplete ?? false,
+        avatarUrl: userRecord.photoURL,
+        permissions: firestoreProfile.permissions || {},
+    };
+
+    // 4. Generate a session cookie with the complete profile
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     
-    const userRecord = await auth.getUser(decodedToken.uid);
-    const userProfile = {
-        uid: userRecord.uid,
-        email: userRecord.email!,
-        name: userRecord.displayName || 'Unnamed User',
-        role: userRecord.customClaims?.role || 'tenant',
-        profileComplete: userRecord.customClaims?.profileComplete || false,
-        avatarUrl: userRecord.photoURL,
-        permissions: userRecord.customClaims?.permissions || {},
-    };
-
     const response = NextResponse.json(userProfile, { status: 200 });
     response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
 
