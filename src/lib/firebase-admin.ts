@@ -19,16 +19,21 @@ if (!isFirebaseAdminInitialized) {
       isFirebaseAdminInitialized = true;
       console.log('[FIREBASE_ADMIN] Initialized successfully from environment variable.');
     } else {
-        console.warn('[FIREBASE_ADMIN] Service account credentials not found. Server-side features relying on Firebase will be disabled.');
+        // This is a critical error for a production-like environment
+        throw new Error("Firebase Admin SDK credentials not found. Server-side features will not work.");
     }
   } catch (error: any) {
     console.error('[FIREBASE_ADMIN] Failed to initialize:', error.message);
+    // Re-throw the error to prevent the app from starting in a broken state
+    throw error;
   }
 }
 
-const firestore: admin.firestore.Firestore = isFirebaseAdminInitialized ? admin.firestore() : null as any;
-const auth: admin.auth.Auth = isFirebaseAdminInitialized ? admin.auth() : null as any;
-const storage: admin.storage.Storage = isFirebaseAdminInitialized ? admin.storage() : null as any;
+// These will now only be exported if initialization was successful.
+// If not, the error thrown above would have already stopped the process.
+const firestore: admin.firestore.Firestore = admin.firestore();
+const auth: admin.auth.Auth = admin.auth();
+const storage: admin.storage.Storage = admin.storage();
 
 
 export { admin, firestore, auth, storage, isFirebaseAdminInitialized };
