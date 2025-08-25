@@ -49,9 +49,8 @@ export default function AddPropertyManagerPage() {
         if (!response.ok) {
             throw new Error(result.error || 'Failed to send invitation.');
         }
-
-        const link = `${window.location.origin}/onboarding/accept-invite?token=${result.token}`;
-        setInvitationLink(link);
+        
+        setInvitationLink(result.invitationLink);
 
         toast({
             title: "Invitation Sent!",

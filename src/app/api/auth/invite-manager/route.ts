@@ -8,6 +8,7 @@ export const runtime = 'nodejs';
 
 // This secret should be in an environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
     try {
@@ -38,10 +39,10 @@ export async function POST(req: NextRequest) {
             expiresIn: '3d',
         });
         
-        // In a real app, you would now send an email with this link.
-        // For this prototype, we return the token to the client to construct the link.
+        // Server generates the full link
+        const invitationLink = `${APP_URL}/onboarding/accept-invite?token=${token}`;
 
-        return NextResponse.json({ token }, { status: 200 });
+        return NextResponse.json({ invitationLink }, { status: 200 });
 
     } catch (error: any) {
         console.error('[INVITE_MANAGER_ERROR]', error);
