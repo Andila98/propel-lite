@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
         if (tenantDoc.exists) {
             userProfileDoc = tenantDoc;
             userRole = 'tenant';
-            firestoreProfile = userProfileDoc.data();
+            firestoreProfile = tenantDoc.data();
         } else {
            // Fallback to landlord if no specific profile found
            // This covers the case where a landlord signs up but hasn't created other profiles yet.
