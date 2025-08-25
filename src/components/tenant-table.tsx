@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye } from 'lucide-react';
+import { MoreHorizontal, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Tenant, Property } from '@/lib/types';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
@@ -42,6 +42,7 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
   const router = useRouter();
   const { toast } = useToast();
   const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const getPropertyDetails = (tenant: Tenant) => {
     const property = properties.find(p => p.id === tenant.propertyId);
@@ -61,15 +62,39 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
     router.push(`/tenants/${tenantId}/edit`);
   };
   
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!tenantToDelete) return;
-    // In a real app, you'd make an API call to delete the tenant.
-    console.log(`Deleting tenant: ${tenantToDelete.id}`);
-    toast({
-      title: "Tenant Deleted",
-      description: `${tenantToDelete.name} has been removed from your records.`,
-    });
-    setTenantToDelete(null);
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/tenants/${tenantToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete tenant.');
+      }
+      
+      toast({
+        title: "Tenant Deleted",
+        description: `${tenantToDelete.name} has been removed from your records.`,
+      });
+      
+      // We can reload the page to see the changes.
+      // A more advanced implementation might update the state directly.
+      router.refresh();
+
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setTenantToDelete(null);
+    }
   };
 
   return (
@@ -160,12 +185,13 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={handleDelete}
+              disabled={isDeleting}
             >
-              Continue
+              {isDeleting ? <Loader2 className="animate-spin" /> : "Continue"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
