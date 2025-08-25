@@ -31,10 +31,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchUserSession(firebaseUser: FirebaseUser | null): Promise<User | null> {
-    if (!firebaseUser) return null;
-
-    const token = await firebaseUser.getIdToken(true); // Force refresh
+async function fetchUserFromApi(token: string): Promise<User | null> {
     const response = await fetch('/api/auth/me', {
         headers: {
             Authorization: `Bearer ${token}`,
@@ -45,13 +42,14 @@ async function fetchUserSession(firebaseUser: FirebaseUser | null): Promise<User
         const userProfile = await response.json();
         return { ...userProfile, token };
     }
-
-    if (response.status === 401) { // Session might be expired server-side
+    
+    if (response.status === 401) {
         await firebaseSignOut(auth);
     }
-    
+
     return null;
 }
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -63,7 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (firebaseUser) {
         setLoading(true);
         try {
-            const userProfile = await fetchUserSession(firebaseUser);
+            const token = await firebaseUser.getIdToken(true);
+            const userProfile = await fetchUserFromApi(token);
             setUser(userProfile);
         } catch (error) {
             console.error("Error refreshing user session:", error);
@@ -77,15 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         setLoading(true);
-        try {
-            const userProfile = await fetchUserSession(firebaseUser);
-            setUser(userProfile);
-        } catch (error) {
-            console.error("Error fetching user session:", error);
+        if (firebaseUser) {
+            try {
+                const token = await firebaseUser.getIdToken();
+                const userProfile = await fetchUserFromApi(token);
+                setUser(userProfile);
+            } catch (error) {
+                console.error("Error fetching user session:", error);
+                setUser(null);
+            }
+        } else {
             setUser(null);
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -101,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!response.ok) {
         const errorData = await response.json();
+        await firebaseSignOut(auth);
         throw new Error(errorData.error || 'Login failed.');
     }
 
@@ -124,13 +128,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await firebaseSignOut(auth);
-    await fetch('/api/auth/logout', { method: 'POST' });
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch(error) {
+        console.error("Error during server-side logout:", error);
+    }
     setUser(null);
     router.push('/login');
   }, [router]);
 
 
-  if (loading && !user) { // Only show full-screen loader on initial load
+  if (loading && !user) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

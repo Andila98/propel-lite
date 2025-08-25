@@ -1,16 +1,18 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
 
-export async function GET(req: NextRequest) {
-  const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
-  const authToken = req.headers.get('Authorization')?.split('Bearer ')[1];
+export const runtime = 'nodejs';
 
+export async function GET(req: NextRequest) {
   let decodedToken;
 
   try {
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    const authToken = req.headers.get('Authorization')?.split('Bearer ')[1];
+
     if (sessionCookie) {
       decodedToken = await auth.verifySessionCookie(sessionCookie, true);
     } else if (authToken) {
@@ -21,21 +23,41 @@ export async function GET(req: NextRequest) {
 
     const userRecord = await auth.getUser(decodedToken.uid);
 
+    // Fetch the user's profile from Firestore
+    let userProfileDoc;
+    let userRole = 'tenant'; // Default role
+    let firestoreProfile: any = {};
+    
+    const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
+    if (managerDoc.exists) {
+        userProfileDoc = managerDoc;
+        userRole = 'manager';
+        firestoreProfile = userProfileDoc.data();
+    } else {
+        const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
+        if (tenantDoc.exists) {
+            userProfileDoc = tenantDoc;
+            userRole = 'tenant';
+            firestoreProfile = tenantDoc.data();
+        } else {
+           userRole = userRecord.customClaims?.role || 'landlord';
+        }
+    }
+
     const userProfile: User = {
         uid: userRecord.uid,
         email: userRecord.email!,
-        name: userRecord.displayName || 'Unnamed User',
-        role: (userRecord.customClaims?.role as any) || 'tenant',
-        profileComplete: userRecord.customClaims?.profileComplete || false,
+        name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
+        role: firestoreProfile.role || userRole,
+        profileComplete: firestoreProfile.profileComplete ?? userRecord.customClaims?.profileComplete ?? false,
         avatarUrl: userRecord.photoURL,
+        permissions: firestoreProfile.permissions || {},
     };
     
     return NextResponse.json(userProfile, { status: 200 });
     
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    // Clear cookie if invalid? Handled by logout on frontend.
     return NextResponse.json({ error: 'Unauthorized: Invalid token or session.' }, { status: 401 });
   }
 }
-
