@@ -17,6 +17,9 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TenantFormSchema } from '@/lib/schemas';
+import { useFormState, useFormStatus } from 'react-dom';
+import { createTenantAction } from '@/app/tenants/actions';
+
 type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
 
@@ -28,12 +31,40 @@ const onboardingSteps = [
     { id: 'complete', label: 'Complete' },
 ];
 
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+         <Button type="submit" disabled={pending}>
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Add Tenant & Finish
+        </Button>
+    )
+}
+
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(false);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
+
+  const [state, formAction] = useFormState(createTenantAction, { success: false, errors: undefined, error: undefined });
+
+  useEffect(() => {
+    if (state.success) {
+      toast({
+        title: "Tenant Added!",
+        description: "The first tenant has been successfully added.",
+      });
+      router.push('/onboarding/complete');
+    }
+    if (state.error) {
+      toast({
+        title: "Creation Failed",
+        description: state.error,
+        variant: "destructive",
+      });
+    }
+  }, [state, router, toast]);
 
   useEffect(() => {
     async function fetchProperties() {
@@ -55,7 +86,6 @@ export default function AddTenantPage() {
 
   const {
     register,
-    handleSubmit,
     control,
     watch,
     formState: { errors },
@@ -65,38 +95,6 @@ export default function AddTenantPage() {
 
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
-
-  const onSubmit = async (data: TenantFormValues) => {
-    setLoading(true);
-    try {
-        const response = await fetch('/api/tenants', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to create tenant.');
-        }
-
-        toast({
-            title: "Tenant Added!",
-            description: `${data.name} has been successfully added.`,
-        });
-        router.push('/onboarding/complete');
-
-    } catch (error: any) {
-        toast({
-            title: "Creation Failed",
-            description: error.message,
-            variant: "destructive",
-        });
-    } finally {
-        setLoading(false);
-    }
-  };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -108,7 +106,7 @@ export default function AddTenantPage() {
             <CardDescription>Fill in the tenant's details to assign them to an available unit.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form action={formAction} className="space-y-4">
                <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
@@ -189,10 +187,7 @@ export default function AddTenantPage() {
                 <Link href="/onboarding/complete">
                   <Button variant="link">Skip for now</Button>
                 </Link>
-                 <Button type="submit" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Add Tenant & Finish
-                </Button>
+                 <SubmitButton />
               </div>
             </form>
           </CardContent>

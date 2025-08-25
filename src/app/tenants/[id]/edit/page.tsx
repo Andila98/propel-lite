@@ -18,34 +18,58 @@ import type { Tenant, Unit, Property } from '@/lib/types';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
+import { TenantUpdateSchema } from '@/lib/schemas';
+import { useFormState, useFormStatus } from 'react-dom';
+import { updateTenantAction } from '../../actions';
 
-const TenantUpdateSchema = z.object({
-  name: z.string().min(2, "Please enter a valid name."),
-  email: z.string().email("Please enter a valid email address."),
-  phone: z.string().optional(),
-  propertyId: z.string({ required_error: "Please select a property."}),
-  currentUnitId: z.string({ required_error: "Please select a unit."}),
-  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
-  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
-});
 type TenantUpdateValues = z.infer<typeof TenantUpdateSchema>;
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" disabled={pending}>
+             {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+        </Button>
+    )
+}
 
 export default function EditTenantPage() {
   const router = useRouter();
   const { id } = useParams();
   const { toast } = useToast();
   const tenantId = id as string;
+  
   const [properties, setProperties] = useState<Property[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  
+  const updateTenantActionWithId = updateTenantAction.bind(null, tenantId);
+  const [state, formAction] = useFormState(updateTenantActionWithId, { success: false, errors: undefined, error: undefined });
 
   const form = useForm<TenantUpdateValues>({
     resolver: zodResolver(TenantUpdateSchema),
   });
   
-  const { register, handleSubmit, control, formState: { errors }, reset, watch } = form;
+  const { register, control, formState: { errors }, reset, watch } = form;
+  
+  useEffect(() => {
+    if (state.success) {
+      toast({
+        title: "Tenant Updated!",
+        description: "The tenant's information has been successfully saved.",
+      });
+      router.push(`/tenants/${tenantId}`);
+    }
+    if (state.error) {
+      toast({
+        title: "Update Failed",
+        description: state.error,
+        variant: "destructive"
+      });
+    }
+  }, [state, router, toast, tenantId]);
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -69,8 +93,8 @@ export default function EditTenantPage() {
             setProperties(propertiesData);
 
             // Reset form with fetched data
-            const leaseStart = tenantData.leaseStart ? (tenantData.leaseStart as any).seconds ? new Date((tenantData.leaseStart as any).seconds * 1000) : new Date(tenantData.leaseStart as any) : new Date();
-            const leaseEnd = tenantData.leaseEnd ? (tenantData.leaseEnd as any).seconds ? new Date((tenantData.leaseEnd as any).seconds * 1000) : new Date(tenantData.leaseEnd as any) : new Date();
+            const leaseStart = tenantData.leaseStart ? new Date(tenantData.leaseStart) : new Date();
+            const leaseEnd = tenantData.leaseEnd ? new Date(tenantData.leaseEnd) : new Date();
 
             reset({
                 name: tenantData.name,
@@ -91,38 +115,6 @@ export default function EditTenantPage() {
     }
     fetchInitialData();
   }, [tenantId, reset, toast]);
-
-
-  const onSubmit = async (data: TenantUpdateValues) => {
-    setSaving(true);
-    try {
-        const response = await fetch(`/api/tenants/${tenantId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to update tenant.');
-        }
-        
-        toast({
-            title: "Tenant Updated!",
-            description: "The tenant's information has been successfully saved.",
-        });
-        router.push(`/tenants/${tenantId}`);
-
-    } catch (err: any) {
-        toast({
-            title: "Update Failed",
-            description: err.message,
-            variant: "destructive"
-        });
-    } finally {
-        setSaving(false);
-    }
-  };
   
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units || [];
@@ -171,7 +163,7 @@ export default function EditTenantPage() {
                 <CardDescription>Modify the details for {tenant.name}.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
@@ -248,10 +240,7 @@ export default function EditTenantPage() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={saving}>
-                         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Changes
-                    </Button>
+                   <SubmitButton />
                 </div>
                 </form>
             </CardContent>

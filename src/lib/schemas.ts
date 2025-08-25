@@ -41,6 +41,16 @@ export const TenantFormSchema = z.object({
 });
 export type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
+export const TenantUpdateSchema = z.object({
+  name: z.string().min(2, "Please enter a valid name."),
+  email: z.string().email("Please enter a valid email address."),
+  phone: z.string().optional(),
+  propertyId: z.string({ required_error: "Please select a property."}),
+  currentUnitId: z.string({ required_error: "Please select a unit."}),
+  leaseStart: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
+  leaseEnd: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
+});
+
 
 // PRICE SUGGESTION
 export const PriceSuggestionSchema = z.object({
