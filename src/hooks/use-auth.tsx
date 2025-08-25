@@ -31,19 +31,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchUserFromApi(token: string): Promise<User | null> {
-    const response = await fetch('/api/auth/me', {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+async function fetchUserFromApi(): Promise<User | null> {
+    // This request relies on the session cookie being sent automatically by the browser.
+    // No Authorization header is needed for same-origin requests.
+    const response = await fetch('/api/auth/me');
 
     if (response.ok) {
         const userProfile = await response.json();
-        return { ...userProfile, token };
+        return userProfile;
     }
     
     if (response.status === 401) {
+        // If the session is invalid, sign out the user from the client.
         await firebaseSignOut(auth);
     }
 
@@ -61,12 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (firebaseUser) {
         setLoading(true);
         try {
-            const token = await firebaseUser.getIdToken(true);
-            const userProfile = await fetchUserFromApi(token);
+            await firebaseUser.getIdToken(true); // Refreshes the token if needed
+            const userProfile = await fetchUserFromApi();
             setUser(userProfile);
         } catch (error) {
             console.error("Error refreshing user session:", error);
             setUser(null);
+            await logout();
         } finally {
             setLoading(false);
         }
@@ -78,8 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         if (firebaseUser) {
             try {
-                const token = await firebaseUser.getIdToken();
-                const userProfile = await fetchUserFromApi(token);
+                const userProfile = await fetchUserFromApi();
                 setUser(userProfile);
             } catch (error) {
                 console.error("Error fetching user session:", error);

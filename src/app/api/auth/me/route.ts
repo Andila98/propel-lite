@@ -11,20 +11,24 @@ export async function GET(req: NextRequest) {
 
   try {
     const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
-    const authToken = req.headers.get('Authorization')?.split('Bearer ')[1];
-
+    
+    // Prioritize session cookie for web app authentication
     if (sessionCookie) {
       decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-    } else if (authToken) {
-      decodedToken = await auth.verifyIdToken(authToken, true);
     } else {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      // Fallback to Bearer token for other clients (e.g., mobile app, third-party)
+      const authToken = req.headers.get('Authorization')?.split('Bearer ')[1];
+      if (authToken) {
+        decodedToken = await auth.verifyIdToken(authToken, true);
+      } else {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const userRecord = await auth.getUser(decodedToken.uid);
 
-    // 1. Get the primary role from custom claims
-    const userRole = userRecord.customClaims?.role || 'landlord'; // Default to landlord if no role
+    // 1. Get the primary role from custom claims (Source of Truth)
+    const userRole = userRecord.customClaims?.role || 'landlord';
 
     // 2. Fetch supplemental profile data from Firestore based on the role
     let firestoreProfile: any = {};
