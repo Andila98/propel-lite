@@ -1,13 +1,6 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
@@ -16,13 +9,19 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ohpverffrwflwksxoljv.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+       {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
-  },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '4mb', // Increase for AI image uploads
-      executionTimeout: 180, // Increase timeout for long-running AI tasks
-    },
   },
 };
 
