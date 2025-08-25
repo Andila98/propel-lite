@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     const userProfile: User = {
         uid: userRecord.uid,
-        email: userRecord.email!,
+        email: userRecord.email || '',
         name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
         role: firestoreProfile.role || userRole,
         profileComplete: firestoreProfile.profileComplete ?? userRecord.customClaims?.profileComplete ?? false,

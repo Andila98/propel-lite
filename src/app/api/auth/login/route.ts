@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     // 3. Combine Auth and Firestore data
     const userProfile: User = {
         uid: userRecord.uid,
-        email: userRecord.email!,
+        email: userRecord.email || '',
         name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
         role: firestoreProfile.role || userRole,
         profileComplete: firestoreProfile.profileComplete ?? userRecord.customClaims?.profileComplete ?? false,
