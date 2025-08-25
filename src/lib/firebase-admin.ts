@@ -17,23 +17,40 @@ if (!isFirebaseAdminInitialized) {
         storageBucket: `${serviceAccount.project_id}.appspot.com`
       });
       isFirebaseAdminInitialized = true;
-      console.log('[FIREBASE_ADMIN] Initialized successfully from environment variable.');
+      console.log('[FIREBASE_ADMIN] Initialized successfully from Base64 environment variable.');
+    } else if (process.env.NODE_ENV === 'development') {
+      // For local development, try to use Application Default Credentials
+      // This works if you've run `gcloud auth application-default login`
+      // or if you're running on a GCP environment (like Cloud Shell)
+      console.log('[FIREBASE_ADMIN] No Base64 credentials found. Attempting to use Application Default Credentials for development.');
+      admin.initializeApp();
+      isFirebaseAdminInitialized = true;
+      console.log('[FIREBASE_ADMIN] Initialized successfully using Application Default Credentials.');
     } else {
-        // This is a critical error for a production-like environment
-        throw new Error("Firebase Admin SDK credentials not found. Server-side features will not work.");
+        // This is a critical error for a production environment if credentials aren't set
+        throw new Error("Firebase Admin SDK credentials not found in production environment. Set GOOGLE_APPLICATION_CREDENTIALS_BASE64.");
     }
   } catch (error: any) {
     console.error('[FIREBASE_ADMIN] Failed to initialize:', error.message);
-    // Re-throw the error to prevent the app from starting in a broken state
-    throw error;
+    // Don't re-throw in a way that crashes the whole app start, 
+    // but ensure features that need it will fail gracefully.
+    // The isFirebaseAdminInitialized flag will remain false.
   }
 }
 
-// These will now only be exported if initialization was successful.
-// If not, the error thrown above would have already stopped the process.
-const firestore: admin.firestore.Firestore = admin.firestore();
-const auth: admin.auth.Auth = admin.auth();
-const storage: admin.storage.Storage = admin.storage();
+// Conditionally export services. If initialization fails, these will be undefined,
+// and any code using them should handle this gracefully.
+let firestore: admin.firestore.Firestore;
+let auth: admin.auth.Auth;
+let storage: admin.storage.Storage;
+
+if (isFirebaseAdminInitialized) {
+    firestore = admin.firestore();
+    auth = admin.auth();
+    storage = admin.storage();
+} else {
+    console.warn("[FIREBASE_ADMIN] SDK not initialized. Server-side Firebase services will not be available.");
+}
 
 
 export { admin, firestore, auth, storage, isFirebaseAdminInitialized };
