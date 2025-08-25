@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     } catch (error: any) {
         console.error(`[API_TENANT_GET_ERROR] Failed to fetch tenant ${params.id}:`, error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
 
@@ -62,6 +62,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
     } catch (error: any) {
         console.error(`[API_TENANT_DELETE_ERROR]`, error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

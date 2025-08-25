@@ -74,6 +74,6 @@ export async function POST(req: NextRequest) {
          if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email has already been created.' }, { status: 409 });
         }
-        return NextResponse.json({ error: 'Internal Server Error: ' + error.message }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

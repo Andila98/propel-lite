@@ -140,6 +140,6 @@ export async function GET(req: NextRequest) {
 
     } catch (error: any) {
         console.error('[API_DASHBOARD_ERROR]', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

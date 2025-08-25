@@ -30,6 +30,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   } catch (error: any) {
     console.error(`[API_TENANT_SENTIMENT_ERROR]`, error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }

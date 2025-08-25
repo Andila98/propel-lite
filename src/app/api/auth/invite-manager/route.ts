@@ -45,6 +45,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('[INVITE_MANAGER_ERROR]', error);
-        return NextResponse.json({ error: 'Internal Server Error: ' + error.message }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

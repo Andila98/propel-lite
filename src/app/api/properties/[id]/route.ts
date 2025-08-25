@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     } catch (error: any) {
         console.error('[API_PROPERTY_GET_ERROR]', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
 
@@ -60,6 +60,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     } catch (error: any) {
         console.error('[API_PROPERTY_DELETE_ERROR]', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

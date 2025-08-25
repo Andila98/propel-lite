@@ -20,6 +20,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(toJSON(payments));
   } catch (error: any) {
     console.error(`[API_TENANT_PAYMENTS_GET_ERROR]`, error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }

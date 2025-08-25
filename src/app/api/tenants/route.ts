@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(toJSON(tenants), { status: 200 });
     } catch (error: any) {
       console.error('[API_TENANTS_GET_ERROR] Failed to list tenants:', error);
-      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+      return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
 
@@ -79,6 +79,6 @@ export async function POST(req: NextRequest) {
         if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
         }
-        return NextResponse.json({ error: 'Internal Server Error: ' + error.message }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

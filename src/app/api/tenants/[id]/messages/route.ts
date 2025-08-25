@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(toJSON(messages));
   } catch (error: any) {
     console.error(`[API_TENANT_MESSAGES_GET_ERROR]`, error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
 
@@ -59,6 +59,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     } catch (error: any) {
         console.error(`[API_TENANT_MESSAGES_POST_ERROR]`, error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
