@@ -63,7 +63,7 @@ export default function ForgotPasswordPage() {
       setIsSuccess(true);
 
     } catch (error: any) {
-      toast({
+       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
@@ -115,7 +115,7 @@ export default function ForgotPasswordPage() {
           )}
           <div className="mt-4 text-center text-sm">
             Remember your password?{" "}
-            <Link href="/login" className="underline">
+            <Link href="/login" className="underline text-accent">
               Sign in
             </Link>
           </div>
