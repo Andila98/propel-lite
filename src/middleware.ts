@@ -1,6 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession } from './lib/auth-utils';
+import { verifySessionOnEdge } from './lib/auth-utils';
+import { authConfig } from './config/server-config';
+
+// Specify the Edge runtime
+export const runtime = 'edge';
 
 // Paths that do not require authentication
 const publicPaths = [
@@ -45,18 +49,29 @@ export async function middleware(request: NextRequest) {
   }
 
   // Verify the session for all other routes
-  const decodedClaims = await verifySession(request);
+  const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
-  if (!decodedClaims) {
+  if (!sessionCookie) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }
 
+  const decodedClaims = await verifySessionOnEdge(sessionCookie);
+
+  if (!decodedClaims) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('redirect', pathname);
+    // Clear the invalid cookie
+    url.cookies.delete(authConfig.cookieName);
+    return NextResponse.redirect(url);
+  }
+
   const { role } = decodedClaims;
 
-  // If user is a landlord but tries to access tenant portal
+  // If user is a landlord/manager but tries to access tenant portal
   if ((role === 'landlord' || role === 'manager') && tenantPaths.some(p => pathname.startsWith(p))) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
