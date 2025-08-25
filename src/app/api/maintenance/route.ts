@@ -1,12 +1,15 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
 import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
     try {
         const snapshot = await firestore.collection('maintenanceRequests')
             .orderBy('submittedDate', 'desc')
@@ -21,6 +24,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
     try {
         const body = await req.json();
         

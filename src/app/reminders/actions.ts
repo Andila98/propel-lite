@@ -26,15 +26,16 @@ export interface ScheduleReminderState {
 export async function scheduleReminderAction(
   values: ScheduleReminderFormValues
 ): Promise<ScheduleReminderState> {
+  if (!isFirebaseAdminInitialized) {
+    return { error: "Backend services are not configured. Please contact support." };
+  }
+
   const validationResult = ScheduleReminderFormSchema.safeParse(values);
   if (!validationResult.success) {
     return { error: "Invalid data provided." };
   }
   
   try {
-    if (!isFirebaseAdminInitialized) {
-        throw new Error("AI features are not configured. Please contact support.");
-    }
     // In a real app, you would save this to a 'reminders' collection
     // or integrate with a task scheduling service like Google Cloud Tasks.
     console.log("Scheduling reminder with data:", validationResult.data);
@@ -57,11 +58,11 @@ export async function scheduleReminderAction(
 export async function getReminderSuggestionAction(
     input: z.infer<typeof ReminderSuggestionInputSchema>
 ): Promise<ScheduleReminderState> {
-  try {
-    if (!isFirebaseAdminInitialized) {
-        throw new Error("AI features are not configured. Please contact support.");
-    }
+  if (!isFirebaseAdminInitialized) {
+      return { error: "Backend services are not configured. Please contact support." };
+  }
 
+  try {
     const tenantDoc = await firestore.collection('tenants').doc(input.tenantId).get();
     if (!tenantDoc.exists) {
       throw new Error("Tenant not found");

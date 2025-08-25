@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   if (!isFirebaseAdminInitialized) {
-    return NextResponse.json({ error: 'AI features are not configured. Please contact support.' }, { status: 500 });
+    return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
   }
   
   try {

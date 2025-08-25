@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore, auth } from '@/lib/firebase-admin';
+import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
 import { TenantFormSchema } from '@/lib/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -9,6 +9,9 @@ import { logActivity } from '@/lib/audit-log-service';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
     try {
         const tenantsSnapshot = await firestore.collection('tenants').get();
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -20,6 +23,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
     // This function will be replaced by a Server Action
     // But we keep it here for now to avoid breaking the existing form
     try {

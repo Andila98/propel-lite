@@ -18,8 +18,8 @@ export interface ReceiptState {
 
 export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>): Promise<ReceiptState> {
     if (!isFirebaseAdminInitialized) {
-        console.error('[GET_RECEIPT_ACTION] AI features are not configured because Firebase Admin is not initialized.');
-        return { error: "AI features are not configured. Please contact support." };
+        console.error('[GET_RECEIPT_ACTION] Backend services are not configured because Firebase Admin is not initialized.');
+        return { error: "Backend services are not configured. Please contact support." };
     }
     
     try {
