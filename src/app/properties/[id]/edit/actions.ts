@@ -1,0 +1,92 @@
+
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { PropertyFormSchema } from '@/lib/schemas';
+import { firestore } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { logActivity } from '@/lib/audit-log-service';
+import type { Property } from '@/lib/types';
+import { uploadFile } from '@/lib/storage-service';
+
+
+export interface FormState {
+    error?: string;
+    errors?: {
+        [key: string]: string[];
+    };
+    success?: boolean;
+    propertyId?: string;
+}
+
+export async function updatePropertyAction(
+  propertyId: string,
+  prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  
+  const rawData = {
+    name: formData.get('name'),
+    address: formData.get('address'),
+    type: formData.get('type'),
+    currency: formData.get('currency'),
+    description: formData.get('description'),
+    units: JSON.parse(formData.get('units') as string),
+    numberOfUnits: Number(formData.get('numberOfUnits')),
+    imageUrl: formData.get('imageUrl') || undefined,
+  };
+  
+  const validationResult = PropertyFormSchema.safeParse(rawData);
+
+  if (!validationResult.success) {
+    console.error("Server Action Validation Error:", validationResult.error.flatten());
+    return { 
+        error: "Invalid property data. Please check the form for errors.",
+        errors: validationResult.error.flatten().fieldErrors,
+     };
+  }
+
+  const { units, ...mainPropertyData } = validationResult.data;
+
+  try {
+    const propertyRef = firestore.collection('properties').doc(propertyId);
+    
+    // Get existing units to compare
+    const existingUnitsSnapshot = await propertyRef.collection('units').get();
+    const existingUnitIds = new Set(existingUnitsSnapshot.docs.map(doc => doc.id));
+
+    await firestore.runTransaction(async (transaction) => {
+        transaction.update(propertyRef, {
+            ...mainPropertyData,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Add or update units
+        units.forEach(unit => {
+            const unitRef = unit.id ? propertyRef.collection('units').doc(unit.id) : propertyRef.collection('units').doc();
+            transaction.set(unitRef, unit, { merge: true });
+            if (unit.id) {
+                existingUnitIds.delete(unit.id);
+            }
+        });
+        
+        // Delete units that are no longer in the list
+        existingUnitIds.forEach(unitIdToDelete => {
+            const unitRef = propertyRef.collection('units').doc(unitIdToDelete);
+            transaction.delete(unitRef);
+        });
+    });
+
+    await logActivity('Admin', `Updated property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
+    
+    revalidatePath('/properties');
+    revalidatePath(`/properties/${propertyId}`);
+    revalidatePath('/dashboard');
+    
+    return { success: true, propertyId };
+
+  } catch (error: any) {
+    console.error('[UPDATE_PROPERTY_ACTION_ERROR]', error);
+    return { error: `Internal Server Error: ${error.message}` };
+  }
+}

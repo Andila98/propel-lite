@@ -11,40 +11,15 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { TenantTable } from '@/components/tenant-table';
-import type { PropertyManager, Tenant, Property } from '@/lib/types';
-import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTenants } from '@/hooks/use-tenants';
 
 export default function TenantsPage() {
   const { user } = useAuth();
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-        setLoading(true);
-        try {
-            const [tenantsRes, propertiesRes] = await Promise.all([
-                fetch('/api/tenants'),
-                fetch('/api/properties')
-            ]);
-            
-            const tenantsData = await tenantsRes.json();
-            const propertiesData = await propertiesRes.json();
-            
-            setTenants(tenantsData);
-            setProperties(propertiesData);
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-        } finally {
-            setLoading(false);
-        }
-    }
-    fetchData();
-  }, []);
-
+  const { tenants, properties, loading } = useTenants();
+  
+  const canAddTenants = user?.role === 'landlord' || user?.permissions?.canAddTenants;
 
   const renderSkeleton = () => (
     <div className="space-y-2">
@@ -54,8 +29,6 @@ export default function TenantsPage() {
         ))}
     </div>
   );
-  
-  const canAddTenants = user?.role === 'landlord' || user?.permissions?.canAddTenants;
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">

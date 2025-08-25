@@ -18,11 +18,9 @@ import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import Papa from 'papaparse';
 import type { Unit } from '@/lib/types';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFormStatus } from 'react-dom';
 import type { FormState } from '@/app/properties/[id]/edit/actions';
-import { compressFile } from '@/lib/client/compress';
 
 interface PropertyFormProps {
     formAction: (payload: FormData) => void;
@@ -30,16 +28,6 @@ interface PropertyFormProps {
     initialData?: Partial<PropertyFormValues>;
     form?: UseFormReturn<PropertyFormValues>;
     isOnboarding?: boolean;
-}
-
-function SubmitButton({ isOnboarding }: { isOnboarding: boolean }) {
-    const { pending } = useFormStatus();
-    const buttonText = isOnboarding ? "Next: Add Property Manager" : "Save Property";
-    return (
-        <Button type="submit" className="w-full md:w-auto" disabled={pending}>
-           {pending ? <Loader2 className="animate-spin" /> : buttonText}
-        </Button>
-    )
 }
 
 export function PropertyForm({ formAction, initialState, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
@@ -103,30 +91,20 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
     const file = e.target.files?.[0];
     if (file) {
       setIsUploading(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
       try {
-        const compressedFile = await compressFile(file);
-        
-        const formData = new FormData();
-        formData.append('file', compressedFile);
-
-        const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || 'Upload failed');
-        }
-
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Upload failed');
         const { url } = await res.json();
         setValue('imageUrl', url);
         setImagePreview(url);
         toast({ title: 'Success', description: 'Image uploaded successfully.'});
-
       } catch (error: any) {
         console.error("Image upload failed:", error);
-        toast({ title: 'Upload Error', description: error.message, variant: 'destructive'});
+        toast({ title: 'Upload Error', description: 'Could not upload image.', variant: 'destructive'});
       } finally {
         setIsUploading(false);
       }

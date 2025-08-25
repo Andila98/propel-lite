@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
-
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,15 +15,34 @@ import {
 import { PropertyTable } from '@/components/property-table';
 import type { Property } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { useProperties } from '@/hooks/use-properties';
+import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function PropertiesPage() {
-  const { properties, loading } = useProperties();
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const canAddProperties = user?.role === 'landlord' || user?.permissions?.canAddProperties;
+
+  useEffect(() => {
+    async function fetchProperties() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/properties');
+        if (!res.ok) throw new Error("Failed to fetch properties");
+        const data = await res.json();
+        setProperties(data);
+      } catch (err: any) {
+        toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProperties();
+  }, [toast]);
 
   const renderSkeleton = () => (
     <div className="space-y-2">

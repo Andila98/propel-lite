@@ -12,18 +12,18 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
-import { useProperties } from '@/hooks/use-properties';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import type { Unit } from '@/lib/types';
+import type { Unit, Property } from '@/lib/types';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 
 
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { properties } = useProperties();
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
 
   const {
     register,
@@ -34,6 +34,23 @@ export default function AddTenantPage() {
   } = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),
   });
+  
+  useEffect(() => {
+    async function fetchProperties() {
+      setPropertiesLoading(true);
+      try {
+        const res = await fetch('/api/properties');
+        if (!res.ok) throw new Error("Failed to fetch properties");
+        const data = await res.json();
+        setProperties(data);
+      } catch (err: any) {
+        toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
+      } finally {
+        setPropertiesLoading(false);
+      }
+    }
+    fetchProperties();
+  }, [toast]);
   
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
@@ -114,9 +131,9 @@ export default function AddTenantPage() {
                             name="propertyId"
                             control={control}
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={propertiesLoading}>
                                 <SelectTrigger id="propertyId">
-                                    <SelectValue placeholder="Select a property..." />
+                                    <SelectValue placeholder={propertiesLoading ? "Loading..." : "Select a property..."} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {properties.map(p => (
@@ -141,7 +158,7 @@ export default function AddTenantPage() {
                                 <SelectContent>
                                     {availableUnits.map((u: Unit) => (
                                         <SelectItem key={u.id} value={u.id}>
-                                            {u.unitNumber} - {u.size} ({u.rent} Ksh)
+                                            {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

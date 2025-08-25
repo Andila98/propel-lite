@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -17,14 +17,13 @@ import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import type { Property, Unit } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Wand2, Loader2 } from 'lucide-react';
+import { Camera, Wand2 } from 'lucide-react';
 import { DamageAnalysisDialog } from '@/components/damage-analysis-dialog';
 import { DeletePropertyButton } from './delete-property-button';
-import { useProperty } from '@/hooks/use-property';
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
 
 const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
@@ -38,12 +37,35 @@ const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const propertyId = id as string;
-  const { property, loading: propertyLoading } = useProperty(propertyId);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [propertyLoading, setPropertyLoading] = useState(true);
   const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const canEdit = user?.role === 'landlord' || user?.permissions?.canEditProperties;
   const canDelete = user?.role === 'landlord' || user?.permissions?.canDeleteProperties;
+  
+  useEffect(() => {
+    async function fetchProperty() {
+        if (!propertyId) {
+            setPropertyLoading(false);
+            return;
+        }
+        setPropertyLoading(true);
+        try {
+            const res = await fetch(`/api/properties/${propertyId}`);
+            if (!res.ok) throw new Error('Failed to fetch property details.');
+            const data = await res.json();
+            setProperty(data);
+        } catch (err: any) {
+            toast({ title: 'Error', description: err.message, variant: 'destructive' });
+        } finally {
+            setPropertyLoading(false);
+        }
+    }
+    fetchProperty();
+  }, [propertyId, toast]);
 
   if (propertyLoading) {
     return (

@@ -6,13 +6,14 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useProperty } from '@/hooks/use-property';
 import { useFormState } from 'react-dom';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Button } from '@/components/ui/button';
 import { PropertyForm } from '@/components/property-form';
 import { updatePropertyAction, FormState } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PropertyFormValues } from '@/lib/schemas';
+import type { Property } from '@/lib/types';
 
 
 export default function EditPropertyPage() {
@@ -20,11 +21,41 @@ export default function EditPropertyPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const propertyId = id as string;
-  const { property, loading: propertyLoading } = useProperty(propertyId);
+  const [property, setProperty] = useState<PropertyFormValues | null>(null);
+  const [propertyLoading, setPropertyLoading] = useState(true);
+
   
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
   const updateActionWithId = updatePropertyAction.bind(null, propertyId);
   const [state, formAction] = useFormState(updateActionWithId, initialState);
+  
+  useEffect(() => {
+    async function fetchProperty() {
+        if (!propertyId) {
+            setPropertyLoading(false);
+            return;
+        };
+
+        setPropertyLoading(true);
+        try {
+            const res = await fetch(`/api/properties/${propertyId}`);
+            if (!res.ok) throw new Error("Failed to fetch property");
+            const data: Property = await res.json();
+            
+            const formData: PropertyFormValues = {
+                ...data,
+                units: data.units || [],
+                numberOfUnits: data.units?.length || 0,
+            };
+            setProperty(formData);
+        } catch (err: any) {
+            toast({ title: "Error", description: "Could not load property details.", variant: "destructive" });
+        } finally {
+            setPropertyLoading(false);
+        }
+    }
+    fetchProperty();
+  }, [propertyId, toast]);
 
   useEffect(() => {
     if (state.success) {

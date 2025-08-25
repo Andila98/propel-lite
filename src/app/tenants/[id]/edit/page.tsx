@@ -14,10 +14,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
-import { useProperties } from '@/hooks/use-properties';
-import type { Tenant, Unit } from '@/lib/types';
-import { useTenant } from '@/hooks/use-tenant';
-import { format, parseISO } from 'date-fns';
+import type { Tenant, Unit, Property } from '@/lib/types';
+import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 
@@ -37,8 +35,10 @@ export default function EditTenantPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const tenantId = id as string;
-  const { properties, loading: propertiesLoading } = useProperties();
-  const { tenant, loading: tenantLoading } = useTenant(tenantId);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [tenantLoading, setTenantLoading] = useState(true);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const form = useForm<TenantUpdateValues>({
@@ -48,21 +48,49 @@ export default function EditTenantPage() {
   const { register, handleSubmit, control, formState: { errors }, reset, watch } = form;
 
   useEffect(() => {
-    if (tenant) {
-      const leaseStart = tenant.leaseStart ? (tenant.leaseStart as any).seconds ? new Date((tenant.leaseStart as any).seconds * 1000) : new Date(tenant.leaseStart as any) : new Date();
-      const leaseEnd = tenant.leaseEnd ? (tenant.leaseEnd as any).seconds ? new Date((tenant.leaseEnd as any).seconds * 1000) : new Date(tenant.leaseEnd as any) : new Date();
+    async function fetchInitialData() {
+        if (!tenantId) return;
 
-      reset({
-        name: tenant.name,
-        email: tenant.email,
-        phone: tenant.phone || '',
-        propertyId: tenant.propertyId,
-        currentUnitId: tenant.currentUnitId,
-        leaseStart: format(leaseStart, 'yyyy-MM-dd'),
-        leaseEnd: format(leaseEnd, 'yyyy-MM-dd'),
-      });
+        setTenantLoading(true);
+        setPropertiesLoading(true);
+
+        try {
+            const [tenantRes, propertiesRes] = await Promise.all([
+                fetch(`/api/tenants/${tenantId}`),
+                fetch('/api/properties')
+            ]);
+            
+            if (!tenantRes.ok) throw new Error('Failed to fetch tenant details.');
+            const tenantData = await tenantRes.json();
+            setTenant(tenantData);
+
+            if (!propertiesRes.ok) throw new Error('Failed to fetch properties.');
+            const propertiesData = await propertiesRes.json();
+            setProperties(propertiesData);
+
+            // Reset form with fetched data
+            const leaseStart = tenantData.leaseStart ? (tenantData.leaseStart as any).seconds ? new Date((tenantData.leaseStart as any).seconds * 1000) : new Date(tenantData.leaseStart as any) : new Date();
+            const leaseEnd = tenantData.leaseEnd ? (tenantData.leaseEnd as any).seconds ? new Date((tenantData.leaseEnd as any).seconds * 1000) : new Date(tenantData.leaseEnd as any) : new Date();
+
+            reset({
+                name: tenantData.name,
+                email: tenantData.email,
+                phone: tenantData.phone || '',
+                propertyId: tenantData.propertyId,
+                currentUnitId: tenantData.currentUnitId,
+                leaseStart: format(leaseStart, 'yyyy-MM-dd'),
+                leaseEnd: format(leaseEnd, 'yyyy-MM-dd'),
+            });
+
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } finally {
+            setTenantLoading(false);
+            setPropertiesLoading(false);
+        }
     }
-  }, [tenant, reset]);
+    fetchInitialData();
+  }, [tenantId, reset, toast]);
 
 
   const onSubmit = async (data: TenantUpdateValues) => {
