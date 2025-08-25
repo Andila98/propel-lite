@@ -115,9 +115,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        await firebaseSignOut(auth);
-        throw new Error(errorData.error || 'Login failed.');
+      let errorData = { error: 'Login failed due to a server error.' };
+      try {
+        // Try to parse a JSON error response
+        errorData = await response.json();
+      } catch (e) {
+        // If parsing fails, it's likely an HTML error page was returned
+        console.error("Failed to parse error response as JSON.", e);
+      }
+      await firebaseSignOut(auth);
+      throw new Error(errorData.error || 'Login failed.');
     }
 
     const userProfile = await response.json();

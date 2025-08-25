@@ -51,10 +51,14 @@ export default function RegisterPage() {
             body: JSON.stringify({ displayName, email, password }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to create account.');
+          let errorData = { error: 'Failed to create account due to a server error.' };
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            console.error("Failed to parse error response as JSON.", e);
+          }
+          throw new Error(errorData.error || 'Failed to create account.');
         }
         
         toast({
