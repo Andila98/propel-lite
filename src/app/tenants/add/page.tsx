@@ -16,53 +16,23 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Unit, Property } from '@/lib/types';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
-import { useFormState, useFormStatus } from 'react-dom';
-import { createTenantAction } from '../actions';
-
-
-function SubmitButton() {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" disabled={pending}>
-            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Add Tenant
-        </Button>
-    )
-}
 
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(false);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
-
-  const [state, formAction] = useFormState(createTenantAction, { success: false, errors: undefined, error: undefined });
 
   const {
     register,
     control,
+    handleSubmit,
     watch,
     formState: { errors },
   } = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),
   });
-  
-  useEffect(() => {
-    if (state.success) {
-      toast({
-        title: "Tenant Added!",
-        description: "The new tenant has been successfully created.",
-      });
-      router.push('/tenants');
-    }
-    if (state.error) {
-      toast({
-        title: "Creation Failed",
-        description: state.error,
-        variant: "destructive",
-      });
-    }
-  }, [state, router, toast]);
 
   useEffect(() => {
     async function fetchProperties() {
@@ -84,6 +54,37 @@ export default function AddTenantPage() {
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
 
+  const onSubmit = async (data: TenantFormValues) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/tenants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create tenant.');
+      }
+      
+      toast({
+        title: "Tenant Added!",
+        description: "The new tenant has been successfully created.",
+      });
+      router.push('/tenants');
+    } catch (error: any) {
+      toast({
+        title: "Creation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6">
        <div className="flex items-center gap-4">
@@ -101,7 +102,7 @@ export default function AddTenantPage() {
                 <CardDescription>Enter the details for the new tenant and assign them to a unit.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={formAction} className="space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
@@ -180,7 +181,10 @@ export default function AddTenantPage() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                    <SubmitButton />
+                    <Button type="submit" disabled={loading}>
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Add Tenant
+                    </Button>
                 </div>
                 </form>
             </CardContent>
