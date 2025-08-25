@@ -76,6 +76,6 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[AUTH_LOGIN_ERROR]', error);
-    return NextResponse.json({ error: 'Unauthorized: ' + error.message }, { status: 401 });
+    return NextResponse.json({ error: 'Invalid credentials. Please try again.' }, { status: 401 });
   }
 }
