@@ -5,6 +5,7 @@ import type { Property, Tenant, Payment, DashboardData, ActivityItem } from '@/l
 import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { sub, format } from 'date-fns';
 import { toJSON } from '@/lib/utils';
+import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -62,6 +63,11 @@ async function getLatePaymentData(): Promise<DashboardData['latePaymentData']> {
 }
 
 export async function GET(req: NextRequest) {
+    const claims = await verifySession(req);
+    if (!claims || (claims.role !== 'landlord' && claims.role !== 'manager')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const [
             propertiesSnapshot, 

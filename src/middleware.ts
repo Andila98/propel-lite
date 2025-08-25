@@ -1,51 +1,75 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { authConfig } from '@/config/server-config';
+import { verifySession } from './lib/auth-utils';
 
 // Paths that do not require authentication
 const publicPaths = [
   '/login',
   '/register',
   '/forgot-password',
-  '/onboarding/accept-invite', // Needs to be public to accept an invitation
-  '/_next',
-  '/favicon.ico',
+  '/onboarding/accept-invite',
+  '/api/auth', // Allow all auth API routes
 ];
 
-const tenantOnlyPaths = ['/tenant-portal'];
+// Paths restricted to specific roles
+const landlordPaths = [
+    '/dashboard',
+    '/properties',
+    '/tenants',
+    '/payments',
+    '/rent-schedule',
+    '/maintenance',
+    '/reports',
+    '/property-managers',
+    '/audit-log',
+    '/price-suggestion',
+    '/smart-messaging',
+    '/reminders',
+    '/settings',
+    '/onboarding',
+];
+const tenantPaths = ['/tenant-portal'];
+
 
 function isPublic(pathname: string): boolean {
-  if (pathname === '/') return true;
+  if (pathname === '/') return true; // The root page handles its own redirection
   return publicPaths.some(path => pathname.startsWith(path));
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Allow public paths to pass through without session checks.
-  if (isPublic(pathname) || pathname.startsWith('/api/auth/')) {
+  // Allow public paths, static files, and images to pass through
+  if (isPublic(pathname) || pathname.startsWith('/_next') || /\.(png|jpg|svg|ico)$/.test(pathname)) {
     return NextResponse.next();
   }
 
-  // Check for the session cookie on all protected routes.
-  const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
+  // Verify the session for all other routes
+  const decodedClaims = await verifySession(request);
 
-  if (!sessionCookie) {
-      console.log(`[MIDDLEWARE] No session cookie found for path: ${pathname}. Redirecting to login.`);
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(url);
+  if (!decodedClaims) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(url);
   }
 
-  // The actual verification of the cookie and role-based redirects will be handled
-  // on the client-side by the AuthProvider, which uses the /api/auth/me endpoint.
-  // This keeps the middleware light and fast.
+  const { role } = decodedClaims;
+
+  // If user is a landlord but tries to access tenant portal
+  if ((role === 'landlord' || role === 'manager') && tenantPaths.some(p => pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+  
+  // If user is a tenant but tries to access landlord/manager portal
+  if (role === 'tenant' && landlordPaths.some(p => pathname.startsWith(p))) {
+     return NextResponse.redirect(new URL('/tenant-portal', request.url));
+  }
 
   return NextResponse.next();
 }
 
-// Match all paths except for the ones starting with specific asset folders.
+// Match all paths except for specific asset folders.
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|placeholders|media).*)',
