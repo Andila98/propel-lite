@@ -13,8 +13,9 @@ export async function POST() {
         // Clear the session cookie
         cookieStore.delete(cookieName);
 
-        // Can also revoke the session cookie on the server side if needed
-        // This requires getting the session cookie from the request and using auth.revokeRefreshTokens()
+        // In a high-security application, you could also revoke the session cookie
+        // on the server side to invalidate it immediately. For this app, clearing
+        // the client's cookie is sufficient.
         
         return NextResponse.json({ message: "Logged out successfully" }, { status: 200 });
 
