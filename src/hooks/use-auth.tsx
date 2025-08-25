@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
-import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { onIdTokenChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import type { Permission } from '@/lib/types';
 
 export interface User {
@@ -32,8 +32,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchUserFromApi(): Promise<User | null> {
-    // This request relies on the session cookie being sent automatically by the browser.
-    // No Authorization header is needed for same-origin requests.
     const response = await fetch('/api/auth/me');
 
     if (response.ok) {
@@ -42,7 +40,6 @@ async function fetchUserFromApi(): Promise<User | null> {
     }
     
     if (response.status === 401) {
-        // If the session is invalid, sign out the user from the client.
         await firebaseSignOut(auth);
     }
 
@@ -60,13 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (firebaseUser) {
         setLoading(true);
         try {
-            await firebaseUser.getIdToken(true); // Refreshes the token if needed
+            await firebaseUser.getIdToken(true);
             const userProfile = await fetchUserFromApi();
             setUser(userProfile);
         } catch (error) {
             console.error("Error refreshing user session:", error);
             setUser(null);
-            await logout();
+            await firebaseSignOut(auth);
         } finally {
             setLoading(false);
         }
@@ -74,20 +71,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        setLoading(true);
-        if (firebaseUser) {
-            try {
-                const userProfile = await fetchUserFromApi();
-                setUser(userProfile);
-            } catch (error) {
-                console.error("Error fetching user session:", error);
-                setUser(null);
-            }
-        } else {
-            setUser(null);
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      setLoading(true);
+      if (firebaseUser) {
+        try {
+          const [userProfile, idToken] = await Promise.all([
+             fetchUserFromApi(),
+             firebaseUser.getIdToken()
+          ]);
+          
+          setUser(userProfile);
+
+          // Refresh the session cookie with the new token
+          await fetch('/api/auth/refresh-session', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+            },
+          });
+
+        } catch (error) {
+          console.error("Error during token refresh or user fetch:", error);
+          await logout();
         }
-        setLoading(false);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
     });
 
     return () => unsubscribe();
