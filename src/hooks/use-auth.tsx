@@ -32,9 +32,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchUserFromApi(): Promise<User | null> {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include' // Rely on the browser to send the session cookie
-    });
+    const response = await fetch('/api/auth/me');
 
     if (response.ok) {
         const userProfile = await response.json();
@@ -42,6 +40,8 @@ async function fetchUserFromApi(): Promise<User | null> {
     }
     
     if (response.status === 401) {
+        // This is a specific check to handle cases where the server session is invalid.
+        // We sign out the client to keep the state consistent.
         await firebaseSignOut(auth);
     }
 
