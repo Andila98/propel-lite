@@ -31,6 +31,11 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
+     // If the request is for an API route, return a 401 Unauthorized response
+    if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // For page navigations, redirect to the login page
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
@@ -48,3 +53,4 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|placeholders|media).*)',
   ],
 };
+
