@@ -1,0 +1,135 @@
+
+import { NextResponse, type NextRequest } from 'next/server';
+import { firestore } from '@/lib/firebase-admin';
+import type { Property, Tenant, Payment, DashboardData, ActivityItem } from '@/lib/types';
+import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
+import { sub, format } from 'date-fns';
+import { toJSON } from '@/lib/utils';
+
+export const runtime = 'nodejs';
+
+async function getAnomalyAlerts(): Promise<ActivityItem[]> {
+    // This is a mock implementation. In a real app, this would involve
+    // more complex logic to detect anomalies from your data.
+    return [
+        {
+            id: 'alert1',
+            type: 'vacancy-rate',
+            description: 'Vacancy rate is slightly high at 15%. Consider marketing vacant units.',
+            date: '2 days ago',
+        },
+        {
+            id: 'alert2',
+            type: 'income-drop',
+            description: 'Monthly revenue dropped by 8% compared to the previous month.',
+            date: '1 day ago',
+        }
+    ];
+}
+
+async function getPaymentMethodData(payments: Payment[]): Promise<DashboardData['paymentMethodData']> {
+    const methodCounts = payments.reduce((acc, payment) => {
+        const method = payment.method || 'Other';
+        acc[method] = (acc[method] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const colors: Record<string, string> = {
+        'Mpesa': 'hsl(var(--chart-1))',
+        'Stripe': 'hsl(var(--chart-2))',
+        'Card': 'hsl(var(--chart-3))',
+        'Other': 'hsl(var(--chart-4))',
+    };
+
+    return Object.entries(methodCounts).map(([name, value]) => ({
+        name,
+        value,
+        fill: colors[name] || colors['Other'],
+    }));
+}
+
+async function getLatePaymentData(): Promise<DashboardData['latePaymentData']> {
+  // This is a mock implementation. In a real app, you would query your payments collection.
+  const data = [];
+  for (let i = 5; i >= 0; i--) {
+    const date = sub(new Date(), { months: i });
+    data.push({
+      month: format(date, 'MMM'),
+      latePayments: Math.floor(Math.random() * 5) + 1, // Random data for demo
+    });
+  }
+  return data;
+}
+
+export async function GET(req: NextRequest) {
+    try {
+        const [
+            propertiesSnapshot, 
+            tenantsSnapshot, 
+            paymentsSnapshot
+        ] = await Promise.all([
+            firestore.collection('properties').limit(10).get(),
+            firestore.collection('tenants').get(),
+            firestore.collection('payments').get()
+        ]);
+        
+        const tenants: Tenant[] = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
+        const payments: Payment[] = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
+
+        const properties: Property[] = await Promise.all(propertiesSnapshot.docs.map(async (doc) => {
+            const propertyData = { id: doc.id, ...doc.data() } as Property;
+            
+            const unitsSnapshot = await doc.ref.collection('units').get();
+            propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as any));
+
+            if (propertyData.units.length > 0) {
+                 const firstUnit = propertyData.units[0];
+                 propertyData.rent = firstUnit.rent;
+                 propertyData.bedrooms = parseInt(firstUnit.size) || 0;
+                 propertyData.bathrooms = 1; // Assuming 1 bathroom for simplicity
+            }
+
+            return propertyData;
+        }));
+        
+        const totalProperties = properties.length;
+        const totalTenants = tenants.length;
+        const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
+
+        const totalUnits = properties.reduce((sum, p) => sum + (p.units?.length || 0), 0);
+        const occupiedUnits = tenants.length;
+        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+        
+        let aiSummary: string | undefined;
+        try {
+            const insights = await generateDashboardInsights({ totalRevenue, occupancyRate, totalProperties, totalTenants });
+            aiSummary = insights.summary;
+        } catch (aiError) {
+            console.warn("[DASHBOARD_AI_ERROR] Could not generate AI summary:", aiError);
+            aiSummary = "AI insights are currently unavailable.";
+        }
+        
+        const anomalyAlerts = await getAnomalyAlerts();
+        const latePaymentData = await getLatePaymentData();
+        const paymentMethodData = await getPaymentMethodData(payments);
+
+        const dashboardData: DashboardData = {
+            totalProperties,
+            totalTenants,
+            totalRevenue,
+            revenueChange: 0.12, // mock data
+            occupancyRate,
+            properties,
+            anomalyAlerts,
+            aiSummary,
+            latePaymentData,
+            paymentMethodData
+        };
+
+        return NextResponse.json(toJSON(dashboardData));
+
+    } catch (error: any) {
+        console.error('[API_DASHBOARD_ERROR]', error);
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    }
+}

@@ -1,15 +1,17 @@
 
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { TenantFormSchema } from '@/lib/schemas';
+import { toJSON } from '@/lib/utils';
 
 
 export async function GET(req: NextRequest) {
     try {
         const tenantsSnapshot = await firestore.collection('tenants').get();
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        return NextResponse.json(tenants, { status: 200 });
+        return NextResponse.json(toJSON(tenants), { status: 200 });
     } catch (error: any) {
       console.error('[API_TENANTS_GET_ERROR] Failed to list tenants:', error);
       return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
@@ -45,6 +47,8 @@ export async function POST(req: NextRequest) {
             currentUnitId: unitId,
             rentStatus: 'Paid', // Default status
             createdAt: FieldValue.serverTimestamp(),
+            leaseStart: new Date(tenantData.leaseStart),
+            leaseEnd: new Date(tenantData.leaseEnd),
             // In a real multi-landlord app, landlordId would come from the authenticated user's session
             landlordId: 'default_landlord_id'
         };
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
         // In a real app, you would now send an email to the tenant
         // with their login details and a password reset link.
 
-        return NextResponse.json({ id: tenantRef.id, ...newTenant }, { status: 201 });
+        return NextResponse.json(toJSON({ id: tenantRef.id, ...newTenant }), { status: 201 });
 
     } catch (error: any) {
       console.error('[API_TENANT_CREATE_ERROR]', error);
