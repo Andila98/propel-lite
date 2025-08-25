@@ -84,7 +84,7 @@ export default function RegisterPage() {
         const { user } = await loginWithGoogle();
         toast({
             title: `Welcome, ${user.name}!`,
-            description: "You've successfully signed in.",
+            description: "You've successfully signed up.",
         });
         handleRedirect(user);
     } catch (error: any) {
