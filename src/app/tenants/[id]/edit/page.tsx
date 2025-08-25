@@ -167,19 +167,19 @@ export default function EditTenantPage() {
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
-                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                    {state.errors?.name && <p className="text-sm text-destructive mt-1">{state.errors.name[0]}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="email">Tenant Email</Label>
                         <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                        {state.errors?.email && <p className="text-sm text-destructive mt-1">{state.errors.email[0]}</p>}
                     </div>
                     <div>
                         <Label htmlFor="phone">Phone Number</Label>
                         <Input id="phone" {...register("phone")} autoComplete="tel" />
-                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                        {state.errors?.phone && <p className="text-sm text-destructive mt-1">{state.errors.phone[0]}</p>}
                     </div>
                 </div>
 
@@ -202,7 +202,7 @@ export default function EditTenantPage() {
                                 </Select>
                             )}
                         />
-                        {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                         {state.errors?.propertyId && <p className="text-sm text-destructive mt-1">{state.errors.propertyId[0]}</p>}
                     </div>
                      <div>
                         <Label htmlFor="currentUnitId">Unit</Label>
@@ -222,7 +222,7 @@ export default function EditTenantPage() {
                                 </Select>
                             )}
                         />
-                        {errors.currentUnitId && <p className="text-sm text-destructive mt-1">{errors.currentUnitId.message}</p>}
+                         {state.errors?.currentUnitId && <p className="text-sm text-destructive mt-1">{state.errors.currentUnitId[0]}</p>}
                     </div>
                 </div>
 
@@ -230,12 +230,12 @@ export default function EditTenantPage() {
                     <div>
                     <Label htmlFor="leaseStart">Lease Start Date</Label>
                     <Input id="leaseStart" type="date" {...register("leaseStart")} />
-                    {errors.leaseStart && <p className="text-sm text-destructive mt-1">{errors.leaseStart.message}</p>}
+                     {state.errors?.leaseStart && <p className="text-sm text-destructive mt-1">{state.errors.leaseStart[0]}</p>}
                     </div>
                     <div>
                     <Label htmlFor="leaseEnd">Lease End Date</Label>
                     <Input id="leaseEnd" type="date" {...register("leaseEnd")} />
-                    {errors.leaseEnd && <p className="text-sm text-destructive mt-1">{errors.leaseEnd.message}</p>}
+                    {state.errors?.leaseEnd && <p className="text-sm text-destructive mt-1">{state.errors.leaseEnd[0]}</p>}
                     </div>
                 </div>
 

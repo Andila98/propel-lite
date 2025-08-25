@@ -1,5 +1,4 @@
 
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
@@ -7,6 +6,7 @@ import { TenantFormSchema } from '@/lib/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
     try {
@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+    // This function will be replaced by a Server Action
+    // But we keep it here for now to avoid breaking the existing form
     try {
         const body = await req.json();
         const validationResult = TenantFormSchema.safeParse(body);
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ id: tenantRef.id, ...newTenant }, { status: 201 });
 
-    } catch (error: any)
+    } catch (error: any) {
         console.error('[API_TENANTS_POST_ERROR]', error);
         if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });

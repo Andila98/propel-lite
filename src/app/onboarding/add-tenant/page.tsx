@@ -109,78 +109,66 @@ export default function AddTenantPage() {
             <form action={formAction} className="space-y-4">
                <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
-                    <Input id="name" {...register("name")} autoComplete="name" />
-                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                    <Input id="name" name="name" />
+                    {state.errors?.name && <p className="text-sm text-destructive mt-1">{state.errors.name[0]}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="email">Tenant Email</Label>
-                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                        <Input id="email" type="email" name="email" autoComplete="email" />
+                        {state.errors?.email && <p className="text-sm text-destructive mt-1">{state.errors.email[0]}</p>}
                     </div>
                      <div>
                         <Label htmlFor="phone">Phone Number (Optional)</Label>
-                        <Input id="phone" {...register("phone")} autoComplete="tel" />
-                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                        <Input id="phone" name="phone" autoComplete="tel" />
+                        {state.errors?.phone && <p className="text-sm text-destructive mt-1">{state.errors.phone[0]}</p>}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="propertyId">Property</Label>
-                        <Controller
-                            name="propertyId"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={propertiesLoading}>
-                                <SelectTrigger id="propertyId">
-                                    <SelectValue placeholder={propertiesLoading ? "Loading..." : "Select a property..."} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {properties.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                            )}
-                        />
-                        {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                        <Select name="propertyId" onValueChange={(value) => setValue('propertyId', value)} disabled={propertiesLoading}>
+                            <SelectTrigger id="propertyId">
+                                <SelectValue placeholder={propertiesLoading ? "Loading..." : "Select a property..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {properties.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {state.errors?.propertyId && <p className="text-sm text-destructive mt-1">{state.errors.propertyId[0]}</p>}
                     </div>
                     <div>
                         <Label htmlFor="unitId">Available Unit</Label>
-                        <Controller
-                            name="unitId"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
-                                <SelectTrigger id="unitId">
-                                    <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableUnits.map((u: Unit) => (
-                                        <SelectItem key={u.id} value={u.id}>
-                                            {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                            )}
-                        />
-                         {errors.unitId && <p className="text-sm text-destructive mt-1">{errors.unitId.message}</p>}
+                        <Select name="unitId" onValueChange={(value) => setValue('unitId', value)} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                            <SelectTrigger id="unitId">
+                                <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableUnits.map((u: Unit) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                        {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                         {state.errors?.unitId && <p className="text-sm text-destructive mt-1">{state.errors.unitId[0]}</p>}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                     <Label htmlFor="leaseStart">Lease Start Date</Label>
-                    <Input id="leaseStart" type="date" {...register("leaseStart")} />
-                    {errors.leaseStart && <p className="text-sm text-destructive mt-1">{errors.leaseStart.message}</p>}
+                    <Input id="leaseStart" name="leaseStart" type="date" />
+                     {state.errors?.leaseStart && <p className="text-sm text-destructive mt-1">{state.errors.leaseStart[0]}</p>}
                     </div>
                     <div>
                     <Label htmlFor="leaseEnd">Lease End Date</Label>
-                    <Input id="leaseEnd" type="date" {...register("leaseEnd")} />
-                    {errors.leaseEnd && <p className="text-sm text-destructive mt-1">{errors.leaseEnd.message}</p>}
+                    <Input id="leaseEnd" name="leaseEnd" type="date" />
+                    {state.errors?.leaseEnd && <p className="text-sm text-destructive mt-1">{state.errors.leaseEnd[0]}</p>}
                     </div>
                 </div>
               <div className="flex justify-between items-center pt-4">

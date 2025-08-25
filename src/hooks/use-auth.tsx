@@ -32,7 +32,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchUserFromApi(): Promise<User | null> {
-    const response = await fetch('/api/auth/me');
+    const response = await fetch('/api/auth/me', {
+      credentials: 'include' // Rely on the browser to send the session cookie
+    });
 
     if (response.ok) {
         const userProfile = await response.json();
@@ -101,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const processLogin = useCallback(async (idToken: string): Promise<{ user: User }> => {

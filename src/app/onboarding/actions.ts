@@ -32,5 +32,3 @@ export async function completeOnboarding(): Promise<ActionState> {
     return { error: `Internal Server Error: ${error.message}` };
   }
 }
-
-    

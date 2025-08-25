@@ -16,23 +16,43 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Unit, Property } from '@/lib/types';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
+import { useFormState } from 'react-dom';
+import { createTenantAction } from '../actions';
 
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(false);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
+
+  const [state, formAction] = useFormState(createTenantAction, { success: false, errors: undefined, error: undefined });
 
   const {
     register,
     control,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors: formErrors },
   } = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),
   });
+
+  useEffect(() => {
+    if (state.success) {
+      toast({
+        title: "Tenant Added!",
+        description: "The new tenant has been successfully created.",
+      });
+      router.push('/tenants');
+    }
+    if (state.error) {
+       toast({
+        title: "Creation Failed",
+        description: state.error,
+        variant: "destructive",
+      });
+    }
+  }, [state, router, toast]);
 
   useEffect(() => {
     async function fetchProperties() {
@@ -54,37 +74,6 @@ export default function AddTenantPage() {
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
 
-  const onSubmit = async (data: TenantFormValues) => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/tenants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create tenant.');
-      }
-      
-      toast({
-        title: "Tenant Added!",
-        description: "The new tenant has been successfully created.",
-      });
-      router.push('/tenants');
-    } catch (error: any) {
-      toast({
-        title: "Creation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6">
        <div className="flex items-center gap-4">
@@ -102,23 +91,23 @@ export default function AddTenantPage() {
                 <CardDescription>Enter the details for the new tenant and assign them to a unit.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
-                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                    {(formErrors.name || state.errors?.name) && <p className="text-sm text-destructive mt-1">{formErrors.name?.message || state.errors?.name?.[0]}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="email">Tenant Email</Label>
                         <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                        {(formErrors.email || state.errors?.email) && <p className="text-sm text-destructive mt-1">{formErrors.email?.message || state.errors?.email?.[0]}</p>}
                     </div>
                      <div>
                         <Label htmlFor="phone">Phone Number (Optional)</Label>
                         <Input id="phone" {...register("phone")} autoComplete="tel" />
-                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}
+                        {(formErrors.phone || state.errors?.phone) && <p className="text-sm text-destructive mt-1">{formErrors.phone?.message || state.errors?.phone?.[0]}</p>}
                     </div>
                 </div>
 
@@ -141,7 +130,7 @@ export default function AddTenantPage() {
                                 </Select>
                             )}
                         />
-                        {errors.propertyId && <p className="text-sm text-destructive mt-1">{errors.propertyId.message}</p>}
+                        {(formErrors.propertyId || state.errors?.propertyId) && <p className="text-sm text-destructive mt-1">{formErrors.propertyId?.message || state.errors?.propertyId?.[0]}</p>}
                     </div>
                     <div>
                         <Label htmlFor="unitId">Available Unit</Label>
@@ -163,7 +152,7 @@ export default function AddTenantPage() {
                                 </Select>
                             )}
                         />
-                         {errors.unitId && <p className="text-sm text-destructive mt-1">{errors.unitId.message}</p>}
+                         {(formErrors.unitId || state.errors?.unitId) && <p className="text-sm text-destructive mt-1">{formErrors.unitId?.message || state.errors?.unitId?.[0]}</p>}
                     </div>
                 </div>
 
@@ -171,18 +160,17 @@ export default function AddTenantPage() {
                     <div>
                     <Label htmlFor="leaseStart">Lease Start Date</Label>
                     <Input id="leaseStart" type="date" {...register("leaseStart")} />
-                    {errors.leaseStart && <p className="text-sm text-destructive mt-1">{errors.leaseStart.message}</p>}
+                    {(formErrors.leaseStart || state.errors?.leaseStart) && <p className="text-sm text-destructive mt-1">{formErrors.leaseStart?.message || state.errors?.leaseStart?.[0]}</p>}
                     </div>
                     <div>
                     <Label htmlFor="leaseEnd">Lease End Date</Label>
                     <Input id="leaseEnd" type="date" {...register("leaseEnd")} />
-                    {errors.leaseEnd && <p className="text-sm text-destructive mt-1">{errors.leaseEnd.message}</p>}
+                    {(formErrors.leaseEnd || state.errors?.leaseEnd) && <p className="text-sm text-destructive mt-1">{formErrors.leaseEnd?.message || state.errors?.leaseEnd?.[0]}</p>}
                     </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit">
                         Add Tenant
                     </Button>
                 </div>

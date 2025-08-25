@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { auth, firestore } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
+import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -10,11 +11,9 @@ export async function GET(req: NextRequest) {
   let decodedToken;
 
   try {
-    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    decodedToken = await verifySession(req);
     
-    if (sessionCookie) {
-      decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-    } else {
+    if (!decodedToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

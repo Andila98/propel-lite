@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySessionOnEdge } from './lib/auth-utils';
+import { verifySessionOnEdge } from './lib/auth-utils.edge';
 import { authConfig } from './config/server-config';
 
 // Specify the Edge runtime
@@ -65,8 +65,9 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
     // Clear the invalid cookie
-    url.cookies.delete(authConfig.cookieName);
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.cookies.delete(authConfig.cookieName);
+    return response;
   }
 
   const { role } = decodedClaims;

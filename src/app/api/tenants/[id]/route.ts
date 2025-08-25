@@ -6,6 +6,8 @@ import { toJSON } from '@/lib/utils';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 
+export const runtime = 'nodejs';
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const tenantId = params.id;
