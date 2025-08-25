@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ id: tenantRef.id, ...newTenant }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: any)
         console.error('[API_TENANTS_POST_ERROR]', error);
         if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });

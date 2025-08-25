@@ -23,35 +23,29 @@ export async function GET(req: NextRequest) {
 
     const userRecord = await auth.getUser(decodedToken.uid);
 
-    // Fetch the user's profile from Firestore
-    let userProfileDoc;
-    let userRole = 'tenant'; // Default role
-    let firestoreProfile: any = {};
-    
-    const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
-    if (managerDoc.exists) {
-        userProfileDoc = managerDoc;
-        userRole = 'manager';
-        firestoreProfile = userProfileDoc.data();
-    } else {
-        const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
-        if (tenantDoc.exists) {
-            userProfileDoc = tenantDoc;
-            userRole = 'tenant';
-            firestoreProfile = tenantDoc.data();
-        } else {
-           userRole = userRecord.customClaims?.role || 'landlord';
-        }
-    }
+    // 1. Get the primary role from custom claims
+    const userRole = userRecord.customClaims?.role || 'landlord'; // Default to landlord if no role
 
+    // 2. Fetch supplemental profile data from Firestore based on the role
+    let firestoreProfile: any = {};
+    if (userRole === 'manager') {
+      const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
+      if (managerDoc.exists) firestoreProfile = managerDoc.data();
+    } else if (userRole === 'tenant') {
+      const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
+      if (tenantDoc.exists) firestoreProfile = tenantDoc.data();
+    }
+    
+    // 3. Combine Auth and Firestore data into a complete user profile
     const userProfile: User = {
         uid: userRecord.uid,
         email: userRecord.email || '',
         name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
-        role: firestoreProfile.role || userRole,
-        profileComplete: firestoreProfile.profileComplete ?? userRecord.customClaims?.profileComplete ?? false,
+        role: userRole,
+        profileComplete: userRecord.customClaims?.profileComplete ?? false,
         avatarUrl: userRecord.photoURL,
         permissions: firestoreProfile.permissions || {},
+        ...firestoreProfile // Spread the rest of the Firestore data
     };
     
     return NextResponse.json(userProfile, { status: 200 });
