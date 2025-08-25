@@ -29,10 +29,29 @@ export async function POST(req: NextRequest) {
     let firestoreProfile: any = {};
     if (userRole === 'manager') {
       const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
-      if (managerDoc.exists) firestoreProfile = managerDoc.data();
+      if (managerDoc.exists) {
+        firestoreProfile = managerDoc.data();
+      }
     } else if (userRole === 'tenant') {
       const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
-      if (tenantDoc.exists) firestoreProfile = tenantDoc.data();
+      if (tenantDoc.exists) {
+        firestoreProfile = tenantDoc.data();
+      }
+    } else if (userRole === 'landlord') {
+      const landlordDocRef = firestore.collection('landlords').doc(userRecord.uid);
+      const landlordDoc = await landlordDocRef.get();
+      if (landlordDoc.exists) {
+        firestoreProfile = landlordDoc.data();
+      } else {
+        // First login for a new landlord, create their profile.
+        firestoreProfile = {
+          uid: userRecord.uid,
+          email: userRecord.email,
+          name: userRecord.displayName,
+          createdAt: new Date(),
+        };
+        await landlordDocRef.set(firestoreProfile);
+      }
     }
     
     // 4. Combine Auth and Firestore data into a complete user profile

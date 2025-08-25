@@ -12,17 +12,10 @@ export async function GET(req: NextRequest) {
   try {
     const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
     
-    // Prioritize session cookie for web app authentication
     if (sessionCookie) {
       decodedToken = await auth.verifySessionCookie(sessionCookie, true);
     } else {
-      // Fallback to Bearer token for other clients (e.g., mobile app, third-party)
-      const authToken = req.headers.get('Authorization')?.split('Bearer ')[1];
-      if (authToken) {
-        decodedToken = await auth.verifyIdToken(authToken, true);
-      } else {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userRecord = await auth.getUser(decodedToken.uid);
@@ -38,6 +31,9 @@ export async function GET(req: NextRequest) {
     } else if (userRole === 'tenant') {
       const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
       if (tenantDoc.exists) firestoreProfile = tenantDoc.data();
+    } else if (userRole === 'landlord') {
+       const landlordDoc = await firestore.collection('landlords').doc(userRecord.uid).get();
+       if (landlordDoc.exists) firestoreProfile = landlordDoc.data();
     }
     
     // 3. Combine Auth and Firestore data into a complete user profile

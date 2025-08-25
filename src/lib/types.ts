@@ -139,6 +139,7 @@ export interface PropertyManager {
   avatarUrl?: string;
   propertiesManaged: string[]; // Array of property IDs
   permissions: Record<Permission, boolean>;
+  landlordId: string;
 }
 
 export interface AuditLog {
