@@ -1,6 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
             uid: userRecord.uid,
             email: userRecord.email,
             name: userRecord.displayName,
-            createdAt: new Date(),
+            createdAt: FieldValue.serverTimestamp(),
         });
         
         return NextResponse.json({ uid: userRecord.uid }, { status: 201 });
