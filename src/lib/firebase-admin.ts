@@ -18,7 +18,7 @@ if (!isFirebaseAdminInitialized) {
       });
       isFirebaseAdminInitialized = true;
       console.log('[FIREBASE_ADMIN] Initialized successfully from Base64 environment variable.');
-    } else if (process.env.NODE_ENV === 'development') {
+    } else if (process.env.NODE_ENV === 'development' || process.env.VITEST) {
       // For local development, try to use Application Default Credentials
       // This works if you've run `gcloud auth application-default login`
       // or if you're running on a GCP environment (like Cloud Shell)

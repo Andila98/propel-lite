@@ -1,10 +1,14 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
+
     try {
         const { displayName, email, password } = await req.json();
 
@@ -21,6 +25,14 @@ export async function POST(req: NextRequest) {
         // Set custom claims for the new landlord user
         // profileComplete is false so they are directed to the onboarding flow
         await auth.setCustomUserClaims(userRecord.uid, { role: 'landlord', profileComplete: false });
+        
+        // Also create a landlord profile in Firestore
+        await firestore.collection('landlords').doc(userRecord.uid).set({
+            uid: userRecord.uid,
+            email: userRecord.email,
+            name: userRecord.displayName,
+            createdAt: new Date(),
+        });
         
         return NextResponse.json({ uid: userRecord.uid }, { status: 201 });
     } catch (error: any) {
