@@ -1,7 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -17,25 +16,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        // 1. Create the user in Firebase Auth
         const userRecord = await auth.createUser({
             email,
             password,
             displayName,
         });
 
-        // Set custom claims for the new landlord user
-        // profileComplete is false so they are directed to the onboarding flow
+        // 2. Set custom claims for the new landlord user.
+        // This is the source of truth for their role.
+        // profileComplete is false, directing them to onboarding after first login.
         await auth.setCustomUserClaims(userRecord.uid, { role: 'landlord', profileComplete: false });
         
-        // Also create a landlord profile in Firestore
-        await firestore.collection('landlords').doc(userRecord.uid).set({
-            uid: userRecord.uid,
-            email: userRecord.email,
-            name: userRecord.displayName,
-            createdAt: FieldValue.serverTimestamp(),
-        });
-        
+        // Note: The landlord profile in Firestore will be created on their first login,
+        // which is a more robust pattern.
+
         return NextResponse.json({ uid: userRecord.uid }, { status: 201 });
+
     } catch (error: any) {
         console.error('[AUTH_SIGNUP_ERROR]', error);
         if (error.code === 'auth/email-already-exists') {
