@@ -43,7 +43,7 @@ const StripeIcon = () => (
     </svg>
 )
 
-function MaintenanceRequestForm({ tenant, property }: { tenant: Tenant; property: Property;}) {
+function MaintenanceRequestForm({ tenant, property, token }: { tenant: Tenant; property: Property; token: string | undefined }) {
     const { toast } = useToast();
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -68,6 +68,10 @@ function MaintenanceRequestForm({ tenant, property }: { tenant: Tenant; property
             toast({ title: 'Error', description: 'Please provide a description of the issue.', variant: 'destructive' });
             return;
         }
+        if (!token) {
+            toast({ title: 'Error', description: 'You must be logged in to submit a request.', variant: 'destructive' });
+            return;
+        }
         setLoading(true);
 
         const requestData = {
@@ -83,7 +87,10 @@ function MaintenanceRequestForm({ tenant, property }: { tenant: Tenant; property
         try {
           const response = await fetch('/api/maintenance', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify(requestData)
           });
 
@@ -302,7 +309,7 @@ export default function TenantPortalPage() {
           </CardContent>
         </Card>
         
-       <MaintenanceRequestForm tenant={tenant} property={property} />
+       <MaintenanceRequestForm tenant={tenant} property={property} token={user?.token} />
       </div>
     </div>
   );

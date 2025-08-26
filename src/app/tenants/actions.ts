@@ -112,6 +112,17 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     const { propertyId, currentUnitId, leaseStart, leaseEnd, ...tenantData } = validationResult.data;
 
     try {
+        const tenantRef = firestore.collection('tenants').doc(tenantId);
+        
+        // Get the current tenant state to see if the unit has changed
+        const tenantDoc = await tenantRef.get();
+        if (!tenantDoc.exists) {
+            return { error: "Tenant not found." };
+        }
+        const oldTenantData = tenantDoc.data();
+        const oldUnitId = oldTenantData?.currentUnitId;
+        const oldPropertyId = oldTenantData?.propertyId;
+
         const updateData: any = {
             ...tenantData,
             propertyId,
@@ -121,13 +132,24 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
             updatedAt: FieldValue.serverTimestamp(),
         };
 
-        await firestore.collection('tenants').doc(tenantId).update(updateData);
+        const batch = firestore.batch();
+
+        // Update the tenant document
+        batch.update(tenantRef, updateData);
+
+        // If the unit has changed, update both old and new units
+        if (oldUnitId !== currentUnitId && oldPropertyId) {
+            // Mark old unit as vacant
+            const oldUnitRef = firestore.collection('properties').doc(oldPropertyId).collection('units').doc(oldUnitId);
+            batch.update(oldUnitRef, { isOccupied: false, tenantId: FieldValue.delete() });
+        }
         
-        await firestore.collection('properties').doc(propertyId).collection('units').doc(currentUnitId).update({
-            isOccupied: true,
-            tenantId: tenantId
-        });
+        // Mark new unit as occupied
+        const newUnitRef = firestore.collection('properties').doc(propertyId).collection('units').doc(currentUnitId);
+        batch.update(newUnitRef, { isOccuped: true, tenantId: tenantId });
         
+        await batch.commit();
+
         await logActivity('Admin', `Updated tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
 
         revalidatePath('/tenants');
