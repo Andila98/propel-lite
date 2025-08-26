@@ -8,6 +8,9 @@ import { TenantFormSchema, TenantUpdateSchema } from '@/lib/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { cookies } from 'next/headers';
+import { authConfig } from '@/config/server-config';
+
 
 export interface FormState {
     error?: string;
@@ -18,6 +21,22 @@ export interface FormState {
 }
 
 export async function createTenantAction(prevState: FormState, formData: FormData): Promise<FormState> {
+    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return { error: 'Unauthorized. Please log in.' };
+    }
+
+    let actor;
+    try {
+        const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+        actor = await auth.getUser(decodedClaims.uid);
+        if (actor.customClaims?.role !== 'landlord' && !actor.customClaims?.permissions?.canAddTenants) {
+            return { error: "You don't have permission to add tenants." };
+        }
+    } catch (error) {
+        return { error: 'Unauthorized. Please log in.' };
+    }
+
     const rawData = Object.fromEntries(formData.entries());
     const validationResult = TenantFormSchema.safeParse(rawData);
 
@@ -50,8 +69,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
             createdAt: FieldValue.serverTimestamp(),
             leaseStart: new Date(tenantData.leaseStart),
             leaseEnd: new Date(tenantData.leaseEnd),
-            // This should be replaced with the actual landlord's ID from session
-            landlordId: 'default_landlord_id' 
+            landlordId: actor.uid
         };
         
         const tenantRef = firestore.collection('tenants').doc(userRecord.uid);
