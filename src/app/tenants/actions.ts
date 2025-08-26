@@ -50,12 +50,10 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     const { unitId, ...tenantData } = validationResult.data;
 
     try {
-        // In a real app, password should be sent securely (e.g., invite link)
-        const randomPassword = Math.random().toString(36).slice(-8);
-
+        // Create the user without a password. They can use the "Forgot Password"
+        // flow to set their own password for the first time.
         const userRecord = await auth.createUser({
             email: tenantData.email,
-            password: randomPassword,
             displayName: tenantData.name,
         });
         
@@ -146,7 +144,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         
         // Mark new unit as occupied
         const newUnitRef = firestore.collection('properties').doc(propertyId).collection('units').doc(currentUnitId);
-        batch.update(newUnitRef, { isOccuped: true, tenantId: tenantId });
+        batch.update(newUnitRef, { isOccupied: true, tenantId: tenantId });
         
         await batch.commit();
 
