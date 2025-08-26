@@ -18,17 +18,31 @@ import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth, type User } from '@/hooks/use-auth';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const RegisterSchema = z.object({
+    displayName: z.string().min(2, "Full name must be at least 2 characters."),
+    email: z.string().email("Please enter a valid email address."),
+    password: z.string().min(6, "Password must be at least 6 characters."),
+});
+
+type RegisterFormValues = z.infer<typeof RegisterSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { loginWithGoogle } = useAuth();
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const form = useForm<RegisterFormValues>({
+      resolver: zodResolver(RegisterSchema),
+  });
+  
+  const { register, handleSubmit, formState: { errors } } = form;
 
   const handleRedirect = (user: User) => {
     if (user.role === 'tenant') {
@@ -40,15 +54,13 @@ export default function RegisterPage() {
     }
   }
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegister = async (data: RegisterFormValues) => {
     setIsLoading(true);
-
     try {
         const response = await fetch('/api/auth/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ displayName, email, password }),
+            body: JSON.stringify(data),
         });
 
         if (!response.ok) {
@@ -112,52 +124,50 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-           <form onSubmit={handleRegister}>
+           <form onSubmit={handleSubmit(handleRegister)}>
               <fieldset disabled={isLoading || isSocialLoading} className="grid gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="displayName">Full Name</Label>
                     <Input
-                    id="displayName"
-                    type="text"
-                    placeholder="John Doe"
-                    required
-                    autoComplete="name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
+                      id="displayName"
+                      type="text"
+                      placeholder="John Doe"
+                      autoComplete="name"
+                      {...register("displayName")}
                     />
+                    {errors.displayName && <p className="text-sm text-destructive mt-1">{errors.displayName.message}</p>}
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                      id="email"
+                      type="email"
+                      placeholder="m@example.com"
+                      autoComplete="email"
+                      {...register("email")}
                     />
+                    {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
                 </div>
                 <div className="grid gap-2 relative">
                     <Label htmlFor="password">Password</Label>
                     <Input 
-                    id="password" 
-                    type={showPassword ? "text" : "password"}
-                    required
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10"
+                      id="password" 
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      placeholder="••••••••"
+                      className="pr-10"
+                      {...register("password")}
                     />
                     <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-[2.25rem] text-muted-foreground"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-[2.25rem] text-muted-foreground"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      tabIndex={-1}
                     >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
+                    {errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}
                 </div>
                 <Button type="submit" className="w-full">
                     {isLoading ? <Loader2 className="animate-spin" /> : "Create Account"}
