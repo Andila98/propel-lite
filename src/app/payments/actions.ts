@@ -18,7 +18,7 @@ export interface ReceiptState {
 
 export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>): Promise<ReceiptState> {
     if (!isFirebaseAdminInitialized) {
-        console.error('[GET_RECEIPT_ACTION] Backend services are not configured because Firebase Admin is not initialized.');
+        console.error('[ERROR: getReceiptAction] Backend services are not configured.');
         return { error: "Backend services are not configured. Please contact support." };
     }
     
@@ -26,7 +26,7 @@ export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>
         const receipt = await generateReceipt(input);
         return { receipt };
     } catch (error: any) {
-        console.error('[GET_RECEIPT_ACTION_ERROR]', error);
+        console.error('[ERROR: getReceiptAction]', error);
         return { error: error.message || "An unknown error occurred" };
     }
 }

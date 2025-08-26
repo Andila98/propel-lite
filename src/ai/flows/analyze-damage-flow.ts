@@ -53,7 +53,12 @@ const analyzeDamageFlow = ai.defineFlow(
     outputSchema: AnalyzeDamageOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      return output!;
+    } catch (error) {
+        console.error('[ERROR: analyzeDamageFlow]', error);
+        throw new Error('Failed to analyze damage due to an internal AI error.');
+    }
   }
 );

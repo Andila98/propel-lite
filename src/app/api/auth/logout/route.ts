@@ -10,17 +10,12 @@ export async function POST() {
         const cookieStore = cookies();
         const cookieName = authConfig.cookieName;
 
-        // Clear the session cookie
         cookieStore.delete(cookieName);
-
-        // In a high-security application, you could also revoke the session cookie
-        // on the server side to invalidate it immediately. For this app, clearing
-        // the client's cookie is sufficient.
         
         return NextResponse.json({ message: "Logged out successfully" }, { status: 200 });
 
     } catch (error: any) {
-        console.error('[AUTH_LOGOUT_ERROR]', error);
+        console.error('[ERROR: /api/auth/logout]', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

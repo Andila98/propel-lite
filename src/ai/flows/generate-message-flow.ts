@@ -52,7 +52,12 @@ const generateMessageFlow = ai.defineFlow(
     outputSchema: GenerateMessageOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+        const {output} = await prompt(input);
+        return output!;
+    } catch (error) {
+        console.error('[ERROR: generateMessageFlow]', error);
+        throw new Error('Failed to generate message due to an internal AI error.');
+    }
   }
 );

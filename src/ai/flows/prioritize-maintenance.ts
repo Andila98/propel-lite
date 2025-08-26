@@ -50,7 +50,12 @@ const prioritizeMaintenanceFlow = ai.defineFlow(
     outputSchema: PrioritizeMaintenanceOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+        const {output} = await prompt(input);
+        return output!;
+    } catch (error) {
+        console.error('[ERROR: prioritizeMaintenanceFlow]', error);
+        throw new Error('Failed to prioritize maintenance request due to an internal AI error.');
+    }
   }
 );

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
         
         return NextResponse.json(toJSON(payments));
     } catch (error: any) {
-      console.error('[API_PAYMENTS_GET_ERROR]', error);
+      console.error('[ERROR: /api/payments GET]', error);
       return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

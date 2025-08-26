@@ -45,7 +45,7 @@ export async function createPropertyAction(
 
   const validationResult = PropertyFormSchema.safeParse(rawData);
   if (!validationResult.success) {
-      console.error("Server Action Validation Error:", validationResult.error.flatten());
+      console.error("[ERROR: createPropertyAction validation]", validationResult.error.flatten());
       return { 
           error: "Invalid property data. Please check the form for errors.",
           errors: validationResult.error.flatten().fieldErrors,
@@ -79,7 +79,7 @@ export async function createPropertyAction(
     return { success: true, propertyId: propertyRef.id };
 
   } catch (error: any) {
-    console.error('[CREATE_PROPERTY_ACTION_ERROR]', error);
+    console.error('[ERROR: createPropertyAction]', error);
     return { error: `Internal Server Error: ${error.message}` };
   }
 }

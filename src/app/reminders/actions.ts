@@ -50,7 +50,7 @@ export async function scheduleReminderAction(
     return { successMessage: `Reminder for tenant has been successfully scheduled for ${validationResult.data.scheduledFor}.` };
 
   } catch (error: any) {
-    console.error("[SCHEDULE_REMINDER_ACTION_ERROR]", error);
+    console.error("[ERROR: scheduleReminderAction]", error);
     return { error: error.message };
   }
 }
@@ -82,7 +82,7 @@ export async function getReminderSuggestionAction(
     };
 
   } catch (error: any) {
-    console.error("[GET_REMINDER_SUGGESTION_ACTION_ERROR]", error);
+    console.error("[ERROR: getReminderSuggestionAction]", error);
     return { error: error.message };
   }
 }
@@ -120,7 +120,7 @@ export async function getScheduleSuggestionAction(
             }
         };
     } catch (error: any) {
-        console.error("[GET_SCHEDULE_SUGGESTION_ACTION_ERROR]", error);
+        console.error("[ERROR: getScheduleSuggestionAction]", error);
         return { error: error.message };
     }
 }

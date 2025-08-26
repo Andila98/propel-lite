@@ -12,8 +12,6 @@ export type PriceSuggestionState = {
 export async function suggestPriceAction(
   input: PriceSuggestionValues,
 ): Promise<PriceSuggestionState> {
-  console.log("Backend: suggestPriceAction server action received input:", input);
-
   const validationResult = PriceSuggestionSchema.safeParse(input);
   if (!validationResult.success) {
       return { 
@@ -25,7 +23,7 @@ export async function suggestPriceAction(
     const suggestion = await suggestPrice(validationResult.data);
     return { suggestion };
   } catch (error: any) {
-    console.error("Error calling suggestPrice flow:", error);
+    console.error("[ERROR: suggestPriceAction]", error);
     return { error: error.message || 'An unexpected error occurred.' };
   }
 }

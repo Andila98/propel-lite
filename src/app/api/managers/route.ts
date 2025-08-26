@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
         const managers = managersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(managers, { status: 200 });
     } catch (error: any) {
-      console.error('[API_MANAGERS_GET_ERROR]', error);
+      console.error('[ERROR: /api/managers GET]', error);
       return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

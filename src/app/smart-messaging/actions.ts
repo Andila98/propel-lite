@@ -20,7 +20,7 @@ export async function generateMessageAction(input: { tenantId: string; reminderT
     const result = await generateMessage({ tenantName, reminderType: input.reminderType });
     return { messageContent: result.message };
   } catch (error: any) {
-    console.error("Error in generateMessageAction:", error);
+    console.error("[ERROR: generateMessageAction]", error);
     return { error: error.message || "Failed to generate message." };
   }
 }

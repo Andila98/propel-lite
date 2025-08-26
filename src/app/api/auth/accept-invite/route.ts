@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Account created successfully.' }, { status: 201 });
 
     } catch (error: any) {
-        console.error('[ACCEPT_INVITE_ERROR]', error);
+        console.error('[ERROR: /api/auth/accept-invite]', error);
          if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email has already been created.' }, { status: 409 });
         }

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         
         return NextResponse.json({ url });
     } catch (error: any) {
-        console.error('[API_UPLOAD_ERROR]', error);
+        console.error('[ERROR: /api/upload]', error);
         return NextResponse.json({ error: 'An internal server error occurred during file upload.' }, { status: 500 });
     }
 }

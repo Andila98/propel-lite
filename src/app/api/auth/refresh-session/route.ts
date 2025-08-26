@@ -5,7 +5,6 @@ import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
-// This endpoint is called periodically by the client to refresh the session cookie.
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get('Authorization');
@@ -18,10 +17,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token format' }, { status: 401 });
     }
     
-    // Verify the ID token with Firebase Auth
     await auth.verifyIdToken(idToken);
     
-    // Generate a new session cookie with a renewed expiration date
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     
@@ -30,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error('[AUTH_REFRESH_ERROR]', error);
+    console.error('[ERROR: /api/auth/refresh-session]', error);
     return NextResponse.json({ error: 'Failed to refresh session.' }, { status: 401 });
   }
 }

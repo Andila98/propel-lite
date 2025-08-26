@@ -89,9 +89,14 @@ export const generateReceiptFlow = ai.defineFlow(
     outputSchema: GenerateReceiptOutputSchema,
   },
   async (input) => {
-    const receiptData = await getReceiptData(input);
-    const { output } = await prompt(receiptData);
-    return output!;
+    try {
+        const receiptData = await getReceiptData(input);
+        const { output } = await prompt(receiptData);
+        return output!;
+    } catch (error) {
+        console.error('[ERROR: generateReceiptFlow]', error);
+        throw new Error('Failed to generate receipt due to an internal error.');
+    }
   }
 );
 

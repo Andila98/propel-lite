@@ -107,16 +107,21 @@ export const generateReportFlow = ai.defineFlow(
     outputSchema: ReportOutputSchema,
   },
   async (input) => {
-    const reportData = await getReportData(input);
-    
-    const llmInput = {
-        ...reportData,
-        month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
-        year: input.year,
-    };
-    
-    const { output } = await prompt(llmInput);
-    return output!;
+    try {
+        const reportData = await getReportData(input);
+        
+        const llmInput = {
+            ...reportData,
+            month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
+            year: input.year,
+        };
+        
+        const { output } = await prompt(llmInput);
+        return output!;
+    } catch (error) {
+        console.error('[ERROR: generateReportFlow]', error);
+        throw new Error('Failed to generate report due to an internal error.');
+    }
   }
 );
 

@@ -1,12 +1,16 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -18,14 +22,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token format' }, { status: 401 });
     }
     
-    // 1. Verify the ID token with Firebase Auth
     const decodedToken = await auth.verifyIdToken(idToken);
     const userRecord = await auth.getUser(decodedToken.uid);
 
-    // 2. Get the primary role from custom claims
-    const userRole = userRecord.customClaims?.role || 'landlord'; // Default to landlord if no role set
+    const userRole = userRecord.customClaims?.role || 'landlord';
 
-    // 3. Fetch supplemental profile data from Firestore based on the role
     let firestoreProfile: any = {};
     if (userRole === 'manager') {
       const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
@@ -54,7 +55,6 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // 4. Combine Auth and Firestore data into a complete user profile
     const userProfile: User = {
         uid: userRecord.uid,
         email: userRecord.email || '',
@@ -63,10 +63,9 @@ export async function POST(req: NextRequest) {
         profileComplete: userRecord.customClaims?.profileComplete ?? false,
         avatarUrl: userRecord.photoURL,
         permissions: firestoreProfile.permissions || {},
-        ...firestoreProfile // Spread the rest of the Firestore data
+        ...firestoreProfile
     };
 
-    // 5. Generate a session cookie with the complete profile
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     
@@ -75,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error('[AUTH_LOGIN_ERROR]', error);
+    console.error('[ERROR: /api/auth/login]', error);
     return NextResponse.json({ error: 'Invalid credentials. Please try again.' }, { status: 401 });
   }
 }

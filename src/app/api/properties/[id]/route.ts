@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json(toJSON(propertyData));
 
     } catch (error: any) {
-        console.error('[API_PROPERTY_GET_ERROR]', error);
+        console.error(`[ERROR: /api/properties/{id} GET]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
@@ -59,7 +59,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         return NextResponse.json({ message: 'Property and its units deleted successfully.' }, { status: 200 });
 
     } catch (error: any) {
-        console.error('[API_PROPERTY_DELETE_ERROR]', error);
+        console.error(`[ERROR: /api/properties/{id} DELETE]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

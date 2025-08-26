@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(toJSON(properties));
 
     } catch (error: any) {
-        console.error('[API_PROPERTIES_GET_ERROR]', error);
+        console.error('[ERROR: /api/properties GET]', error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

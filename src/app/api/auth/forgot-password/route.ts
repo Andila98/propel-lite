@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     // whether the email exists or not.
     return NextResponse.json({ message: 'If a user with that email exists, a password reset link has been sent.' }, { status: 200 });
   } catch (error: any) {
-    console.error('[FORGOT_PASSWORD_ERROR]', error);
+    console.error('[ERROR: /api/auth/forgot-password]', error);
     // Don't expose specific error messages to the client
     return NextResponse.json({ message: 'If a user with that email exists, a password reset link has been sent.' }, { status: 200 });
   }

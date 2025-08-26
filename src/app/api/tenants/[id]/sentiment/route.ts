@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ sentiment: randomSentiment, summary });
 
   } catch (error: any) {
-    console.error(`[API_TENANT_SENTIMENT_ERROR]`, error);
+    console.error(`[ERROR: /api/tenants/{id}/sentiment GET]`, error);
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }

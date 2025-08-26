@@ -55,7 +55,12 @@ const dashboardInsightsFlow = ai.defineFlow(
     outputSchema: DashboardInsightsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+        const {output} = await prompt(input);
+        return output!;
+    } catch (error) {
+        console.error('[ERROR: dashboardInsightsFlow]', error);
+        throw new Error('Failed to generate dashboard insights due to an internal AI error.');
+    }
   }
 );

@@ -51,9 +51,14 @@ const suggestPriceFlow = ai.defineFlow(
     outputSchema: PriceSuggestionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    // Add the currency to the output as the prompt doesn't explicitly return it.
-    // A more advanced version could determine currency from the address.
-    return { ...output!, currency: 'KES' };
+    try {
+        const {output} = await prompt(input);
+        // Add the currency to the output as the prompt doesn't explicitly return it.
+        // A more advanced version could determine currency from the address.
+        return { ...output!, currency: 'KES' };
+    } catch (error) {
+        console.error('[ERROR: suggestPriceFlow]', error);
+        throw new Error('Failed to suggest price due to an internal AI error.');
+    }
   }
 );

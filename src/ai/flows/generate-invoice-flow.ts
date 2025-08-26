@@ -104,9 +104,14 @@ export const generateInvoiceFlow = ai.defineFlow(
     outputSchema: GenerateInvoiceOutputSchema,
   },
   async (input) => {
-    const invoiceData = await getInvoiceData(input);
-    const { output } = await prompt(invoiceData);
-    return output!;
+    try {
+        const invoiceData = await getInvoiceData(input);
+        const { output } = await prompt(invoiceData);
+        return output!;
+    } catch (error) {
+        console.error('[ERROR: generateInvoiceFlow]', error);
+        throw new Error('Failed to generate invoice due to an internal error.');
+    }
   }
 );
 

@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
             const insights = await generateDashboardInsights({ totalRevenue, occupancyRate, totalProperties, totalTenants });
             aiSummary = insights.summary;
         } catch (aiError) {
-            console.warn("[DASHBOARD_AI_ERROR] Could not generate AI summary:", aiError);
+            console.warn("[WARN: /api/dashboard] Could not generate AI summary:", aiError);
             aiSummary = "AI insights are currently unavailable.";
         }
         
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(toJSON(dashboardData));
 
     } catch (error: any) {
-        console.error('[API_DASHBOARD_ERROR]', error);
+        console.error('[ERROR: /api/dashboard]', error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

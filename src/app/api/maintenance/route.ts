@@ -19,7 +19,7 @@ export async function GET() {
         const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(toJSON(requests));
     } catch (error: any) {
-        console.error('[API_MAINTENANCE_GET_ERROR]', error);
+        console.error('[ERROR: /api/maintenance GET]', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         try {
             priorityResult = await prioritizeMaintenanceRequest({ description: body.description });
         } catch (aiError) {
-            console.warn("[MAINTENANCE_AI_ERROR] Could not prioritize request:", aiError);
+            console.warn("[WARN: /api/maintenance POST] Could not prioritize request via AI:", aiError);
             // Don't block the request if AI fails
         }
         
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any)
         {
-        console.error('[API_MAINTENANCE_POST_ERROR]', error);
+        console.error('[ERROR: /api/maintenance POST]', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

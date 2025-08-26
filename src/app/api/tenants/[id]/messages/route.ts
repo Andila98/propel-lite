@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return NextResponse.json(toJSON(messages));
   } catch (error: any) {
-    console.error(`[API_TENANT_MESSAGES_GET_ERROR]`, error);
+    console.error(`[ERROR: /api/tenants/{id}/messages GET]`, error);
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json(toJSON(createdMessage), { status: 201 });
 
     } catch (error: any) {
-        console.error(`[API_TENANT_MESSAGES_POST_ERROR]`, error);
+        console.error(`[ERROR: /api/tenants/{id}/messages POST]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

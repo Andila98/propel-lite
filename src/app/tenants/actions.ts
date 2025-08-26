@@ -50,8 +50,6 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     const { unitId, ...tenantData } = validationResult.data;
 
     try {
-        // Create the user without a password. They can use the "Forgot Password"
-        // flow to set their own password for the first time.
         const userRecord = await auth.createUser({
             email: tenantData.email,
             displayName: tenantData.name,
@@ -87,7 +85,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         return { success: true };
 
     } catch (error: any) {
-        console.error('[CREATE_TENANT_ACTION_ERROR]', error);
+        console.error('[ERROR: createTenantAction]', error);
         if (error.code === 'auth/email-already-exists') {
             return { error: 'An account with this email already exists.' };
         }
@@ -112,7 +110,6 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     try {
         const tenantRef = firestore.collection('tenants').doc(tenantId);
         
-        // Get the current tenant state to see if the unit has changed
         const tenantDoc = await tenantRef.get();
         if (!tenantDoc.exists) {
             return { error: "Tenant not found." };
@@ -132,10 +129,8 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
 
         const batch = firestore.batch();
 
-        // Update the tenant document
         batch.update(tenantRef, updateData);
 
-        // If the unit has changed, update both old and new units
         if (oldUnitId !== currentUnitId && oldPropertyId) {
             // Mark old unit as vacant
             const oldUnitRef = firestore.collection('properties').doc(oldPropertyId).collection('units').doc(oldUnitId);
@@ -155,7 +150,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         
         return { success: true };
     } catch (error: any) {
-        console.error(`[UPDATE_TENANT_ACTION_ERROR]`, error);
+        console.error(`[ERROR: updateTenantAction]`, error);
         return { error: `Internal Server Error: ${error.message}` };
     }
 }

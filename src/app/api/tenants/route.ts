@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
         const tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(toJSON(tenants), { status: 200 });
     } catch (error: any) {
-      console.error('[API_TENANTS_GET_ERROR] Failed to list tenants:', error);
+      console.error('[ERROR: /api/tenants GET]', error);
       return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

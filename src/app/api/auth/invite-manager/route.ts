@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ invitationLink }, { status: 200 });
 
     } catch (error: any) {
-        console.error('[INVITE_MANAGER_ERROR]', error);
+        console.error('[ERROR: /api/auth/invite-manager]', error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

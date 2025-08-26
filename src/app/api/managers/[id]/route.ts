@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ id: managerDoc.id, ...managerDoc.data() }, { status: 200 });
 
     } catch (error: any) {
-        console.error(`[API_MANAGER_GET_ERROR]`, error);
+        console.error(`[ERROR: /api/managers/{id} GET]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
         return NextResponse.json({ message: 'Manager updated successfully.' }, { status: 200 });
     } catch (error: any) {
-        console.error(`[API_MANAGER_UPDATE_ERROR]`, error);
+        console.error(`[ERROR: /api/managers/{id} PUT]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
@@ -71,7 +71,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         return NextResponse.json({ message: 'Manager successfully deleted.' }, { status: 200 });
     } catch (error: any) {
-      console.error(`[API_MANAGER_DELETE_ERROR]`, error);
+      console.error(`[ERROR: /api/managers/{id} DELETE]`, error);
       return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

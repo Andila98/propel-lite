@@ -21,7 +21,7 @@ export async function GET() {
         
         return NextResponse.json(toJSON(logs));
     } catch (error: any) {
-        console.error('[API_AUDIT_LOGS_ERROR]', error);
+        console.error('[ERROR: /api/audit-logs]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
