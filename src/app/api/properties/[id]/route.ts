@@ -4,10 +4,17 @@ import { firestore } from '@/lib/firebase-admin';
 import type { Property } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
 import { toJSON } from '@/lib/utils';
+import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    const claims = await verifySession(req);
+    if (!claims) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
+
     try {
         const propertyId = params.id;
         const propertyDoc = await firestore.collection('properties').doc(propertyId).get();
@@ -17,6 +24,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
 
         const propertyData = { id: propertyDoc.id, ...propertyDoc.data() } as Property;
+        
+        // Ownership check
+        if (propertyData.landlordId !== landlordId) {
+            return NextResponse.json({ error: 'Forbidden: You do not have access to this property.' }, { status: 403 });
+        }
         
         const unitsSnapshot = await propertyDoc.ref.collection('units').get();
         propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as any));
@@ -31,6 +43,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+    const claims = await verifySession(req);
+    if (!claims) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
+    
     try {
         const propertyId = params.id;
         const propertyRef = firestore.collection('properties').doc(propertyId);
@@ -38,6 +56,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         if (!propertyDoc.exists) {
             return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+        }
+        
+        const propertyData = propertyDoc.data();
+        if (propertyData?.landlordId !== landlordId) {
+            return NextResponse.json({ error: 'Forbidden: You do not have permission to delete this property.' }, { status: 403 });
         }
         
         // In a real application, you would also delete associated tenants, payments, etc.
@@ -53,7 +76,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         batch.delete(propertyRef);
         await batch.commit();
 
-        const propertyName = propertyDoc.data()?.name || propertyDoc.data()?.address;
+        const propertyName = propertyData?.name || propertyData?.address;
         await logActivity('Admin', `Deleted property "${propertyName}"`, { type: 'Property', name: propertyName });
 
         return NextResponse.json({ message: 'Property and its units deleted successfully.' }, { status: 200 });

@@ -9,7 +9,7 @@ import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
-async function getAnomalyAlerts(): Promise<ActivityItem[]> {
+async function getAnomalyAlerts(landlordId: string): Promise<ActivityItem[]> {
     // This is a mock implementation. In a real app, this would involve
     // more complex logic to detect anomalies from your data.
     return [
@@ -49,7 +49,7 @@ async function getPaymentMethodData(payments: Payment[]): Promise<DashboardData[
     }));
 }
 
-async function getLatePaymentData(): Promise<DashboardData['latePaymentData']> {
+async function getLatePaymentData(landlordId: string): Promise<DashboardData['latePaymentData']> {
   // This is a mock implementation. In a real app, you would query your payments collection.
   const data = [];
   for (let i = 5; i >= 0; i--) {
@@ -71,6 +71,11 @@ export async function GET(req: NextRequest) {
     if (!claims || (claims.role !== 'landlord' && claims.role !== 'manager')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
+    if (!landlordId) {
+         return NextResponse.json({ error: 'Unauthorized: No landlord association found.' }, { status: 401 });
+    }
+
 
     try {
         const [
@@ -79,10 +84,10 @@ export async function GET(req: NextRequest) {
             paymentsSnapshot,
             unitsSnapshot,
         ] = await Promise.all([
-            firestore.collection('properties').limit(10).get(),
-            firestore.collection('tenants').get(),
-            firestore.collection('payments').get(),
-            firestore.collectionGroup('units').get(),
+            firestore.collection('properties').where('landlordId', '==', landlordId).limit(10).get(),
+            firestore.collection('tenants').where('landlordId', '==', landlordId).get(),
+            firestore.collection('payments').where('landlordId', '==', landlordId).get(),
+            firestore.collectionGroup('units').where('landlordId', '==', landlordId).get(),
         ]);
         
         const tenants: Tenant[] = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
@@ -130,8 +135,8 @@ export async function GET(req: NextRequest) {
             aiSummary = "AI insights are currently unavailable.";
         }
         
-        const anomalyAlerts = await getAnomalyAlerts();
-        const latePaymentData = await getLatePaymentData();
+        const anomalyAlerts = await getAnomalyAlerts(landlordId);
+        const latePaymentData = await getLatePaymentData(landlordId);
         const paymentMethodData = await getPaymentMethodData(payments);
 
         const dashboardData: DashboardData = {

@@ -7,7 +7,6 @@ import { auth, firestore } from '@/lib/firebase-admin';
 import { TenantFormSchema, TenantUpdateSchema } from '@/lib/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
 
@@ -36,6 +35,10 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     } catch (error) {
         return { error: 'Unauthorized. Please log in.' };
     }
+    const landlordId = actor.customClaims?.role === 'manager' ? actor.customClaims?.landlordId : actor.uid;
+    if (!landlordId) {
+         return { error: 'Unauthorized: No landlord association found.' };
+    }
 
     const rawData = Object.fromEntries(formData.entries());
     const validationResult = TenantFormSchema.safeParse(rawData);
@@ -55,7 +58,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
             displayName: tenantData.name,
         });
         
-        await auth.setCustomUserClaims(userRecord.uid, { role: 'tenant', profileComplete: true });
+        await auth.setCustomUserClaims(userRecord.uid, { role: 'tenant', profileComplete: true, landlordId: landlordId });
 
         const newTenant = {
             ...tenantData,
@@ -65,7 +68,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
             createdAt: FieldValue.serverTimestamp(),
             leaseStart: new Date(tenantData.leaseStart),
             leaseEnd: new Date(tenantData.leaseEnd),
-            landlordId: actor.uid
+            landlordId: landlordId
         };
         
         const tenantRef = firestore.collection('tenants').doc(userRecord.uid);
@@ -77,7 +80,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
             tenantId: tenantRef.id
         });
 
-        await logActivity('Admin', `Created tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
+        await logActivity(actor.displayName || 'Admin', `Created tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
         
         revalidatePath('/tenants');
         revalidatePath('/dashboard');
@@ -95,6 +98,23 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
 
 
 export async function updateTenantAction(tenantId: string, prevState: FormState, formData: FormData): Promise<FormState> {
+    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return { error: 'Unauthorized. Please log in.' };
+    }
+
+    let actor;
+    try {
+        const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+        actor = await auth.getUser(decodedClaims.uid);
+    } catch (error) {
+        return { error: 'Unauthorized. Please log in.' };
+    }
+    const landlordId = actor.customClaims?.role === 'manager' ? actor.customClaims?.landlordId : actor.uid;
+     if (!landlordId) {
+         return { error: 'Unauthorized: No landlord association found.' };
+    }
+
     const rawData = Object.fromEntries(formData.entries());
     const validationResult = TenantUpdateSchema.safeParse(rawData);
 
@@ -115,6 +135,12 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
             return { error: "Tenant not found." };
         }
         const oldTenantData = tenantDoc.data();
+        
+        // Ownership check
+        if (oldTenantData?.landlordId !== landlordId) {
+            return { error: "Forbidden: You do not have permission to update this tenant." };
+        }
+        
         const oldUnitId = oldTenantData?.currentUnitId;
         const oldPropertyId = oldTenantData?.propertyId;
 
@@ -143,7 +169,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         
         await batch.commit();
 
-        await logActivity('Admin', `Updated tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
+        await logActivity(actor.displayName || 'Admin', `Updated tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
 
         revalidatePath('/tenants');
         revalidatePath(`/tenants/${tenantId}`);

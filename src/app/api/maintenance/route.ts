@@ -4,15 +4,28 @@ import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
 import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance';
 import { verifySession } from '@/lib/auth-utils';
+import type { Tenant } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
+
+    const claims = await verifySession(req);
+    if (!claims || (claims.role !== 'landlord' && claims.role !== 'manager')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
+
+    if (!landlordId) {
+         return NextResponse.json({ error: 'Unauthorized: No landlord association found.' }, { status: 401 });
+    }
+
     try {
         const snapshot = await firestore.collection('maintenanceRequests')
+            .where('landlordId', '==', landlordId)
             .orderBy('submittedDate', 'desc')
             .get();
             
@@ -29,7 +42,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
     
-    // Authorization check
     const decodedToken = await verifySession(req);
     if (!decodedToken) {
         return NextResponse.json({ error: 'Unauthorized: You must be logged in to submit a request.' }, { status: 401 });
@@ -38,26 +50,30 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         
-        // Add validation with Zod here in a real app
         if (!body.description || !body.tenantId) {
             return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
         }
         
-        // Security check: ensure the logged-in user is the one submitting the request
         if (decodedToken.uid !== body.tenantId) {
              return NextResponse.json({ error: 'Forbidden: You can only submit requests for yourself.' }, { status: 403 });
         }
+
+        const tenantDoc = await firestore.collection('tenants').doc(body.tenantId).get();
+        if (!tenantDoc.exists) {
+            return NextResponse.json({ error: 'Tenant profile not found.' }, { status: 404 });
+        }
+        const tenant = tenantDoc.data() as Tenant;
         
         let priorityResult = { priority: 'Medium', reasoning: 'Default priority assigned.' };
         try {
             priorityResult = await prioritizeMaintenanceRequest({ description: body.description });
         } catch (aiError) {
             console.warn("[WARN: /api/maintenance POST] Could not prioritize request via AI:", aiError);
-            // Don't block the request if AI fails
         }
         
         const newRequest = {
             ...body,
+            landlordId: tenant.landlordId, // Add landlordId to the request
             submittedDate: new Date().toISOString(),
             priority: priorityResult.priority,
             reasoning: priorityResult.reasoning,

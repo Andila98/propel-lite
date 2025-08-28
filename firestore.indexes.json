@@ -34,12 +34,22 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "submittedDate",
+          "fieldPath": "landlordId",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "submittedDate",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "units",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "landlordId",
+          "order": "ASCENDING"
         }
       ]
     }
