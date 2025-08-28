@@ -44,7 +44,7 @@ export interface Unit {
     size: string;
     isOccupied: boolean;
     tenantId?: string;
-    // propertyId and landlordId are inherited from the parent property
+    landlordId?: string;
 }
 
 export interface Tenant {
@@ -103,6 +103,7 @@ export interface MaintenanceRequest {
   description: string;
   status: 'Pending' | 'In Progress' | 'Completed';
   submittedDate: string;
+  landlordId: string;
   priority?: 'High' | 'Medium' | 'Low';
   reasoning?: string;
 }
@@ -146,7 +147,7 @@ export interface AuditLog {
     id: string;
     managerName: string;
     action: string;
-    entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager' | 'User';
+    entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
     entityName: string;
     timestamp: string | Timestamp;
 }
