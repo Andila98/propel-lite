@@ -58,7 +58,11 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
             displayName: tenantData.name,
         });
         
-        await auth.setCustomUserClaims(userRecord.uid, { role: 'tenant', profileComplete: true, landlordId: landlordId });
+        await auth.setCustomUserClaims(userRecord.uid, { 
+            role: 'tenant', 
+            profileComplete: true, 
+            landlordId: landlordId // STRICTLY link tenant to landlord
+        });
 
         const newTenant = {
             ...tenantData,

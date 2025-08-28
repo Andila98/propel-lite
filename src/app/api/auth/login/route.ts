@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -45,13 +46,15 @@ export async function POST(req: NextRequest) {
         firestoreProfile = landlordDoc.data();
       } else {
         // First login for a new landlord, create their profile.
-        firestoreProfile = {
+        const newProfile = {
           uid: userRecord.uid,
           email: userRecord.email,
           name: userRecord.displayName,
-          createdAt: new Date(),
+          createdAt: FieldValue.serverTimestamp(),
         };
-        await landlordDocRef.set(firestoreProfile);
+        await landlordDocRef.set(newProfile);
+        // CRITICAL FIX: After creating the profile, assign it to be used.
+        firestoreProfile = newProfile;
       }
     }
     

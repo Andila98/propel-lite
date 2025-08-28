@@ -4,6 +4,7 @@ import { auth, firestore } from '@/lib/firebase-admin';
 import jwt from 'jsonwebtoken';
 import type { PropertyManager } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -33,8 +34,12 @@ export async function POST(req: NextRequest) {
             displayName,
         });
 
-        // 2. Set custom claims
-        await auth.setCustomUserClaims(userRecord.uid, { role: role, profileComplete: true });
+        // 2. Set custom claims, including the landlordId
+        await auth.setCustomUserClaims(userRecord.uid, { 
+            role: role, 
+            profileComplete: true,
+            landlordId: inviterId // Securely link manager to landlord
+        });
 
         // 3. Create the manager profile in Firestore
         const newManager: Omit<PropertyManager, 'id'> = {
@@ -42,6 +47,7 @@ export async function POST(req: NextRequest) {
             name: displayName,
             email: email,
             propertiesManaged: [],
+            landlordId: inviterId, // Store the landlord link in Firestore as well
             permissions: {
                 // Default permissions for a new manager
                 canAddProperties: false,
