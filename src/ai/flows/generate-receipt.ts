@@ -6,7 +6,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const GenerateReceiptInputSchema = z.object({
     tenantId: z.string(),
@@ -27,6 +27,8 @@ export const GenerateReceiptOutputSchema = z.object({
 export type GenerateReceiptOutput = z.infer<typeof GenerateReceiptOutputSchema>;
 
 async function getReceiptData(input: GenerateReceiptInput) {
+    if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");
+
     const [tenantSnapshot, paymentSnapshot] = await Promise.all([
         firestore.collection('tenants').doc(input.tenantId).get(),
         firestore.collection('payments').doc(input.paymentId).get(),

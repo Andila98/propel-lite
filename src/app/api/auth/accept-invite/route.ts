@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import jwt from 'jsonwebtoken';
 import type { PropertyManager } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
@@ -11,6 +11,9 @@ export const runtime = 'nodejs';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
     try {
         const { token, displayName, password } = await req.json();
 

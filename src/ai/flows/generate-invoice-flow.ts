@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import {z} from 'genkit';
 import { add, format, getDaysInMonth } from 'date-fns';
 
@@ -38,6 +38,7 @@ export type GenerateInvoiceOutput = z.infer<typeof GenerateInvoiceOutputSchema>;
 
 
 async function getInvoiceData(input: GenerateInvoiceInput) {
+    if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");
     const tenantSnapshot = await firestore.collection('tenants').doc(input.tenantId).get();
     if (!tenantSnapshot.exists) throw new Error('Tenant not found');
     const tenant = tenantSnapshot.data()!;

@@ -1,11 +1,14 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+  }
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

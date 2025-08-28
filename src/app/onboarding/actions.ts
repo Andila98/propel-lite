@@ -1,7 +1,7 @@
 
 "use server";
 
-import { auth, firestore } from "@/lib/firebase-admin";
+import { auth, firestore, isFirebaseAdminInitialized } from "@/lib/firebase-admin";
 import { cookies } from "next/headers";
 import { authConfig } from "@/config/server-config";
 
@@ -12,6 +12,9 @@ export interface ActionState {
 }
 
 export async function completeOnboarding(): Promise<ActionState> {
+  if (!isFirebaseAdminInitialized) {
+    return { error: 'Backend services are not configured. Please contact support.' };
+  }
   try {
     const sessionCookie = cookies().get(authConfig.cookieName)?.value;
     if (!sessionCookie) {

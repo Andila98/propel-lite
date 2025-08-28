@@ -1,10 +1,13 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  if (!isFirebaseAdminInitialized) {
+    return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+  }
   try {
     const { email } = await req.json();
     if (!email) {

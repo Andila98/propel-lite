@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { endOfMonth, startOfMonth } from 'date-fns';
 
 export const ReportInputSchema = z.object({
@@ -32,6 +32,7 @@ export const ReportOutputSchema = z.object({
 export type ReportOutput = z.infer<typeof ReportOutputSchema>;
 
 async function getReportData(input: ReportInput) {
+    if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");
     const startDate = startOfMonth(new Date(input.year, input.month));
     const endDate = endOfMonth(new Date(input.year, input.month));
 

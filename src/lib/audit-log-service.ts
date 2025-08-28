@@ -1,7 +1,7 @@
 
 'use server';
 
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { AuditLog } from '@/lib/types';
 
@@ -15,7 +15,7 @@ type LogInput = Omit<AuditLog, 'id' | 'timestamp'>;
  */
 export async function logActivity(actorName: string, action: string, entity: { type: AuditLog['entityType']; name: string; id?: string; }) {
   try {
-    if (!firestore) {
+    if (!isFirebaseAdminInitialized) {
         console.warn("[AUDIT_LOG_SERVICE] Firestore not initialized. Skipping log.");
         return;
     }

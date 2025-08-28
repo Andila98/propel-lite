@@ -2,7 +2,7 @@
 "use server";
 
 import { generateMessage } from "@/ai/flows/generate-message-flow";
-import { firestore } from "@/lib/firebase-admin";
+import { firestore, isFirebaseAdminInitialized } from "@/lib/firebase-admin";
 
 export type GenerateMessageState = {
   error?: string;
@@ -10,6 +10,9 @@ export type GenerateMessageState = {
 };
 
 export async function generateMessageAction(input: { tenantId: string; reminderType: string}): Promise<GenerateMessageState> {
+  if (!isFirebaseAdminInitialized) {
+    return { error: "Backend services are not configured. Please contact support." };
+  }
   try {
     const tenantDoc = await firestore.collection("tenants").doc(input.tenantId).get();
     if (!tenantDoc.exists) {

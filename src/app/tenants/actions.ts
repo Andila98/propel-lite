@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { TenantFormSchema, TenantUpdateSchema } from '@/lib/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
@@ -20,6 +20,9 @@ export interface FormState {
 }
 
 export async function createTenantAction(prevState: FormState, formData: FormData): Promise<FormState> {
+    if (!isFirebaseAdminInitialized) {
+        return { error: 'Backend services are not configured. Please contact support.' };
+    }
     const sessionCookie = cookies().get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'Unauthorized. Please log in.' };
@@ -102,6 +105,9 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
 
 
 export async function updateTenantAction(tenantId: string, prevState: FormState, formData: FormData): Promise<FormState> {
+    if (!isFirebaseAdminInitialized) {
+        return { error: 'Backend services are not configured. Please contact support.' };
+    }
     const sessionCookie = cookies().get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'Unauthorized. Please log in.' };

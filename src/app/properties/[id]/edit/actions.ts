@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { PropertyFormSchema } from '@/lib/schemas';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import type { Property } from '@/lib/types';
@@ -24,6 +24,9 @@ export async function updatePropertyAction(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  if (!isFirebaseAdminInitialized) {
+    return { error: 'Backend services are not configured. Please contact support.' };
+  }
   
   const rawData = {
     name: formData.get('name'),

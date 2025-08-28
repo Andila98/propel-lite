@@ -6,7 +6,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { subMonths, getMonth, getYear } from 'date-fns';
 
 type PaymentStatus = 'Paid' | 'Overdue' | 'Partially Paid' | 'New';
@@ -33,6 +33,7 @@ export type PredictPaymentOutput = z.infer<typeof PredictPaymentOutputSchema>;
  * @returns A transition matrix and a list of historical statuses.
  */
 async function buildTransitionMatrix(tenantId: string) {
+    if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");
     const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
     if (!tenantDoc.exists) throw new Error("Tenant not found");
     const tenantData = tenantDoc.data()!;

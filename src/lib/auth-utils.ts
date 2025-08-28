@@ -2,7 +2,7 @@
 'use server';
 
 import type { NextRequest } from 'next/server';
-import { auth } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
@@ -13,6 +13,7 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
  * @returns The decoded claims of the authenticated user, or null if unauthorized.
  */
 export async function verifySession(req: NextRequest): Promise<DecodedIdToken | null> {
+    if (!isFirebaseAdminInitialized) return null;
     const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return null;

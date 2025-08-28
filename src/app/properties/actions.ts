@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { PropertyFormSchema } from '@/lib/schemas';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import type { FormState } from './[id]/edit/actions';
@@ -15,6 +15,9 @@ export async function createPropertyAction(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  if (!isFirebaseAdminInitialized) {
+    return { error: 'Backend services are not configured. Please contact support.' };
+  }
   const sessionCookie = cookies().get(authConfig.cookieName)?.value;
   if (!sessionCookie) {
     return { error: 'Unauthorized. Please log in.' };
