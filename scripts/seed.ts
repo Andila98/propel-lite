@@ -10,8 +10,6 @@ import { faker } from '@faker-js/faker';
 import { auth, firestore, isFirebaseAdminInitialized } from '../src/lib/firebase-admin';
 import type { Property, Unit, Tenant, Payment, MaintenanceRequest, Message, AuditLog } from '../src/lib/types';
 import { add, sub } from 'date-fns';
-import { uploadFile } from '../src/lib/storage-service';
-import imageCompression from 'browser-image-compression';
 
 if (!isFirebaseAdminInitialized) {
   console.error("Firebase Admin SDK is not initialized. Make sure your environment is configured correctly.");
@@ -20,26 +18,6 @@ if (!isFirebaseAdminInitialized) {
 
 const BATCH_SIZE = 250;
 
-// Helper to generate a placeholder image file
-async function createPlaceholderImage(width: number, height: number): Promise<File> {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d')!;
-    const randomColor = () => Math.floor(Math.random() * 256);
-    ctx.fillStyle = `rgb(${randomColor()}, ${randomColor()}, ${randomColor()})`;
-    ctx.fillRect(0, 0, width, height);
-
-    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg'));
-    if (!blob) throw new Error('Could not create blob from canvas');
-    
-    const compressedFile = await imageCompression(new File([blob], 'placeholder.jpg', { type: 'image/jpeg' }), {
-        maxSizeMB: 0.1,
-        maxWidthOrHeight: 800,
-    });
-    
-    return compressedFile as File;
-}
 
 async function clearCollection(collectionPath: string, subcollections: string[] = []) {
   const collectionRef = firestore.collection(collectionPath);
@@ -137,17 +115,12 @@ async function seedData() {
         const propertyRef = firestore.collection('properties').doc();
         const address = faker.location.streetAddress();
         
-        console.log("  - Generating and uploading image for property...");
-        const imageFile = await createPlaceholderImage(800, 500);
-        const imageUrl = await uploadFile(imageFile);
-        console.log("  - Image uploaded:", imageUrl);
-        
         const propertyData: Omit<Property, 'id'> = {
             landlordId,
             name: `${faker.location.street().split(' ')[0]} Heights`,
             address: address,
             type,
-            imageUrl: imageUrl,
+            imageUrl: `https://picsum.photos/seed/${propertyRef.id}/800/500`,
             description: faker.lorem.paragraph(),
             currency: 'KES',
             createdAt: new Date(),
