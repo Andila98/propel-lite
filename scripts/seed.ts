@@ -73,9 +73,9 @@ async function clearAllData() {
     
     console.log('Clearing existing users from Firebase Auth...');
     const users = await auth.listUsers();
-    const uidsToDelete = users.users.map(u => u.uid);
-    if(uidsToDelete.length > 0) {
-      await auth.deleteUsers(uidsToDelete);
+    if (users.users.length > 0) {
+        const uidsToDelete = users.users.map(u => u.uid);
+        await auth.deleteUsers(uidsToDelete);
     }
 
     console.log('All data cleared.');
@@ -88,11 +88,21 @@ async function seedData() {
     console.log('Creating landlord...');
     const landlordEmail = "landlord@example.com";
     const landlordPassword = "password123";
-    const landlordRecord = await auth.createUser({
-        email: landlordEmail,
-        password: landlordPassword,
-        displayName: "Alice Landlord",
-    });
+    let landlordRecord;
+    try {
+        landlordRecord = await auth.createUser({
+            email: landlordEmail,
+            password: landlordPassword,
+            displayName: "Alice Landlord",
+        });
+    } catch(e:any) {
+        if(e.code === 'auth/email-already-exists') {
+            landlordRecord = await auth.getUserByEmail(landlordEmail);
+        } else {
+            throw e;
+        }
+    }
+    
     await auth.setCustomUserClaims(landlordRecord.uid, { role: 'landlord', profileComplete: true });
 
     const landlordRef = firestore.collection('landlords').doc(landlordRecord.uid);
@@ -158,11 +168,22 @@ async function seedData() {
     for (const unit of vacantUnits.slice(0, 5)) { // Create 5 tenants
         const tenantName = faker.person.fullName();
         const tenantEmail = faker.internet.email({ firstName: tenantName.split(' ')[0] });
-        const tenantRecord = await auth.createUser({
-            email: tenantEmail,
-            displayName: tenantName,
-            password: 'password123'
-        });
+        
+        let tenantRecord;
+         try {
+            tenantRecord = await auth.createUser({
+                email: tenantEmail,
+                displayName: tenantName,
+                password: 'password123'
+            });
+        } catch(e:any) {
+            if(e.code === 'auth/email-already-exists') {
+                tenantRecord = await auth.getUserByEmail(tenantEmail);
+            } else {
+                throw e;
+            }
+        }
+        
         await auth.setCustomUserClaims(tenantRecord.uid, { role: 'tenant', profileComplete: true, landlordId: landlordId });
         
         const tenantData: Omit<Tenant, 'id'> = {
@@ -263,10 +284,12 @@ async function seed() {
 
 seed().then(() => {
     console.log('\n✅ Database seeding complete!');
-    console.log(`\nLogin with:\nEmail: landlord@example.com\nPassword: password123`);
+    console.log(`\nLogin with:\nEmail: ${landlordEmail}\nPassword: ${landlordPassword}`);
     process.exit(0);
 }).catch((e) => {
     console.error('Seeding failed:');
     console.error(e);
     process.exit(1);
 });
+
+    
