@@ -17,6 +17,8 @@ if (!isFirebaseAdminInitialized) {
 }
 
 const BATCH_SIZE = 250;
+let landlordEmail: string;
+let landlordPassword = "password123";
 
 
 async function clearCollection(collectionPath: string, subcollections: string[] = []) {
@@ -86,8 +88,7 @@ async function seedData() {
     
     // --- 1. Create Landlord ---
     console.log('Creating landlord...');
-    const landlordEmail = "landlord@example.com";
-    const landlordPassword = "password123";
+    landlordEmail = "landlord@example.com";
     let landlordRecord;
     try {
         landlordRecord = await auth.createUser({
@@ -125,7 +126,7 @@ async function seedData() {
         const propertyRef = firestore.collection('properties').doc();
         const address = faker.location.streetAddress();
         
-        const propertyData: Omit<Property, 'id'> = {
+        const propertyData: Omit<Property, 'id' | 'createdAt' | 'units'> = {
             landlordId,
             name: `${faker.location.street().split(' ')[0]} Heights`,
             address: address,
@@ -133,12 +134,10 @@ async function seedData() {
             imageUrl: `https://picsum.photos/seed/${propertyRef.id}/800/500`,
             description: faker.lorem.paragraph(),
             currency: 'KES',
-            createdAt: new Date(),
-            units: []
         };
-        await propertyRef.set(propertyData);
+        await propertyRef.set({ ...propertyData, createdAt: new Date() });
 
-        const createdProperty: Property & { units: Unit[] } = { id: propertyRef.id, ...propertyData, units: [] };
+        const createdProperty: Property & { units: Unit[] } = { id: propertyRef.id, ...propertyData, createdAt: new Date() as any, units: [] };
 
         const unitsBatch = firestore.batch();
         const numUnits = type === 'Apartment' ? faker.number.int({ min: 4, max: 10 }) : 1;
@@ -186,7 +185,7 @@ async function seedData() {
         
         await auth.setCustomUserClaims(tenantRecord.uid, { role: 'tenant', profileComplete: true, landlordId: landlordId });
         
-        const tenantData: Omit<Tenant, 'id'> = {
+        const tenantData: Omit<Tenant, 'id' | 'leaseStart' | 'leaseEnd'> = {
             uid: tenantRecord.uid,
             name: tenantName,
             email: tenantEmail,
@@ -195,13 +194,14 @@ async function seedData() {
             currentUnitId: unit.id,
             landlordId,
             rentStatus: 'Paid',
-            leaseStart: sub(new Date(), { months: faker.number.int({ min: 2, max: 10 }) }),
-            leaseEnd: add(new Date(), { months: faker.number.int({ min: 2, max: 12 }) }),
             paymentHistory: [],
         };
-        await firestore.collection('tenants').doc(tenantRecord.uid).set(tenantData);
+        const leaseStart = sub(new Date(), { months: faker.number.int({ min: 2, max: 10 }) });
+        const leaseEnd = add(new Date(), { months: faker.number.int({ min: 2, max: 12 }) });
+
+        await firestore.collection('tenants').doc(tenantRecord.uid).set({ ...tenantData, leaseStart, leaseEnd });
         await firestore.collection('properties').doc(unit.propertyId).collection('units').doc(unit.id).update({ isOccupied: true, tenantId: tenantRecord.uid });
-        tenants.push({ id: tenantRecord.uid, ...tenantData });
+        tenants.push({ id: tenantRecord.uid, ...tenantData, leaseStart: leaseStart as any, leaseEnd: leaseEnd as any });
     }
     console.log(`${tenants.length} tenants created and assigned to units.`);
 
@@ -237,7 +237,7 @@ async function seedData() {
     const maintTenant = faker.helpers.arrayElement(tenants);
     const maintProp = properties.find(p => p.id === maintTenant.propertyId);
     const maintRef = firestore.collection('maintenanceRequests').doc();
-    const maintReqData = {
+    const maintReqData: Omit<MaintenanceRequest, 'id'> = {
         landlordId,
         tenantId: maintTenant.id,
         tenantName: maintTenant.name,
@@ -261,7 +261,7 @@ async function seedData() {
         content: "Hi there, just a friendly reminder that rent is due on the 1st. Thanks!",
         timestamp: new Date(),
         isRead: false,
-    } as Omit<Message, 'id'>);
+    } as Omit<Message, 'id' | 'timestamp'> & { timestamp: Date });
 
     // Audit Log
     const auditRef = firestore.collection('auditLogs').doc();
@@ -271,7 +271,7 @@ async function seedData() {
         entityType: 'Tenant',
         entityName: maintTenant.name,
         timestamp: new Date()
-    } as Omit<AuditLog, 'id'>);
+    } as Omit<AuditLog, 'id' | 'timestamp'> & { timestamp: Date });
 
     await otherDataBatch.commit();
     console.log('Sample requests, messages, and logs created.');
@@ -291,5 +291,3 @@ seed().then(() => {
     console.error(e);
     process.exit(1);
 });
-
-    
