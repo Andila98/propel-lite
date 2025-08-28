@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2 } from 'lucide-react';
+import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property, Payment, Message } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
@@ -41,6 +41,7 @@ import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
+import { predictNextPayment } from '@/ai/flows/predict-payment-flow';
 
 
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
@@ -104,6 +105,54 @@ function SentimentAnalysis({ tenantId }: { tenantId: string }) {
             </CardContent>
         </Card>
     )
+}
+
+function PaymentPrediction({ tenantId, currentStatus }: { tenantId: string, currentStatus: string }) {
+    const [prediction, setPrediction] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function getPrediction() {
+            if (!tenantId) return;
+            setLoading(true);
+            try {
+                const result = await predictNextPayment({ tenantId, currentStatus });
+                setPrediction(result);
+            } catch (error) {
+                console.error("Prediction Error:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        getPrediction();
+    }, [tenantId, currentStatus]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>AI Payment Prediction</CardTitle>
+                <CardDescription>Markov chain analysis of payment history.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {loading && (
+                    <div className="flex justify-center items-center h-24">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                )}
+                {prediction && !loading && (
+                     <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                           <BrainCircuit className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-lg">Next Status: <span className="text-primary">{prediction.predictedStatus}</span></p>
+                            <p className="text-sm text-muted-foreground">{prediction.reasoning}</p>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 export default function TenantDetailPage() {
@@ -335,6 +384,7 @@ export default function TenantDetailPage() {
                 </CardContent>
               </Card>
               <SentimentAnalysis tenantId={tenant.id} />
+              <PaymentPrediction tenantId={tenant.id} currentStatus={rentStatus} />
             </div>
 
             <div className="lg:col-span-2">
