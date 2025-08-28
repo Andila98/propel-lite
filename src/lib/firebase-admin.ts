@@ -5,36 +5,35 @@ let isFirebaseAdminInitialized = admin.apps.length > 0;
 
 if (!isFirebaseAdminInitialized) {
   try {
-    const serviceAccountString = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 
-      ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf-8')
-      : null;
-
-    if (serviceAccountString) {
-      const serviceAccount = JSON.parse(serviceAccountString);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: serviceAccount.project_id,
-        storageBucket: `${serviceAccount.project_id}.appspot.com`
-      });
-      isFirebaseAdminInitialized = true;
-      console.log('[FIREBASE_ADMIN] Initialized successfully from Base64 environment variable.');
-    } else if (process.env.NODE_ENV === 'development' || process.env.VITEST) {
-      // For local development, try to use Application Default Credentials
-      // This works if you've run `gcloud auth application-default login`
-      // or if you're running on a GCP environment (like Cloud Shell)
-      console.log('[FIREBASE_ADMIN] No Base64 credentials found. Attempting to use Application Default Credentials for development.');
-      admin.initializeApp();
-      isFirebaseAdminInitialized = true;
-      console.log('[FIREBASE_ADMIN] Initialized successfully using Application Default Credentials.');
-    } else {
-        // This is a critical error for a production environment if credentials aren't set
-        throw new Error("Firebase Admin SDK credentials not found in production environment. Set GOOGLE_APPLICATION_CREDENTIALS_BASE64.");
-    }
+    // For local development, try to use Application Default Credentials first.
+    // This works if you've run `gcloud auth application-default login`.
+    admin.initializeApp();
+    isFirebaseAdminInitialized = true;
+    console.log('[FIREBASE_ADMIN] Initialized successfully using Application Default Credentials.');
   } catch (error: any) {
-    console.error('[FIREBASE_ADMIN] Failed to initialize:', error.message);
-    // Don't re-throw in a way that crashes the whole app start, 
-    // but ensure features that need it will fail gracefully.
-    // The isFirebaseAdminInitialized flag will remain false.
+    // If ADC fails, try the environment variable method, which is ideal for production.
+    console.warn('[FIREBASE_ADMIN] Application Default Credentials failed. Falling back to environment variable.');
+    try {
+        const serviceAccountString = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 
+        ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf-8')
+        : null;
+
+        if (serviceAccountString) {
+            const serviceAccount = JSON.parse(serviceAccountString);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+                projectId: serviceAccount.project_id,
+                storageBucket: `${serviceAccount.project_id}.appspot.com`
+            });
+            isFirebaseAdminInitialized = true;
+            console.log('[FIREBASE_ADMIN] Initialized successfully from Base64 environment variable.');
+        } else {
+            // This is a critical error if no credentials are found at all.
+            throw new Error("No Firebase Admin SDK credentials found. Please either run 'gcloud auth application-default login' for local development or set the GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable for production.");
+        }
+    } catch (e: any) {
+         console.error('[FIREBASE_ADMIN] Failed to initialize from environment variable:', e.message);
+    }
   }
 }
 
@@ -49,7 +48,7 @@ if (isFirebaseAdminInitialized) {
     auth = admin.auth();
     storage = admin.storage();
 } else {
-    console.warn("[FIREBASE_ADMIN] SDK not initialized. Server-side Firebase services will not be available.");
+    console.error("[FIREBASE_ADMIN] SDK NOT INITIALIZED. Server-side Firebase services will not be available.");
 }
 
 
