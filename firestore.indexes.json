@@ -20,7 +20,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "tenantId",
+          "fieldPath": "landlordId",
           "order": "ASCENDING"
         },
         {
