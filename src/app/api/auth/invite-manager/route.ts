@@ -11,19 +11,20 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
-    if (!isFirebaseAdminInitialized) {
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
-    }
     try {
-        const landlordId = await getUserIdFromRequest(req);
-        if (!landlordId) {
-            return NextResponse.json({ error: 'Unauthorized: You must be logged in to invite managers.' }, { status: 401 });
-        }
-
         const { email } = await req.json();
 
         if (!email) {
             return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+        }
+        
+        if (!isFirebaseAdminInitialized) {
+            return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+        }
+
+        const landlordId = await getUserIdFromRequest(req);
+        if (!landlordId) {
+            return NextResponse.json({ error: 'Unauthorized: You must be logged in to invite managers.' }, { status: 401 });
         }
 
         // Check if a user with this email already exists in Firebase Auth

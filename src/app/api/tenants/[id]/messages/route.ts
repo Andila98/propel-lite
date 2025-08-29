@@ -41,10 +41,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 // POST /api/tenants/{tenantId}/messages
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-    if (!isFirebaseAdminInitialized) {
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
-    }
     try {
+        const { content } = await req.json();
+
+        if (!content) {
+            return NextResponse.json({ error: 'Message content is required.' }, { status: 400 });
+        }
+
+        if (!isFirebaseAdminInitialized) {
+            return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+        }
+        
         const claims = await verifySession(req);
         if (!claims) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -52,12 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
 
         const tenantId = params.id;
-        const { content } = await req.json();
-
-        if (!content) {
-            return NextResponse.json({ error: 'Message content is required.' }, { status: 400 });
-        }
-
+        
         const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
         if (!tenantDoc.exists || tenantDoc.data()?.landlordId !== landlordId) {
             return NextResponse.json({ error: 'Tenant not found or access denied.' }, { status: 404 });

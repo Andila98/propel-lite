@@ -38,20 +38,20 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    if (!isFirebaseAdminInitialized) {
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
-    }
-    
-    const decodedToken = await verifySession(req);
-    if (!decodedToken) {
-        return NextResponse.json({ error: 'Unauthorized: You must be logged in to submit a request.' }, { status: 401 });
-    }
-
     try {
         const body = await req.json();
         
         if (!body.description || !body.tenantId) {
             return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+        }
+        
+        if (!isFirebaseAdminInitialized) {
+            return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+        }
+        
+        const decodedToken = await verifySession(req);
+        if (!decodedToken) {
+            return NextResponse.json({ error: 'Unauthorized: You must be logged in to submit a request.' }, { status: 401 });
         }
         
         if (decodedToken.uid !== body.tenantId) {
