@@ -1,5 +1,6 @@
 
 import admin from 'firebase-admin';
+import { firebaseConfig } from '@/config/firebase-config';
 
 let isFirebaseAdminInitialized = admin.apps.length > 0;
 
@@ -7,7 +8,9 @@ if (!isFirebaseAdminInitialized) {
   try {
     // For local development, try to use Application Default Credentials first.
     // This works if you've run `gcloud auth application-default login`.
-    admin.initializeApp();
+    admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+    });
     isFirebaseAdminInitialized = true;
     console.log('[FIREBASE_ADMIN] Initialized successfully using Application Default Credentials.');
   } catch (error: any) {
