@@ -44,14 +44,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If the user is authenticated and trying to access the root path, redirect them to the dashboard.
-  if (pathname === '/') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
-  }
-
-
   // The actual verification of the cookie (role, expiration) will happen
   // in the API routes or server components. The middleware just ensures a cookie exists.
   return NextResponse.next();
