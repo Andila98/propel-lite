@@ -359,5 +359,3 @@ seed().then(() => {
     console.error(e.message); // Log a cleaner message
     process.exit(1);
 });
-
-    
