@@ -6,9 +6,17 @@ import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { DecodedIdToken, UserRecord } from 'firebase-admin/auth';
 
+// --- Session Cache ---
+interface CacheEntry {
+    claims: DecodedIdToken;
+    expires: number; // Expiration timestamp in milliseconds
+}
+const sessionCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Verifies the session cookie from a request on the server (Node.js runtime).
+ * It uses an in-memory cache to reduce latency from repeated Firebase checks.
  * @param req - The NextRequest object.
  * @returns The decoded claims of the authenticated user, or null if unauthorized.
  */
@@ -19,11 +27,26 @@ export async function verifySession(req: NextRequest): Promise<DecodedIdToken | 
         return null;
     }
 
+    // 1. Check the cache first
+    const cachedEntry = sessionCache.get(sessionCookie);
+    if (cachedEntry && cachedEntry.expires > Date.now()) {
+        return cachedEntry.claims;
+    }
+
     try {
+        // 2. If not in cache or expired, verify with Firebase
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+        
+        // 3. Add the new entry to the cache
+        sessionCache.set(sessionCookie, {
+            claims: decodedClaims,
+            expires: Date.now() + CACHE_TTL_MS,
+        });
+
         return decodedClaims;
     } catch (error) {
-        // Session cookie is invalid.
+        // Session cookie is invalid, clear from cache if it exists
+        sessionCache.delete(sessionCookie);
         return null;
     }
 }
@@ -63,6 +86,8 @@ export async function getLandlordAndActor(sessionCookie: string): Promise<{ land
         return { landlordId: null, actor: null };
     }
     try {
+        // We don't use the cache here because server actions are less frequent and might be more sensitive.
+        // Direct verification ensures permissions are always fresh for mutation operations.
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
         const actor = await auth.getUser(decodedClaims.uid);
         
