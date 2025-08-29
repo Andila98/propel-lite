@@ -41,6 +41,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
 
 /**
  * Fetches the complete user profile from Firestore based on the UID.
+ * If a profile does not exist for the user's role, it creates one.
  * @param uid - The user's unique ID.
  * @returns A complete user profile object, or null if not found.
  */
@@ -49,19 +50,31 @@ export async function getUserProfile(uid: string): Promise<User | null> {
     if (!userRecord) return null;
 
     const userRole = userRecord.customClaims?.role || 'landlord';
-    let firestoreProfile: any = {};
     
     const collections: Record<string, string> = {
         manager: 'managers',
         tenant: 'tenants',
         landlord: 'landlords'
     };
-
     const collectionName = collections[userRole];
+    let firestoreProfile: any = {};
+    
     if (collectionName) {
-        const doc = await firestore.collection(collectionName).doc(userRecord.uid).get();
+        const docRef = firestore.collection(collectionName).doc(userRecord.uid);
+        const doc = await docRef.get();
         if (doc.exists) {
             firestoreProfile = doc.data();
+        } else {
+            // Profile does not exist, create it. This is crucial for social logins.
+            const newProfileData = {
+                uid: userRecord.uid,
+                email: userRecord.email,
+                name: userRecord.displayName,
+                createdAt: FieldValue.serverTimestamp(),
+            };
+            await docRef.set(newProfileData);
+            firestoreProfile = newProfileData;
+            console.log(`[AUTH_SERVICE] Created missing Firestore profile for user ${uid} in collection ${collectionName}.`);
         }
     }
 
