@@ -1,6 +1,5 @@
 
 import admin from 'firebase-admin';
-import { firebaseConfig } from '@/config/firebase-config';
 
 let isFirebaseAdminInitialized = admin.apps.length > 0;
 
@@ -15,27 +14,16 @@ if (!isFirebaseAdminInitialized) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id,
-        storageBucket: `${serviceAccount.project_id}.appspot.com`
+        storageBucket: `${serviceAccount.project_id}.appspot.com`, // Explicitly set storage bucket
       });
       isFirebaseAdminInitialized = true;
-      console.log('[FIREBASE_ADMIN] Initialized successfully from Base64 environment variable.');
+      console.log('[FIREBASE_ADMIN] Initialized successfully from environment variable.');
     } else {
-      // This is a critical error if no credentials are found.
-      // In a local environment without the env var, we can try to fall back to default creds.
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("[FIREBASE_ADMIN] GOOGLE_APPLICATION_CREDENTIALS_BASE64 not set. Falling back to Application Default Credentials for local development.");
-        admin.initializeApp({
-            projectId: firebaseConfig.projectId,
-        });
-        isFirebaseAdminInitialized = true;
-        console.log('[FIREBASE_ADMIN] Initialized successfully using Application Default Credentials.');
-      } else {
-        throw new Error("No Firebase Admin SDK credentials found. Please set the GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable for production.");
-      }
+      // This is a critical failure. The app cannot run without credentials.
+      throw new Error("Firebase Admin SDK credentials are not available. Set the GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable.");
     }
   } catch (e: any) {
     console.error('[FIREBASE_ADMIN] CRITICAL: Failed to initialize Firebase Admin SDK:', e.message);
-    // Do not set isFirebaseAdminInitialized to true if any initialization path fails.
     isFirebaseAdminInitialized = false;
   }
 }
