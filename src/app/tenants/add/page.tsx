@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm, Controller } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +16,19 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Unit, Property } from '@/lib/types';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
-import { useFormState } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { createTenantAction } from '../actions';
+
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+         <Button type="submit" disabled={pending} className="w-full md:w-auto">
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Add Tenant
+        </Button>
+    )
+}
 
 export default function AddTenantPage() {
   const router = useRouter();
@@ -28,11 +39,9 @@ export default function AddTenantPage() {
   const [state, formAction] = useFormState(createTenantAction, { success: false, errors: undefined, error: undefined });
 
   const {
-    register,
-    control,
-    handleSubmit,
     watch,
-    formState: { errors: formErrors },
+    control,
+    setValue
   } = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),
   });
@@ -94,20 +103,20 @@ export default function AddTenantPage() {
                 <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
-                    <Input id="name" {...register("name")} autoComplete="name" />
-                    {(formErrors.name || state.errors?.name) && <p className="text-sm text-destructive mt-1">{formErrors.name?.message || state.errors?.name?.[0]}</p>}
+                    <Input id="name" name="name" autoComplete="name" />
+                    {state.errors?.name && <p className="text-sm text-destructive mt-1">{state.errors.name[0]}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="email">Tenant Email</Label>
-                        <Input id="email" type="email" {...register("email")} autoComplete="email" />
-                        {(formErrors.email || state.errors?.email) && <p className="text-sm text-destructive mt-1">{formErrors.email?.message || state.errors?.email?.[0]}</p>}
+                        <Input id="email" name="email" type="email" autoComplete="email" />
+                        {state.errors?.email && <p className="text-sm text-destructive mt-1">{state.errors.email[0]}</p>}
                     </div>
                      <div>
                         <Label htmlFor="phone">Phone Number (Optional)</Label>
-                        <Input id="phone" {...register("phone")} autoComplete="tel" />
-                        {(formErrors.phone || state.errors?.phone) && <p className="text-sm text-destructive mt-1">{formErrors.phone?.message || state.errors?.phone?.[0]}</p>}
+                        <Input id="phone" name="phone" autoComplete="tel" />
+                        {state.errors?.phone && <p className="text-sm text-destructive mt-1">{state.errors.phone[0]}</p>}
                     </div>
                 </div>
 
@@ -118,61 +127,60 @@ export default function AddTenantPage() {
                             name="propertyId"
                             control={control}
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={propertiesLoading}>
+                                <Select onValueChange={(value) => {
+                                        field.onChange(value);
+                                        setValue('unitId', ''); // Reset unit when property changes
+                                    }} 
+                                    name="propertyId" 
+                                    defaultValue={field.value} 
+                                    disabled={propertiesLoading}
+                                >
                                 <SelectTrigger id="propertyId">
                                     <SelectValue placeholder={propertiesLoading ? "Loading..." : "Select a property..."} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {properties.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.address}</SelectItem>
+                                        <SelectItem key={p.id} value={p.id}>{p.name || p.address}</SelectItem>
                                     ))}
                                 </SelectContent>
                                 </Select>
                             )}
                         />
-                        {(formErrors.propertyId || state.errors?.propertyId) && <p className="text-sm text-destructive mt-1">{formErrors.propertyId?.message || state.errors?.propertyId?.[0]}</p>}
+                         {state.errors?.propertyId && <p className="text-sm text-destructive mt-1">{state.errors.propertyId[0]}</p>}
                     </div>
                     <div>
                         <Label htmlFor="unitId">Available Unit</Label>
-                        <Controller
-                            name="unitId"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
-                                <SelectTrigger id="unitId">
-                                    <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableUnits.map((u: Unit) => (
-                                        <SelectItem key={u.id} value={u.id}>
-                                            {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                            )}
-                        />
-                         {(formErrors.unitId || state.errors?.unitId) && <p className="text-sm text-destructive mt-1">{formErrors.unitId?.message || state.errors?.unitId?.[0]}</p>}
+                         <Select name="unitId" disabled={!selectedPropertyId || availableUnits.length === 0}>
+                            <SelectTrigger id="unitId">
+                                <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableUnits.map((u: Unit) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                        {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                         {state.errors?.unitId && <p className="text-sm text-destructive mt-1">{state.errors.unitId[0]}</p>}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                     <Label htmlFor="leaseStart">Lease Start Date</Label>
-                    <Input id="leaseStart" type="date" {...register("leaseStart")} />
-                    {(formErrors.leaseStart || state.errors?.leaseStart) && <p className="text-sm text-destructive mt-1">{formErrors.leaseStart?.message || state.errors?.leaseStart?.[0]}</p>}
+                    <Input id="leaseStart" name="leaseStart" type="date" />
+                    {state.errors?.leaseStart && <p className="text-sm text-destructive mt-1">{state.errors.leaseStart[0]}</p>}
                     </div>
                     <div>
                     <Label htmlFor="leaseEnd">Lease End Date</Label>
-                    <Input id="leaseEnd" type="date" {...register("leaseEnd")} />
-                    {(formErrors.leaseEnd || state.errors?.leaseEnd) && <p className="text-sm text-destructive mt-1">{formErrors.leaseEnd?.message || state.errors?.leaseEnd?.[0]}</p>}
+                    <Input id="leaseEnd" name="leaseEnd" type="date" />
+                    {state.errors?.leaseEnd && <p className="text-sm text-destructive mt-1">{state.errors.leaseEnd[0]}</p>}
                     </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                    <Button type="submit">
-                        Add Tenant
-                    </Button>
+                   <SubmitButton />
                 </div>
                 </form>
             </CardContent>

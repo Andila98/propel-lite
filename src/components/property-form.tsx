@@ -24,19 +24,27 @@ import type { FormState } from '@/app/properties/[id]/edit/actions';
 
 interface PropertyFormProps {
     formAction: (payload: FormData) => void;
-    initialState?: FormState;
+    initialState: FormState;
     initialData?: Partial<PropertyFormValues>;
-    form?: UseFormReturn<PropertyFormValues>;
     isOnboarding?: boolean;
 }
 
-export function PropertyForm({ formAction, initialState, initialData, form: passedForm, isOnboarding = false }: PropertyFormProps) {
+function SubmitButton({ isOnboarding }: { isOnboarding?: boolean }) {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" className="w-full md:w-auto" disabled={pending}>
+            {pending ? <Loader2 className="animate-spin" /> : (isOnboarding ? "Next: Add Property Manager" : "Save Property")}
+        </Button>
+    )
+}
+
+export function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isPending, startTransition] = useTransition();
   
-  const defaultForm = useForm<PropertyFormValues>({
+  const form = useForm<PropertyFormValues>({
+    resolver: zodResolver(PropertyFormSchema),
     defaultValues: initialData || {
       name: "",
       address: "",
@@ -47,9 +55,8 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
     },
   });
   
-  const form = passedForm || defaultForm;
-  
   const { register, control, handleSubmit, formState, setValue, watch, getValues, setError, reset } = form;
+  const { errors } = formState;
 
   useEffect(() => {
     if (initialData) {
@@ -57,16 +64,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
       setImagePreview(initialData.imageUrl || null);
     }
   }, [initialData, reset]);
-
-  useEffect(() => {
-    if (initialState?.errors) {
-        for (const [field, messages] of Object.entries(initialState.errors)) {
-            if (messages) {
-                setError(field as keyof PropertyFormValues, { type: 'server', message: messages.join(', ') });
-            }
-        }
-    }
-  }, [initialState, setError]);
 
   const { fields, append, remove, replace } = useFieldArray({
     control,
@@ -191,31 +188,11 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   };
   
   const clientAction = (formData: FormData) => {
-     startTransition(() => {
-        const propertyData = getValues();
-    
-        const validation = PropertyFormSchema.safeParse(propertyData);
-        if (!validation.success) {
-          toast({
-            title: "Invalid Input",
-            description: "Please check the form for errors before submitting.",
-            variant: "destructive",
-          });
-          handleSubmit(() => {})()
-          return;
-        }
-
-        const newFormData = new FormData();
-        Object.entries(validation.data).forEach(([key, value]) => {
-            if (key === 'units') {
-                newFormData.append(key, JSON.stringify(value));
-            } else if (value !== undefined && value !== null) {
-                newFormData.append(key, String(value));
-            }
-        });
-        
-        formAction(newFormData);
-     });
+     // We need to manually append the units array as it's not a standard form element
+    const propertyData = getValues();
+    formData.append('units', JSON.stringify(propertyData.units));
+    formData.append('imageUrl', propertyData.imageUrl || '');
+    formAction(formData);
   }
   
   const cardHeader = isOnboarding ? (
@@ -233,7 +210,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
   return (
     <TooltipProvider>
     <form action={clientAction}>
-        <input type="hidden" {...register('imageUrl')} />
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-6">
                 <Card>
@@ -244,12 +220,12 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                           <div className="sm:col-span-2">
                               <Label htmlFor="name">Property Name</Label>
                               <Input id="name" {...register("name")} placeholder="e.g. Greenview Apartments" />
-                              {formState.errors.name && <p className="text-sm text-destructive mt-1">{formState.errors.name.message}</p>}
+                              {initialState?.errors?.name && <p className="text-sm text-destructive mt-1">{initialState.errors.name[0]}</p>}
                           </div>
                           <div className="sm:col-span-2">
                               <Label htmlFor="address">Address</Label>
                               <Input id="address" {...register("address")} autoComplete="street-address" />
-                              {formState.errors.address && <p className="text-sm text-destructive mt-1">{formState.errors.address.message}</p>}
+                              {initialState?.errors?.address && <p className="text-sm text-destructive mt-1">{initialState.errors.address[0]}</p>}
                           </div>
                             <div>
                             <Label htmlFor="currency">Currency</Label>
@@ -257,7 +233,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                                 name="currency"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} name={field.name}>
                                     <SelectTrigger id="currency">
                                         <SelectValue placeholder="Select currency..." />
                                     </SelectTrigger>
@@ -269,7 +245,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                                     </Select>
                                 )}
                             />
-                            {formState.errors.currency && <p className="text-sm text-destructive mt-1">{formState.errors.currency.message}</p>}
+                            {initialState?.errors?.currency && <p className="text-sm text-destructive mt-1">{initialState.errors.currency[0]}</p>}
                            </div>
                           <div className="sm:col-span-2">
                             <div className="flex items-center gap-2">
@@ -291,7 +267,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                                   name="type"
                                   control={control}
                                   render={({ field }) => (
-                                      <Select onValueChange={(value) => handlePropertyTypeChange(value as any)} value={field.value}>
+                                      <Select onValueChange={(value) => handlePropertyTypeChange(value as any)} defaultValue={field.value} name={field.name}>
                                       <SelectTrigger id="type">
                                           <SelectValue placeholder="Select a type..." />
                                       </SelectTrigger>
@@ -303,14 +279,14 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                                       </Select>
                                   )}
                               />
-                              {formState.errors.type && <p className="text-sm text-destructive mt-1">{formState.errors.type.message}</p>}
+                               {initialState?.errors?.type && <p className="text-sm text-destructive mt-1">{initialState.errors.type[0]}</p>}
                           </div>
                         </div>
                         
                         <div>
                             <Label htmlFor="description">Property Description</Label>
                             <Textarea id="description" {...register("description")} placeholder="e.g., A beautiful apartment with stunning views..." />
-                            {formState.errors.description && <p className="text-sm text-destructive mt-1">{formState.errors.description.message}</p>}
+                             {initialState?.errors?.description && <p className="text-sm text-destructive mt-1">{initialState.errors.description[0]}</p>}
                         </div>
                     </div>
                   </CardContent>
@@ -346,7 +322,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                                         handleUnitGeneration(num);
                                     }}
                                 />
-                                {formState.errors.numberOfUnits && <p className="text-sm text-destructive mt-1">{formState.errors.numberOfUnits.message}</p>}
+                                {initialState?.errors?.numberOfUnits && <p className="text-sm text-destructive mt-1">{initialState.errors.numberOfUnits[0]}</p>}
                             </div>
                             <div className="relative">
                                 <Separator />
@@ -385,7 +361,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                       <Card key={field.id} className="p-4">
                         <div className="flex justify-between items-center mb-4">
                           <h4 className="text-lg font-medium">
-                            {propertyType === 'Apartment' ? `Unit Details` : 'Unit Details'}
+                            {propertyType === 'Apartment' ? `Unit ${index + 1}` : 'Unit Details'}
                           </h4>
                           {propertyType === 'Apartment' && (
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10">
@@ -398,14 +374,17 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                            <div>
                             <Label htmlFor={`units.${index}.unitNumber`}>Unit Number</Label>
                             <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
+                             {initialState?.errors?.units?.[index]?.unitNumber && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].unitNumber[0]}</p>}
                           </div>
                           <div>
                             <Label htmlFor={`units.${index}.size`}>Size/Type</Label>
                              <Input id={`units.${index}.size`} {...register(`units.${index}.size`)} placeholder="e.g. 2 Bedroom"/>
+                             {initialState?.errors?.units?.[index]?.size && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].size[0]}</p>}
                           </div>
                           <div>
                             <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
                             <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`, { valueAsNumber: true })} />
+                            {initialState?.errors?.units?.[index]?.rent && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].rent[0]}</p>}
                           </div>
                           <div className="flex items-center space-x-2 pt-6">
                                <Controller
@@ -422,11 +401,6 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                               <Label htmlFor={`units.${index}.isOccupied`}>Occupied</Label>
                             </div>
                         </div>
-                         {formState.errors.units?.[index] && (
-                            <div className="text-sm text-destructive mt-2">
-                               {Object.values(formState.errors.units[index] as object).map((error: any, i) => error.message && <p key={i}>{error.message}</p>)}
-                            </div>
-                          )}
                       </Card>
                     ))}
                      {propertyType === 'Apartment' && (
@@ -435,7 +409,7 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                             Add Another Unit
                         </Button>
                     )}
-                    {formState.errors.units && typeof formState.errors.units.message === 'string' && <p className="text-sm text-destructive mt-1">{formState.errors.units.message}</p>}
+                    {initialState?.errors?.units && typeof initialState.errors.units === 'string' && <p className="text-sm text-destructive mt-1">{initialState.errors.units}</p>}
                 </div>
             </div>
             <div className="lg:col-span-2 space-y-6">
@@ -475,16 +449,14 @@ export function PropertyForm({ formAction, initialState, initialData, form: pass
                         <div className="mt-4">
                              <Label htmlFor="image" className="sr-only">Upload Image</Label>
                              <Input id="image" type="file" accept="image/*" onChange={handleFileChange} disabled={isUploading}/>
-                             {formState.errors.imageUrl && <p className="text-sm text-destructive mt-1">{formState.errors.imageUrl.message}</p>}
+                             {initialState?.errors?.imageUrl && <p className="text-sm text-destructive mt-1">{initialState.errors.imageUrl[0]}</p>}
                         </div>
                     </CardContent>
                 </Card>
             </div>
         </div>
-        <div className="mt-8">
-            <Button type="submit" className="w-full md:w-auto" disabled={isPending || isUploading}>
-                {isPending ? <Loader2 className="animate-spin" /> : (isOnboarding ? "Next: Add Property Manager" : "Save Property")}
-            </Button>
+        <div className="mt-8 flex justify-end">
+            <SubmitButton isOnboarding={isOnboarding} />
         </div>
     </form>
     </TooltipProvider>

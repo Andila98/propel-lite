@@ -46,7 +46,10 @@ export default function AddPropertyPage() {
             </Link>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Add New Property</h2>
         </div>
-        <PropertyForm formAction={formAction} initialState={state} />
+        <PropertyForm 
+            formAction={formAction}
+            initialState={state}
+        />
     </div>
   );
 }

@@ -41,7 +41,7 @@ export async function createPropertyAction(
     type: formData.get('type'),
     currency: formData.get('currency'),
     description: formData.get('description'),
-    imageUrl: formData.get('imageUrl'),
+    imageUrl: formData.get('imageUrl') || undefined,
     units: JSON.parse(formData.get('units') as string),
     numberOfUnits: Number(formData.get('numberOfUnits')),
   };
@@ -59,18 +59,19 @@ export async function createPropertyAction(
 
   try {
     const propertyRef = firestore.collection('properties').doc();
+    const landlordId = actor.customClaims?.role === 'manager' ? actor.customClaims?.landlordId : actor.uid;
 
     await firestore.runTransaction(async (transaction) => {
         transaction.set(propertyRef, {
             ...mainPropertyData,
-            landlordId: actor.uid, // Set landlordId to the logged-in user
+            landlordId: landlordId, 
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         });
 
         units.forEach(unit => {
             const unitRef = propertyRef.collection('units').doc();
-            transaction.set(unitRef, { ...unit, landlordId: actor.uid });
+            transaction.set(unitRef, { ...unit, landlordId: landlordId });
         });
     });
 
