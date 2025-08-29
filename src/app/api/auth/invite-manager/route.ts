@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import jwt from 'jsonwebtoken';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getLandlordId } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -11,6 +11,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
     try {
         const { email } = await req.json();
 
@@ -18,11 +21,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
         }
         
-        if (!isFirebaseAdminInitialized) {
-            return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
-        }
-
-        const landlordId = await getUserIdFromRequest(req);
+        const landlordId = await getLandlordId(req);
         if (!landlordId) {
             return NextResponse.json({ error: 'Unauthorized: You must be logged in to invite managers.' }, { status: 401 });
         }

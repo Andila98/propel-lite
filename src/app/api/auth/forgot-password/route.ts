@@ -5,14 +5,13 @@ import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+      return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
   try {
     const { email } = await req.json();
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-    }
-
-    if (!isFirebaseAdminInitialized) {
-      return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
 
     await auth.generatePasswordResetLink(email);
