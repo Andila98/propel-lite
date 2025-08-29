@@ -335,8 +335,18 @@ async function seedData() {
 }
 
 async function seed() {
-    await clearAllData();
-    await seedData();
+    try {
+        await clearAllData();
+        await seedData();
+    } catch(e: any) {
+        if (e.code === 5) { // gRPC 'NOT_FOUND' error code
+            console.error('\n❌ Error: Firestore database not found.');
+            console.error('Please go to the Firebase Console and create a Firestore database for this project.');
+            console.error('Select "Start in production mode" and choose a region.\n');
+            throw e; // re-throw the original error to exit the process
+        }
+        throw e;
+    }
 }
 
 seed().then(() => {
@@ -345,7 +355,9 @@ seed().then(() => {
     console.log(`\nLogin with Manager:\nEmail: ${managerEmail}\nPassword: ${managerPassword}`);
     process.exit(0);
 }).catch((e) => {
-    console.error('Seeding failed:');
-    console.error(e);
+    console.error('\nSeeding failed:');
+    console.error(e.message); // Log a cleaner message
     process.exit(1);
 });
+
+    
