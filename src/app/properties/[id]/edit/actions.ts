@@ -3,11 +3,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { PropertyFormSchema } from '@/lib/schemas';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import type { Property } from '@/lib/types';
 import { uploadFile } from '@/lib/storage-service';
+import { verifySession } from '@/lib/auth-utils';
+import { cookies } from 'next/headers';
+import { authConfig } from '@/config/server-config';
 
 
 export interface FormState {
@@ -26,6 +29,22 @@ export async function updatePropertyAction(
 ): Promise<FormState> {
   if (!isFirebaseAdminInitialized) {
     return { error: 'Backend services are not configured. Please contact support.' };
+  }
+
+  const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+  if (!sessionCookie) {
+    return { error: 'Unauthorized. Please log in.' };
+  }
+
+  let actor;
+  try {
+    const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+    actor = await auth.getUser(decodedClaims.uid);
+     if (actor.customClaims?.role !== 'landlord' && !actor.customClaims?.permissions?.canEditProperties) {
+       return { error: "You don't have permission to edit properties." };
+    }
+  } catch (error) {
+     return { error: 'Unauthorized. Please log in.' };
   }
   
   const rawData = {

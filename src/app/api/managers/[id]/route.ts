@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
+import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -9,6 +10,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
+
+    const claims = await verifySession(req);
+    if (!claims) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const managerId = params.id;
         const managerDoc = await firestore.collection('managers').doc(managerId).get();
@@ -30,6 +37,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
+     const claims = await verifySession(req);
+    if (!claims || claims.role !== 'landlord') {
+        return NextResponse.json({ error: 'Unauthorized: Only landlords can edit managers.' }, { status: 401 });
+    }
+
     try {
         const managerId = params.id;
         const body = await req.json();
@@ -62,6 +74,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
+    const claims = await verifySession(req);
+    if (!claims || claims.role !== 'landlord') {
+        return NextResponse.json({ error: 'Unauthorized: Only landlords can delete managers.' }, { status: 401 });
+    }
+
     try {
         const managerId = params.id;
         const managerRef = firestore.collection('managers').doc(managerId);
