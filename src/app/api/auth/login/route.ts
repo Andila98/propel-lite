@@ -1,8 +1,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
-import type { User } from '@/hooks/use-auth';
+import { createSession } from '@/lib/auth-service';
 
 export const runtime = 'nodejs';
 
@@ -22,44 +22,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token format' }, { status: 401 });
     }
     
-    const decodedToken = await auth.verifyIdToken(idToken);
-    const userRecord = await auth.getUser(decodedToken.uid);
+    const { sessionCookie, userProfile } = await createSession(idToken);
 
-    const userRole = userRecord.customClaims?.role || 'landlord';
-
-    let firestoreProfile: any = {};
-    if (userRole === 'manager') {
-      const managerDoc = await firestore.collection('managers').doc(userRecord.uid).get();
-      if (managerDoc.exists) {
-        firestoreProfile = managerDoc.data();
-      }
-    } else if (userRole === 'tenant') {
-      const tenantDoc = await firestore.collection('tenants').doc(userRecord.uid).get();
-      if (tenantDoc.exists) {
-        firestoreProfile = tenantDoc.data();
-      }
-    } else if (userRole === 'landlord') {
-      const landlordDoc = await firestore.collection('landlords').doc(userRecord.uid).get();
-      if (landlordDoc.exists) {
-        firestoreProfile = landlordDoc.data();
-      }
-      // The profile is now created at signup, so no need for a creation fallback here.
-    }
-    
-    const userProfile: User = {
-        uid: userRecord.uid,
-        email: userRecord.email || '',
-        name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
-        role: userRole,
-        profileComplete: userRecord.customClaims?.profileComplete ?? false,
-        avatarUrl: userRecord.photoURL,
-        permissions: firestoreProfile.permissions || {},
-        ...firestoreProfile
-    };
-
-    const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
-    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
-    
     const response = NextResponse.json(userProfile, { status: 200 });
     response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
 
