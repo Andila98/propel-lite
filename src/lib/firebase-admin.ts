@@ -1,5 +1,6 @@
 
 import admin from 'firebase-admin';
+import { firebaseConfig } from '@/config/firebase-config';
 
 let isFirebaseAdminInitialized = admin.apps.length > 0;
 
@@ -13,8 +14,8 @@ if (!isFirebaseAdminInitialized) {
       const serviceAccount = JSON.parse(serviceAccountString);
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        projectId: serviceAccount.project_id,
-        storageBucket: `${serviceAccount.project_id}.appspot.com`, // Explicitly set storage bucket
+        projectId: firebaseConfig.projectId, // Explicitly set project ID
+        storageBucket: firebaseConfig.storageBucket,
       });
       isFirebaseAdminInitialized = true;
       console.log('[FIREBASE_ADMIN] Initialized successfully from environment variable.');
