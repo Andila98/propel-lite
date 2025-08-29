@@ -15,7 +15,6 @@ const publicPaths = [
 ];
 
 function isPublic(pathname: string): boolean {
-  if (pathname === '/') return true; // The root page handles its own redirection
   return publicPaths.some(path => pathname.startsWith(path));
 }
 
@@ -31,16 +30,27 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
-     // If the request is for an API route, return a 401 Unauthorized response
+    // If the request is for an API route, return a 401 Unauthorized response
     if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    // For page navigations, redirect to the login page
+    // For all other pages (including the root '/'), redirect to the login page
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('redirect', pathname);
+    // Only add a redirect query param if the original path was not the root
+    if (pathname !== '/') {
+        url.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(url);
   }
+
+  // If the user is authenticated and trying to access the root path, redirect them to the dashboard.
+  if (pathname === '/') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
 
   // The actual verification of the cookie (role, expiration) will happen
   // in the API routes or server components. The middleware just ensures a cookie exists.
@@ -53,4 +63,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|placeholders|media).*)',
   ],
 };
-
