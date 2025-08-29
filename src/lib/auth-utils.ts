@@ -4,7 +4,7 @@
 import type { NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+import type { DecodedIdToken, UserRecord } from 'firebase-admin/auth';
 
 
 /**
@@ -46,22 +46,35 @@ export async function getLandlordId(req: NextRequest): Promise<string | null> {
     }
     
     if (claims.role === 'manager') {
+        // The landlordId custom claim is set when the manager is invited/created.
         return claims.landlordId || null;
     }
 
-    return null; // Only landlords and managers have an associated landlordId
+    return null; // Tenants or other roles do not have a landlordId in this context.
 }
 
 /**
- * A utility for API routes to verify that a user is authenticated and has a specific role.
- * @param req The incoming NextRequest.
- * @param requiredRole The role required to access the resource.
- * @returns The user's decoded token if authorized, otherwise null.
+ * For server actions, gets the Landlord ID and acting user from the session cookie.
+ * @param sessionCookie The session cookie value from the request.
+ * @returns An object with landlordId and the actor's UserRecord, or nulls if invalid.
  */
-export async function verifyUserAndRole(req: NextRequest, requiredRole: 'landlord' | 'manager' | 'tenant'): Promise<DecodedIdToken | null> {
-    const decodedClaims = await verifySession(req);
-    if (!decodedClaims || decodedClaims.role !== requiredRole) {
-        return null;
+export async function getLandlordAndActor(sessionCookie: string): Promise<{ landlordId: string | null; actor: UserRecord | null; }> {
+    if (!sessionCookie) {
+        return { landlordId: null, actor: null };
     }
-    return decodedClaims;
+    try {
+        const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+        const actor = await auth.getUser(decodedClaims.uid);
+        
+        let landlordId: string | null = null;
+        if (actor.customClaims?.role === 'landlord') {
+            landlordId = actor.uid;
+        } else if (actor.customClaims?.role === 'manager') {
+            landlordId = actor.customClaims?.landlordId;
+        }
+        
+        return { landlordId, actor };
+    } catch (error) {
+        return { landlordId: null, actor: null };
+    }
 }

@@ -117,8 +117,8 @@ export default function EditTenantPage() {
   }, [tenantId, reset, toast]);
 
   const clientAction = (formData: FormData) => {
-    // Manually add the currentUnitId to the form data
     const values = getValues();
+    // Use the value from the form state, not the server data
     formData.append('currentUnitId', values.currentUnitId);
     formAction(formData);
   }

@@ -7,8 +7,7 @@ import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admi
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import type { Property } from '@/lib/types';
-import { uploadFile } from '@/lib/storage-service';
-import { verifySession } from '@/lib/auth-utils';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
 
@@ -36,19 +35,16 @@ export async function updatePropertyAction(
     return { error: 'Unauthorized. Please log in.' };
   }
 
-  let actor;
-  try {
-    const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
-    actor = await auth.getUser(decodedClaims.uid);
-     // Authorization Check
-    if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditProperties) {
-       return { error: "You don't have permission to edit properties." };
-    }
-    if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
-       return { error: "You are not authorized to perform this action." };
-    }
-  } catch (error) {
-     return { error: 'Unauthorized. Please log in.' };
+  const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
+  if (!landlordId || !actor) {
+    return { error: 'Unauthorized. Please log in.' };
+  }
+  
+  if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditProperties) {
+    return { error: "You don't have permission to edit properties." };
+  }
+  if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+    return { error: "You are not authorized to perform this action." };
   }
   
   const rawData = {

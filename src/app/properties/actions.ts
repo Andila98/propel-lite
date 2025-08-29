@@ -7,7 +7,7 @@ import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admi
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import type { FormState } from './[id]/edit/actions';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
 
@@ -23,19 +23,16 @@ export async function createPropertyAction(
     return { error: 'Unauthorized. Please log in.' };
   }
 
-  let actor;
-  try {
-    const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
-    actor = await auth.getUser(decodedClaims.uid);
-    // Authorization Check
-    if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddProperties) {
-       return { error: "You don't have permission to create properties." };
-    }
-     if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
-       return { error: "You are not authorized to perform this action." };
-    }
-  } catch (error) {
-     return { error: 'Unauthorized. Please log in.' };
+  const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
+  if (!landlordId || !actor) {
+    return { error: 'Unauthorized. Please log in.' };
+  }
+  
+  if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddProperties) {
+    return { error: "You don't have permission to create properties." };
+  }
+  if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+    return { error: "You are not authorized to perform this action." };
   }
 
 
@@ -63,7 +60,6 @@ export async function createPropertyAction(
 
   try {
     const propertyRef = firestore.collection('properties').doc();
-    const landlordId = actor.customClaims?.role === 'manager' ? actor.customClaims?.landlordId : actor.uid;
 
     await firestore.runTransaction(async (transaction) => {
         transaction.set(propertyRef, {
