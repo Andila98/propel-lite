@@ -49,14 +49,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 // POST /api/tenants/{tenantId}/messages
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
+
     const { content } = await req.json();
 
     if (!content) {
         return NextResponse.json({ error: 'Message content is required.' }, { status: 400 });
-    }
-
-    if (!isFirebaseAdminInitialized) {
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
     
     const claims = await verifySession(req);

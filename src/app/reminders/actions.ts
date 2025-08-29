@@ -90,6 +90,9 @@ export async function getReminderSuggestionAction(
 export async function getScheduleSuggestionAction(
     input: z.infer<typeof ReminderSuggestionInputSchema>
 ): Promise<ScheduleReminderState> {
+    if (!isFirebaseAdminInitialized) {
+      return { error: "Backend services are not configured. Please contact support." };
+    }
     try {
         let reminderDate = new Date();
         let reasoning = '';

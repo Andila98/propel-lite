@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { authConfig } from '@/config/server-config';
 import { cookies } from 'next/headers';
-import { auth } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
@@ -12,12 +12,14 @@ export async function POST(req: NextRequest) {
     const cookieName = authConfig.cookieName;
 
     try {
-        // First, verify the session to get the user's UID
-        const decodedClaims = await verifySession(req);
+        if (isFirebaseAdminInitialized) {
+            // First, verify the session to get the user's UID
+            const decodedClaims = await verifySession(req);
 
-        // If a valid session exists, revoke the refresh tokens to invalidate it on Firebase's side
-        if (decodedClaims) {
-            await auth.revokeRefreshTokens(decodedClaims.uid);
+            // If a valid session exists, revoke the refresh tokens to invalidate it on Firebase's side
+            if (decodedClaims) {
+                await auth.revokeRefreshTokens(decodedClaims.uid);
+            }
         }
 
         // Always delete the client-side cookie
