@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
-import { FieldValue } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -40,22 +39,11 @@ export async function POST(req: NextRequest) {
         firestoreProfile = tenantDoc.data();
       }
     } else if (userRole === 'landlord') {
-      const landlordDocRef = firestore.collection('landlords').doc(userRecord.uid);
-      const landlordDoc = await landlordDocRef.get();
+      const landlordDoc = await firestore.collection('landlords').doc(userRecord.uid).get();
       if (landlordDoc.exists) {
         firestoreProfile = landlordDoc.data();
-      } else {
-        // First login for a new landlord, create their profile.
-        const newProfile = {
-          uid: userRecord.uid,
-          email: userRecord.email,
-          name: userRecord.displayName,
-          createdAt: FieldValue.serverTimestamp(),
-        };
-        await landlordDocRef.set(newProfile);
-        // CRITICAL FIX: After creating the profile, assign it to be used.
-        firestoreProfile = newProfile;
       }
+      // The profile is now created at signup, so no need for a creation fallback here.
     }
     
     const userProfile: User = {

@@ -1,6 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -17,16 +18,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        // 1. Create the user in Firebase Auth
         const userRecord = await auth.createUser({
             email,
             password,
             displayName,
         });
 
+        // 2. Set custom claims for the user role
         await auth.setCustomUserClaims(userRecord.uid, { role: 'landlord', profileComplete: false });
         
-        // The landlord profile in Firestore is now created on their first login,
-        // which is a more robust pattern to ensure data consistency.
+        // 3. Create the landlord profile in Firestore immediately
+        const landlordDocRef = firestore.collection('landlords').doc(userRecord.uid);
+        await landlordDocRef.set({
+          uid: userRecord.uid,
+          email: userRecord.email,
+          name: userRecord.displayName,
+          createdAt: FieldValue.serverTimestamp(),
+        });
 
         return NextResponse.json({ uid: userRecord.uid }, { status: 201 });
 
