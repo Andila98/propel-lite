@@ -14,7 +14,7 @@ if (!isFirebaseAdminInitialized) {
       const serviceAccount = JSON.parse(serviceAccountString);
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        projectId: firebaseConfig.projectId, // Explicitly set project ID
+        projectId: firebaseConfig.projectId,
         storageBucket: firebaseConfig.storageBucket,
       });
       isFirebaseAdminInitialized = true;
