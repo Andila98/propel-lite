@@ -43,12 +43,13 @@ const StripeIcon = () => (
     </svg>
 )
 
-function MaintenanceRequestForm({ tenant, property, token }: { tenant: Tenant; property: Property; token: string | undefined }) {
+function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
     const { toast } = useToast();
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -68,20 +69,11 @@ function MaintenanceRequestForm({ tenant, property, token }: { tenant: Tenant; p
             toast({ title: 'Error', description: 'Please provide a description of the issue.', variant: 'destructive' });
             return;
         }
-        if (!token) {
-            toast({ title: 'Error', description: 'You must be logged in to submit a request.', variant: 'destructive' });
-            return;
-        }
+
         setLoading(true);
 
         const requestData = {
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          propertyId: property.id,
-          propertyAddress: property.address,
           description: description,
-          status: 'Pending',
-          submittedDate: new Date().toISOString()
         }
 
         try {
@@ -89,7 +81,6 @@ function MaintenanceRequestForm({ tenant, property, token }: { tenant: Tenant; p
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(requestData)
           });
@@ -106,6 +97,7 @@ function MaintenanceRequestForm({ tenant, property, token }: { tenant: Tenant; p
           setDescription('');
           setImageFile(null);
           setImagePreview(null);
+          setIsDialogOpen(false);
         } catch (err: any) {
           toast({ title: 'Submission Failed', description: err.message, variant: 'destructive'});
         } finally {
@@ -114,39 +106,42 @@ function MaintenanceRequestForm({ tenant, property, token }: { tenant: Tenant; p
     };
 
     return (
-         <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Maintenance Request</CardTitle>
-            <CardDescription>Report an issue with your unit. Uploading a photo helps us diagnose it faster.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-                <div>
-                    <Label htmlFor="issue-description">Description of Issue</Label>
-                    <Textarea 
-                        id="issue-description" 
-                        name="issue-description" 
-                        placeholder="e.g., The kitchen sink is leaking." 
-                        rows={4}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                    />
-                </div>
-                 <div>
-                    <Label htmlFor="issue-image">Upload Image (Optional)</Label>
-                    <Input id="issue-image" type="file" accept="image/*" onChange={handleFileChange} />
-                </div>
-                {imagePreview && (
-                    <div className="w-full aspect-video relative rounded-md overflow-hidden bg-muted">
-                        <Image src={imagePreview} alt="Issue preview" layout="fill" objectFit="contain" />
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+                 <Button variant="outline" className="w-full">Report an Issue</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Maintenance Request</DialogTitle>
+                    <DialogDescription>Report an issue with your unit. Uploading a photo helps us diagnose it faster.</DialogDescription>
+                </DialogHeader>
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                    <div>
+                        <Label htmlFor="issue-description">Description of Issue</Label>
+                        <Textarea 
+                            id="issue-description" 
+                            name="issue-description" 
+                            placeholder="e.g., The kitchen sink is leaking." 
+                            rows={4}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        />
                     </div>
-                )}
-                <Button type="submit" disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Submit Request'}
-                </Button>
-            </form>
-          </CardContent>
-        </Card>
+                    <div>
+                        <Label htmlFor="issue-image">Upload Image (Optional)</Label>
+                        <Input id="issue-image" type="file" accept="image/*" onChange={handleFileChange} />
+                    </div>
+                    {imagePreview && (
+                        <div className="w-full aspect-video relative rounded-md overflow-hidden bg-muted">
+                            <Image src={imagePreview} alt="Issue preview" fill objectFit="contain" />
+                        </div>
+                    )}
+                    <Button type="submit" disabled={loading} className="w-full">
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Submit Request'}
+                    </Button>
+                </form>
+            </DialogContent>
+        </Dialog>
     )
 }
 
@@ -255,7 +250,7 @@ export default function TenantPortalPage() {
               <span className={`font-semibold ${rentStatus === 'Paid' ? 'text-green-600' : 'text-destructive'}`}>{rentStatus}</span>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex-col items-stretch gap-2">
             <Dialog>
                 <DialogTrigger asChild>
                     <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Make a Payment</Button>
@@ -279,6 +274,7 @@ export default function TenantPortalPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+            <MaintenanceRequestForm tenant={tenant} />
           </CardFooter>
         </Card>
 
@@ -308,8 +304,6 @@ export default function TenantPortalPage() {
             </Table>
           </CardContent>
         </Card>
-        
-       <MaintenanceRequestForm tenant={tenant} property={property} token={user?.token} />
       </div>
     </div>
   );

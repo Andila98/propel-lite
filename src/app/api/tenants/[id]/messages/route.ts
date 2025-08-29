@@ -16,13 +16,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!claims) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
-
+    
   try {
     const tenantId = params.id;
-    const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
-    if (!tenantDoc.exists || tenantDoc.data()?.landlordId !== landlordId) {
-        return NextResponse.json({ error: 'Tenant not found or access denied.' }, { status: 404 });
+    // For tenants, they can only get their own messages
+    // For landlords/managers, they need to verify ownership
+    if (claims.role === 'tenant' && claims.uid !== tenantId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (claims.role !== 'tenant') {
+        const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
+        const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+        if (!tenantDoc.exists || tenantDoc.data()?.landlordId !== landlordId) {
+            return NextResponse.json({ error: 'Tenant not found or access denied.' }, { status: 404 });
+        }
     }
     
     const messagesSnapshot = await firestore.collection('messages')
@@ -41,34 +49,45 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 // POST /api/tenants/{tenantId}/messages
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+    const { content } = await req.json();
+
+    if (!content) {
+        return NextResponse.json({ error: 'Message content is required.' }, { status: 400 });
+    }
+
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+    }
+    
+    const claims = await verifySession(req);
+    if (!claims) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
-        const { content } = await req.json();
-
-        if (!content) {
-            return NextResponse.json({ error: 'Message content is required.' }, { status: 400 });
-        }
-
-        if (!isFirebaseAdminInitialized) {
-            return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
-        }
-        
-        const claims = await verifySession(req);
-        if (!claims) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-        const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
-
         const tenantId = params.id;
+        let senderName = "User";
+
+        if (claims.role === 'tenant' && claims.uid !== tenantId) {
+            return NextResponse.json({ error: 'Forbidden: You can only send messages for yourself.' }, { status: 403 });
+        } else if (claims.role === 'landlord') {
+            senderName = "Landlord";
+        } else if (claims.role === 'manager') {
+            senderName = "Manager";
+        }
         
-        const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
-        if (!tenantDoc.exists || tenantDoc.data()?.landlordId !== landlordId) {
-            return NextResponse.json({ error: 'Tenant not found or access denied.' }, { status: 404 });
+        if (claims.role !== 'tenant') {
+            const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
+            const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+            if (!tenantDoc.exists || tenantDoc.data()?.landlordId !== landlordId) {
+                return NextResponse.json({ error: 'Tenant not found or access denied.' }, { status: 404 });
+            }
         }
         
         const newMessage = {
             tenantId,
             senderId: claims.uid,
-            senderName: 'Landlord', // In a real app, get this from the user's profile
+            senderName,
             content,
             timestamp: FieldValue.serverTimestamp(),
             isRead: false,

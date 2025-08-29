@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
 import { verifySession } from '@/lib/auth-utils';
+import { toJSON } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             return NextResponse.json({ error: 'Manager not found' }, { status: 404 });
         }
         
-        return NextResponse.json({ id: managerDoc.id, ...managerDoc.data() }, { status: 200 });
+        return NextResponse.json(toJSON({ id: managerDoc.id, ...managerDoc.data() }), { status: 200 });
 
     } catch (error: any) {
         console.error(`[ERROR: /api/managers/{id} GET]`, error);

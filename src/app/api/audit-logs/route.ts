@@ -2,13 +2,19 @@
 import { NextResponse } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
+import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: Request) {
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
+    const claims = await verifySession(request as any);
+    if (!claims) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const logsSnapshot = await firestore.collection('auditLogs').orderBy('timestamp', 'desc').limit(50).get();
         const logs = logsSnapshot.docs.map(doc => {
