@@ -32,8 +32,12 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     try {
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
         actor = await auth.getUser(decodedClaims.uid);
-        if (actor.customClaims?.role !== 'landlord' && !actor.customClaims?.permissions?.canAddTenants) {
+         // Authorization Check
+        if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddTenants) {
             return { error: "You don't have permission to add tenants." };
+        }
+        if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+            return { error: "You are not authorized to perform this action." };
         }
     } catch (error) {
         return { error: 'Unauthorized. Please log in.' };
@@ -117,6 +121,13 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     try {
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
         actor = await auth.getUser(decodedClaims.uid);
+         // Authorization Check
+        if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditTenants) {
+            return { error: "You don't have permission to edit tenants." };
+        }
+        if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+            return { error: "You are not authorized to perform this action." };
+        }
     } catch (error) {
         return { error: 'Unauthorized. Please log in.' };
     }

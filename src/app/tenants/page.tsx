@@ -19,7 +19,7 @@ export default function TenantsPage() {
   const { user } = useAuth();
   const { tenants, properties, loading } = useTenants();
   
-  const canAddTenants = user?.role === 'landlord' || user?.permissions?.canAddTenants;
+  const canAddTenants = user?.role === 'landlord' || (user?.role === 'manager' && user?.permissions?.canAddTenants);
 
   const renderSkeleton = () => (
     <div className="space-y-2">

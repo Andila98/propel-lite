@@ -40,8 +40,12 @@ export async function updatePropertyAction(
   try {
     const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
     actor = await auth.getUser(decodedClaims.uid);
-     if (actor.customClaims?.role !== 'landlord' && !actor.customClaims?.permissions?.canEditProperties) {
+     // Authorization Check
+    if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditProperties) {
        return { error: "You don't have permission to edit properties." };
+    }
+    if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+       return { error: "You are not authorized to perform this action." };
     }
   } catch (error) {
      return { error: 'Unauthorized. Please log in.' };

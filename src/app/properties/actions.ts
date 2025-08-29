@@ -27,8 +27,12 @@ export async function createPropertyAction(
   try {
     const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
     actor = await auth.getUser(decodedClaims.uid);
-    if (actor.customClaims?.role !== 'landlord' && !actor.customClaims?.permissions?.canAddProperties) {
+    // Authorization Check
+    if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddProperties) {
        return { error: "You don't have permission to create properties." };
+    }
+     if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+       return { error: "You are not authorized to perform this action." };
     }
   } catch (error) {
      return { error: 'Unauthorized. Please log in.' };

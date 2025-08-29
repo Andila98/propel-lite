@@ -25,7 +25,7 @@ export default function PropertiesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const canAddProperties = user?.role === 'landlord' || user?.permissions?.canAddProperties;
+  const canAddProperties = user?.role === 'landlord' || (user?.role === 'manager' && user?.permissions?.canAddProperties);
 
   useEffect(() => {
     async function fetchProperties() {
