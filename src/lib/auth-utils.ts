@@ -30,13 +30,26 @@ export async function verifySession(req: NextRequest): Promise<DecodedIdToken | 
 
 
 /**
- * Verifies the session cookie from a request and returns the user's UID.
+ * Verifies the session cookie and determines the effective landlord ID for the request.
+ * If the user is a landlord, it's their own UID.
+ * If the user is a manager, it's the landlordId associated with their account.
+ * This is the primary function for authorizing access to resources.
  * @param req - The NextRequest object.
- * @returns The UID of the authenticated user, or null if unauthorized.
+ * @returns The UID of the landlord who owns the resources, or null if unauthorized.
  */
-export async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
-    const decodedClaims = await verifySession(req);
-    return decodedClaims?.uid || null;
+export async function getLandlordId(req: NextRequest): Promise<string | null> {
+    const claims = await verifySession(req);
+    if (!claims) return null;
+
+    if (claims.role === 'landlord') {
+        return claims.uid;
+    }
+    
+    if (claims.role === 'manager') {
+        return claims.landlordId || null;
+    }
+
+    return null; // Only landlords and managers have an associated landlordId
 }
 
 /**

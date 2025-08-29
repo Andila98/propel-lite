@@ -5,7 +5,7 @@ import type { Property, Tenant, Payment, DashboardData, ActivityItem, Unit } fro
 import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { sub, format } from 'date-fns';
 import { toJSON } from '@/lib/utils';
-import { verifySession } from '@/lib/auth-utils';
+import { getLandlordId } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -67,15 +67,10 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
 
-    const claims = await verifySession(req);
-    if (!claims || (claims.role !== 'landlord' && claims.role !== 'manager')) {
+    const landlordId = await getLandlordId(req);
+    if (!landlordId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
-    if (!landlordId) {
-         return NextResponse.json({ error: 'Unauthorized: No landlord association found.' }, { status: 401 });
-    }
-
 
     try {
         const [

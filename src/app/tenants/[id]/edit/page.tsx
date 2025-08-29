@@ -52,7 +52,7 @@ export default function EditTenantPage() {
     resolver: zodResolver(TenantUpdateSchema),
   });
   
-  const { register, control, formState: { errors }, reset, watch } = form;
+  const { register, control, formState: { errors }, reset, watch, getValues, setValue } = form;
   
   useEffect(() => {
     if (state.success) {
@@ -115,6 +115,13 @@ export default function EditTenantPage() {
     }
     fetchInitialData();
   }, [tenantId, reset, toast]);
+
+  const clientAction = (formData: FormData) => {
+    // Manually add the currentUnitId to the form data
+    const values = getValues();
+    formData.append('currentUnitId', values.currentUnitId);
+    formAction(formData);
+  }
   
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units || [];
@@ -163,7 +170,7 @@ export default function EditTenantPage() {
                 <CardDescription>Modify the details for {tenant.name}.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={formAction} className="space-y-4">
+                <form action={clientAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
@@ -190,7 +197,10 @@ export default function EditTenantPage() {
                             name="propertyId"
                             control={control}
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setValue('currentUnitId', '');
+                                }} defaultValue={field.value}>
                                 <SelectTrigger id="propertyId">
                                     <SelectValue placeholder="Select a property..." />
                                 </SelectTrigger>
@@ -210,7 +220,7 @@ export default function EditTenantPage() {
                             name="currentUnitId"
                             control={control}
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId}>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedPropertyId}>
                                 <SelectTrigger id="currentUnitId">
                                     <SelectValue placeholder="Select a unit..." />
                                 </SelectTrigger>

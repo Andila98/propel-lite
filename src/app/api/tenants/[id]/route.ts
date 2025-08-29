@@ -4,7 +4,7 @@ import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admi
 import { toJSON } from '@/lib/utils';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
-import { verifySession } from '@/lib/auth-utils';
+import { getLandlordId } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -12,11 +12,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const claims = await verifySession(req);
-    if (!claims) {
+    const landlordId = await getLandlordId(req);
+    if (!landlordId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
 
     try {
         const tenantId = params.id;
@@ -43,11 +42,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const claims = await verifySession(req);
-    if (!claims) {
+    const landlordId = await getLandlordId(req);
+    if (!landlordId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const landlordId = claims.role === 'manager' ? claims.landlordId : claims.uid;
 
     try {
         const tenantId = params.id;
