@@ -8,7 +8,7 @@
  */
 import { faker } from '@faker-js/faker';
 import { auth, firestore, isFirebaseAdminInitialized } from '../src/lib/firebase-admin';
-import type { Property, Unit, Tenant, Payment, MaintenanceRequest, Message, AuditLog } from '../src/lib/types';
+import type { Property, Unit, Tenant, Payment, MaintenanceRequest, Message, AuditLog, PropertyManager } from '../src/lib/types';
 import { add, sub } from 'date-fns';
 
 if (!isFirebaseAdminInitialized) {
@@ -19,6 +19,8 @@ if (!isFirebaseAdminInitialized) {
 const BATCH_SIZE = 250;
 let landlordEmail: string;
 let landlordPassword = "password123";
+let managerEmail: string;
+let managerPassword = "password123";
 
 
 async function clearCollection(collectionPath: string, subcollections: string[] = []) {
@@ -85,6 +87,7 @@ async function clearAllData() {
 
 async function seedData() {
     console.log('Starting to seed data...');
+    const logsBatch = firestore.batch();
     
     // --- 1. Create Landlord ---
     console.log('Creating landlord...');
@@ -138,6 +141,10 @@ async function seedData() {
         await propertyRef.set({ ...propertyData, createdAt: new Date() });
 
         const createdProperty: Property & { units: Unit[] } = { id: propertyRef.id, ...propertyData, createdAt: new Date() as any, units: [] };
+        
+        logsBatch.set(firestore.collection('auditLogs').doc(), {
+            managerName: "Alice Landlord", action: `Created property "${createdProperty.name}"`, entityType: 'Property', entityName: createdProperty.name, timestamp: new Date()
+        });
 
         const unitsBatch = firestore.batch();
         const numUnits = type === 'Apartment' ? faker.number.int({ min: 4, max: 10 }) : 1;
@@ -159,7 +166,62 @@ async function seedData() {
     }
     console.log(`${properties.length} properties created.`);
 
-    // --- 3. Create Tenants ---
+
+    // --- 3. Create Manager ---
+    console.log('Creating property manager...');
+    managerEmail = "manager@example.com";
+    let managerRecord;
+    try {
+        managerRecord = await auth.createUser({
+            email: managerEmail,
+            password: managerPassword,
+            displayName: "Bob Manager",
+        });
+    } catch(e:any) {
+        if(e.code === 'auth/email-already-exists') {
+            managerRecord = await auth.getUserByEmail(managerEmail);
+        } else {
+            throw e;
+        }
+    }
+
+    const assignedPropertyIds = [properties[0].id]; // Assign manager to the first property
+    await auth.setCustomUserClaims(managerRecord.uid, { 
+        role: 'manager', 
+        profileComplete: true,
+        landlordId,
+    });
+
+    const managerData: Omit<PropertyManager, 'id'> = {
+        uid: managerRecord.uid,
+        name: "Bob Manager",
+        email: managerEmail,
+        landlordId,
+        propertiesManaged: assignedPropertyIds,
+        permissions: {
+            canAddProperties: false,
+            canEditProperties: true,
+            canDeleteProperties: false,
+            canAddTenants: true,
+            canEditTenants: true,
+            canDeleteTenants: false,
+            canViewPayments: true,
+            canManageManagers: false,
+            canManageSettings: false,
+        },
+    };
+    await firestore.collection('managers').doc(managerRecord.uid).set(managerData);
+    
+    // Assign manager to the property doc
+    await firestore.collection('properties').doc(properties[0].id).update({ managerId: managerRecord.uid });
+
+    logsBatch.set(firestore.collection('auditLogs').doc(), {
+        managerName: "Alice Landlord", action: `Created manager "Bob Manager"`, entityType: 'Manager', entityName: "Bob Manager", timestamp: new Date()
+    });
+    console.log(`Manager created. Email: ${managerEmail}, Password: ${managerPassword}`);
+
+
+    // --- 4. Create Tenants ---
     console.log('Creating tenants...');
     const tenants: Tenant[] = [];
     const vacantUnits = properties.flatMap(p => p.units.map(u => ({ ...u, propertyId: p.id, propertyAddress: p.address, currency: p.currency }))).filter(u => !u.isOccupied);
@@ -202,10 +264,14 @@ async function seedData() {
         await firestore.collection('tenants').doc(tenantRecord.uid).set({ ...tenantData, leaseStart, leaseEnd });
         await firestore.collection('properties').doc(unit.propertyId).collection('units').doc(unit.id).update({ isOccupied: true, tenantId: tenantRecord.uid });
         tenants.push({ id: tenantRecord.uid, ...tenantData, leaseStart: leaseStart as any, leaseEnd: leaseEnd as any });
+        
+        logsBatch.set(firestore.collection('auditLogs').doc(), {
+            managerName: "System", action: `Created tenant "${tenantName}"`, entityType: 'Tenant', entityName: tenantName, timestamp: new Date()
+        });
     }
     console.log(`${tenants.length} tenants created and assigned to units.`);
 
-    // --- 4. Create Payments ---
+    // --- 5. Create Payments ---
     console.log('Generating payment history...');
     const paymentsBatch = firestore.batch();
     tenants.forEach(tenant => {
@@ -229,8 +295,8 @@ async function seedData() {
     await paymentsBatch.commit();
     console.log('Payment history generated.');
     
-    // --- 5. Generate Maintenance Requests, Messages, and Logs ---
-    console.log('Generating maintenance requests, messages, and audit logs...');
+    // --- 6. Generate Maintenance Requests & Messages ---
+    console.log('Generating maintenance requests and messages...');
     const otherDataBatch = firestore.batch();
 
     // Maintenance Request
@@ -262,19 +328,10 @@ async function seedData() {
         timestamp: new Date(),
         isRead: false,
     } as Omit<Message, 'id' | 'timestamp'> & { timestamp: Date });
-
-    // Audit Log
-    const auditRef = firestore.collection('auditLogs').doc();
-    otherDataBatch.set(auditRef, {
-        managerName: "Alice Landlord",
-        action: `Created tenant "${maintTenant.name}"`,
-        entityType: 'Tenant',
-        entityName: maintTenant.name,
-        timestamp: new Date()
-    } as Omit<AuditLog, 'id' | 'timestamp'> & { timestamp: Date });
-
+    
+    await logsBatch.commit();
     await otherDataBatch.commit();
-    console.log('Sample requests, messages, and logs created.');
+    console.log('Sample requests and messages created.');
 }
 
 async function seed() {
@@ -284,7 +341,8 @@ async function seed() {
 
 seed().then(() => {
     console.log('\n✅ Database seeding complete!');
-    console.log(`\nLogin with:\nEmail: ${landlordEmail}\nPassword: ${landlordPassword}`);
+    console.log(`\nLogin with Landlord:\nEmail: ${landlordEmail}\nPassword: ${landlordPassword}`);
+    console.log(`\nLogin with Manager:\nEmail: ${managerEmail}\nPassword: ${managerPassword}`);
     process.exit(0);
 }).catch((e) => {
     console.error('Seeding failed:');
