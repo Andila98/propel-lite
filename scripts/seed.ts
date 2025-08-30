@@ -114,6 +114,7 @@ async function seedData() {
         uid: landlordRecord.uid,
         email: landlordEmail,
         name: "Alice Landlord",
+        role: 'landlord',
         createdAt: new Date(),
     });
     const landlordId = landlordRecord.uid;
@@ -197,6 +198,7 @@ async function seedData() {
         name: "Bob Manager",
         email: managerEmail,
         landlordId,
+        role: 'manager',
         propertiesManaged: assignedPropertyIds,
         permissions: {
             canAddProperties: false,
@@ -251,6 +253,7 @@ async function seedData() {
             uid: tenantRecord.uid,
             name: tenantName,
             email: tenantEmail,
+            role: 'tenant',
             phone: faker.phone.number(),
             propertyId: unit.propertyId,
             currentUnitId: unit.id,
