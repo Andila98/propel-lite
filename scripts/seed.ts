@@ -19,9 +19,9 @@ if (!isFirebaseAdminInitialized) {
 
 const BATCH_SIZE = 250;
 let landlordEmail: string;
-let landlordPassword = "P@55w0rd123";
+let landlordPassword = "P@55wOrd123";
 let managerEmail: string;
-let managerPassword = "P@55w0rd123";
+let managerPassword = "P@55wOrd123";
 
 
 async function clearCollection(collectionPath: string, subcollections: string[] = []) {
