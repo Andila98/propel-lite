@@ -118,9 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!response.ok) {
       // If the profile is incomplete, the server returns a specific error.
       // We must log the user out from the client as well.
-      if (responseBody.errorCode === 'INCOMPLETE_PROFILE') {
-        // Don't sign out here, let the calling component handle the redirect.
-      }
       const error: any = new Error(responseBody.error || 'Login failed.');
       error.errorCode = responseBody.errorCode;
       throw error;

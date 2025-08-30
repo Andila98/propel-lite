@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
@@ -94,7 +94,7 @@ export default function RegisterPage() {
     }
   };
   
-  const handleSocialLogin = async () => {
+  const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
     try {
         const { user } = await loginWithGoogle();
@@ -120,7 +120,7 @@ export default function RegisterPage() {
     } finally {
         setIsSocialLoading(false);
     }
-  }
+  }, [loginWithGoogle, router, toast]);
 
 
   return (

@@ -65,7 +65,7 @@ export default function LoginPage() {
     }
   }, [email, password, router, toast, login]);
   
-  const handleSocialLogin = async () => {
+  const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
     try {
         const { user } = await loginWithGoogle();
@@ -91,7 +91,7 @@ export default function LoginPage() {
     } finally {
         setIsSocialLoading(false);
     }
-  }
+  }, [loginWithGoogle, router, toast]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
