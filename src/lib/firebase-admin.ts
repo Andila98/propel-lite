@@ -6,7 +6,6 @@ let isFirebaseAdminInitialized = admin.apps.length > 0;
 
 if (!isFirebaseAdminInitialized) {
   try {
-    // This is the recommended way for production environments like Firebase Studio
     const serviceAccountString = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64
       ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf-8')
       : null;
@@ -21,9 +20,7 @@ if (!isFirebaseAdminInitialized) {
       isFirebaseAdminInitialized = true;
       console.log('[FIREBASE_ADMIN] Initialized successfully from GOOGLE_APPLICATION_CREDENTIALS_BASE64.');
     } else {
-      // For local development, it can fall back to Application Default Credentials
-      // This uses the credentials set by `gcloud auth application-default login`
-      console.log('[FIREBASE_ADMIN] GOOGLE_APPLICATION_CREDENTIALS_BASE64 not found. Attempting to use Application Default Credentials.');
+      console.log('[FIREBASE_ADMIN] GOOGLE_APPLICATION_CREDENTIALS_BASE64 not found. Attempting to use Application Default Credentials for local development.');
       admin.initializeApp({
         projectId: firebaseConfig.projectId,
         storageBucket: firebaseConfig.storageBucket,
