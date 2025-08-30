@@ -3,7 +3,6 @@
 
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
-import { FieldValue } from 'firebase-admin/firestore';
 import type { User } from '@/hooks/use-auth';
 
 if (!isFirebaseAdminInitialized) {
@@ -29,7 +28,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
             email: userRecord.email,
             name: userRecord.displayName,
             role: 'landlord', // Store role in Firestore as the source of truth
-            createdAt: FieldValue.serverTimestamp(),
+            createdAt: new Date(),
         });
 
         return userRecord;
