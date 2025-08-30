@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
-import { verifySession } from '@/lib/auth-utils';
+import { getLandlordId, verifySession } from '@/lib/auth-utils';
 import { toJSON } from '@/lib/utils';
 
 export const runtime = 'nodejs';

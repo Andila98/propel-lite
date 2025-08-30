@@ -9,6 +9,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 
 
 export interface FormState {
@@ -28,24 +29,18 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         return { error: 'Unauthorized. Please log in.' };
     }
 
-    let actor;
-    try {
-        const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
-        actor = await auth.getUser(decodedClaims.uid);
-         // Authorization Check
-        if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddTenants) {
-            return { error: "You don't have permission to add tenants." };
-        }
-        if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
-            return { error: "You are not authorized to perform this action." };
-        }
-    } catch (error) {
+    const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
+    if (!landlordId || !actor) {
         return { error: 'Unauthorized. Please log in.' };
     }
-    const landlordId = actor.customClaims?.role === 'manager' ? actor.customClaims?.landlordId : actor.uid;
-    if (!landlordId) {
-         return { error: 'Unauthorized: No landlord association found.' };
+    
+    if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddTenants) {
+        return { error: "You don't have permission to add tenants." };
     }
+    if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+        return { error: "You are not authorized to perform this action." };
+    }
+
 
     const rawData = Object.fromEntries(formData.entries());
     const validationResult = TenantFormSchema.safeParse(rawData);
@@ -117,24 +112,18 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         return { error: 'Unauthorized. Please log in.' };
     }
 
-    let actor;
-    try {
-        const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
-        actor = await auth.getUser(decodedClaims.uid);
-         // Authorization Check
-        if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditTenants) {
-            return { error: "You don't have permission to edit tenants." };
-        }
-        if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
-            return { error: "You are not authorized to perform this action." };
-        }
-    } catch (error) {
+    const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
+    if (!landlordId || !actor) {
         return { error: 'Unauthorized. Please log in.' };
     }
-    const landlordId = actor.customClaims?.role === 'manager' ? actor.customClaims?.landlordId : actor.uid;
-     if (!landlordId) {
-         return { error: 'Unauthorized: No landlord association found.' };
+
+    if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditTenants) {
+        return { error: "You don't have permission to edit tenants." };
     }
+    if (actor.customClaims?.role !== 'landlord' && actor.customClaims?.role !== 'manager') {
+        return { error: "You are not authorized to perform this action." };
+    }
+
 
     const rawData = Object.fromEntries(formData.entries());
     const validationResult = TenantUpdateSchema.safeParse(rawData);

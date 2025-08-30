@@ -105,5 +105,3 @@ export const generateReceiptFlow = ai.defineFlow(
 export async function generateReceipt(input: GenerateReceiptInput): Promise<GenerateReceiptOutput> {
   return generateReceiptFlow(input);
 }
-
-    
