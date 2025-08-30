@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useAuth, type User } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -44,16 +44,6 @@ export default function RegisterPage() {
   
   const { register, handleSubmit, formState: { errors } } = form;
 
-  const handleRedirect = (user: User) => {
-    if (user.role === 'tenant') {
-        router.push('/tenant-portal');
-    } else if (!user.profileComplete) {
-        router.push('/onboarding/landlord-welcome');
-    } else {
-        router.push('/dashboard');
-    }
-  }
-
   const handleRegister = async (data: RegisterFormValues) => {
     setIsLoading(true);
     try {
@@ -75,14 +65,13 @@ export default function RegisterPage() {
         
         toast({
             title: "Account Created!",
-            description: "Redirecting you to setup...",
+            description: "Logging you in to begin setup...",
         });
 
-        // After successful signup, immediately try to log in to start the session
-        // and trigger the onboarding redirect.
+        // After successful signup, immediately log in to start the session
+        // The AuthProvider will then handle the redirect to onboarding.
         await login(data.email, data.password);
-        router.push('/onboarding/landlord-welcome');
-
+        
     } catch (error: any) {
         toast({
             title: "Registration Failed",
@@ -97,30 +86,22 @@ export default function RegisterPage() {
   const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
     try {
-        const { user } = await loginWithGoogle();
+        await loginWithGoogle();
+        // AuthProvider will now handle the redirect
         toast({
-            title: `Welcome, ${user.name}!`,
-            description: "You've successfully signed up.",
+            title: "Sign-Up Successful!",
+            description: "Let's get you set up.",
         });
-        handleRedirect(user);
     } catch (error: any) {
-         if (error.errorCode === 'INCOMPLETE_PROFILE') {
-            toast({
-                title: "Setup Required",
-                description: "Let's complete your account setup.",
-            });
-            router.push('/onboarding/landlord-welcome');
-        } else {
-            toast({
-                title: "Social Login Failed",
-                description: error.message,
-                variant: "destructive",
-            });
-        }
+        toast({
+            title: "Social Sign-Up Failed",
+            description: error.message,
+            variant: "destructive",
+        });
     } finally {
         setIsSocialLoading(false);
     }
-  }, [loginWithGoogle, router, toast]);
+  }, [loginWithGoogle, toast]);
 
 
   return (

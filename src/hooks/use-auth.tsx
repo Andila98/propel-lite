@@ -2,9 +2,8 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import type { User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
 import { onIdTokenChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import type { Permission } from '@/lib/types';
@@ -23,8 +22,8 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<{ user: User }>;
-  loginWithGoogle: () => Promise<{ user: User }>;
+  login: (email: string, pass: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -39,12 +38,10 @@ async function fetchUserFromApi(): Promise<User | null> {
         return userProfile;
     }
     
+    // If we get a 401, it means the server session is gone, so sign out the client.
     if (response.status === 401) {
-        // This is a specific check to handle cases where the server session is invalid.
-        // We sign out the client to keep the state consistent.
         await firebaseSignOut(auth);
     }
-
     return null;
 }
 
@@ -53,24 +50,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const handleRedirect = useCallback((user: User | null) => {
+    if (!user) return;
+    
+    const isPublicFlow = pathname.startsWith('/login') || pathname.startsWith('/register');
+
+    if (user.role !== 'tenant' && !user.profileComplete) {
+      if (!pathname.startsWith('/onboarding')) {
+        router.push('/onboarding/landlord-welcome');
+      }
+    } else if (isPublicFlow) {
+      if (user.role === 'tenant') {
+        router.push('/tenant-portal');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  }, [pathname, router]);
+
+  const updateUserAndRedirect = useCallback(async (firebaseUser: import('firebase/auth').User | null) => {
+    if (firebaseUser) {
+      try {
+        const userProfile = await fetchUserFromApi();
+        setUser(userProfile);
+        handleRedirect(userProfile);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        await firebaseSignOut(auth);
+        setUser(null);
+      }
+    } else {
+      setUser(null);
+    }
+    setLoading(false);
+  }, [handleRedirect]);
+
+
+  useEffect(() => {
+    const unsubscribe = onIdTokenChanged(auth, updateUserAndRedirect);
+    return () => unsubscribe();
+  }, [updateUserAndRedirect]);
 
   const refreshUser = useCallback(async () => {
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-        setLoading(true);
-        try {
-            await firebaseUser.getIdToken(true);
-            const userProfile = await fetchUserFromApi();
-            setUser(userProfile);
-        } catch (error) {
-            console.error("Error refreshing user session:", error);
-            setUser(null);
-            await firebaseSignOut(auth);
-        } finally {
-            setLoading(false);
-        }
+    setLoading(true);
+    await updateUserAndRedirect(auth.currentUser);
+    setLoading(false);
+  }, [updateUserAndRedirect]);
+
+  const processLogin = useCallback(async (idToken: string): Promise<void> => {
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${idToken}`,
+        },
+    });
+    
+    const responseBody = await response.json();
+
+    if (!response.ok) {
+      // The server will now only fail on actual errors, not for incomplete profiles.
+      const error: any = new Error(responseBody.error || 'Login failed.');
+      throw error;
     }
-  }, []);
+    // After a successful login API call, the AuthProvider's onIdTokenChanged
+    // listener will handle fetching the user data and redirecting.
+    // We manually trigger a refresh to ensure it's immediate.
+    await refreshUser();
+  }, [refreshUser]);
+
+  const login = useCallback(async (email: string, pass: string): Promise<void> => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    const idToken = await userCredential.user.getIdToken();
+    await processLogin(idToken);
+  }, [processLogin]);
+  
+  const loginWithGoogle = useCallback(async (): Promise<void> => {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const idToken = await userCredential.user.getIdToken();
+    await processLogin(idToken);
+  }, [processLogin]);
 
   const logout = useCallback(async () => {
     await firebaseSignOut(auth);
@@ -83,64 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   }, [router]);
 
-
-  useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
-      setLoading(true);
-      if (firebaseUser) {
-        try {
-          const userProfile = await fetchUserFromApi();
-          setUser(userProfile);
-        } catch (error) {
-          console.error("Error during token refresh or user fetch:", error);
-          await logout();
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const processLogin = useCallback(async (idToken: string): Promise<{ user: User }> => {
-    const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${idToken}`,
-        },
-    });
-    
-    const responseBody = await response.json();
-
-    if (!response.ok) {
-      // If the profile is incomplete, the server returns a specific error.
-      // We must log the user out from the client as well.
-      const error: any = new Error(responseBody.error || 'Login failed.');
-      error.errorCode = responseBody.errorCode;
-      throw error;
-    }
-
-    setUser(responseBody);
-    return { user: responseBody };
-  }, []);
-
-  const login = useCallback(async (email: string, pass: string): Promise<{ user:User }> => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    const idToken = await userCredential.user.getIdToken();
-    return processLogin(idToken);
-  }, [processLogin]);
-  
-  const loginWithGoogle = useCallback(async (): Promise<{ user: User }> => {
-    const provider = new GoogleAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
-    const idToken = await userCredential.user.getIdToken();
-    return processLogin(idToken);
-  }, [processLogin]);
-
-  if (loading && !user) {
+  if (loading) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

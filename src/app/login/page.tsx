@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
-import { useAuth, type User } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LoginPage() {
@@ -24,74 +24,49 @@ export default function LoginPage() {
   const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const handleRedirect = (user: User) => {
-    if (user.role === 'tenant') {
-        router.push('/tenant-portal');
-    } else if (!user.profileComplete) {
-        router.push('/onboarding/landlord-welcome');
-    } else {
-        router.push('/dashboard');
-    }
-  }
 
   const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-        const { user } = await login(email, password);
+        await login(email, password);
+        // AuthProvider will now handle the redirect, so we don't need to do it here.
+        // The router.push('/dashboard') is handled by the AuthProvider's effect.
         toast({
             title: "Login Successful",
             description: "Welcome back!",
         });
-        handleRedirect(user);
     } catch (error: any) {
-        // If the profile is incomplete, redirect to onboarding
-        if (error.errorCode === 'INCOMPLETE_PROFILE') {
-            toast({
-                title: "Setup Required",
-                description: "Let's complete your account setup.",
-            });
-            router.push('/onboarding/landlord-welcome');
-        } else {
-            toast({
-                title: "Login Failed",
-                description: error.message,
-                variant: "destructive",
-            });
-        }
+        toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive",
+        });
     } finally {
         setIsLoading(false);
     }
-  }, [email, password, router, toast, login]);
+  }, [email, password, login, toast]);
   
   const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
     try {
-        const { user } = await loginWithGoogle();
+        await loginWithGoogle();
+        // AuthProvider will now handle the redirect
         toast({
-            title: `Welcome, ${user.name}!`,
-            description: "You've successfully signed in.",
+            title: "Sign-In Successful!",
+            description: "Welcome!",
         });
-        handleRedirect(user);
     } catch (error: any) {
-         if (error.errorCode === 'INCOMPLETE_PROFILE') {
-            toast({
-                title: "Setup Required",
-                description: "Let's complete your account setup.",
-            });
-            router.push('/onboarding/landlord-welcome');
-        } else {
-            toast({
-                title: "Social Login Failed",
-                description: error.message,
-                variant: "destructive",
-            });
-        }
+        toast({
+            title: "Social Login Failed",
+            description: error.message,
+            variant: "destructive",
+        });
     } finally {
         setIsSocialLoading(false);
     }
-  }, [loginWithGoogle, router, toast]);
+  }, [loginWithGoogle, toast]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
