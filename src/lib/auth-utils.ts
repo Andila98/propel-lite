@@ -68,9 +68,9 @@ export async function getLandlordId(req: NextRequest): Promise<string | null> {
         return claims.uid;
     }
     
-    if (claims.role === 'manager') {
-        // The landlordId custom claim is set when the manager is invited/created.
-        return claims.landlordId || null;
+    // For managers, the landlordId MUST be present in their claims.
+    if (claims.role === 'manager' && claims.landlordId) {
+        return claims.landlordId;
     }
 
     return null; // Tenants or other roles do not have a landlordId in this context.
@@ -94,7 +94,7 @@ export async function getLandlordAndActor(sessionCookie: string): Promise<{ land
         let landlordId: string | null = null;
         if (actor.customClaims?.role === 'landlord') {
             landlordId = actor.uid;
-        } else if (actor.customClaims?.role === 'manager') {
+        } else if (actor.customClaims?.role === 'manager' && actor.customClaims?.landlordId) {
             landlordId = actor.customClaims?.landlordId;
         }
         

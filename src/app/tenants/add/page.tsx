@@ -150,18 +150,24 @@ export default function AddTenantPage() {
                     </div>
                     <div>
                         <Label htmlFor="unitId">Available Unit</Label>
-                         <Select name="unitId" disabled={!selectedPropertyId || availableUnits.length === 0}>
-                            <SelectTrigger id="unitId">
-                                <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableUnits.map((u: Unit) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                        {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Controller
+                            name="unitId"
+                            control={control}
+                            render={({ field }) => (
+                                 <Select name="unitId" onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                                    <SelectTrigger id="unitId">
+                                        <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableUnits.map((u: Unit) => (
+                                            <SelectItem key={u.id} value={u.id}>
+                                                {u.unitNumber} - {u.size} ({u.rent} {properties.find(p=>p.id === selectedPropertyId)?.currency})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
                          {state.errors?.unitId && <p className="text-sm text-destructive mt-1">{state.errors.unitId[0]}</p>}
                     </div>
                 </div>

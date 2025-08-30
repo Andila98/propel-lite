@@ -119,6 +119,7 @@ export default function EditTenantPage() {
   const clientAction = (formData: FormData) => {
     const values = getValues();
     // Use the value from the form state, not the server data
+    formData.append('propertyId', values.propertyId);
     formData.append('currentUnitId', values.currentUnitId);
     formAction(formData);
   }
