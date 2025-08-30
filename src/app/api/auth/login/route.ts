@@ -23,6 +23,14 @@ export async function POST(req: NextRequest) {
     }
     
     const { sessionCookie, userProfile } = await createSession(idToken);
+    
+    // Check if the user's profile is complete before creating a session.
+    if (userProfile.role !== 'tenant' && !userProfile.profileComplete) {
+        return NextResponse.json({ 
+            error: 'Your account setup is not complete. Please finish the onboarding process.',
+            errorCode: 'INCOMPLETE_PROFILE' 
+        }, { status: 403 });
+    }
 
     const response = NextResponse.json(userProfile, { status: 200 });
     response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);

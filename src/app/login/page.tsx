@@ -27,8 +27,6 @@ export default function LoginPage() {
   const handleRedirect = (user: User) => {
     if (user.role === 'tenant') {
         router.push('/tenant-portal');
-    } else if (!user.profileComplete) {
-        router.push('/onboarding/landlord-welcome');
     } else {
         router.push('/dashboard');
     }

@@ -72,26 +72,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const logout = useCallback(async () => {
+    await firebaseSignOut(auth);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch(error) {
+        console.error("Error during server-side logout:", error);
+    }
+    setUser(null);
+    router.push('/login');
+  }, [router]);
+
+
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       setLoading(true);
       if (firebaseUser) {
         try {
-          const [userProfile, idToken] = await Promise.all([
-             fetchUserFromApi(),
-             firebaseUser.getIdToken()
-          ]);
-          
+          const userProfile = await fetchUserFromApi();
           setUser(userProfile);
-
-          // Refresh the session cookie with the new token
-          await fetch('/api/auth/refresh-session', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-            },
-          });
-
         } catch (error) {
           console.error("Error during token refresh or user fetch:", error);
           await logout();
@@ -113,23 +112,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Authorization: `Bearer ${idToken}`,
         },
     });
+    
+    const responseBody = await response.json();
 
     if (!response.ok) {
-      let errorData = { error: 'Login failed due to a server error.' };
-      try {
-        // Try to parse a JSON error response
-        errorData = await response.json();
-      } catch (e) {
-        // If parsing fails, it's likely an HTML error page was returned
-        console.error("Failed to parse error response as JSON.", e);
+      // If the profile is incomplete, the server returns a specific error.
+      // We must log the user out from the client as well.
+      if (responseBody.errorCode === 'INCOMPLETE_PROFILE') {
+        await firebaseSignOut(auth);
       }
-      await firebaseSignOut(auth);
-      throw new Error(errorData.error || 'Login failed.');
+      throw new Error(responseBody.error || 'Login failed.');
     }
 
-    const userProfile = await response.json();
-    setUser(userProfile);
-    return { user: userProfile };
+    setUser(responseBody);
+    return { user: responseBody };
   }, []);
 
   const login = useCallback(async (email: string, pass: string): Promise<{ user:User }> => {
@@ -144,18 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const idToken = await userCredential.user.getIdToken();
     return processLogin(idToken);
   }, [processLogin]);
-
-  const logout = useCallback(async () => {
-    await firebaseSignOut(auth);
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch(error) {
-        console.error("Error during server-side logout:", error);
-    }
-    setUser(null);
-    router.push('/login');
-  }, [router]);
-
 
   if (loading && !user) {
     return (
