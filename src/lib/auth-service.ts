@@ -75,7 +75,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
                 email: userRecord.email,
                 name: userRecord.displayName,
                 role: userRoleClaim,
-                createdAt: FieldValue.serverTimestamp(),
+                createdAt: new Date(),
             };
             await docRef.set(newProfileData);
             console.log(`[AUTH_SERVICE] Created missing Firestore profile for user ${uid} in collection ${collectionName}.`);
