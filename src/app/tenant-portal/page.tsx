@@ -209,10 +209,9 @@ export default function TenantPortalPage() {
   const rentAmount = unit?.rent || 0;
   const rentStatus = getRentStatus(payments, rentAmount);
 
-  const formatDate = (dateValue: any) => {
-      if (!dateValue) return 'N/A';
-      const date = dateValue.seconds ? new Date(dateValue.seconds * 1000) : new Date(dateValue);
-      return date.toLocaleDateString();
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
   };
 
   const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
@@ -239,11 +238,11 @@ export default function TenantPortalPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease Start</span>
-              <span>{formatDate(tenant.leaseStart)}</span>
+              <span>{formatDate(tenant.leaseStart as any)}</span>
             </div>
              <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease End</span>
-              <span>{formatDate(tenant.leaseEnd)}</span>
+              <span>{formatDate(tenant.leaseEnd as any)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Rent Status</span>

@@ -270,11 +270,9 @@ export default function TenantDetailPage() {
     }).format(amount);
   };
 
-  const formatDate = (dateValue: any) => {
-      if (!dateValue) return 'N/A';
-      // Handle both Firestore Timestamp objects and date strings
-      const date = dateValue.seconds ? new Date(dateValue.seconds * 1000) : new Date(dateValue);
-      return date.toLocaleDateString(undefined, {
+  const formatDate = (dateString: string) => {
+      if (!dateString) return 'N/A';
+      return new Date(dateString).toLocaleDateString(undefined, {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
@@ -371,7 +369,7 @@ export default function TenantDetailPage() {
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Lease Period</span>
-                        <span className="font-medium">{formatDate(tenant.leaseStart)} to {formatDate(tenant.leaseEnd)}</span>
+                        <span className="font-medium">{formatDate(tenant.leaseStart as any)} to {formatDate(tenant.leaseEnd as any)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>

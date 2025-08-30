@@ -11,7 +11,6 @@ if (!isFirebaseAdminInitialized) {
 
 /**
  * Creates a new user in Firebase Auth and a corresponding profile in Firestore.
- * This function is now corrected to handle the password for server-side creation.
  * @param params - The user's details.
  * @returns The created user record from Firebase Auth.
  */
@@ -19,7 +18,6 @@ export async function signUpUser({ email, password, displayName }: { email: stri
     try {
         const userRecord = await auth.createUser({ email, password, displayName });
         
-        // Set custom claims for basic role identification
         await auth.setCustomUserClaims(userRecord.uid, { role: 'landlord', profileComplete: false });
         
         const landlordDocRef = firestore.collection('landlords').doc(userRecord.uid);
@@ -27,7 +25,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
             uid: userRecord.uid,
             email: userRecord.email,
             name: userRecord.displayName,
-            role: 'landlord', // Store role in Firestore as the source of truth
+            role: 'landlord',
             createdAt: new Date(),
         });
 
@@ -35,7 +33,6 @@ export async function signUpUser({ email, password, displayName }: { email: stri
 
     } catch (error: any) {
         console.error('[AUTH_SERVICE_ERROR] Failed to sign up user:', error);
-        // Re-throw with a more generic message for security
         throw new Error(`Could not sign up user: ${error.code}`);
     }
 }
@@ -68,11 +65,10 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         if (doc.exists) {
             firestoreProfile = doc.data();
         } else {
-            // Profile does not exist, create a basic one. Crucial for social logins.
             const newProfileData = {
                 uid: userRecord.uid,
                 email: userRecord.email,
-                name: userRecord.displayName || 'New User', // Ensure name is always set
+                name: userRecord.displayName || 'New User',
                 role: userRoleClaim,
                 createdAt: new Date(),
             };
@@ -86,11 +82,9 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         uid: userRecord.uid,
         email: userRecord.email || '',
         name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
-        // The role from Firestore is the source of truth.
         role: firestoreProfile.role || userRoleClaim,
         profileComplete: userRecord.customClaims?.profileComplete ?? false,
         avatarUrl: userRecord.photoURL || undefined,
-        // Permissions are sourced directly from the Firestore document.
         permissions: firestoreProfile.permissions || {},
         ...firestoreProfile
     };
