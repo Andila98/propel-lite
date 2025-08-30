@@ -97,11 +97,11 @@ async function seedData() {
     try {
         landlordRecord = await signUpUser({
             email: landlordEmail,
-            password: landlordPassword, // This was missing
+            password: landlordPassword,
             displayName: "Alice Landlord",
         });
     } catch(e:any) {
-        if(e.message.includes('auth/email-already-exists')) {
+        if(e.message.includes('auth/email-already-exists') || e.message.includes('email-already-exists')) {
             landlordRecord = await auth.getUserByEmail(landlordEmail);
         } else {
             throw e;
