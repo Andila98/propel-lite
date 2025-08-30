@@ -44,11 +44,20 @@ export default function LoginPage() {
         });
         handleRedirect(user);
     } catch (error: any) {
-        toast({
-            title: "Login Failed",
-            description: error.message,
-            variant: "destructive",
-        });
+        // If the profile is incomplete, redirect to onboarding
+        if (error.errorCode === 'INCOMPLETE_PROFILE') {
+            toast({
+                title: "Setup Required",
+                description: "Let's complete your account setup.",
+            });
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            toast({
+                title: "Login Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
     } finally {
         setIsLoading(false);
     }
@@ -64,11 +73,19 @@ export default function LoginPage() {
         });
         handleRedirect(user);
     } catch (error: any) {
-         toast({
-            title: "Social Login Failed",
-            description: error.message,
-            variant: "destructive",
-        });
+         if (error.errorCode === 'INCOMPLETE_PROFILE') {
+            toast({
+                title: "Setup Required",
+                description: "Let's complete your account setup.",
+            });
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            toast({
+                title: "Social Login Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
     } finally {
         setIsSocialLoading(false);
     }

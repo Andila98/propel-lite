@@ -119,9 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If the profile is incomplete, the server returns a specific error.
       // We must log the user out from the client as well.
       if (responseBody.errorCode === 'INCOMPLETE_PROFILE') {
-        await firebaseSignOut(auth);
+        // Don't sign out here, let the calling component handle the redirect.
       }
-      throw new Error(responseBody.error || 'Login failed.');
+      const error: any = new Error(responseBody.error || 'Login failed.');
+      error.errorCode = responseBody.errorCode;
+      throw error;
     }
 
     setUser(responseBody);

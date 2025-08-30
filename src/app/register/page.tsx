@@ -33,7 +33,7 @@ type RegisterFormValues = z.infer<typeof RegisterSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -75,9 +75,13 @@ export default function RegisterPage() {
         
         toast({
             title: "Account Created!",
-            description: "Your landlord account has been successfully created. Please log in.",
+            description: "Redirecting you to setup...",
         });
-        router.push('/login');
+
+        // After successful signup, immediately try to log in to start the session
+        // and trigger the onboarding redirect.
+        await login(data.email, data.password);
+        router.push('/onboarding/landlord-welcome');
 
     } catch (error: any) {
         toast({
@@ -100,11 +104,19 @@ export default function RegisterPage() {
         });
         handleRedirect(user);
     } catch (error: any) {
-         toast({
-            title: "Social Login Failed",
-            description: error.message,
-            variant: "destructive",
-        });
+         if (error.errorCode === 'INCOMPLETE_PROFILE') {
+            toast({
+                title: "Setup Required",
+                description: "Let's complete your account setup.",
+            });
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            toast({
+                title: "Social Login Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
     } finally {
         setIsSocialLoading(false);
     }
