@@ -3,12 +3,13 @@ import type { Timestamp } from "firebase-admin/firestore";
 import type { GenerateReceiptOutput as GenReceiptOutput } from '@/ai/flows/generate-receipt';
 import type { GenerateInvoiceOutput as GenInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
 
+type UserRole = 'landlord' | 'tenant' | 'admin' | 'manager';
 
 export interface User {
     uid: string;
     email: string;
     name: string;
-    role: 'landlord' | 'tenant' | 'admin' | 'manager';
+    role: UserRole;
     landlordId?: string; // For tenants and managers
     createdAt: Timestamp;
     avatarUrl?: string;
@@ -53,6 +54,7 @@ export interface Tenant {
     name: string;
     email: string;
     phone?: string;
+    role: 'tenant';
     avatarUrl?: string;
     propertyId: string;
     rentStatus: 'Paid' | 'Overdue' | 'Partially Paid' | 'Advance';
@@ -136,6 +138,7 @@ export interface PropertyManager {
   uid: string;
   name: string;
   email: string;
+  role: 'manager';
   phone?: string;
   avatarUrl?: string;
   propertiesManaged: string[]; // Array of property IDs

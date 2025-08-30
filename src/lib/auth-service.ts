@@ -19,6 +19,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
     try {
         const userRecord = await auth.createUser({ email, password, displayName });
         
+        // Set custom claims for basic role identification
         await auth.setCustomUserClaims(userRecord.uid, { role: 'landlord', profileComplete: false });
         
         const landlordDocRef = firestore.collection('landlords').doc(userRecord.uid);
@@ -26,6 +27,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
             uid: userRecord.uid,
             email: userRecord.email,
             name: userRecord.displayName,
+            role: 'landlord', // Store role in Firestore as the source of truth
             createdAt: FieldValue.serverTimestamp(),
         });
 
@@ -41,7 +43,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
 
 /**
  * Fetches the complete user profile from Firestore based on the UID.
- * If a profile does not exist for the user's role, it creates one.
+ * This function treats the Firestore document as the source of truth for role and permissions.
  * @param uid - The user's unique ID.
  * @returns A complete user profile object, or null if not found.
  */
@@ -49,27 +51,29 @@ export async function getUserProfile(uid: string): Promise<User | null> {
     const userRecord = await auth.getUser(uid);
     if (!userRecord) return null;
 
-    const userRole = userRecord.customClaims?.role || 'landlord';
+    const userRoleClaim = userRecord.customClaims?.role || 'landlord';
     
     const collections: Record<string, string> = {
         manager: 'managers',
         tenant: 'tenants',
         landlord: 'landlords'
     };
-    const collectionName = collections[userRole];
+    const collectionName = collections[userRoleClaim];
     let firestoreProfile: any = {};
     
     if (collectionName) {
         const docRef = firestore.collection(collectionName).doc(userRecord.uid);
         const doc = await docRef.get();
+        
         if (doc.exists) {
             firestoreProfile = doc.data();
         } else {
-            // Profile does not exist, create it. This is crucial for social logins.
+            // Profile does not exist, create a basic one. Crucial for social logins.
             const newProfileData = {
                 uid: userRecord.uid,
                 email: userRecord.email,
                 name: userRecord.displayName,
+                role: userRoleClaim,
                 createdAt: FieldValue.serverTimestamp(),
             };
             await docRef.set(newProfileData);
@@ -82,9 +86,11 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         uid: userRecord.uid,
         email: userRecord.email || '',
         name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
-        role: userRole,
+        // The role from Firestore is the source of truth.
+        role: firestoreProfile.role || userRoleClaim,
         profileComplete: userRecord.customClaims?.profileComplete ?? false,
         avatarUrl: userRecord.photoURL,
+        // Permissions are sourced directly from the Firestore document.
         permissions: firestoreProfile.permissions || {},
         ...firestoreProfile
     };

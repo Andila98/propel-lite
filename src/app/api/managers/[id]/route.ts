@@ -4,6 +4,7 @@ import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admi
 import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordId, verifySession } from '@/lib/auth-utils';
 import { toJSON } from '@/lib/utils';
+import type { Permission } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
@@ -47,21 +48,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const managerId = params.id;
         const body = await req.json();
 
-        // Separate permissions from other data
-        const { permissions, ...managerData } = body;
-
-        // 1. Update the manager's document in Firestore
-        await firestore.collection('managers').doc(managerId).update(managerData);
-
-        // 2. Update the user's custom claims in Firebase Auth
-        const user = await auth.getUser(managerId);
-        await auth.setCustomUserClaims(managerId, {
-            ...user.customClaims, // preserve existing claims
-            role: 'manager',
-            permissions: permissions || {},
-        });
+        // Update the manager's document in Firestore. It is the source of truth.
+        await firestore.collection('managers').doc(managerId).update(body);
         
-        await logActivity('Admin', `Updated manager "${managerData.name}"`, { type: 'Manager', name: managerData.name });
+        await logActivity('Admin', `Updated manager "${body.name}"`, { type: 'Manager', name: body.name });
 
         return NextResponse.json({ message: 'Manager updated successfully.' }, { status: 200 });
     } catch (error: any) {

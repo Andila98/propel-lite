@@ -37,20 +37,21 @@ export async function POST(req: NextRequest) {
             displayName,
         });
 
-        // 2. Set custom claims, including the landlordId
+        // 2. Set custom claims for role-based access in middleware/security rules
         await auth.setCustomUserClaims(userRecord.uid, { 
             role: role, 
             profileComplete: true,
-            landlordId: inviterId // Securely link manager to landlord
+            landlordId: inviterId
         });
 
-        // 3. Create the manager profile in Firestore
+        // 3. Create the manager profile in Firestore, making it the source of truth for permissions
         const newManager: Omit<PropertyManager, 'id'> = {
             uid: userRecord.uid,
             name: displayName,
             email: email,
+            role: 'manager', // Store role directly in Firestore
             propertiesManaged: [],
-            landlordId: inviterId, // Store the landlord link in Firestore as well
+            landlordId: inviterId, 
             permissions: {
                 // Default permissions for a new manager
                 canAddProperties: false,
@@ -68,12 +69,8 @@ export async function POST(req: NextRequest) {
         await firestore.collection('managers').doc(userRecord.uid).set(newManager);
         
         // Log this activity
-        // In a real app, you might want to fetch the inviter's name
-        await logActivity('System', `Manager "${displayName}" created`, { type: 'Manager', name: displayName });
-        if (inviterId) {
-            const inviter = await auth.getUser(inviterId);
-            await logActivity(inviter.displayName || 'Landlord', `Invited manager "${displayName}"`, { type: 'Manager', name: displayName });
-        }
+        const inviter = await auth.getUser(inviterId);
+        await logActivity(inviter.displayName || 'Landlord', `Invited manager "${displayName}"`, { type: 'Manager', name: displayName });
 
 
         return NextResponse.json({ message: 'Account created successfully.' }, { status: 201 });
