@@ -10,6 +10,7 @@ import { faker } from '@faker-js/faker';
 import { auth, firestore, isFirebaseAdminInitialized } from '../src/lib/firebase-admin';
 import type { Property, Unit, Tenant, Payment, MaintenanceRequest, Message, AuditLog, PropertyManager } from '../src/lib/types';
 import { add, sub } from 'date-fns';
+import { signUpUser } from '@/lib/auth-service';
 
 if (!isFirebaseAdminInitialized) {
   console.error("Firebase Admin SDK is not initialized. Make sure your environment is configured correctly.");
@@ -76,9 +77,9 @@ async function clearAllData() {
     }
     
     console.log('Clearing existing users from Firebase Auth...');
-    const users = await auth.listUsers();
-    if (users.users.length > 0) {
-        const uidsToDelete = users.users.map(u => u.uid);
+    const usersResult = await auth.listUsers();
+    if (usersResult.users.length > 0) {
+        const uidsToDelete = usersResult.users.map(u => u.uid);
         await auth.deleteUsers(uidsToDelete);
     }
 
@@ -94,29 +95,19 @@ async function seedData() {
     landlordEmail = "landlord@example.com";
     let landlordRecord;
     try {
-        landlordRecord = await auth.createUser({
+        landlordRecord = await signUpUser({
             email: landlordEmail,
-            password: landlordPassword,
+            password: landlordPassword, // This was missing
             displayName: "Alice Landlord",
         });
     } catch(e:any) {
-        if(e.code === 'auth/email-already-exists') {
+        if(e.message.includes('auth/email-already-exists')) {
             landlordRecord = await auth.getUserByEmail(landlordEmail);
         } else {
             throw e;
         }
     }
     
-    await auth.setCustomUserClaims(landlordRecord.uid, { role: 'landlord', profileComplete: true });
-
-    const landlordRef = firestore.collection('landlords').doc(landlordRecord.uid);
-    await landlordRef.set({
-        uid: landlordRecord.uid,
-        email: landlordEmail,
-        name: "Alice Landlord",
-        role: 'landlord',
-        createdAt: new Date(),
-    });
     const landlordId = landlordRecord.uid;
     console.log(`Landlord created. Email: ${landlordEmail}, Password: ${landlordPassword}`);
 
