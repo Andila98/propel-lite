@@ -77,8 +77,8 @@ export async function getUserProfile(uid: string): Promise<User | null> {
                 createdAt: FieldValue.serverTimestamp(),
             };
             await docRef.set(newProfileData);
-            firestoreProfile = newProfileData;
             console.log(`[AUTH_SERVICE] Created missing Firestore profile for user ${uid} in collection ${collectionName}.`);
+            firestoreProfile = newProfileData;
         }
     }
 
@@ -89,7 +89,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         // The role from Firestore is the source of truth.
         role: firestoreProfile.role || userRoleClaim,
         profileComplete: userRecord.customClaims?.profileComplete ?? false,
-        avatarUrl: userRecord.photoURL,
+        avatarUrl: userRecord.photoURL || undefined,
         // Permissions are sourced directly from the Firestore document.
         permissions: firestoreProfile.permissions || {},
         ...firestoreProfile
