@@ -73,7 +73,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
             const newProfileData = {
                 uid: userRecord.uid,
                 email: userRecord.email,
-                name: userRecord.displayName,
+                name: userRecord.displayName || 'New User', // Ensure name is always set
                 role: userRoleClaim,
                 createdAt: new Date(),
             };
