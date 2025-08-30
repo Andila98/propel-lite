@@ -19,9 +19,9 @@ if (!isFirebaseAdminInitialized) {
 
 const BATCH_SIZE = 250;
 let landlordEmail: string;
-let landlordPassword = "P@55wOrd123";
+let landlordPassword = "P@55w0rd123";
 let managerEmail: string;
-let managerPassword = "P@55wOrd123";
+let managerPassword = "P@55w0rd123";
 
 
 async function clearCollection(collectionPath: string, subcollections: string[] = []) {
@@ -188,9 +188,9 @@ async function seedData() {
         uid: managerRecord.uid,
         name: "Bob Manager",
         email: managerEmail,
-        landlordId,
         role: 'manager',
         propertiesManaged: assignedPropertyIds,
+        landlordId,
         permissions: {
             canAddProperties: false,
             canEditProperties: true,
@@ -353,3 +353,5 @@ seed().then(() => {
     console.error(e.message); // Log a cleaner message
     process.exit(1);
 });
+
+    
