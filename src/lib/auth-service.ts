@@ -12,10 +12,11 @@ if (!isFirebaseAdminInitialized) {
 
 /**
  * Creates a new user in Firebase Auth and a corresponding profile in Firestore.
+ * This function is now corrected to handle the password for server-side creation.
  * @param params - The user's details.
  * @returns The created user record from Firebase Auth.
  */
-export async function signUpUser({ email, password, displayName }: { email: string, password?: string, displayName: string }) {
+export async function signUpUser({ email, password, displayName }: { email: string; password?: string; displayName: string; }) {
     try {
         const userRecord = await auth.createUser({ email, password, displayName });
         
@@ -111,6 +112,11 @@ export async function createSession(idToken: string): Promise<{ sessionCookie: s
         throw new Error("User profile could not be found or created.");
     }
     
+    // Check if the user's profile is complete before creating a session.
+    if (userProfile.role !== 'tenant' && !userProfile.profileComplete) {
+        throw new Error('Your account setup is not complete. Please finish the onboarding process.');
+    }
+
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
 

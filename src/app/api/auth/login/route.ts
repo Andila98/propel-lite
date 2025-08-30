@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import { createSession } from '@/lib/auth-service';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase-client';
 
 export const runtime = 'nodejs';
 
@@ -24,20 +26,22 @@ export async function POST(req: NextRequest) {
     
     const { sessionCookie, userProfile } = await createSession(idToken);
     
-    // Check if the user's profile is complete before creating a session.
-    if (userProfile.role !== 'tenant' && !userProfile.profileComplete) {
-        return NextResponse.json({ 
-            error: 'Your account setup is not complete. Please finish the onboarding process.',
-            errorCode: 'INCOMPLETE_PROFILE' 
-        }, { status: 403 });
-    }
-
     const response = NextResponse.json(userProfile, { status: 200 });
     response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
 
     return response;
   } catch (error: any) {
     console.error('[ERROR: /api/auth/login]', error);
-    return NextResponse.json({ error: 'Invalid credentials. Please try again.' }, { status: 401 });
+    
+    // If the error indicates an incomplete profile, we need a special error code
+    // so the client knows not to just show "Invalid Credentials".
+    if (error.message.includes('account setup is not complete')) {
+      return NextResponse.json({
+        error: error.message,
+        errorCode: 'INCOMPLETE_PROFILE'
+      }, { status: 403 });
+    }
+    
+    return NextResponse.json({ error: error.message || 'Invalid credentials. Please try again.' }, { status: 401 });
   }
 }
