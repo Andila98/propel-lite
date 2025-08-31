@@ -55,19 +55,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleRedirect = useCallback((user: User | null) => {
     if (!user) return;
+
+    const performRedirect = (path: string) => {
+      setTimeout(() => router.push(path), 50);
+    }
     
     // If the user is a landlord/manager, their profile is incomplete,
     // and they are NOT already in the onboarding flow, redirect them.
     if (user.role !== 'tenant' && !user.profileComplete && !pathname.startsWith('/onboarding')) {
-      router.push('/onboarding/landlord-welcome');
+      performRedirect('/onboarding/landlord-welcome');
     } else {
        const isPublicFlow = pathname.startsWith('/login') || pathname.startsWith('/register');
        if (isPublicFlow) {
         // If they are on a public page but ARE fully set up, redirect them to their portal.
         if (user.role === 'tenant') {
-          router.push('/tenant-portal');
+          performRedirect('/tenant-portal');
         } else {
-          router.push('/dashboard');
+          performRedirect('/dashboard');
         }
       }
     }
