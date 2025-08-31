@@ -31,22 +31,31 @@ export default function LoginPage() {
     
     try {
         await login(email, password);
-        // AuthProvider will now handle the redirect, so we don't need to do it here.
+        // AuthProvider now handles the redirect, so we don't need to do it here.
         // The router.push('/dashboard') is handled by the AuthProvider's effect.
         toast({
             title: "Login Successful",
             description: "Welcome back!",
         });
     } catch (error: any) {
-        toast({
-            title: "Login Failed",
-            description: error.message,
-            variant: "destructive",
-        });
+        // This is the key change: handle the specific error for incomplete profiles.
+        if (error.code === 'INCOMPLETE_PROFILE') {
+            toast({
+                title: "Setup Required",
+                description: "Redirecting you to complete your profile.",
+            });
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            toast({
+                title: "Login Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
     } finally {
         setIsLoading(false);
     }
-  }, [email, password, login, toast]);
+  }, [email, password, login, toast, router]);
   
   const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
@@ -58,15 +67,23 @@ export default function LoginPage() {
             description: "Welcome!",
         });
     } catch (error: any) {
-        toast({
-            title: "Social Login Failed",
-            description: error.message,
-            variant: "destructive",
-        });
+       if (error.code === 'INCOMPLETE_PROFILE') {
+            toast({
+                title: "Setup Required",
+                description: "Redirecting you to complete your profile.",
+            });
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            toast({
+                title: "Social Login Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
     } finally {
         setIsSocialLoading(false);
     }
-  }, [loginWithGoogle, toast]);
+  }, [loginWithGoogle, toast, router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
