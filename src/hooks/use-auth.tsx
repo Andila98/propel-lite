@@ -57,11 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const isPublicFlow = pathname.startsWith('/login') || pathname.startsWith('/register');
 
-    if (user.role !== 'tenant' && !user.profileComplete) {
-      if (!pathname.startsWith('/onboarding')) {
-        router.push('/onboarding/landlord-welcome');
-      }
+    // **Corrected Logic**: If the user is a landlord/manager, their profile is incomplete,
+    // and they are NOT already in the onboarding flow, redirect them.
+    if (user.role !== 'tenant' && !user.profileComplete && !pathname.startsWith('/onboarding')) {
+      router.push('/onboarding/landlord-welcome');
     } else if (isPublicFlow) {
+      // If they are on a public page but ARE fully set up, redirect them to their portal.
       if (user.role === 'tenant') {
         router.push('/tenant-portal');
       } else {
@@ -110,13 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const responseBody = await response.json();
 
     if (!response.ok) {
-      // The server will now only fail on actual errors, not for incomplete profiles.
+      // Throw an error that includes the specific error code from the server
       const error: any = new Error(responseBody.error || 'Login failed.');
+      error.code = responseBody.errorCode; // Attach the code to the error object
       throw error;
     }
-    // After a successful login API call, the AuthProvider's onIdTokenChanged
-    // listener will handle fetching the user data and redirecting.
-    // We manually trigger a refresh to ensure it's immediate.
+
     await refreshUser();
   }, [refreshUser]);
 
