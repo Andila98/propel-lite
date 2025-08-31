@@ -10,11 +10,14 @@ const publicPaths = [
   '/login',
   '/register',
   '/forgot-password',
-  '/onboarding', // Allow all onboarding routes
+  // Onboarding is protected, except for the invite page.
   '/api/auth', // Allow all auth API routes
 ];
 
 function isPublic(pathname: string): boolean {
+  if (pathname.startsWith('/onboarding/accept-invite')) {
+    return true;
+  }
   return publicPaths.some(path => pathname.startsWith(path));
 }
 
