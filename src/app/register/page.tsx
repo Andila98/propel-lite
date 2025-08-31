@@ -93,15 +93,23 @@ export default function RegisterPage() {
             description: "Let's get you set up.",
         });
     } catch (error: any) {
-        toast({
-            title: "Social Sign-Up Failed",
-            description: error.message,
-            variant: "destructive",
-        });
+       if (error.code === 'INCOMPLETE_PROFILE') {
+            toast({
+                title: "Setup Required",
+                description: "Redirecting you to complete your profile.",
+            });
+            router.push('/onboarding/landlord-welcome');
+        } else {
+            toast({
+                title: "Social Sign-Up Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
     } finally {
         setIsSocialLoading(false);
     }
-  }, [loginWithGoogle, toast]);
+  }, [loginWithGoogle, toast, router]);
 
 
   return (
