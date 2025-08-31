@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     
     await auth.verifyIdToken(idToken);
     
+    // Use the maxAge from the config to set the cookie expiration.
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     

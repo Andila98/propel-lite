@@ -120,6 +120,7 @@ export async function createSession(idToken: string): Promise<{ sessionCookie: s
       throw error;
     }
 
+    // Use the maxAge from the config to set the cookie expiration.
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
 
