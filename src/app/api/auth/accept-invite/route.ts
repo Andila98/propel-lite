@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         
         await firestore.collection('managers').doc(userRecord.uid).set(newManager);
         
-        // Log this activity
+        // 4. Log this activity *after* all database operations are successful
         const inviter = await auth.getUser(inviterId);
         await logActivity(inviter.displayName || 'Landlord', `Invited manager "${displayName}"`, { type: 'Manager', name: displayName });
 
