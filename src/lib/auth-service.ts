@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
@@ -33,7 +34,11 @@ export async function signUpUser({ email, password, displayName }: { email: stri
 
     } catch (error: any) {
         console.error('[AUTH_SERVICE_ERROR] Failed to sign up user:', error);
-        throw new Error(`Could not sign up user: ${error.code}`);
+        // Transform the error to a more user-friendly message
+        if (error.code === 'auth/email-already-exists') {
+            throw new Error('An account with this email already exists.');
+        }
+        throw new Error(`Could not sign up user: ${error.message}`);
     }
 }
 
@@ -45,7 +50,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
  * @returns A complete user profile object, or null if not found.
  */
 export async function getUserProfile(uid: string): Promise<User | null> {
-    const userRecord = await auth.getUser(uid);
+    const userRecord = await auth.getUser(uid).catch(() => null);
     if (!userRecord) return null;
 
     const userRoleClaim = userRecord.customClaims?.role || 'landlord';
@@ -65,6 +70,8 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         if (doc.exists) {
             firestoreProfile = doc.data();
         } else {
+            // If a user exists in Auth but not Firestore (e.g. social sign-in), create a profile.
+            console.log(`[AUTH_SERVICE] No Firestore profile found for UID ${uid}. Creating one in '${collectionName}'.`);
             const newProfileData = {
                 uid: userRecord.uid,
                 email: userRecord.email,
@@ -73,7 +80,6 @@ export async function getUserProfile(uid: string): Promise<User | null> {
                 createdAt: new Date(),
             };
             await docRef.set(newProfileData);
-            console.log(`[AUTH_SERVICE] Created missing Firestore profile for user ${uid} in collection ${collectionName}.`);
             firestoreProfile = newProfileData;
         }
     }
@@ -102,12 +108,16 @@ export async function createSession(idToken: string): Promise<{ sessionCookie: s
     const userProfile = await getUserProfile(decodedToken.uid);
 
     if (!userProfile) {
+        // This case should be rare now with the creation logic in getUserProfile, but it's a good safeguard.
         throw new Error("User profile could not be found or created.");
     }
     
-    // Check if the user's profile is complete before creating a session.
+    // For non-tenant roles, if the profile is incomplete, block session creation
+    // and let the client-side handle redirection to onboarding.
     if (userProfile.role !== 'tenant' && !userProfile.profileComplete) {
-        throw new Error('Your account setup is not complete. Please finish the onboarding process.');
+      const error: any = new Error('Your account setup is not complete. Please finish the onboarding process.');
+      error.code = 'INCOMPLETE_PROFILE';
+      throw error;
     }
 
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;

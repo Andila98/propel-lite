@@ -1,10 +1,9 @@
 
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import { createSession } from '@/lib/auth-service';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase-client';
 
 export const runtime = 'nodejs';
 
@@ -34,12 +33,12 @@ export async function POST(req: NextRequest) {
     console.error('[ERROR: /api/auth/login]', error);
     
     // If the error indicates an incomplete profile, we need a special error code
-    // so the client knows not to just show "Invalid Credentials".
-    if (error.message.includes('account setup is not complete')) {
+    // so the client knows to redirect to onboarding instead of just showing a generic error.
+    if (error.code === 'INCOMPLETE_PROFILE') {
       return NextResponse.json({
         error: error.message,
-        errorCode: 'INCOMPLETE_PROFILE'
-      }, { status: 403 });
+        errorCode: 'INCOMPLETE_PROFILE' // Send a specific code for the client to handle
+      }, { status: 403 }); // 403 Forbidden is more appropriate here
     }
     
     return NextResponse.json({ error: error.message || 'Invalid credentials. Please try again.' }, { status: 401 });
