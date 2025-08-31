@@ -23,6 +23,16 @@ export async function completeOnboarding(): Promise<ActionState> {
 
     const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
     
+    // Security check: Ensure the user has added at least one property.
+    const propertiesSnapshot = await firestore.collection('properties')
+        .where('landlordId', '==', decodedClaims.uid)
+        .limit(1)
+        .get();
+
+    if (propertiesSnapshot.empty) {
+        return { error: "You must add at least one property to complete the setup." };
+    }
+
     // Set a custom claim to indicate the profile is now complete
     await auth.setCustomUserClaims(decodedClaims.uid, { 
         ...decodedClaims, // Preserve existing claims

@@ -60,6 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTimeout(() => router.push(path), 50);
     }
     
+    // If user's profile is complete but they are trying to access onboarding, redirect them away.
+    if (user.profileComplete && pathname.startsWith('/onboarding')) {
+      const destination = user.role === 'tenant' ? '/tenant-portal' : '/dashboard';
+      performRedirect(destination);
+      return;
+    }
+    
     // If the user is a landlord/manager, their profile is incomplete,
     // and they are NOT already in the onboarding flow, redirect them.
     if (user.role !== 'tenant' && !user.profileComplete && !pathname.startsWith('/onboarding')) {
