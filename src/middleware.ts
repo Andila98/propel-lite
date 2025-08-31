@@ -10,7 +10,7 @@ const publicPaths = [
   '/login',
   '/register',
   '/forgot-password',
-  '/onboarding/accept-invite',
+  '/onboarding', // Allow all onboarding routes
   '/api/auth', // Allow all auth API routes
 ];
 
