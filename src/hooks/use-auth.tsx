@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleRedirect = useCallback((user: User | null) => {
     if (!user) return;
     
-    // **Corrected Logic**: If the user is a landlord/manager, their profile is incomplete,
+    // If the user is a landlord/manager, their profile is incomplete,
     // and they are NOT already in the onboarding flow, redirect them.
     if (user.role !== 'tenant' && !user.profileComplete && !pathname.startsWith('/onboarding')) {
       router.push('/onboarding/landlord-welcome');
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [processLogin]);
 
   const logout = useCallback(async () => {
-    // First, sign out from the client-side Firebase instance.
+    // First, sign out from the client-side Firebase instance. This clears the local state.
     await firebaseSignOut(auth);
     
     // Then, call the server endpoint to revoke the session cookie and server-side session.
