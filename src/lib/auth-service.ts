@@ -85,14 +85,20 @@ export async function getUserProfile(uid: string): Promise<User | null> {
     }
 
     return {
+        // Start with all data from Firestore, making it the base source of truth.
+        ...firestoreProfile,
+        // Explicitly set or override with values from Firebase Auth which are more authoritative or foundational.
         uid: userRecord.uid,
         email: userRecord.email || '',
-        name: userRecord.displayName || firestoreProfile.name || 'Unnamed User',
+        // Prioritize Firestore name, but fall back to Auth display name if Firestore's is missing.
+        name: firestoreProfile.name || userRecord.displayName || 'Unnamed User',
+        // Prioritize Firestore role, but fall back to the auth claim.
         role: firestoreProfile.role || userRoleClaim,
         profileComplete: userRecord.customClaims?.profileComplete ?? false,
+        // Auth is the source of truth for avatar.
         avatarUrl: userRecord.photoURL || undefined,
+        // Ensure permissions from Firestore are included.
         permissions: firestoreProfile.permissions || {},
-        ...firestoreProfile
     };
 }
 
