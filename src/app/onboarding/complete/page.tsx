@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Stepper } from '@/components/ui/stepper';
 import { completeOnboarding } from '../actions';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
@@ -24,30 +24,30 @@ export default function OnboardingCompletePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { refreshUser } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
   // This action marks the user's profile as complete on the backend.
   useEffect(() => {
-    async function finalize() {
-        setLoading(true);
+    startTransition(async () => {
         const state = await completeOnboarding();
         if (state.error) {
             toast({
-                title: "Error",
-                description: `Could not finalize onboarding: ${state.error}`,
+                title: "Onboarding Error",
+                description: `Could not finalize onboarding: ${state.error}. Redirecting to add a property.`,
                 variant: "destructive",
             });
+            // Redirect the user back to the required step if there's an error.
+            router.push('/onboarding/add-property');
         } else if (state.success) {
             toast({
                 title: "Setup Complete!",
                 description: "You're all set and ready to go.",
             });
+            // Refresh the user context to get the `profileComplete: true` flag.
             await refreshUser();
         }
-        setLoading(false);
-    }
-    finalize();
-  }, [toast, refreshUser]);
+    });
+  }, [toast, refreshUser, router]);
 
 
   return (
@@ -57,20 +57,20 @@ export default function OnboardingCompletePage() {
         <Card className="w-full text-center">
             <CardHeader>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
-                {loading ? <Loader2 className="h-8 w-8 animate-spin" /> : <CheckCircle2 className="h-8 w-8" />}
+                {isPending ? <Loader2 className="h-8 w-8 animate-spin" /> : <CheckCircle2 className="h-8 w-8" />}
             </div>
             <CardTitle className="text-3xl">
-                {loading ? "Finalizing Setup..." : "Setup Complete!"}
+                {isPending ? "Finalizing Setup..." : "Setup Complete!"}
             </CardTitle>
             <CardDescription className="text-lg">
-                {loading ? "Please wait while we apply the final settings." : "You're all set and ready to go."}
+                {isPending ? "Please wait while we apply the final settings." : "You're all set and ready to go."}
             </CardDescription>
             </CardHeader>
             <CardContent>
             <p className="mb-6 text-muted-foreground">
                 You can now manage your properties, track payments, and communicate with tenants from your dashboard.
             </p>
-             <Button size="lg" onClick={() => router.push('/dashboard')} disabled={loading}>
+             <Button size="lg" onClick={() => router.push('/dashboard')} disabled={isPending}>
                 Go to Dashboard
              </Button>
             </CardContent>
@@ -79,5 +79,3 @@ export default function OnboardingCompletePage() {
     </div>
   );
 }
-
-    
