@@ -26,8 +26,9 @@ export async function POST(req: NextRequest) {
         if (!file) {
             return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
         }
-        
-        const url = await uploadFile(file);
+
+        const arrayBuffer = await file.arrayBuffer();
+        const url = await uploadFile(arrayBuffer, file.type, file.name);
         
         return NextResponse.json({ url });
     } catch (error: any) {

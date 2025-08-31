@@ -8,15 +8,15 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function uploadFile(file: File): Promise<string> {
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExtension}`;
+export async function uploadFile(arrayBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
+    const fileExtension = fileName.split('.').pop();
+    const newFileName = `${uuidv4()}.${fileExtension}`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
         .from('properties') // your bucket name
-        .upload(fileName, file, {
-            contentType: file.type,
-            upsert: true,
+        .upload(newFileName, arrayBuffer, {
+            contentType: contentType,
+            upsert: false, // It's better to avoid upsert for new files with unique names
         });
 
     if (uploadError) {
@@ -26,6 +26,6 @@ export async function uploadFile(file: File): Promise<string> {
     const { data: urlData } = supabase.storage
         .from('properties')
         .getPublicUrl(uploadData.path);
-        
+            
     return urlData.publicUrl;
 }
