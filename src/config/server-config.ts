@@ -8,7 +8,7 @@ import { firebaseConfig as publicConfig } from './firebase-config';
 
 export const authConfig = {
     apiKey: publicConfig.apiKey,
-    cookieName: 'PropelAuth',
+    cookieName: 'RentEaseAuth',
     cookieSerializeOptions: {
         path: '/',
         httpOnly: true,
