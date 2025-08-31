@@ -31,20 +31,19 @@ export default function LoginPage() {
     
     try {
         await login(email, password);
-        // AuthProvider now handles the redirect, so we don't need to do it here.
-        // The router.push('/dashboard') is handled by the AuthProvider's effect.
+        // The AuthProvider now handles all redirects. We just show a success toast.
         toast({
             title: "Login Successful",
             description: "Welcome back!",
         });
     } catch (error: any) {
-        // This is the key change: handle the specific error for incomplete profiles.
+        // The component's only job is to show the correct error message.
+        // The redirect is handled by the provider if the profile is incomplete.
         if (error.code === 'INCOMPLETE_PROFILE') {
             toast({
                 title: "Setup Required",
                 description: "Redirecting you to complete your profile.",
             });
-            router.push('/onboarding/landlord-welcome');
         } else {
             toast({
                 title: "Login Failed",
@@ -61,7 +60,7 @@ export default function LoginPage() {
     setIsSocialLoading(true);
     try {
         await loginWithGoogle();
-        // AuthProvider will now handle the redirect
+        // The AuthProvider now handles all redirects.
         toast({
             title: "Sign-In Successful!",
             description: "Welcome!",
@@ -72,7 +71,6 @@ export default function LoginPage() {
                 title: "Setup Required",
                 description: "Redirecting you to complete your profile.",
             });
-            router.push('/onboarding/landlord-welcome');
         } else {
             toast({
                 title: "Social Login Failed",
