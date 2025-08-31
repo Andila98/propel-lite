@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const { sessionCookie, userProfile } = await createSession(idToken);
     
     const response = NextResponse.json(userProfile, { status: 200 });
-    response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
+    // response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
 
     return response;
   } catch (error: any) {
