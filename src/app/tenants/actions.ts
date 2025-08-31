@@ -34,6 +34,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         return { error: 'Unauthorized. Please log in.' };
     }
     
+    // Permission Check
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddTenants) {
         return { error: "You don't have permission to add tenants." };
     }
@@ -117,6 +118,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         return { error: 'Unauthorized. Please log in.' };
     }
 
+    // Permission Check
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditTenants) {
         return { error: "You don't have permission to edit tenants." };
     }
