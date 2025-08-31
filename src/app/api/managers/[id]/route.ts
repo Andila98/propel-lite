@@ -51,6 +51,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         // Update the manager's document in Firestore. It is the source of truth.
         await firestore.collection('managers').doc(managerId).update(body);
         
+        // Also update the custom claims to keep them in sync for faster checks.
+        // This ensures the session token reflects the new permissions upon refresh.
+        const managerUser = await auth.getUser(managerId);
+        await auth.setCustomUserClaims(managerId, {
+            ...managerUser.customClaims, // Preserve existing claims like role, landlordId
+            permissions: body.permissions,
+        });
+
         await logActivity('Admin', `Updated manager "${body.name}"`, { type: 'Manager', name: body.name });
 
         return NextResponse.json({ message: 'Manager updated successfully.' }, { status: 200 });
