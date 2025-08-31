@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useForm, Controller, useFieldArray, type UseFormReturn } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
