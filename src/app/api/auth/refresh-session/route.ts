@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     
     const response = NextResponse.json({ status: 'success' }, { status: 200 });
-    // response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
+    response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
 
     return response;
   } catch (error: any) {

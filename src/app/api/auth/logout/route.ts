@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     } finally {
         // Always delete the client-side cookie, even if revocation fails.
         // This ensures the user is logged out from the application's perspective.
-        // cookieStore.delete(cookieName);
+        cookieStore.delete(cookieName);
     }
     
     return NextResponse.json({ message: "Logged out successfully" }, { status: 200 });
