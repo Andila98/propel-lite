@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   if (!isFirebaseAdminInitialized) {
-    const sessionCookie = req.cookies.get('PropelAuth')?.value;
+    const sessionCookie = req.cookies.get('RentEaseAuth')?.value;
     if (sessionCookie) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 503 });
     }
