@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
@@ -149,7 +148,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     // Clear the client-side state immediately.
     setUser(null);
-    await firebaseSignOut(auth);
     
     // Then, call the server endpoint to revoke the session cookie and server-side session.
     try {
@@ -157,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch(error) {
         console.error("Error during server-side logout:", error);
     } finally {
+        await firebaseSignOut(auth);
         // Redirect to login page after both client and server logout attempts.
         router.push('/login');
     }

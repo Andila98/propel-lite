@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('[ERROR: /api/auth/signup]', error);
-        if (error.message.includes('auth/email-already-exists')) {
+        if (error.message.includes('An account with this email already exists.')) {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
         }
         return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });

@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';

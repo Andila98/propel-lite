@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { authConfig } from '@/config/server-config';
 import { cookies } from 'next/headers';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { verifySession } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
