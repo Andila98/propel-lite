@@ -46,6 +46,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
 /**
  * Fetches the complete user profile from Firestore based on the UID.
  * This function treats the Firestore document as the source of truth for role and permissions.
+ * If a user exists in Auth but not Firestore, it creates a profile for them.
  * @param uid - The user's unique ID.
  * @returns A complete user profile object, or null if not found.
  */
@@ -78,6 +79,8 @@ export async function getUserProfile(uid: string): Promise<User | null> {
                 name: userRecord.displayName || 'New User',
                 role: userRoleClaim,
                 createdAt: new Date(),
+                // For managers, you might want to set default empty permissions
+                ...(userRoleClaim === 'manager' && { permissions: {}, propertiesManaged: [] }),
             };
             await docRef.set(newProfileData);
             firestoreProfile = newProfileData;
