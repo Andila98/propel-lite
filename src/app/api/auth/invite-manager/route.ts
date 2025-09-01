@@ -31,9 +31,13 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        await inviteManagerRateLimit.check(req);
+        const rateLimitResult = await inviteManagerRateLimit.check(req);
+        if (!rateLimitResult.allowed) {
+            return NextResponse.json({ error: 'Too many invitation requests. Please try again later.' }, { status: 429 });
+        }
     } catch (error) {
-        return NextResponse.json({ error: 'Too many invitation requests. Please try again later.' }, { status: 429 });
+        console.error('[ERROR] Rate limiter failed', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
     try {
@@ -44,13 +48,12 @@ export async function POST(req: NextRequest) {
         }
         const { email } = validation.data;
 
-        // Check if a user with this email already exists in Firebase Auth
         try {
             await auth.getUserByEmail(email);
             return NextResponse.json({ error: 'A user with this email already exists.' }, { status: 409 });
         } catch (error: any) {
             if (error.code !== 'auth/user-not-found') {
-                throw error; // Re-throw unexpected errors
+                throw error;
             }
         }
 

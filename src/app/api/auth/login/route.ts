@@ -5,6 +5,7 @@ import { authConfig } from '@/config/server-config';
 import { createSession } from '@/lib/auth-service';
 import { z } from 'zod';
 import { loginRateLimit } from '@/lib/rate-limiter';
+import { createRequestContext } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +15,7 @@ const loginRequestSchema = z.object({
 });
 
 // Standardized error response interface
-interface ApiErrorResponse {
+interface ApiError {
   error: string;
   code?: string;
   timestamp: string;
@@ -34,7 +35,7 @@ function createErrorResponse(
   status: number, 
   code?: string, 
   requestId?: string
-): NextResponse<ApiErrorResponse> {
+): NextResponse<ApiError> {
   const response = NextResponse.json({
     error,
     code,
@@ -42,7 +43,6 @@ function createErrorResponse(
     requestId
   }, { status });
 
-  // Add security headers
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
@@ -52,10 +52,10 @@ function createErrorResponse(
 
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID();
+  const requestContext = createRequestContext(req);
   
-  // Check if Firebase Admin is initialized
   if (!isFirebaseAdminInitialized) {
-    console.error(`[ERROR: /api/auth/login][${requestId}] Firebase Admin not initialized`);
+    console.error(`[ERROR: /api/auth/login][${requestId}] Firebase Admin not initialized`, { context: requestContext });
     return createErrorResponse(
       'Authentication service temporarily unavailable. Please try again later.',
       503,
@@ -64,96 +64,67 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Apply rate limiting
   try {
-    await loginRateLimit.check(req);
+    const rateLimitResult = await loginRateLimit.check(req);
+    if (!rateLimitResult.allowed) {
+      console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded for IP`, { context: requestContext });
+      return createErrorResponse(
+        'Too many login attempts. Please try again later.',
+        429,
+        'RATE_LIMIT_EXCEEDED',
+        requestId
+      );
+    }
   } catch (error) {
-    console.warn(`[WARN: /api/auth/login][${requestId}] Rate limit exceeded for IP`);
-    return createErrorResponse(
-      'Too many login attempts. Please try again later.',
-      429,
-      'RATE_LIMIT_EXCEEDED',
-      requestId
-    );
+    // This catch block is for unexpected errors in the rate limiter itself
+     console.error(`[ERROR: /api/auth/login][${requestId}] Rate limiter check failed`, { context: requestContext, error });
+     return createErrorResponse('Internal server error.', 500, 'INTERNAL_ERROR', requestId);
   }
 
   try {
-    // Validate Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.warn(`[WARN: /api/auth/login][${requestId}] Missing or invalid Authorization header`);
-      return createErrorResponse(
-        'Invalid authentication format',
-        401,
-        'INVALID_AUTH_HEADER',
-        requestId
-      );
+      console.warn(`[WARN: /api/auth/login][${requestId}] Missing or invalid Authorization header`, { context: requestContext });
+      return createErrorResponse('Invalid authentication format', 401, 'INVALID_AUTH_HEADER', requestId);
     }
 
     const idToken = authHeader.split('Bearer ')[1];
     if (!idToken) {
-      console.warn(`[WARN: /api/auth/login][${requestId}] Empty ID token`);
-      return createErrorResponse(
-        'Invalid authentication token',
-        401,
-        'EMPTY_TOKEN',
-        requestId
-      );
+      console.warn(`[WARN: /api/auth/login][${requestId}] Empty ID token`, { context: requestContext });
+      return createErrorResponse('Invalid authentication token', 401, 'EMPTY_TOKEN', requestId);
     }
 
-    // Validate token format (basic check)
     const validation = loginRequestSchema.safeParse({ idToken });
     if (!validation.success) {
-      console.warn(`[WARN: /api/auth/login][${requestId}] Token validation failed:`, validation.error.issues);
-      return createErrorResponse(
-        'Invalid token format',
-        400,
-        'INVALID_TOKEN_FORMAT',
-        requestId
-      );
+      console.warn(`[WARN: /api/auth/login][${requestId}] Token validation failed`, { issues: validation.error.issues, context: requestContext });
+      return createErrorResponse('Invalid token format', 400, 'INVALID_TOKEN_FORMAT', requestId);
     }
 
-    // Create session and get user profile
-    console.info(`[INFO: /api/auth/login][${requestId}] Attempting to create session`);
+    console.info(`[INFO: /api/auth/login][${requestId}] Attempting to create session`, { context: requestContext });
     const { sessionCookie, userProfile } = await createSession(idToken);
 
-    // Create successful response
     const response = NextResponse.json(userProfile, { status: 200 });
     
-    // Set session cookie with secure options
     response.cookies.set(authConfig.cookieName, sessionCookie, {
       ...authConfig.cookieSerializeOptions,
-      sameSite: 'strict', // Enhanced security
-      secure: process.env.NODE_ENV === 'production' // Only secure in production
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production'
     });
 
-    // Add security headers
     Object.entries(securityHeaders).forEach(([key, value]) => {
       response.headers.set(key, value);
     });
 
-    console.info(`[INFO: /api/auth/login][${requestId}] Login successful for user: ${userProfile.uid}`);
+    console.info(`[INFO: /api/auth/login][${requestId}] Login successful for user: ${userProfile.uid}`, { context: requestContext });
     return response;
 
   } catch (error: any) {
-    // Log the full error for debugging
-    console.error(`[ERROR: /api/auth/login][${requestId}]`, {
-      message: error.message,
-      code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    console.error(`[ERROR: /api/auth/login][${requestId}]`, { message: error.message, code: error.code, context: requestContext });
 
-    // Handle specific error cases
     if (error.code === 'INCOMPLETE_PROFILE') {
-      return createErrorResponse(
-        error.message,
-        403,
-        'INCOMPLETE_PROFILE',
-        requestId
-      );
+      return createErrorResponse(error.message, 403, 'INCOMPLETE_PROFILE', requestId);
     }
 
-    // Firebase Auth specific errors
     if (error.code?.startsWith('auth/')) {
       let message = 'Invalid credentials. Please try again.';
       let code = 'INVALID_CREDENTIALS';
@@ -173,16 +144,9 @@ export async function POST(req: NextRequest) {
           code = 'ACCOUNT_DISABLED';
           break;
       }
-
       return createErrorResponse(message, 401, code, requestId);
     }
 
-    // Generic error for unexpected issues
-    return createErrorResponse(
-      'An unexpected error occurred during login. Please try again.',
-      500,
-      'INTERNAL_ERROR',
-      requestId
-    );
+    return createErrorResponse('An unexpected error occurred during login. Please try again.', 500, 'INTERNAL_ERROR', requestId);
   }
 }
