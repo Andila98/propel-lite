@@ -9,7 +9,6 @@ export const UnitSchema = z.object({
   size: z.string().min(3, "Please specify unit size (e.g., 2 Bedroom)."),
   isOccupied: z.boolean().default(false),
   tenantId: z.string().optional(),
-  propertyId: z.string().optional(),
   landlordId: z.string().optional(),
 });
 

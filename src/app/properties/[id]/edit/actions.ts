@@ -85,7 +85,7 @@ export async function updatePropertyAction(
         // Add or update units
         units.forEach(unit => {
             const unitRef = unit.id ? propertyRef.collection('units').doc(unit.id) : propertyRef.collection('units').doc();
-            transaction.set(unitRef, unit, { merge: true });
+            transaction.set(unitRef, { ...unit, landlordId }, { merge: true }); // Ensure landlordId is set on units
             if (unit.id) {
                 existingUnitIds.delete(unit.id);
             }
