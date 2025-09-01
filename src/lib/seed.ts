@@ -100,11 +100,14 @@ async function seedDatabase() {
           password: LANDLORD_PW,
           displayName: "Demo Landlord"
       });
+      // Set role and mark profile as complete since this is a seeded account
       await auth.setCustomUserClaims(landlord.uid, { role: 'landlord', profileComplete: true });
   } catch (error: any) {
       if (error.code === 'auth/email-already-exists') {
           console.log("Landlord already exists, fetching...");
           landlord = await auth.getUserByEmail(LANDLORD_EMAIL);
+          // Ensure claims are set even for existing user
+          await auth.setCustomUserClaims(landlord.uid, { role: 'landlord', profileComplete: true });
       } else {
           throw error;
       }
