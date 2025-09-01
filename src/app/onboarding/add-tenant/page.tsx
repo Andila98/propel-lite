@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,11 +15,9 @@ import type { Unit, Property } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TenantFormSchema } from '@/lib/schemas';
+import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createTenantAction } from '@/app/tenants/actions';
-
-type TenantFormValues = z.infer<typeof TenantFormSchema>;
 
 
 const onboardingSteps = [
@@ -216,5 +213,3 @@ export default function AddTenantPage() {
     </div>
   );
 }
-
-    

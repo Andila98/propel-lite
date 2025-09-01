@@ -5,9 +5,10 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { PropertyForm } from '@/components/property-form';
-import { useActionState } from 'react';
-import { createPropertyAction, type FormState } from '@/app/properties/actions';
+import { useFormState } from 'react-dom';
+import { createPropertyAction } from '@/app/properties/actions';
 import { Stepper } from '@/components/ui/stepper';
+import type { FormState } from '@/app/properties/[id]/edit/actions';
 
 const onboardingSteps = [
     { id: 'welcome', label: 'Welcome' },
@@ -22,7 +23,7 @@ export default function AddPropertyPage() {
   const { toast } = useToast();
   
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
-  const [state, formAction] = useActionState(createPropertyAction, initialState);
+  const [state, formAction] = useFormState(createPropertyAction, initialState);
 
   useEffect(() => {
     if (state.success) {

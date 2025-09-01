@@ -6,7 +6,6 @@ import { PropertyFormSchema } from '@/lib/schemas';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
-import type { Property } from '@/lib/types';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
@@ -99,7 +98,7 @@ export async function updatePropertyAction(
         });
     });
 
-    await logActivity('Admin', `Updated property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
+    await logActivity(actor.displayName || 'Admin', `Updated property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
     
     revalidatePath('/properties');
     revalidatePath(`/properties/${propertyId}`);

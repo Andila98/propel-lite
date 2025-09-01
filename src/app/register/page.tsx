@@ -3,7 +3,6 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,13 +24,12 @@ import { z } from 'zod';
 const RegisterSchema = z.object({
     displayName: z.string().min(2, "Full name must be at least 2 characters."),
     email: z.string().email("Please enter a valid email address."),
-    password: z.string().min(6, "Password must be at least 6 characters."),
+    password: z.string().min(6, "Password must be be at least 6 characters."),
 });
 
 type RegisterFormValues = z.infer<typeof RegisterSchema>;
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const { loginWithGoogle, login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);

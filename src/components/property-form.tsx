@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState, useEffect, useTransition } from 'react';
-import { useForm, Controller, useFieldArray, type UseFormReturn } from "react-hook-form";
+import { useState, useEffect } from 'react';
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ function SubmitButton({ isOnboarding }: { isOnboarding?: boolean }) {
     const { pending } = useFormStatus();
     return (
         <Button type="submit" className="w-full md:w-auto" disabled={pending}>
-            {pending ? <Loader2 className="animate-spin" /> : (isOnboarding ? "Next: Add Property Manager" : "Save Property")}
+            {pending ? <Loader2 className="animate-spin" /> : (isOnboarding ? "Save & Continue" : "Save Property")}
         </Button>
     )
 }
@@ -199,12 +199,12 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
   const cardHeader = isOnboarding ? (
       <CardHeader>
         <CardTitle>Step 2: Add Your First Property</CardTitle>
-        <CardDescription>Let's start by adding details about one of your properties. Your progress is saved automatically.</CardDescription>
+        <CardDescription>Let's start by adding details about one of your properties. You can add more later.</CardDescription>
       </CardHeader>
   ) : (
       <CardHeader>
         <CardTitle>Property Details</CardTitle>
-        <CardDescription>Let's start by adding details about one of your properties.</CardDescription>
+        <CardDescription>Enter the primary information for the property.</CardDescription>
       </CardHeader>
   );
 

@@ -3,7 +3,6 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
