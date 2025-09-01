@@ -3,20 +3,9 @@ import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import { createSession } from '@/lib/auth-service';
 import { z } from 'zod';
-import rateLimit from '@/lib/rate-limiter';
+import { loginRateLimit } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
-
-// Rate limiter for login attempts
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  keyGenerator: (req: NextRequest) => {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : req.headers.get('x-real-ip') || 'unknown';
-    return `login:${ip}`;
-  }
-});
 
 // Validation schema for ID token
 const loginRequestSchema = z.object({
@@ -76,7 +65,7 @@ export async function POST(req: NextRequest) {
 
   // Apply rate limiting
   try {
-    await loginLimiter(req);
+    await loginRateLimit(req);
   } catch (error) {
     console.warn(`[WARN: /api/auth/login][${requestId}] Rate limit exceeded for IP`);
     return createErrorResponse(
