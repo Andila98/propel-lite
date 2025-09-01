@@ -27,8 +27,6 @@ const LoginSchema = z.object({
   password: z
     .string()
     .min(1, "Password is required")
-    .min(6, "Password must be at least 6 characters")
-    .max(128, "Password is too long"),
 });
 
 type LoginFormValues = z.infer<typeof LoginSchema>;

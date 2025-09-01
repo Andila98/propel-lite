@@ -1,4 +1,4 @@
-// lib/rate-limiter.ts
+
 import type { NextRequest } from 'next/server';
 
 interface RateLimitEntry {
@@ -111,28 +111,12 @@ class RateLimiter {
     }
 }
 
-// Factory function to create rate limiter middleware
-export default function rateLimit(options: RateLimitOptions) {
-    const limiter = new RateLimiter(options);
+// Factory to create rate limiters
+const createRateLimiter = (options: RateLimitOptions) => new RateLimiter(options);
 
-    return async (req: NextRequest) => {
-        const result = await limiter.check(req);
-
-        if (!result.allowed) {
-            const error: any = new Error('Rate limit exceeded');
-            error.code = 'RATE_LIMIT_EXCEEDED';
-            error.statusCode = 429;
-            error.resetTime = result.resetTime;
-            error.remaining = result.remaining;
-            throw error;
-        }
-
-        return result;
-    };
-}
 
 // Pre-configured rate limiters for common use cases
-export const loginRateLimit = rateLimit({
+export const loginRateLimit = createRateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // 5 login attempts per IP per window
     keyGenerator: (req: NextRequest) => {
@@ -149,9 +133,9 @@ export const loginRateLimit = rateLimit({
     }
 });
 
-export const registrationRateLimit = rateLimit({
+export const registrationRateLimit = createRateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // 3 registration attempts per IP per hour
+    max: 5, // 5 registration attempts per IP per hour
     keyGenerator: (req: NextRequest) => {
         const forwarded = req.headers.get('x-forwarded-for');
         const ip = forwarded ? forwarded.split(',')[0] : req.headers.get('x-real-ip') || 'unknown';
@@ -159,7 +143,7 @@ export const registrationRateLimit = rateLimit({
     }
 });
 
-export const passwordResetRateLimit = rateLimit({
+export const passwordResetRateLimit = createRateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 5, // 5 password reset attempts per IP per hour
     keyGenerator: (req: NextRequest) => {
@@ -169,7 +153,7 @@ export const passwordResetRateLimit = rateLimit({
     }
 });
 
-export const inviteManagerRateLimit = rateLimit({
+export const inviteManagerRateLimit = createRateLimiter({
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
     max: 10, // 10 manager invitations per user per day
     keyGenerator: (req: NextRequest) => {
@@ -180,61 +164,3 @@ export const inviteManagerRateLimit = rateLimit({
         return `invite-manager:${ip}`;
     }
 });
-
-// Rate limiter for API endpoints that require user authentication
-export const createUserBasedRateLimit = (
-    windowMs: number,
-    max: number,
-    action: string
-) => rateLimit({
-    windowMs,
-    max,
-    keyGenerator: (req: NextRequest) => {
-        // This would need to be used after authentication middleware
-        // where user ID is available in the request context
-        const userId = (req as any).userId || 'anonymous';
-        return `${action}:${userId}`;
-    }
-});
-
-// Enhanced rate limiter with progressive delays
-export class ProgressiveRateLimiter {
-    private attempts = new Map<string, number[]>();
-    private delays = [1000, 5000, 15000, 60000]; // 1s, 5s, 15s, 1m delays
-
-    async checkWithDelay(key: string): Promise<number> {
-        const now = Date.now();
-        const userAttempts = this.attempts.get(key) || [];
-        
-        // Remove attempts older than 1 hour
-        const recentAttempts = userAttempts.filter(time => now - time < 60 * 60 * 1000);
-        
-        if (recentAttempts.length === 0) {
-            this.attempts.set(key, [now]);
-            return 0; // No delay for first attempt
-        }
-
-        const delayIndex = Math.min(recentAttempts.length - 1, this.delays.length - 1);
-        const delay = this.delays[delayIndex];
-        
-        recentAttempts.push(now);
-        this.attempts.set(key, recentAttempts);
-        
-        return delay;
-    }
-
-    reset(key: string) {
-        this.attempts.delete(key);
-    }
-}
-
-// Utility to add rate limit headers to responses
-export function addRateLimitHeaders(
-    response: Response,
-    result: { remaining: number; resetTime: number; totalAttempts: number }
-) {
-    response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
-    response.headers.set('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000).toString());
-    response.headers.set('X-RateLimit-Limit', result.totalAttempts.toString());
-    return response;
-}

@@ -2,9 +2,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import jwt from 'jsonwebtoken';
-import { getLandlordId } from '@/lib/auth-utils';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 import { inviteManagerRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
+import { logActivity } from '@/lib/audit-log-service';
 
 export const runtime = 'nodejs';
 
@@ -24,15 +25,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(req);
+    if (authError || !landlordId || !actor) {
+        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
+    }
+
     try {
-        await inviteManagerRateLimit(req);
+        await inviteManagerRateLimit.check(req);
     } catch (error) {
         return NextResponse.json({ error: 'Too many invitation requests. Please try again later.' }, { status: 429 });
-    }
-    
-    const landlordId = await getLandlordId(req);
-    if (!landlordId) {
-        return NextResponse.json({ error: 'Unauthorized: You must be logged in to invite managers.' }, { status: 401 });
     }
 
     try {
@@ -58,6 +59,8 @@ export async function POST(req: NextRequest) {
         });
         
         const invitationLink = `${APP_URL}/onboarding/accept-invite?token=${token}`;
+
+        await logActivity(actor.displayName || 'Landlord', `Sent invitation to manager "${email}"`, { type: 'Manager', name: email });
 
         return NextResponse.json({ invitationLink }, { status: 200 });
 

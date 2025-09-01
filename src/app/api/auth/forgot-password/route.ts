@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        await passwordResetRateLimit(req);
+        await passwordResetRateLimit.check(req);
     } catch (error: any) {
         return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }

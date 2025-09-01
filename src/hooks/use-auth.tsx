@@ -19,8 +19,7 @@ import {
   signInWithEmailAndPassword, 
   GoogleAuthProvider, 
   signInWithPopup,
-  onAuthStateChanged,
-  User as FirebaseUser
+  type User as FirebaseUser
 } from 'firebase/auth';
 import type { Permission } from '@/lib/types';
 
@@ -65,7 +64,6 @@ class AuthenticationError extends Error {
 
 // Connection retry logic
 class ConnectionRetry {
-  private attempts = 0;
   private readonly maxAttempts = 3;
   private readonly delays = [1000, 3000, 5000]; // 1s, 3s, 5s
 
@@ -75,7 +73,6 @@ class ConnectionRetry {
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
       try {
         const result = await operation();
-        this.reset(); // Reset on success
         return result;
       } catch (error: any) {
         lastError = error;
@@ -112,10 +109,6 @@ class ConnectionRetry {
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  reset() {
-    this.attempts = 0;
   }
 }
 

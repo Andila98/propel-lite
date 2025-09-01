@@ -24,7 +24,11 @@ import { z } from 'zod';
 const RegisterSchema = z.object({
     displayName: z.string().min(2, "Full name must be at least 2 characters."),
     email: z.string().email("Please enter a valid email address."),
-    password: z.string().min(6, "Password must be be at least 6 characters."),
+    password: z.string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[a-z]/, "Must contain a lowercase letter")
+        .regex(/[A-Z]/, "Must contain an uppercase letter")
+        .regex(/[0-9]/, "Must contain a number"),
 });
 
 type RegisterFormValues = z.infer<typeof RegisterSchema>;
@@ -96,7 +100,7 @@ export default function RegisterPage() {
                 title: "Setup Required",
                 description: "Redirecting you to complete your profile.",
             });
-        } else {
+        } else if (error.code !== 'auth/cancelled-popup-request') {
             toast({
                 title: "Social Sign-Up Failed",
                 description: error.message,
@@ -178,7 +182,7 @@ export default function RegisterPage() {
                     <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full" type="button" onClick={handleSocialLogin}>
+                <Button variant="outline" className="w-full" type="button" onClick={handleSocialLogin} disabled={isSocialLoading}>
                     {isSocialLoading ? <Loader2 className="animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
                     Sign up with Google
                 </Button>

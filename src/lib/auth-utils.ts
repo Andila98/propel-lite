@@ -137,12 +137,10 @@ export async function verifySession(req: NextRequest): Promise<DecodedIdToken | 
     // Check cache first
     const cachedEntry = sessionCache.get(sessionCookie);
     if (cachedEntry) {
-        console.debug('[AuthUtils] Session found in cache');
         return cachedEntry.claims;
     }
 
     try {
-        console.debug('[AuthUtils] Verifying session with Firebase');
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
         
         // Cache the verified session
@@ -215,19 +213,11 @@ export async function getLandlordId(req: NextRequest): Promise<string | null> {
 /**
  * Enhanced function for server actions with better error handling
  */
-export async function getLandlordAndActor(sessionCookie: string): Promise<{
+export async function getLandlordAndActor(reqOrCookie: NextRequest | string, directUidFetch = false): Promise<{
     landlordId: string | null;
     actor: UserRecord | null;
     error?: AuthError;
 }> {
-    if (!sessionCookie) {
-        return {
-            landlordId: null,
-            actor: null,
-            error: new AuthError('No session cookie provided', 'NO_SESSION')
-        };
-    }
-
     if (!isFirebaseAdminInitialized) {
         return {
             landlordId: null,
@@ -236,21 +226,54 @@ export async function getLandlordAndActor(sessionCookie: string): Promise<{
         };
     }
 
+    let claims: DecodedIdToken | null = null;
+    let actor: UserRecord | null = null;
+
+    if (directUidFetch && typeof reqOrCookie === 'string') {
+        try {
+            actor = await auth.getUser(reqOrCookie);
+            claims = actor.customClaims as DecodedIdToken;
+        } catch (e) {
+            return {
+                landlordId: null, actor: null,
+                error: new AuthError('User not found', 'USER_NOT_FOUND', 404)
+            };
+        }
+    } else if (reqOrCookie instanceof NextRequest) {
+        claims = await verifySession(reqOrCookie);
+        if (claims) {
+            actor = await auth.getUser(claims.uid);
+        }
+    } else if (typeof reqOrCookie === 'string') {
+        try {
+            claims = await auth.verifySessionCookie(reqOrCookie, true);
+            actor = await auth.getUser(claims.uid);
+        } catch (error: any) {
+             if (error.code === 'auth/session-cookie-expired') {
+                return { landlordId: null, actor: null, error: new SessionExpiredError() };
+            }
+            return { landlordId: null, actor: null, error: new InvalidSessionError() };
+        }
+    }
+
+    if (!claims || !actor) {
+        return {
+            landlordId: null,
+            actor: null,
+            error: new AuthError('No session found', 'NO_SESSION')
+        };
+    }
+
     try {
-        // For server actions, always verify directly (no cache)
-        // This ensures mutations have fresh permissions
-        const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
-        const actor = await auth.getUser(decodedClaims.uid);
-        
         let landlordId: string | null = null;
-        const role = actor.customClaims?.role;
+        const role = claims.role;
 
         switch (role) {
             case 'landlord':
                 landlordId = actor.uid;
                 break;
             case 'manager':
-                landlordId = actor.customClaims?.landlordId || null;
+                landlordId = claims.landlordId || null;
                 if (!landlordId) {
                     return {
                         landlordId: null,
@@ -260,8 +283,7 @@ export async function getLandlordAndActor(sessionCookie: string): Promise<{
                 }
                 break;
             case 'admin':
-                // Admins have special privileges - handle accordingly
-                landlordId = null; // or implement admin-specific logic
+                landlordId = null; 
                 break;
             default:
                 return {
@@ -274,23 +296,6 @@ export async function getLandlordAndActor(sessionCookie: string): Promise<{
         return { landlordId, actor };
     } catch (error: any) {
         console.error('[AuthUtils] getLandlordAndActor failed:', error.code);
-        
-        if (error.code === 'auth/session-cookie-expired') {
-            return {
-                landlordId: null,
-                actor: null,
-                error: new SessionExpiredError()
-            };
-        }
-        
-        if (error.code?.startsWith('auth/')) {
-            return {
-                landlordId: null,
-                actor: null,
-                error: new InvalidSessionError()
-            };
-        }
-        
         return {
             landlordId: null,
             actor: null,

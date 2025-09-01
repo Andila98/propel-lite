@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import type { PropertyManager } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
 import { z } from 'zod';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
         
         await firestore.collection('managers').doc(userRecord.uid).set(newManager);
         
-        const inviter = await auth.getUser(inviterId).catch(() => null);
+        const { actor: inviter } = await getLandlordAndActor(inviterId, true);
         await logActivity(inviter?.displayName || 'Landlord', `Invited manager "${displayName}" accepted`, { type: 'Manager', name: displayName });
 
         return NextResponse.json({ message: 'Account created successfully.' }, { status: 201 });

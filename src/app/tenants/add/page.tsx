@@ -41,9 +41,19 @@ export default function AddTenantPage() {
   const {
     watch,
     control,
-    setValue
+    setValue,
+    register,
   } = useForm<TenantFormValues>({
     resolver: zodResolver(TenantFormSchema),
+    defaultValues: {
+        name: '',
+        email: '',
+        phone: '',
+        propertyId: '',
+        unitId: '',
+        leaseStart: new Date().toISOString().split('T')[0],
+        leaseEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+    }
   });
 
   useEffect(() => {
@@ -103,19 +113,19 @@ export default function AddTenantPage() {
                 <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
-                    <Input id="name" name="name" autoComplete="name" />
+                    <Input id="name" name="name" autoComplete="name" {...register('name')} />
                     {state.errors?.name && <p className="text-sm text-destructive mt-1">{state.errors.name[0]}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="email">Tenant Email</Label>
-                        <Input id="email" name="email" type="email" autoComplete="email" />
+                        <Input id="email" name="email" type="email" autoComplete="email" {...register('email')} />
                         {state.errors?.email && <p className="text-sm text-destructive mt-1">{state.errors.email[0]}</p>}
                     </div>
                      <div>
                         <Label htmlFor="phone">Phone Number (Optional)</Label>
-                        <Input id="phone" name="phone" autoComplete="tel" />
+                        <Input id="phone" name="phone" autoComplete="tel" {...register('phone')} />
                         {state.errors?.phone && <p className="text-sm text-destructive mt-1">{state.errors.phone[0]}</p>}
                     </div>
                 </div>
@@ -154,7 +164,7 @@ export default function AddTenantPage() {
                             name="unitId"
                             control={control}
                             render={({ field }) => (
-                                 <Select name="unitId" onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                                 <Select name="unitId" onValueChange={field.onChange} value={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
                                     <SelectTrigger id="unitId">
                                         <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
                                     </SelectTrigger>
@@ -175,12 +185,12 @@ export default function AddTenantPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                     <Label htmlFor="leaseStart">Lease Start Date</Label>
-                    <Input id="leaseStart" name="leaseStart" type="date" />
+                    <Input id="leaseStart" name="leaseStart" type="date" {...register('leaseStart')} />
                     {state.errors?.leaseStart && <p className="text-sm text-destructive mt-1">{state.errors.leaseStart[0]}</p>}
                     </div>
                     <div>
                     <Label htmlFor="leaseEnd">Lease End Date</Label>
-                    <Input id="leaseEnd" name="leaseEnd" type="date" />
+                    <Input id="leaseEnd" name="leaseEnd" type="date" {...register('leaseEnd')} />
                     {state.errors?.leaseEnd && <p className="text-sm text-destructive mt-1">{state.errors.leaseEnd[0]}</p>}
                     </div>
                 </div>

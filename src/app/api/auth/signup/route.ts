@@ -10,7 +10,11 @@ export const runtime = 'nodejs';
 const SignupSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters'),
   email: z.string().email('Please provide a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
 });
 
 export async function POST(req: NextRequest) {
@@ -20,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        await registrationRateLimit(req);
+        await registrationRateLimit.check(req);
     } catch (error) {
         return NextResponse.json({ error: 'Too many accounts created from this IP, please try again after an hour' }, { status: 429 });
     }

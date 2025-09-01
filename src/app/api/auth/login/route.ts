@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   // Apply rate limiting
   try {
-    await loginRateLimit(req);
+    await loginRateLimit.check(req);
   } catch (error) {
     console.warn(`[WARN: /api/auth/login][${requestId}] Rate limit exceeded for IP`);
     return createErrorResponse(
