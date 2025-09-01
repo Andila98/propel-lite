@@ -266,7 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!response.ok) {
       const error = new AuthenticationError(
         responseBody.error || 'Login failed.',
-        responseBody.errorCode
+        responseBody.code
       );
       throw error;
     }
@@ -278,38 +278,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     try {
       clearError();
-      const userCredential = await retryHandler.current.execute(() => 
-        signInWithEmailAndPassword(auth, email, password)
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await userCredential.user.getIdToken();
-      await retryHandler.current.execute(() => processLogin(idToken));
+      await processLogin(idToken);
     } catch (error: any) {
       console.error('[Auth] Login failed:', error);
       
-      // Transform Firebase errors to user-friendly messages
+      // Transform Firebase/Network errors to user-friendly messages
       let message = 'Login failed. Please try again.';
       let code = error.code;
 
-      switch (error.code) {
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-        case 'auth/invalid-credential':
-          message = 'Invalid email or password. Please check your credentials.';
-          break;
-        case 'auth/user-disabled':
-          message = 'Your account has been disabled. Please contact support.';
-          break;
-        case 'auth/too-many-requests':
-          message = 'Too many failed attempts. Please wait before trying again.';
-          break;
-        case 'auth/network-request-failed':
-        case 'CONNECTION_FAILED':
-          message = 'Network error. Please check your internet connection.';
-          break;
-        case 'INCOMPLETE_PROFILE':
-          // This should be handled by the auth provider's redirect logic
-          message = 'Please complete your profile setup.';
-          break;
+      if (error instanceof TypeError) { // This often indicates a network failure (e.g., fetch failed)
+          message = 'The server is not responding. Please try again in a moment.';
+          code = 'CONNECTION_FAILED';
+      } else {
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            message = 'Invalid email or password. Please check your credentials.';
+            break;
+          case 'auth/user-disabled':
+            message = 'Your account has been disabled. Please contact support.';
+            break;
+          case 'auth/too-many-requests':
+            message = 'Too many failed attempts. Please wait before trying again.';
+            break;
+          case 'auth/network-request-failed':
+            message = 'Network error. Please check your internet connection.';
+            break;
+          case 'INCOMPLETE_PROFILE':
+            // This should be handled by the auth provider's redirect logic
+            message = 'Please complete your profile setup.';
+            break;
+        }
       }
 
       setError({ message, code });
@@ -325,30 +327,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider.addScope('email');
       provider.addScope('profile');
       
-      const userCredential = await retryHandler.current.execute(() =>
-        signInWithPopup(auth, provider)
-      );
+      const userCredential = await signInWithPopup(auth, provider);
       const idToken = await userCredential.user.getIdToken();
-      await retryHandler.current.execute(() => processLogin(idToken));
+      await processLogin(idToken);
     } catch (error: any) {
       console.error('[Auth] Google login failed:', error);
       
       let message = 'Google sign-in failed. Please try again.';
       let code = error.code;
 
-      switch (error.code) {
-        case 'auth/popup-closed-by-user':
-          message = 'Sign-in was cancelled. Please try again.';
-          break;
-        case 'auth/popup-blocked':
-          message = 'Pop-up blocked. Please allow pop-ups and try again.';
-          break;
-        case 'auth/cancelled-popup-request':
-          // Don't show error for cancelled popup
-          return;
-        case 'CONNECTION_FAILED':
-          message = 'Network error. Please check your internet connection.';
-          break;
+      if (error instanceof TypeError) {
+          message = 'The server is not responding. Please try again in a moment.';
+          code = 'CONNECTION_FAILED';
+      } else {
+        switch (error.code) {
+          case 'auth/popup-closed-by-user':
+            message = 'Sign-in was cancelled. Please try again.';
+            break;
+          case 'auth/popup-blocked':
+            message = 'Pop-up blocked. Please allow pop-ups and try again.';
+            break;
+          case 'auth/cancelled-popup-request':
+            // Don't show error for cancelled popup
+            return;
+          case 'CONNECTION_FAILED':
+            message = 'Network error. Please check your internet connection.';
+            break;
+        }
       }
 
       setError({ message, code });
