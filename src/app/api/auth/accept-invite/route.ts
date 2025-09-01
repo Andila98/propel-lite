@@ -4,23 +4,35 @@ import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admi
 import jwt from 'jsonwebtoken';
 import type { PropertyManager } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
-import { FieldValue } from 'firebase-admin/firestore';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+const AcceptInviteSchema = z.object({
+  token: z.string().min(1, 'Token is required'),
+  displayName: z.string().min(2, 'Display name must be at least 2 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 503 });
     }
-    try {
-        const { token, displayName, password } = await req.json();
+    if (!JWT_SECRET) {
+        console.error("[ERROR] JWT_SECRET environment variable is not set.");
+        return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+    }
 
-        if (!token || !displayName || !password) {
-            return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+    try {
+        const body = await req.json();
+        const validation = AcceptInviteSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ error: 'Invalid input.', details: validation.error.flatten() }, { status: 400 });
         }
-        
+        const { token, displayName, password } = validation.data;
+
         let decodedToken: any;
         try {
             decodedToken = jwt.verify(token, JWT_SECRET);
@@ -53,7 +65,6 @@ export async function POST(req: NextRequest) {
             propertiesManaged: [],
             landlordId: inviterId, 
             permissions: {
-                // Default permissions for a new manager
                 canAddProperties: false,
                 canEditProperties: true,
                 canDeleteProperties: false,
@@ -68,17 +79,15 @@ export async function POST(req: NextRequest) {
         
         await firestore.collection('managers').doc(userRecord.uid).set(newManager);
         
-        // 4. Log this activity *after* all database operations are successful
-        const inviter = await auth.getUser(inviterId);
-        await logActivity(inviter.displayName || 'Landlord', `Invited manager "${displayName}"`, { type: 'Manager', name: displayName });
-
+        const inviter = await auth.getUser(inviterId).catch(() => null);
+        await logActivity(inviter?.displayName || 'Landlord', `Invited manager "${displayName}" accepted`, { type: 'Manager', name: displayName });
 
         return NextResponse.json({ message: 'Account created successfully.' }, { status: 201 });
 
     } catch (error: any) {
-        console.error('[ERROR: /api/auth/accept-invite]', error);
-         if (error.code === 'auth/email-already-exists') {
-            return NextResponse.json({ error: 'An account with this email already has been created.' }, { status: 409 });
+        console.error('[ERROR: /api/auth/accept-invite]', { message: error.message, code: error.code });
+        if (error.code === 'auth/email-already-exists') {
+            return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
         }
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }

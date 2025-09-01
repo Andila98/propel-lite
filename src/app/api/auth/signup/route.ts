@@ -2,32 +2,47 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { signUpUser } from '@/lib/auth-service';
-
+import { z } from 'zod';
+import { registrationRateLimit } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
+
+const SignupSchema = z.object({
+  displayName: z.string().min(2, 'Display name must be at least 2 characters'),
+  email: z.string().email('Please provide a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
         console.error("[ERROR: /api/auth/signup] Firebase Admin not initialized.");
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 503 });
     }
 
     try {
-        const { displayName, email, password } = await req.json();
+        await registrationRateLimit(req);
+    } catch (error) {
+        return NextResponse.json({ error: 'Too many accounts created from this IP, please try again after an hour' }, { status: 429 });
+    }
 
-        if (!email || !password || !displayName) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    try {
+        const body = await req.json();
+        const validation = SignupSchema.safeParse(body);
+
+        if (!validation.success) {
+            return NextResponse.json({ error: 'Invalid input.', details: validation.error.flatten() }, { status: 400 });
         }
+        const { displayName, email, password } = validation.data;
         
         const userRecord = await signUpUser({ email, password, displayName });
 
         return NextResponse.json({ uid: userRecord.uid }, { status: 201 });
 
     } catch (error: any) {
-        console.error('[ERROR: /api/auth/signup]', error);
+        console.error('[ERROR: /api/auth/signup]', { message: error.message, code: error.code });
         if (error.message.includes('An account with this email already exists.')) {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
         }
-        return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
