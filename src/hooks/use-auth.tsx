@@ -264,11 +264,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const responseBody = await response.json();
 
     if (!response.ok) {
-      const error = new AuthenticationError(
-        responseBody.error || 'Login failed.',
-        responseBody.code
-      );
-      throw error;
+        // If the profile is incomplete, don't throw an error.
+        // Instead, allow refreshUser to fetch the incomplete profile
+        // which will then trigger the redirect to onboarding.
+        if (responseBody.code === 'INCOMPLETE_PROFILE') {
+            console.log("[Auth] Incomplete profile detected. Proceeding to refresh and redirect.");
+        } else {
+            const error = new AuthenticationError(
+                responseBody.error || 'Login failed.',
+                responseBody.code
+            );
+            throw error;
+        }
     }
 
     await refreshUser();
@@ -287,8 +294,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Transform Firebase/Network errors to user-friendly messages
       let message = 'Login failed. Please try again.';
       let code = error.code;
-
-      if (error instanceof TypeError) { // This often indicates a network failure (e.g., fetch failed)
+      
+      if (error instanceof TypeError) { // This often indicates a network failure (e.g. fetch failed)
           message = 'The server is not responding. Please try again in a moment.';
           code = 'CONNECTION_FAILED';
       } else {
@@ -308,7 +315,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             message = 'Network error. Please check your internet connection.';
             break;
           case 'INCOMPLETE_PROFILE':
-            // This should be handled by the auth provider's redirect logic
+            // This should now be handled gracefully by processLogin.
+            // But if it slips through, provide a clear message.
             message = 'Please complete your profile setup.';
             break;
         }
