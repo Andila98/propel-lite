@@ -15,6 +15,16 @@ if (!isFirebaseAdminInitialized) {
  * @returns The created user record from Firebase Auth.
  */
 export async function signUpUser({ email, password, displayName }: { email: string; password?: string; displayName: string; }) {
+    // Check if user already exists
+    const existingUser = await auth.getUserByEmail(email).catch(err => {
+        if (err.code === 'auth/user-not-found') return null;
+        throw err;
+    });
+
+    if (existingUser) {
+        throw new Error('An account with this email already exists.');
+    }
+    
     try {
         const userRecord = await auth.createUser({ email, password, displayName });
         

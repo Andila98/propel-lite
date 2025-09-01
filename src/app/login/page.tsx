@@ -15,7 +15,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
@@ -54,7 +53,7 @@ export default function LoginPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [email, password, login, toast, router]);
+  }, [email, password, login, toast]);
   
   const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
@@ -81,7 +80,7 @@ export default function LoginPage() {
     } finally {
         setIsSocialLoading(false);
     }
-  }, [loginWithGoogle, toast, router]);
+  }, [loginWithGoogle, toast]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">

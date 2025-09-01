@@ -98,7 +98,6 @@ export default function RegisterPage() {
                 title: "Setup Required",
                 description: "Redirecting you to complete your profile.",
             });
-            router.push('/onboarding/landlord-welcome');
         } else {
             toast({
                 title: "Social Sign-Up Failed",
@@ -109,7 +108,7 @@ export default function RegisterPage() {
     } finally {
         setIsSocialLoading(false);
     }
-  }, [loginWithGoogle, toast, router]);
+  }, [loginWithGoogle, toast]);
 
 
   return (
