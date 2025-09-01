@@ -16,13 +16,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const rateLimitResult = await passwordResetRateLimit(req);
-        if (!rateLimitResult.allowed) {
-            return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
-        }
+        await passwordResetRateLimit.check(req);
     } catch (error: any) {
-        console.error('[ERROR] Rate limiter failed', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     try {

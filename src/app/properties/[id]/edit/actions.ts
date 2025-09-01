@@ -34,7 +34,7 @@ export async function updatePropertyAction(
     return { error: 'Unauthorized. Please log in.' };
   }
 
-  const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+  const { actor, error: authError } = await getLandlordAndActor(sessionCookie);
   if (authError || !actor) {
     return { error: authError?.message || 'Unauthorized. Could not identify user.' };
   }
@@ -81,6 +81,8 @@ export async function updatePropertyAction(
             ...mainPropertyData,
             updatedAt: FieldValue.serverTimestamp(),
         });
+
+        const landlordId = actor.customClaims?.role === 'landlord' ? actor.uid : actor.customClaims?.landlordId;
 
         // Add or update units
         units.forEach(unit => {

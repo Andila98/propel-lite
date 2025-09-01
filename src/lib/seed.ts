@@ -76,11 +76,23 @@ async function deleteQueryBatch(query: FirebaseFirestore.Query, resolve: (value:
 
 async function clearData() {
     console.log("Deleting existing data...");
-    const collections = ['properties', 'tenants', 'payments', 'maintenanceRequests', 'landlords', 'managers'];
+    const collections = ['properties', 'tenants', 'payments', 'maintenanceRequests', 'landlords', 'managers', 'reminders', 'auditLogs'];
     for (const collection of collections) {
         console.log(`Deleting ${collection}...`);
         await deleteCollection(collection);
     }
+
+    // Delete all users except the landlord user
+    const users = await auth.listUsers();
+    const uidsToDelete = users.users
+      .filter(u => u.email !== LANDLORD_EMAIL)
+      .map(u => u.uid);
+      
+    if(uidsToDelete.length > 0) {
+      await auth.deleteUsers(uidsToDelete);
+      console.log(`Deleted ${uidsToDelete.length} users.`);
+    }
+    
     console.log("Data deleted.");
 }
 
@@ -100,18 +112,17 @@ async function seedDatabase() {
           password: LANDLORD_PW,
           displayName: "Demo Landlord"
       });
-      // Set role and mark profile as complete since this is a seeded account
-      await auth.setCustomUserClaims(landlord.uid, { role: 'landlord', profileComplete: true });
+      
   } catch (error: any) {
       if (error.code === 'auth/email-already-exists') {
           console.log("Landlord already exists, fetching...");
           landlord = await auth.getUserByEmail(LANDLORD_EMAIL);
-          // Ensure claims are set even for existing user
-          await auth.setCustomUserClaims(landlord.uid, { role: 'landlord', profileComplete: true });
       } else {
           throw error;
       }
   }
+  // Set role and mark profile as complete since this is a seeded account
+  await auth.setCustomUserClaims(landlord.uid, { role: 'landlord', profileComplete: true });
   const landlordId = landlord.uid;
   
   await db.collection('landlords').doc(landlordId).set({
@@ -181,16 +192,24 @@ async function seedDatabase() {
 
   // 5. Create Tenants
   console.log("Creating tenants...");
-  const tenantBatch = db.batch();
   const allTenants: Tenant[] = [];
 
   for(const property of properties) {
     const unitsToFill = property.units.slice(0, faker.number.int({ min: 2, max: property.units.length }));
     for (const unit of unitsToFill) {
-       const tenantRef = db.collection('tenants').doc(); // Auto-generate ID
-       const newTenant: Omit<Tenant, 'id' | 'uid' | 'paymentHistory'> = {
-         name: faker.person.fullName(),
-         email: faker.internet.email(),
+       const tenantEmail = faker.internet.email();
+       const tenantName = faker.person.fullName();
+       const tenantAuthUser = await auth.createUser({
+         email: tenantEmail,
+         displayName: tenantName,
+       });
+       await auth.setCustomUserClaims(tenantAuthUser.uid, { role: 'tenant', profileComplete: true, landlordId });
+
+       const tenantRef = db.collection('tenants').doc(tenantAuthUser.uid);
+       const newTenant: Omit<Tenant, 'id'> = {
+         uid: tenantAuthUser.uid,
+         name: tenantName,
+         email: tenantEmail,
          phone: faker.phone.number(),
          role: 'tenant',
          propertyId: property.id,
@@ -199,17 +218,17 @@ async function seedDatabase() {
          rentStatus: 'Paid',
          leaseStart: faker.date.past({ years: 1 }) as any,
          leaseEnd: faker.date.future({ years: 1 }) as any,
+         paymentHistory: [],
        };
-       tenantBatch.set(tenantRef, newTenant);
+       await tenantRef.set(newTenant);
        
        // Mark unit as occupied
        const unitRef = db.collection('properties').doc(property.id).collection('units').doc(unit.id);
-       tenantBatch.update(unitRef, { isOccupied: true, tenantId: tenantRef.id });
+       await unitRef.update({ isOccupied: true, tenantId: tenantRef.id });
        
        allTenants.push({ ...newTenant, id: tenantRef.id } as Tenant);
     }
   }
-  await tenantBatch.commit();
   console.log(`${allTenants.length} tenants created.`);
 
   // 6. Create Payments

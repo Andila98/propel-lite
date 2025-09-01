@@ -24,13 +24,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        await registrationRateLimit(req);
+        await registrationRateLimit.check(req);
     } catch (error: any) {
-        if (error.code === 'RATE_LIMIT_EXCEEDED') {
-            return NextResponse.json({ error: 'Too many accounts created from this IP, please try again after an hour' }, { status: 429 });
-        }
-        console.error('[ERROR] Rate limiter failed', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: 'Too many accounts created from this IP, please try again after an hour' }, { status: 429 });
     }
 
     try {

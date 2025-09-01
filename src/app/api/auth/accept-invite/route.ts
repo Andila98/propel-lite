@@ -6,6 +6,7 @@ import type { PropertyManager } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
 import { z } from 'zod';
 import { getLandlordAndActor } from '@/lib/auth-utils';
+import { registrationRateLimit } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -24,6 +25,12 @@ export async function POST(req: NextRequest) {
     if (!JWT_SECRET) {
         console.error("[ERROR] JWT_SECRET environment variable is not set.");
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+    }
+    
+    try {
+        await registrationRateLimit.check(req);
+    } catch (error: any) {
+        return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     try {

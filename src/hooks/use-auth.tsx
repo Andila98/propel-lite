@@ -54,7 +54,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Enhanced error handling
 class AuthenticationError extends Error {
   constructor(message: string, public code?: string) {
     super(message);
@@ -62,7 +61,6 @@ class AuthenticationError extends Error {
   }
 }
 
-// Connection retry logic
 class ConnectionRetry {
   private readonly maxAttempts = 3;
   private readonly delays = [1000, 3000, 5000]; // 1s, 3s, 5s
@@ -78,7 +76,6 @@ class ConnectionRetry {
         lastError = error;
         console.warn(`[Auth] Attempt ${attempt + 1} failed:`, error.message);
 
-        // Don't retry for certain error types
         if (this.shouldNotRetry(error)) {
           throw error;
         }
@@ -126,12 +123,10 @@ async function fetchUserFromApi(): Promise<User | null> {
   }
   
   if (response.status === 401) {
-    // Server session is gone, sign out the client
     await firebaseSignOut(auth);
     return null;
   }
 
-  // For other errors, throw to trigger retry logic
   throw new Error(`Failed to fetch user profile: ${response.status}`);
 }
 
@@ -144,71 +139,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const retryHandler = useRef(new ConnectionRetry());
   const isInitialized = useRef(false);
 
-  // Clear any existing error
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Enhanced redirect logic
-  const handleRedirect = useCallback((user: User | null) => {
-    if (!user || !isInitialized.current) return;
+  const handleRedirect = useCallback((currentUser: User | null) => {
+    if (!isInitialized.current) return;
     
     const isOnboardingPage = pathname.startsWith('/onboarding');
-    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
     
-    // If user's profile is complete but they are on an onboarding page
-    if (user.profileComplete && isOnboardingPage && pathname !== '/onboarding/complete') {
-      const destination = user.role === 'tenant' ? '/tenant-portal' : '/dashboard';
-      console.debug(`[Auth] Redirecting complete profile from ${pathname} to ${destination}`);
-      router.push(destination);
-      return;
-    }
-    
-    // If user needs onboarding but isn't in the flow
-    if (user.role !== 'tenant' && !user.profileComplete && !isOnboardingPage) {
-      console.debug(`[Auth] Redirecting incomplete profile to onboarding`);
-      router.push('/onboarding/landlord-welcome');
-      return;
-    }
-    
-    // If user is authenticated but on auth pages, redirect to their portal
-    if (isAuthPage && user.profileComplete) {
-      const destination = user.role === 'tenant' ? '/tenant-portal' : '/dashboard';
-      console.debug(`[Auth] Redirecting authenticated user from ${pathname} to ${destination}`);
-      router.push(destination);
+    if (currentUser) {
+        // User is logged in
+        if (currentUser.role !== 'tenant' && !currentUser.profileComplete && !isOnboardingPage) {
+            router.push('/onboarding/landlord-welcome');
+        } else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
+            router.push('/dashboard');
+        }
+    } else {
+        // User is not logged in, but trying to access a protected page
+        if (!isAuthPage && !isOnboardingPage) {
+            router.push('/login');
+        }
     }
   }, [pathname, router]);
 
-  // Enhanced user update with retry logic
   const updateUserAndRedirect = useCallback(async (firebaseUser: FirebaseUser | null) => {
     if (!firebaseUser) {
       setUser(null);
       setLoading(false);
+      handleRedirect(null);
       return;
     }
 
     try {
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
       setUser(userProfile);
-      setError(null); // Clear any previous errors
+      setError(null);
       handleRedirect(userProfile);
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
-      
-      // Set appropriate error message
-      if (error.code === 'CONNECTION_FAILED') {
-        setError({
-          message: 'Unable to connect to server. Please check your connection.',
-          code: error.code
-        });
-      } else {
-        setError({
-          message: 'Failed to load user profile. Please try refreshing the page.',
-          code: 'PROFILE_LOAD_FAILED'
-        });
-      }
-
-      // Sign out on persistent failures
+      setError({
+        message: error.code === 'CONNECTION_FAILED' 
+          ? 'Unable to connect to server. Please check your connection.' 
+          : 'Failed to load user profile. Please try refreshing the page.',
+        code: error.code || 'PROFILE_LOAD_FAILED'
+      });
       await firebaseSignOut(auth);
       setUser(null);
     } finally {
@@ -216,10 +192,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [handleRedirect]);
 
-  // Initialize auth state listener
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, (firebaseUser) => {
       if (!isInitialized.current) {
+        setLoading(false);
         isInitialized.current = true;
       }
       updateUserAndRedirect(firebaseUser);
@@ -228,22 +204,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [updateUserAndRedirect]);
 
-  // Manual retry function
   const retryConnection = useCallback(async () => {
-    if (!auth.currentUser) return;
-    
     setLoading(true);
     setError(null);
     await updateUserAndRedirect(auth.currentUser);
   }, [updateUserAndRedirect]);
 
-  // Refresh user data
   const refreshUser = useCallback(async () => {
-    setLoading(true);
     await updateUserAndRedirect(auth.currentUser);
   }, [updateUserAndRedirect]);
 
-  // Enhanced login processing
   const processLogin = useCallback(async (idToken: string): Promise<void> => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
@@ -257,24 +227,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const responseBody = await response.json();
 
     if (!response.ok) {
-        // If the profile is incomplete, don't throw an error.
-        // Instead, allow refreshUser to fetch the incomplete profile
-        // which will then trigger the redirect to onboarding.
         if (responseBody.code === 'INCOMPLETE_PROFILE') {
             console.log("[Auth] Incomplete profile detected. Proceeding to refresh and redirect.");
         } else {
-            const error = new AuthenticationError(
-                responseBody.error || 'Login failed.',
-                responseBody.code
-            );
-            throw error;
+            throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
         }
     }
-
     await refreshUser();
   }, [refreshUser]);
 
-  // Enhanced login with better error handling
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     try {
       clearError();
@@ -283,44 +244,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await processLogin(idToken);
     } catch (error: any) {
       console.error('[Auth] Login failed:', error);
-      
-      // Transform Firebase/Network errors to user-friendly messages
       let message = 'Login failed. Please try again.';
-      let code = error.code;
-      
-      if (error instanceof TypeError) { // This often indicates a network failure (e.g. fetch failed)
+      if (error instanceof TypeError) { // Network error
           message = 'The server is not responding. Please try again in a moment.';
-          code = 'CONNECTION_FAILED';
+          error.code = 'CONNECTION_FAILED';
       } else {
-        switch (error.code) {
-          case 'auth/user-not-found':
-          case 'auth/wrong-password':
-          case 'auth/invalid-credential':
-            message = 'Invalid email or password. Please check your credentials.';
-            break;
-          case 'auth/user-disabled':
-            message = 'Your account has been disabled. Please contact support.';
-            break;
-          case 'auth/too-many-requests':
-            message = 'Too many failed attempts. Please wait before trying again.';
-            break;
-          case 'auth/network-request-failed':
-            message = 'Network error. Please check your internet connection.';
-            break;
-          case 'INCOMPLETE_PROFILE':
-            // This should now be handled gracefully by processLogin.
-            // But if it slips through, provide a clear message.
-            message = 'Please complete your profile setup.';
-            break;
-        }
+          switch (error.code) {
+              case 'auth/invalid-credential':
+                  message = 'Invalid email or password.';
+                  break;
+              case 'auth/user-disabled':
+                  message = 'Your account has been disabled.';
+                  break;
+              case 'auth/too-many-requests':
+                  message = 'Too many failed attempts. Please wait before trying again.';
+                  break;
+          }
       }
-
-      setError({ message, code });
-      throw new AuthenticationError(message, code);
+      setError({ message, code: error.code });
+      throw new AuthenticationError(message, error.code);
     }
   }, [processLogin, clearError]);
   
-  // Enhanced Google login
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     try {
       clearError();
@@ -333,73 +278,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await processLogin(idToken);
     } catch (error: any) {
       console.error('[Auth] Google login failed:', error);
-      
       let message = 'Google sign-in failed. Please try again.';
-      let code = error.code;
-
-      if (error instanceof TypeError) {
-          message = 'The server is not responding. Please try again in a moment.';
-          code = 'CONNECTION_FAILED';
-      } else {
-        switch (error.code) {
-          case 'auth/popup-closed-by-user':
-            message = 'Sign-in was cancelled. Please try again.';
-            break;
-          case 'auth/popup-blocked':
-            message = 'Pop-up blocked. Please allow pop-ups and try again.';
-            break;
-          case 'auth/cancelled-popup-request':
-            // Don't show error for cancelled popup
-            return;
-          case 'CONNECTION_FAILED':
-            message = 'Network error. Please check your internet connection.';
-            break;
-        }
+      if (error.code !== 'auth/cancelled-popup-request') {
+          setError({ message, code: error.code });
+          throw new AuthenticationError(message, error.code);
       }
-
-      setError({ message, code });
-      throw new AuthenticationError(message, code);
     }
   }, [processLogin, clearError]);
 
-  // Enhanced logout
   const logout = useCallback(async () => {
     try {
       setUser(null);
       clearError();
-      
-      // Call server logout endpoint
-      await fetch('/api/auth/logout', { 
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (error) {
-      console.error("Error during server-side logout:", error);
-    } finally {
-      // Always sign out from Firebase and redirect
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       await firebaseSignOut(auth);
       router.push('/login');
+    } catch (error) {
+      console.error("Error during logout:", error);
     }
   }, [router, clearError]);
 
-  // Show loading screen
-  if (loading && !isInitialized.current) {
+  if (loading) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
-          {error && (
-            <div className="text-center max-w-md">
-              <p className="text-destructive mb-2">{error.message}</p>
-              <button 
-                onClick={retryConnection}
-                className="text-sm underline text-primary hover:no-underline"
-              >
-                Retry Connection
-              </button>
-            </div>
-          )}
-        </div>
       </div>
     );
   }

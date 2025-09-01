@@ -165,25 +165,6 @@ export async function verifySession(req: NextRequest): Promise<DecodedIdToken | 
 }
 
 /**
- * Verifies session and extracts user information with role validation
- */
-export async function verifySessionWithUser(req: NextRequest): Promise<{
-    claims: DecodedIdToken;
-    user: UserRecord;
-} | null> {
-    const claims = await verifySession(req);
-    if (!claims) return null;
-
-    try {
-        const user = await auth.getUser(claims.uid);
-        return { claims, user };
-    } catch (error: any) {
-        console.error('[AuthUtils] Failed to fetch user:', error.code);
-        return null;
-    }
-}
-
-/**
  * Enhanced landlord ID extraction with better role handling
  */
 export async function getLandlordId(req: NextRequest): Promise<string | null> {
@@ -266,14 +247,14 @@ export async function getLandlordAndActor(reqOrCookie: NextRequest | string, dir
 
     try {
         let landlordId: string | null = null;
-        const role = claims.role;
+        const role = actor.customClaims?.role;
 
         switch (role) {
             case 'landlord':
                 landlordId = actor.uid;
                 break;
             case 'manager':
-                landlordId = claims.landlordId || null;
+                landlordId = actor.customClaims?.landlordId || null;
                 if (!landlordId) {
                     return {
                         landlordId: null,
@@ -304,57 +285,6 @@ export async function getLandlordAndActor(reqOrCookie: NextRequest | string, dir
     }
 }
 
-/**
- * Check if user has specific permission for a resource
- */
-export async function hasPermission(
-    req: NextRequest,
-    permission: string,
-    resourceId?: string
-): Promise<boolean> {
-    const sessionData = await verifySessionWithUser(req);
-    if (!sessionData) return false;
-
-    const { claims, user } = sessionData;
-    const role = claims.role;
-
-    // Landlords have all permissions for their own resources
-    if (role === 'landlord') {
-        return true;
-    }
-
-    // Managers need to be checked against their permissions
-    if (role === 'manager') {
-        // This would require fetching the manager's permissions from Firestore
-        // Implementation depends on your permission storage structure
-        return checkManagerPermissions(user.uid, permission, resourceId);
-    }
-
-    // Admins have all permissions (if implemented)
-    if (role === 'admin') {
-        return true;
-    }
-
-    return false;
-}
-
-/**
- * Helper function to check manager permissions
- * This would query your managers collection in Firestore
- */
-async function checkManagerPermissions(
-    managerUid: string,
-    permission: string,
-    resourceId?: string
-): Promise<boolean> {
-    // Implementation would depend on your Firestore structure
-    // This is a placeholder for the actual permission checking logic
-    console.debug(`[AuthUtils] Checking permission ${permission} for manager ${managerUid}`);
-    
-    // You would implement actual Firestore query here
-    // Example: check if manager has permission and access to specific resource
-    return false; // Placeholder - implement based on your permission model
-}
 
 /**
  * Utility to get client IP from request
@@ -382,14 +312,4 @@ export function createRequestContext(req: NextRequest) {
         path: req.nextUrl.pathname,
         method: req.method
     };
-}
-
-// Export cache stats for monitoring
-export function getSessionCacheStats() {
-    return sessionCache.getStats();
-}
-
-// Cleanup function for graceful shutdown
-export function cleanup() {
-    sessionCache.destroy();
 }
