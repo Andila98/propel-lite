@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { PropertyFormSchema } from '@/lib/schemas';
-import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import type { FormState } from './[id]/edit/actions';
@@ -23,9 +23,9 @@ export async function createPropertyAction(
     return { error: 'Unauthorized. Please log in.' };
   }
 
-  const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
-  if (!landlordId || !actor) {
-    return { error: 'Unauthorized. Please log in.' };
+  const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+  if (authError || !landlordId || !actor) {
+    return { error: authError?.message || 'Unauthorized. Could not identify user.' };
   }
   
   if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddProperties) {

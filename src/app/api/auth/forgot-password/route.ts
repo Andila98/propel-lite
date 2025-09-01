@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const rateLimitResult = await passwordResetRateLimit.check(req);
+        const rateLimitResult = await passwordResetRateLimit(req);
         if (!rateLimitResult.allowed) {
             return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
         }
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'If a user with that email exists, a password reset link has been sent.' }, { status: 200 });
     } catch (error: any) {
         console.error('[ERROR: /api/auth/forgot-password]', error);
+        // Do not reveal if the user exists or not to prevent user enumeration attacks
         return NextResponse.json({ message: 'If a user with that email exists, a password reset link has been sent.' }, { status: 200 });
     }
 }

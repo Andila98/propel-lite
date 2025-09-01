@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const rateLimitResult = await registrationRateLimit.check(req);
-        if (!rateLimitResult.allowed) {
+        await registrationRateLimit(req);
+    } catch (error: any) {
+        if (error.code === 'RATE_LIMIT_EXCEEDED') {
             return NextResponse.json({ error: 'Too many accounts created from this IP, please try again after an hour' }, { status: 429 });
         }
-    } catch (error) {
         console.error('[ERROR] Rate limiter failed', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ uid: userRecord.uid }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: any)
+        {
         console.error('[ERROR: /api/auth/signup]', { message: error.message, code: error.code });
         if (error.message.includes('An account with this email already exists.')) {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });

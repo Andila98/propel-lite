@@ -29,9 +29,9 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         return { error: 'Unauthorized. Please log in.' };
     }
 
-    const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
-    if (!landlordId || !actor) {
-        return { error: 'Unauthorized. Please log in.' };
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+    if (authError || !landlordId || !actor) {
+        return { error: authError?.message || 'Unauthorized. Could not identify user.' };
     }
     
     // Permission Check
@@ -113,9 +113,9 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         return { error: 'Unauthorized. Please log in.' };
     }
 
-    const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
-    if (!landlordId || !actor) {
-        return { error: 'Unauthorized. Please log in.' };
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+    if (authError || !landlordId || !actor) {
+        return { error: authError?.message || 'Unauthorized. Could not identify user.' };
     }
 
     // Permission Check

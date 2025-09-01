@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import jwt from 'jsonwebtoken';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { inviteManagerRateLimit } from '@/lib/rate-limiter';
@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const rateLimitResult = await inviteManagerRateLimit.check(req);
-        if (!rateLimitResult.allowed) {
+        await inviteManagerRateLimit(req);
+    } catch (error: any) {
+        if (error.code === 'RATE_LIMIT_EXCEEDED') {
             return NextResponse.json({ error: 'Too many invitation requests. Please try again later.' }, { status: 429 });
         }
-    } catch (error) {
         console.error('[ERROR] Rate limiter failed', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         }
 
         const token = jwt.sign({ email, inviterId: landlordId, role: 'manager' }, JWT_SECRET, {
-            expiresIn: '3d',
+            expiresIn: '3d', // Invitation expires in 3 days
         });
         
         const invitationLink = `${APP_URL}/onboarding/accept-invite?token=${token}`;
