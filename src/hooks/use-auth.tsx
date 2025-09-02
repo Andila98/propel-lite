@@ -128,6 +128,13 @@ async function fetchUserFromApi(): Promise<User | null> {
     await firebaseSignOut(auth);
     return null;
   }
+
+  if (response.status === 429) {
+    throw new AuthenticationError(
+      'Too many requests. Please try again in a few minutes.',
+      'RATE_LIMIT_EXCEEDED'
+    );
+  }
   
   // For other server errors (5xx), we throw an error to trigger retry logic.
   throw new Error(`Failed to fetch user profile: ${response.status}`);
@@ -361,5 +368,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    
