@@ -5,7 +5,6 @@
  * By centralizing the Genkit initialization, we ensure that the AI capabilities are consistently configured
  * across the app. This file should be imported wherever AI flows or tools are defined.
  */
-'use server';
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
