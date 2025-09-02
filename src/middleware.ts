@@ -2,59 +2,225 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authConfig } from './config/server-config';
 
-// Specify the Edge runtime
+// Runtime configuration
 export const runtime = 'edge';
 
-// Paths that do not require authentication
-const publicPaths = [
-  '/login',
-  '/register',
-  '/forgot-password',
-  // Onboarding is protected, except for the invite page.
-  '/api/auth', // Allow all auth API routes
-];
+// Security headers to apply to all responses
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+} as const;
 
-function isPublic(pathname: string): boolean {
+// Enhanced path configuration
+const pathConfig = {
+  // Paths that don't require authentication
+  public: [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+  ],
+  // Auth API routes (always public)
+  authApi: ['/api/auth'],
+  // Static assets and Next.js internals
+  static: ['/_next', '/favicon.ico', '/robots.txt', '/sitemap.xml'],
+  // File extensions for static assets
+  staticExtensions: /\.(png|jpg|jpeg|gif|svg|ico|webp|css|js|woff|woff2|ttf|eot)$/,
+  // Special handling for onboarding
+  onboarding: ['/onboarding'],
+  // Admin-only paths
+  admin: ['/admin'],
+} as const;
+
+// Rate limiting store (simple in-memory for edge runtime)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+class RateLimiter {
+  private static cleanup() {
+    const now = Date.now();
+    for (const [key, data] of rateLimitStore.entries()) {
+      if (now > data.resetTime) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+
+  static check(ip: string, limit: number = 100, windowMs: number = 15 * 60 * 1000): boolean {
+    this.cleanup();
+    
+    const now = Date.now();
+    const key = `rate_limit:${ip}`;
+    const existing = rateLimitStore.get(key);
+
+    if (!existing) {
+      rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+      return true;
+    }
+
+    if (now > existing.resetTime) {
+      rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+      return true;
+    }
+
+    if (existing.count >= limit) {
+      return false;
+    }
+
+    existing.count++;
+    return true;
+  }
+}
+
+// Helper functions
+function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIP = request.headers.get('x-real-ip');
+  
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  return realIP || 'unknown';
+}
+
+function isPublicPath(pathname: string): boolean {
+  // Static assets and Next.js internals
+  if (pathConfig.static.some(path => pathname.startsWith(path)) || 
+      pathConfig.staticExtensions.test(pathname)) {
+    return true;
+  }
+
+  // Auth API routes
+  if (pathConfig.authApi.some(path => pathname.startsWith(path))) {
+    return true;
+  }
+
+  // Public pages
+  if (pathConfig.public.includes(pathname)) {
+    return true;
+  }
+
+  // Special case for invite acceptance
   if (pathname.startsWith('/onboarding/accept-invite')) {
     return true;
   }
-  return publicPaths.some(path => pathname.startsWith(path));
+
+  return false;
+}
+
+function isOnboardingPath(pathname: string): boolean {
+  return pathConfig.onboarding.some(path => pathname.startsWith(path));
+}
+
+function isAdminPath(pathname: string): boolean {
+  return pathConfig.admin.some(path => pathname.startsWith(path));
+}
+
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  return response;
+}
+
+function createRedirectResponse(request: NextRequest, destination: string): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = destination;
+  
+  // Preserve the original path for redirect after login (except for root)
+  if (request.nextUrl.pathname !== '/') {
+    url.searchParams.set('redirect', request.nextUrl.pathname);
+  }
+  
+  const response = NextResponse.redirect(url);
+  return addSecurityHeaders(response);
+}
+
+function createErrorResponse(message: string, status: number): NextResponse {
+  const response = NextResponse.json(
+    { 
+      error: message,
+      timestamp: new Date().toISOString(),
+    },
+    { status }
+  );
+  return addSecurityHeaders(response);
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Allow public paths, static files, and images to pass through
-  if (isPublic(pathname) || pathname.startsWith('/_next') || /\.(png|jpg|svg|ico)$/.test(pathname)) {
-    return NextResponse.next();
+  const ip = getClientIP(request);
+
+  // Apply rate limiting for non-static requests
+  if (!pathConfig.staticExtensions.test(pathname) && 
+      !pathname.startsWith('/_next')) {
+    
+    // More restrictive rate limiting for auth endpoints
+    const isAuthEndpoint = pathname.startsWith('/api/auth');
+    const limit = isAuthEndpoint ? 20 : 100; // 20 requests per 15min for auth, 100 for others
+    
+    if (!RateLimiter.check(ip, limit)) {
+      console.warn(`[Middleware] Rate limit exceeded for IP: ${ip}, path: ${pathname}`);
+      
+      if (pathname.startsWith('/api/')) {
+        return createErrorResponse('Too many requests. Please try again later.', 429);
+      }
+      
+      // For non-API routes, redirect to a rate limit page or show error
+      return createRedirectResponse(request, '/login?error=rate-limit');
+    }
   }
 
-  // Verify the session cookie exists for all other routes
+  // Allow public paths
+  if (isPublicPath(pathname)) {
+    return addSecurityHeaders(NextResponse.next());
+  }
+
+  // Check for session cookie
   const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
 
   if (!sessionCookie) {
-    // If the request is for an API route, return a 401 Unauthorized response
+    console.info(`[Middleware] No session cookie found for ${pathname}`);
+    
     if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createErrorResponse('Authentication required', 401);
     }
-    // For all other pages (including the root '/'), redirect to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    // Only add a redirect query param if the original path was not the root
-    if (pathname !== '/') {
-        url.searchParams.set('redirect', pathname);
-    }
-    return NextResponse.redirect(url);
+    
+    return createRedirectResponse(request, '/login');
   }
 
-  // The actual verification of the cookie (role, expiration) will happen
-  // in the API routes or server components. The middleware just ensures a cookie exists.
-  return NextResponse.next();
+  // For Edge runtime, we can't decode JWT easily, so we just check cookie presence
+  // The actual verification happens in API routes or server components
+  
+  // Special handling for admin paths (you'd need to verify admin role in API)
+  if (isAdminPath(pathname)) {
+    // This would need server-side role verification
+    // For now, just ensure they have a session cookie
+    console.info(`[Middleware] Admin path access attempted: ${pathname}`);
+  }
+
+  // Log access for monitoring
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/me')) {
+    console.debug(`[Middleware] API access: ${request.method} ${pathname} by ${ip}`);
+  }
+
+  // Add security headers and continue
+  return addSecurityHeaders(NextResponse.next());
 }
 
-// Match all paths except for specific asset folders.
+// Enhanced matcher configuration
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|placeholders|media).*)',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico, robots.txt, sitemap.xml (common static files)
+     * - placeholders, media (custom static directories)
+     */
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|placeholders|media).*)',
   ],
 };
