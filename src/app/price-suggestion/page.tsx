@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { PriceSuggestionSchema, type PriceSuggestionValues } from '@/lib/schemas';
 import { suggestPriceAction, type PriceSuggestionState } from './actions';
+import { formatCurrency } from '@/lib/utils';
 
 export default function PriceSuggestionPage() {
   const { toast } = useToast();
@@ -47,13 +48,6 @@ export default function PriceSuggestionPage() {
     } finally {
         setLoading(false);
     }
-  };
-  
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
   };
 
   return (

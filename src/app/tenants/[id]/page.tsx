@@ -20,28 +20,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property, Payment, Message } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
-import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
 import { predictNextPayment } from '@/ai/flows/predict-payment-flow';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { useTenants } from '@/hooks/use-tenants';
+import { DeleteTenantButton } from '@/components/delete-tenant-button';
 
 
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
@@ -165,8 +156,8 @@ export default function TenantDetailPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
-  
+  const { refresh: refreshTenants } = useTenants();
+
   useEffect(() => {
     async function fetchData() {
         if (!tenantId) return;
@@ -209,33 +200,6 @@ export default function TenantDetailPage() {
   if (!tenant) {
     return <div>Tenant or property not found.</div>;
   }
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-        const response = await fetch(`/api/tenants/${tenantId}`, {
-            method: 'DELETE',
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to delete tenant.');
-        }
-        toast({
-            title: "Tenant Deleted",
-            description: `${tenant.name} has been removed from your records.`,
-        });
-        router.push('/tenants');
-        router.refresh();
-    } catch(err: any) {
-        toast({
-            title: "Error",
-            description: err.message,
-            variant: "destructive",
-        });
-    } finally {
-        setDeleting(false);
-    }
-  };
   
   const getRentStatus = (payments: Payment[], rent: number) => {
     if (!payments || !rent) return 'Overdue';
@@ -263,20 +227,9 @@ export default function TenantDetailPage() {
     return <Badge variant={statusMap[status] || 'default'}>{status}</Badge>;
   }
 
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-      if (!dateString) return 'N/A';
-      return new Date(dateString).toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-      });
+  const handleTenantDeleted = () => {
+    refreshTenants();
+    router.push('/tenants');
   }
 
   return (
@@ -306,28 +259,7 @@ export default function TenantDetailPage() {
                     <AnimatedEditIcon /> Edit
                 </Button>
             </Link>
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                        <AnimatedDeleteIcon /> Delete
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the
-                        tenant and all associated data, including their login account.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                        {deleting ? <Loader2 className="animate-spin" /> : "Continue"}
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} onDeleted={handleTenantDeleted} />
         </div>
       </div>
       

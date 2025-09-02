@@ -66,3 +66,34 @@ export function toJSON(data: any): any {
 
   return data;
 }
+
+
+/**
+ * Formats a number as a currency string.
+ * @param amount - The number to format.
+ * @param currencyCode - The ISO currency code (e.g., 'KES', 'USD').
+ * @returns A formatted currency string.
+ */
+export const formatCurrency = (amount?: number, currencyCode: string = 'KES') => {
+    if (amount === undefined || amount === null) return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(amount);
+};
+
+/**
+ * Formats a date string into a user-friendly format.
+ * @param dateString - The date string to format.
+ * @returns A formatted date string (e.g., "January 1, 2024").
+ */
+export const formatDate = (dateString?: string | Date) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+};

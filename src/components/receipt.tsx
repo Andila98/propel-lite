@@ -4,28 +4,13 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { GenerateReceiptOutput } from '@/ai/flows/generate-receipt';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface ReceiptProps {
   receipt: GenerateReceiptOutput;
 }
 
 export function Receipt({ receipt }: ReceiptProps) {
-  const formatCurrency = (amount: number, currencyCode: string) => {
-      return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: currencyCode,
-      }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'UTC'
-    });
-  }
-
   return (
     <Card className="text-sm border-dashed">
       <CardHeader>
@@ -60,5 +45,3 @@ export function Receipt({ receipt }: ReceiptProps) {
     </Card>
   );
 }
-
-    

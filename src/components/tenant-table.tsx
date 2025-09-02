@@ -1,7 +1,6 @@
 
 "use client";
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table,
@@ -22,27 +21,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { MoreHorizontal, Eye } from 'lucide-react';
 import type { Tenant, Property } from '@/lib/types';
-import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
 import { AnimatedEditIcon } from './icons/animated-edit-icon';
+import { useTenants } from '@/hooks/use-tenants';
+import { DeleteTenantButton } from './delete-tenant-button';
+
 
 export function TenantTable({ tenants, properties }: { tenants: Tenant[], properties: Property[] }) {
   const router = useRouter();
-  const { toast } = useToast();
-  const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { refresh: refreshTenants } = useTenants();
 
   const getPropertyDetails = (tenant: Tenant) => {
     const property = properties.find(p => p.id === tenant.propertyId);
@@ -61,44 +49,8 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
   const handleEdit = (tenantId: string) => {
     router.push(`/tenants/${tenantId}/edit`);
   };
-  
-  const handleDelete = async () => {
-    if (!tenantToDelete) return;
-    setIsDeleting(true);
-
-    try {
-      const response = await fetch(`/api/tenants/${tenantToDelete.id}`, {
-        method: 'DELETE',
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete tenant.');
-      }
-      
-      toast({
-        title: "Tenant Deleted",
-        description: `${tenantToDelete.name} has been removed from your records.`,
-      });
-      
-      // We can reload the page to see the changes.
-      // A more advanced implementation might update the state directly.
-      router.refresh();
-
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-      setTenantToDelete(null);
-    }
-  };
 
   return (
-    <>
       <Table>
         <TableHeader>
           <TableRow>
@@ -159,13 +111,7 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={(e) => {e.stopPropagation(); setTenantToDelete(tenant)}}
-                      >
-                         <AnimatedDeleteIcon />
-                        Delete
-                      </DropdownMenuItem>
+                      <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} onDeleted={refreshTenants} />
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -174,28 +120,5 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
           })}
         </TableBody>
       </Table>
-      
-       <AlertDialog open={!!tenantToDelete} onOpenChange={(isOpen) => !isOpen && setTenantToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete {tenantToDelete?.name}
-              and all associated data from our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? <Loader2 className="animate-spin" /> : "Continue"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
   );
 }

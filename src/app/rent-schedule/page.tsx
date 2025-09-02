@@ -18,6 +18,7 @@ import Link from 'next/link';
 import type { Tenant, Property, Payment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 type TenantWithDetails = Tenant & { propertyAddress?: string; propertyCurrency?: string; balance: number };
 
@@ -57,14 +58,6 @@ export default function RentSchedulePage() {
     }
     fetchData();
   }, [toast]);
-
-
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
-  };
 
   const rentStatusByDay = useMemo(() => {
     if (dataLoading) return {};

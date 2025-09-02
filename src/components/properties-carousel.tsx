@@ -19,21 +19,13 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import type { Property } from '@/lib/types';
 import { BedDouble, Bath, Banknote } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 export function PropertiesCarousel({ properties }: { properties: Property[] }) {
   const plugin = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
   )
   
-  const formatCurrency = (amount: number, currencyCode: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   if (!properties || properties.length === 0) {
     return (
       <Card className="flex items-center justify-center h-80">

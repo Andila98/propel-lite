@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -208,16 +209,6 @@ export default function TenantPortalPage() {
   const unit = property.units.find(u => u.id === tenant.currentUnitId);
   const rentAmount = unit?.rent || 0;
   const rentStatus = getRentStatus(payments, rentAmount);
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(amount);
-  };
-
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

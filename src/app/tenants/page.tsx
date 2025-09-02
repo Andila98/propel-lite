@@ -17,7 +17,7 @@ import { useTenants } from '@/hooks/use-tenants';
 
 export default function TenantsPage() {
   const { user } = useAuth();
-  const { tenants, properties, loading } = useTenants();
+  const { tenants, properties, loading, error } = useTenants();
   
   const canAddTenants = user?.role === 'landlord' || (user?.role === 'manager' && user?.permissions?.canAddTenants);
 
@@ -50,7 +50,9 @@ export default function TenantsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? renderSkeleton() : <TenantTable tenants={tenants} properties={properties} />}
+          {loading && renderSkeleton()}
+          {error && <p className="text-destructive text-center">{error}</p>}
+          {!loading && !error && <TenantTable tenants={tenants} properties={properties} />}
         </CardContent>
       </Card>
     </div>

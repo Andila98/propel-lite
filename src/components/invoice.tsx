@@ -5,28 +5,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { GenerateInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface InvoiceProps {
   invoice: GenerateInvoiceOutput;
 }
 
 export function Invoice({ invoice }: InvoiceProps) {
-    const formatCurrency = (amount: number, currencyCode: string) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currencyCode,
-        }).format(amount);
-    };
-    
-    const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          timeZone: 'UTC'
-      });
-    }
-
   return (
     <Card className="text-sm">
       <CardHeader>

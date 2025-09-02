@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { generateReportAction, type ReportState } from './actions';
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/utils';
 
 export default function ReportsPage() {
   const { toast } = useToast();
@@ -37,13 +38,6 @@ export default function ReportsPage() {
       setResult(res);
     }
     setLoading(false);
-  };
-  
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
   };
 
   return (

@@ -44,6 +44,7 @@ import { Separator } from "@/components/ui/separator"
 import type { DashboardData } from "@/lib/types"
 import { LatePaymentsChart } from "@/components/charts/late-payments-chart"
 import { PaymentMethodsChart } from "@/components/charts/payment-methods-chart"
+import { formatCurrency } from "@/lib/utils"
 
 
 function AiInsightsCard({ summary }: { summary: string }) {
@@ -87,15 +88,6 @@ export default function DashboardPage() {
     }
     fetchData()
   }, [timeframe])
-
-  const formatCurrency = (amount: number, currencyCode: string = "KES") => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
 
   const renderContent = () => {
     if (loading) {

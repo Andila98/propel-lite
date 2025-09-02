@@ -33,6 +33,7 @@ import { getReceiptAction, type ReceiptState } from './actions';
 import { Receipt } from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function PaymentsPage() {
   const { toast } = useToast();
@@ -98,15 +99,6 @@ export default function PaymentsPage() {
 
     setLoading(false);
   }
-
-  const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
   
   const renderSkeleton = () => (
      <Table>
@@ -163,7 +155,7 @@ export default function PaymentsPage() {
                 <TableBody>
                 {payments.map((payment: any) => (
                     <TableRow key={payment.id}>
-                    <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatDate(payment.date)}</TableCell>
                     <TableCell>
                         <Link href={`/tenants/${payment.tenantId}`} className="text-primary hover:underline">
                             {payment.tenantName || 'N/A'}
