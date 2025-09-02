@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       pathname,
       isInitialized: isInitialized.current 
     });
-
+  
     if (!isInitialized.current) {
         console.log('Early return - not initialized');
         return;
@@ -207,7 +207,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userProfile);
       setError(null); // Clear any previous errors on success
       isInitialized.current = true;
-      handleRedirect(userProfile);
+      
+      // Add a small delay to ensure state is updated
+      setTimeout(() => {
+        handleRedirect(userProfile);
+      }, 100);
+      
     } catch (error: any) {
       console.error("Error setting user state:", error);
       setError({
