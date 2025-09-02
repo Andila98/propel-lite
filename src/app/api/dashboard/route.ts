@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { Property, Tenant, Payment, DashboardData, ActivityItem, Unit } from '@/lib/types';
 import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
-import { sub, format } from 'date-fns';
+import { sub, format, startOfDay } from 'date-fns';
 import { toJSON } from '@/lib/utils';
 import { getLandlordId } from '@/lib/auth-utils';
 
@@ -73,32 +73,29 @@ export async function GET(req: NextRequest) {
     }
 
     try {
+        const thirtyDaysAgo = startOfDay(sub(new Date(), { days: 30 }));
+        
         const [
             propertiesSnapshot,
-            tenantsSnapshot,
+            tenantCountSnapshot,
             paymentsSnapshot,
-            unitsSnapshot,
+            unitCountSnapshot,
         ] = await Promise.all([
             firestore.collection('properties').where('landlordId', '==', landlordId).limit(10).get(),
-            firestore.collection('tenants').where('landlordId', '==', landlordId).get(),
-            firestore.collection('payments').where('landlordId', '==', landlordId).get(),
-            firestore.collectionGroup('units').where('landlordId', '==', landlordId).get(),
+            firestore.collection('tenants').where('landlordId', '==', landlordId).count().get(),
+            firestore.collection('payments').where('landlordId', '==', landlordId).where('date', '>=', thirtyDaysAgo).get(),
+            firestore.collectionGroup('units').where('landlordId', '==', landlordId).count().get(),
         ]);
         
-        const tenants: Tenant[] = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
         const payments: Payment[] = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
 
         const unitsByPropertyId = new Map<string, Unit[]>();
-        unitsSnapshot.docs.forEach(doc => {
-            const unit = { id: doc.id, ...doc.data() } as Unit;
-            const propertyId = doc.ref.parent.parent?.id;
-            if (propertyId) {
-                if (!unitsByPropertyId.has(propertyId)) {
-                    unitsByPropertyId.set(propertyId, []);
-                }
-                unitsByPropertyId.get(propertyId)!.push(unit);
-            }
-        });
+        // Only fetch units for the limited properties to display on the dashboard
+        for (const propDoc of propertiesSnapshot.docs) {
+            const unitsSnapshot = await propDoc.ref.collection('units').get();
+            const units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
+            unitsByPropertyId.set(propDoc.id, units);
+        }
 
         const properties: Property[] = propertiesSnapshot.docs.map((doc) => {
             const propertyData = { id: doc.id, ...doc.data() } as Property;
@@ -114,12 +111,11 @@ export async function GET(req: NextRequest) {
         });
         
         const totalProperties = properties.length;
-        const totalTenants = tenants.length;
+        const totalTenants = tenantCountSnapshot.data().count;
         const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
 
-        const totalUnits = unitsSnapshot.size;
-        const occupiedUnits = tenants.length;
-        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+        const totalUnits = unitCountSnapshot.data().count;
+        const occupancyRate = totalUnits > 0 ? (totalTenants / totalUnits) * 100 : 0;
         
         let aiSummary: string | undefined;
         try {
