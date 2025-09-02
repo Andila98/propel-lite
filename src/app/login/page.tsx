@@ -27,6 +27,8 @@ const LoginSchema = z.object({
   password: z
     .string()
     .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters")
+    .max(128, "Password is too long"),
 });
 
 type LoginFormValues = z.infer<typeof LoginSchema>;
@@ -335,16 +337,47 @@ export default function LoginPage() {
                 onClick={handleSocialLogin}
                 disabled={isFormDisabled}
               >
-                {isSocialLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
-                Login with Google
+                {isSocialLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in with Google...
+                  </>
+                ) : (
+                  <>
+                    <GoogleIcon className="mr-2 h-4 w-4" />
+                    Continue with Google
+                  </>
+                )}
               </Button>
             </fieldset>
           </form>
+          
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="underline">
+            <Link 
+              href="/register" 
+              className="underline hover:no-underline"
+              tabIndex={isFormDisabled ? -1 : 0}
+            >
               Sign up
             </Link>
+          </div>
+
+          {/* Connection Status Indicator */}
+          <div className="flex items-center justify-center mt-2">
+            <div className="flex items-center text-xs text-muted-foreground">
+              {connectionStatus.isOnline ? (
+                <>
+                  <Wifi className="h-3 w-3 mr-1 text-green-500" />
+                  <span>Connected</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-3 w-3 mr-1 text-red-500" />
+                  <span>Offline</span>
+                </>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
