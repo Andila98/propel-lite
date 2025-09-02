@@ -4,7 +4,7 @@ import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { Property } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
 import { toJSON } from '@/lib/utils';
-import { getLandlordId } from '@/lib/auth-utils';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -12,9 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const landlordId = await getLandlordId(req);
-    if (!landlordId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { landlordId, error: authError } = await getLandlordAndActor(req);
+    if (authError || !landlordId) {
+        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }
 
     try {
@@ -48,9 +48,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const landlordId = await getLandlordId(req);
-    if (!landlordId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(req);
+    if (authError || !landlordId || !actor) {
+        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }
     
     try {
@@ -81,7 +81,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         await batch.commit();
 
         const propertyName = propertyData?.name || propertyData?.address;
-        await logActivity('Admin', `Deleted property "${propertyName}"`, { type: 'Property', name: propertyName });
+        await logActivity(actor.displayName || 'Admin', `Deleted property "${propertyName}"`, { type: 'Property', name: propertyName });
 
         return NextResponse.json({ message: 'Property and its units deleted successfully.' }, { status: 200 });
 

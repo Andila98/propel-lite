@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
-import { getLandlordId } from '@/lib/auth-utils';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
     
-    const landlordId = await getLandlordId(req);
-    if (!landlordId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { landlordId, error: authError } = await getLandlordAndActor(req);
+    if (authError || !landlordId) {
+        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }
 
     try {

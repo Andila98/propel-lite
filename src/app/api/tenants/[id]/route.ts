@@ -4,7 +4,7 @@ import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admi
 import { toJSON } from '@/lib/utils';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
-import { getLandlordId } from '@/lib/auth-utils';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 
 export const runtime = 'nodejs';
 
@@ -12,9 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const landlordId = await getLandlordId(req);
-    if (!landlordId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { landlordId, error: authError } = await getLandlordAndActor(req);
+    if (authError || !landlordId) {
+        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }
 
     try {
@@ -42,9 +42,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const landlordId = await getLandlordId(req);
-    if (!landlordId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(req);
+    if (authError || !landlordId || !actor) {
+        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }
 
     try {
@@ -90,7 +90,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
             }
         }
         
-        await logActivity('Admin', `Deleted tenant "${name}"`, { type: 'Tenant', name: name });
+        await logActivity(actor.displayName || 'Admin', `Deleted tenant "${name}"`, { type: 'Tenant', name: name });
 
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
     } catch (error: any) {
