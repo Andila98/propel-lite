@@ -123,20 +123,17 @@ async function fetchUserFromApi(): Promise<User | null> {
   }
   
   if (response.status === 401) {
-    // This is an expected case where the session cookie is invalid or expired
-    // We sign out the client to clear any invalid state.
     await firebaseSignOut(auth);
     return null;
   }
-
+  
   if (response.status === 429) {
     throw new AuthenticationError(
       'Too many requests. Please try again in a few minutes.',
       'RATE_LIMIT_EXCEEDED'
     );
   }
-  
-  // For other server errors (5xx), we throw an error to trigger retry logic.
+
   throw new Error(`Failed to fetch user profile: ${response.status}`);
 }
 
@@ -155,24 +152,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   
   const handleRedirect = useCallback((currentUser: User | null) => {
-  console.log('handleRedirect called with:', { 
-    user: currentUser ? { uid: currentUser.uid, role: currentUser.role, profileComplete: currentUser.profileComplete } : null,
-    pathname,
-    isInitialized: isInitialized.current 
-  });
-  
     if (!isInitialized.current) {
-        console.log('Early return - not initialized');
         return;
     }
     
-    // Prevent multiple concurrent redirects
     if (isRedirecting.current) return;
 
     const isOnboardingPage = pathname.startsWith('/onboarding');
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
-
-  console.log('Redirect conditions:', { isOnboardingPage, isAuthPage, profileComplete: currentUser?.profileComplete });
 
     let destination: string | null = null;
 
@@ -192,9 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (destination && destination !== pathname) {
       isRedirecting.current = true;
-      console.info(`[Auth] Redirecting from ${pathname} to ${destination}`);
       router.replace(destination);
-      // Reset redirecting flag after navigation
       setTimeout(() => { isRedirecting.current = false; }, 1000);
     }
   }, [pathname, router]);
@@ -207,15 +192,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       handleRedirect(null);
       return;
     }
+    
+    // If the user in state is the same as the one from the auth event, don't refetch.
+    if (user?.uid === firebaseUser.uid && isInitialized.current) {
+      handleRedirect(user); // Still check for redirects
+      return;
+    }
 
     try {
-      // Fetch the full user profile from our backend
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
       setUser(userProfile);
-      setError(null); // Clear any previous errors on success
+      setError(null);
       isInitialized.current = true;
       
-      // Add a small delay to ensure state is updated
       setTimeout(() => {
         handleRedirect(userProfile);
       }, 100);
@@ -228,17 +217,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : 'Failed to load user profile. Please try refreshing the page.',
         code: error.code || 'PROFILE_LOAD_FAILED'
       });
-      // Ensure local and server states are logged out
       await firebaseSignOut(auth);
       setUser(null);
     } finally {
       setLoading(false);
     }
-  }, [handleRedirect]);
+  }, [handleRedirect, user]);
 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, (firebaseUser) => {
-      // This listener handles all auth state changes: login, logout, token refresh.
       updateUserAndRedirect(firebaseUser);
     });
 
@@ -276,7 +263,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const responseBody = await response.json();
         throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
-    // After login API sets the cookie, onIdTokenChanged will fire, triggering a state update and redirect.
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
@@ -293,6 +279,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
           switch (error.code) {
               case 'auth/invalid-credential':
+              case 'auth/wrong-password':
+              case 'auth/user-not-found':
                   message = 'Invalid email or password.';
                   break;
               case 'auth/user-disabled':
@@ -332,12 +320,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      // Clearing local state first gives a faster UX
       setUser(null); 
       clearError();
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       await firebaseSignOut(auth);
-      // The onIdTokenChanged listener will handle the redirect to /login
     } catch (error) {
       console.error("Error during logout:", error);
     }
