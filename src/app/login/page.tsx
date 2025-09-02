@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
@@ -108,11 +107,8 @@ export default function LoginPage() {
     
     try {
       await login(data.email, data.password);
-      
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
+      // The redirect is handled by the useAuth hook. 
+      // Do not show a toast here as it can interrupt the redirect flow.
     } catch (error: any) {
       // Error is already set in the auth context, just show toast for immediate feedback
       if (error.code === 'INCOMPLETE_PROFILE') {
