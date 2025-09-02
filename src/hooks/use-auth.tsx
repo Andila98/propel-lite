@@ -55,7 +55,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 class AuthenticationError extends Error {
-  constructor(message: string, public code?: string) {
+  constructor(public message: string, public code?: string) {
     super(message);
     this.name = 'AuthenticationError';
   }
