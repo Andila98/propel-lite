@@ -307,7 +307,7 @@ export async function POST(req: NextRequest) {
       uploadedBy: userId,
       uploadType: uploadType || 'general',
       uploadDate: new Date().toISOString(),
-      fileSize: String(file.size),
+      fileSize: file.size.toString(),
       mimeType: file.type,
     };
 
