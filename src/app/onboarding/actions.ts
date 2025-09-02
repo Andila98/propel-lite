@@ -33,9 +33,13 @@ export async function completeOnboarding(): Promise<ActionState> {
         return { error: "You must add at least one property to complete the setup." };
     }
 
+    // Get the user record to access existing custom claims safely.
+    const userRecord = await auth.getUser(decodedClaims.uid);
+    const existingCustomClaims = userRecord.customClaims || {};
+
     // Set a custom claim to indicate the profile is now complete
     await auth.setCustomUserClaims(decodedClaims.uid, { 
-        ...decodedClaims, // Preserve existing claims
+        ...existingCustomClaims, // Preserve existing custom claims
         profileComplete: true 
     });
     
