@@ -240,14 +240,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const responseBody = await response.json();
 
     if (!response.ok) {
-        if (responseBody.code === 'INCOMPLETE_PROFILE') {
-            console.log("[Auth] Incomplete profile detected. Proceeding to refresh and redirect.");
-        } else {
-            throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
-        }
+      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
     // After login API sets the cookie, onIdTokenChanged will fire, triggering a state update and redirect.
-    // We don't need to manually call refreshUser here anymore.
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {

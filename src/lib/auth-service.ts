@@ -130,13 +130,8 @@ export async function createSession(idToken: string): Promise<{ sessionCookie: s
         throw new Error("User profile could not be found or created.");
     }
     
-    // For non-tenant roles, if the profile is incomplete, block session creation
-    // and let the client-side handle redirection to onboarding.
-    if (userProfile.role !== 'tenant' && !userProfile.profileComplete) {
-      const error: any = new Error('Your account setup is not complete. Please finish the onboarding process.');
-      error.code = 'INCOMPLETE_PROFILE';
-      throw error;
-    }
+    // For non-tenant roles, if the profile is incomplete, the client-side will handle the redirect.
+    // We no longer throw an error here, ensuring the session cookie is always set on successful login.
 
     // Use the maxAge from the config to set the cookie expiration.
     const expiresIn = authConfig.cookieSerializeOptions.maxAge * 1000;
