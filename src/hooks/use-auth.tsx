@@ -117,14 +117,9 @@ async function fetchUserFromApi(): Promise<User | null> {
     }
   });
 
-  if (response.ok) {
-    const userProfile = await response.json();
-    return userProfile;
-  }
-  
   if (response.status === 401) {
-    await firebaseSignOut(auth);
-    return null;
+      await firebaseSignOut(auth);
+      return null;
   }
   
   if (response.status === 429) {
@@ -132,6 +127,11 @@ async function fetchUserFromApi(): Promise<User | null> {
       'Too many requests. Please try again in a few minutes.',
       'RATE_LIMIT_EXCEEDED'
     );
+  }
+  
+  if (response.ok) {
+    const userProfile = await response.json();
+    return userProfile;
   }
 
   throw new Error(`Failed to fetch user profile: ${response.status}`);
@@ -233,15 +233,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [updateUserAndRedirect]);
   
   const retryConnection = useCallback(async () => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
-      await updateUserAndRedirect(auth.currentUser);
+        await updateUserAndRedirect(auth.currentUser);
     } catch (err: any) {
        setError({
          message: err.message || 'Failed to reconnect. Please try again.',
          code: err.code
        });
+    } finally {
+        setIsLoading(false);
     }
   }, [updateUserAndRedirect]);
 
