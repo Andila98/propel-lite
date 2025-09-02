@@ -1,57 +1,57 @@
 
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
+import { storage, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseBucket = process.env.SUPABASE_BUCKET_NAME;
-
-if (!supabaseUrl || !supabaseKey || !supabaseBucket) {
-    console.warn("[STORAGE_SERVICE] Supabase environment variables not set. File uploads will fail.");
-}
-
-const supabase = createClient(supabaseUrl!, supabaseKey!);
-
 /**
- * Uploads a file to Supabase Storage and returns its public URL.
+ * Uploads a file to Firebase Storage and returns its public URL.
  * @param arrayBuffer The raw data of the file as an ArrayBuffer.
  * @param contentType The MIME type of the file (e.g., 'image/png').
- * @param fileName The original name of the file, used to get the extension.
+ * @param fileName The name to save the file as in the bucket.
+ * @param metadata Custom metadata to attach to the file.
  * @returns The public URL of the uploaded file.
  */
-export async function uploadFile(arrayBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
-    if (!supabaseUrl || !supabaseKey || !supabaseBucket) {
-        throw new Error("Storage service is not configured. Missing Supabase credentials.");
+export async function uploadFile(
+    arrayBuffer: ArrayBuffer, 
+    contentType: string, 
+    fileName: string,
+    metadata: Record<string, string> = {}
+): Promise<string> {
+    if (!isFirebaseAdminInitialized) {
+        throw new Error("Storage service is not configured. Firebase Admin SDK not initialized.");
     }
     
     try {
-        const fileExtension = fileName.split('.').pop() || '';
-        const newFileName = `${uuidv4()}.${fileExtension}`;
-        
-        // Convert ArrayBuffer to Buffer for Supabase server-side upload
+        const bucket = storage.bucket(); // Get default bucket
+        const file = bucket.file(fileName);
+
+        // Convert ArrayBuffer to Buffer for Node.js environment
         const buffer = Buffer.from(arrayBuffer);
 
-        const { data, error } = await supabase.storage
-            .from(supabaseBucket)
-            .upload(newFileName, buffer, {
+        await file.save(buffer, {
+            metadata: {
                 contentType: contentType,
-                upsert: false, // Don't overwrite existing files
-            });
+                metadata: metadata, // Custom metadata object
+                // Make the file publicly readable
+                cacheControl: 'public, max-age=31536000',
+            },
+            public: true, // This makes the file publicly accessible
+            validation: 'md5' // Ensures data integrity
+        });
 
-        if (error) {
-            console.error('[SUPABASE_UPLOAD_ERROR]', error);
-            throw new Error(`Supabase upload failed: ${error.message}`);
-        }
+        // The public URL is in the format: https://storage.googleapis.com/[BUCKET_NAME]/[OBJECT_NAME]
+        return file.publicUrl();
 
-        const { data: publicUrlData } = supabase.storage
-            .from(supabaseBucket)
-            .getPublicUrl(data.path);
-
-        return publicUrlData.publicUrl;
     } catch (error: any) {
-        console.error('[UPLOAD_FILE_ERROR]', error);
-        throw new Error(error.message || 'An unknown error occurred during file upload.');
+        console.error('[STORAGE_SERVICE_ERROR]', error);
+        
+        // Pass along specific storage error codes if they exist
+        const newError = new Error(error.message || 'An unknown error occurred during file upload.');
+        if (error.code) {
+            (newError as any).code = `storage/${error.code.toLowerCase()}`;
+        }
+        
+        throw newError;
     }
 }

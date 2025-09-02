@@ -174,63 +174,236 @@ function createErrorResponse(
     error,
     code,
     details,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   }, { status });
 }
 
-
 export async function POST(req: NextRequest) {
-    if (!isFirebaseAdminInitialized) {
-        return createErrorResponse('Backend services are not configured. Please contact support.', 503, 'SERVICE_UNAVAILABLE');
-    }
-    
-    // 1. Authentication
-    const decodedToken = await verifySession(req);
-    if (!decodedToken) {
-        return createErrorResponse('Unauthorized: You must be logged in to upload files.', 401, 'UNAUTHORIZED');
+  const requestId = crypto.randomUUID();
+  const ip = getClientIP(req);
+
+  // Check if Firebase Admin is initialized
+  if (!isFirebaseAdminInitialized) {
+    console.error(`[ERROR: /api/upload][${requestId}] Firebase Admin not initialized`);
+    return createErrorResponse(
+      'File upload service temporarily unavailable',
+      503,
+      'SERVICE_UNAVAILABLE'
+    );
+  }
+
+  // Verify user authentication
+  const decodedToken = await verifySession(req);
+  if (!decodedToken) {
+    console.warn(`[WARN: /api/upload][${requestId}] Unauthorized upload attempt from ${ip}`);
+    return createErrorResponse(
+      'Authentication required to upload files',
+      401,
+      'UNAUTHORIZED'
+    );
+  }
+
+  const userId = decodedToken.uid;
+
+  try {
+    // Apply rate limiting
+    const userKey = `upload_user:${userId}`;
+    const ipKey = `upload_ip:${ip}`;
+
+    if (!UploadRateLimiter.check(userKey, UPLOAD_CONFIG.uploadLimits.perUser)) {
+      console.warn(`[WARN: /api/upload][${requestId}] User ${userId} exceeded daily upload limit`);
+      return createErrorResponse(
+        'Daily upload limit exceeded. Please try again tomorrow.',
+        429,
+        'USER_UPLOAD_LIMIT_EXCEEDED'
+      );
     }
 
-    // 2. Rate Limiting
-    const ip = getClientIP(req);
-    if (!UploadRateLimiter.check(`ip:${ip}`, UPLOAD_CONFIG.uploadLimits.perIP) || 
-        !UploadRateLimiter.check(`user:${decodedToken.uid}`, UPLOAD_CONFIG.uploadLimits.perUser)) {
-        return createErrorResponse('Too many uploads. Please try again later.', 429, 'RATE_LIMIT_EXCEEDED');
+    if (!UploadRateLimiter.check(ipKey, UPLOAD_CONFIG.uploadLimits.perIP)) {
+      console.warn(`[WARN: /api/upload][${requestId}] IP ${ip} exceeded daily upload limit`);
+      return createErrorResponse(
+        'Daily upload limit exceeded for this IP address',
+        429,
+        'IP_UPLOAD_LIMIT_EXCEEDED'
+      );
     }
-    
+
+    // Parse form data
+    let formData: FormData;
     try {
-        const formData = await req.formData();
-        const file = formData.get('file') as File;
-        
-        if (!file) {
-            return createErrorResponse('No file provided.', 400, 'BAD_REQUEST');
-        }
-
-        // 3. Validation Chain
-        const validations = [
-            validateFileName(file.name),
-            validateFileSize(file),
-            validateFileType(file),
-        ];
-
-        for (const validation of validations) {
-            if (!validation.valid) {
-                return createErrorResponse(validation.error!, 400, 'VALIDATION_FAILED', { detail: validation.error });
-            }
-        }
-        
-        // Content validation (magic number check)
-        const contentValidation = await validateFileContent(file);
-        if (!contentValidation.valid) {
-            return createErrorResponse(contentValidation.error!, 400, 'VALIDATION_FAILED', { detail: contentValidation.error });
-        }
-
-        // 4. Upload to Storage
-        const arrayBuffer = await file.arrayBuffer();
-        const url = await uploadFile(arrayBuffer, file.type, file.name);
-        
-        return NextResponse.json({ url });
-    } catch (error: any) {
-        console.error('[ERROR: /api/upload]', error);
-        return createErrorResponse('An internal server error occurred during file upload.', 500, 'INTERNAL_SERVER_ERROR');
+      formData = await req.formData();
+    } catch (error) {
+      return createErrorResponse(
+        'Invalid form data',
+        400,
+        'INVALID_FORM_DATA'
+      );
     }
+
+    const file = formData.get('file') as File;
+    const uploadType = formData.get('type') as string; // e.g., 'property-image', 'document'
+
+    if (!file) {
+      return createErrorResponse(
+        'No file provided',
+        400,
+        'NO_FILE_PROVIDED'
+      );
+    }
+
+    // Validate file name
+    const fileNameValidation = validateFileName(file.name);
+    if (!fileNameValidation.valid) {
+      return createErrorResponse(
+        fileNameValidation.error!,
+        400,
+        'INVALID_FILE_NAME'
+      );
+    }
+
+    // Validate file size
+    const fileSizeValidation = validateFileSize(file);
+    if (!fileSizeValidation.valid) {
+      return createErrorResponse(
+        fileSizeValidation.error!,
+        400,
+        'FILE_TOO_LARGE'
+      );
+    }
+
+    // Validate file type
+    const fileTypeValidation = validateFileType(file);
+    if (!fileTypeValidation.valid) {
+      return createErrorResponse(
+        fileTypeValidation.error!,
+        400,
+        'INVALID_FILE_TYPE'
+      );
+    }
+
+    // Validate file content (magic numbers)
+    const contentValidation = await validateFileContent(file);
+    if (!contentValidation.valid) {
+      console.warn(`[WARN: /api/upload][${requestId}] File content validation failed for ${file.name}`);
+      return createErrorResponse(
+        contentValidation.error!,
+        400,
+        'INVALID_FILE_CONTENT'
+      );
+    }
+
+    // Generate safe file name
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const safeFileName = `${userId}_${timestamp}_${randomSuffix}${fileExtension}`;
+
+    console.info(`[INFO: /api/upload][${requestId}] Starting upload for user ${userId}: ${file.name} -> ${safeFileName}`);
+
+    // Convert file to buffer for upload
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Upload file with metadata
+    const uploadMetadata = {
+      originalName: file.name,
+      uploadedBy: userId,
+      uploadType: uploadType || 'general',
+      uploadDate: new Date().toISOString(),
+      fileSize: String(file.size),
+      mimeType: file.type,
+    };
+
+    const url = await uploadFile(
+      arrayBuffer, 
+      file.type, 
+      safeFileName,
+      uploadMetadata
+    );
+
+    console.info(`[INFO: /api/upload][${requestId}] Upload successful: ${url}`);
+
+    // Return success response with file details
+    return NextResponse.json({
+      success: true,
+      url,
+      filename: safeFileName,
+      originalName: file.name,
+      size: file.size,
+      type: file.type,
+      uploadedAt: new Date().toISOString(),
+    }, { status: 200 });
+
+  } catch (error: any) {
+    console.error(`[ERROR: /api/upload][${requestId}]`, {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId,
+      ip
+    });
+
+    // Handle specific error types from storage service if available
+    if (error.code === 'storage/unauthorized') {
+      return createErrorResponse(
+        'Storage access denied',
+        403,
+        'STORAGE_UNAUTHORIZED'
+      );
+    }
+
+    if (error.code === 'storage/quota-exceeded') {
+      return createErrorResponse(
+        'Storage quota exceeded',
+        507,
+        'STORAGE_QUOTA_EXCEEDED'
+      );
+    }
+
+    if (error.code === 'storage/canceled') {
+      return createErrorResponse(
+        'Upload was cancelled',
+        408,
+        'UPLOAD_CANCELLED'
+      );
+    }
+
+    // Generic error response
+    return createErrorResponse(
+      'File upload failed due to an internal error',
+      500,
+      'INTERNAL_UPLOAD_ERROR'
+    );
+  }
+}
+
+// Optional: Add a GET endpoint to retrieve upload statistics (for admin/monitoring)
+export async function GET(req: NextRequest) {
+  const decodedToken = await verifySession(req);
+  
+  if (!decodedToken || decodedToken.role !== 'admin') {
+    return createErrorResponse(
+      'Admin access required',
+      403,
+      'ADMIN_REQUIRED'
+    );
+  }
+
+  const stats = {
+    totalUploads: uploadCounts.size,
+    uploadsByUser: Array.from(uploadCounts.entries())
+      .filter(([key]) => key.startsWith('upload_user:'))
+      .map(([key, data]) => ({
+        userId: key.replace('upload_user:', ''),
+        count: data.count,
+        resetTime: new Date(data.resetTime).toISOString()
+      })),
+    uploadsByIP: Array.from(uploadCounts.entries())
+      .filter(([key]) => key.startsWith('upload_ip:'))
+      .map(([key, data]) => ({
+        ip: key.replace('upload_ip:', ''),
+        count: data.count,
+        resetTime: new Date(data.resetTime).toISOString()
+      })),
+  };
+
+  return NextResponse.json(stats);
 }
