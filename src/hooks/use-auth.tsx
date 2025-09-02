@@ -244,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [updateUserAndRedirect]);
   
   const retryConnection = useCallback(async () => {
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
     try {
         await updateUserAndRedirect(auth.currentUser);
@@ -254,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          code: err.code
        });
     } finally {
-        setIsLoading(false);
+        setLoading(false);
     }
   }, [updateUserAndRedirect]);
 
