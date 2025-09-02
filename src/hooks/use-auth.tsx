@@ -225,8 +225,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleRedirect, user]);
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, (firebaseUser) => {
-      updateUserAndRedirect(firebaseUser);
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      try {
+        await updateUserAndRedirect(firebaseUser);
+      } catch (err: any) {
+        console.error("Critical error in onIdTokenChanged:", err);
+        setError({
+          message: err.message || 'A critical authentication error occurred.',
+          code: err.code || 'AUTH_STATE_CHANGE_FAILED'
+        });
+        await firebaseSignOut(auth);
+        setUser(null);
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
@@ -276,7 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('[Auth] Login failed:', error);
       let message = 'Login failed. Please try again.';
-      if (error instanceof TypeError || error instanceof AuthenticationError) {
+      if (error instanceof AuthenticationError) {
           message = error.message;
       } else {
           switch (error.code) {
