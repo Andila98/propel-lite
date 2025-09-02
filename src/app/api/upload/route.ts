@@ -1,6 +1,4 @@
 
-'use server';
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { uploadFile } from '@/lib/storage-service';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
