@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
@@ -106,29 +107,17 @@ export default function LoginPage() {
     clearError(); // Clear any previous errors
     
     try {
+      // The login function will trigger the onIdTokenChanged listener in useAuth,
+      // which handles the redirect. We don't need to do anything else here.
       await login(data.email, data.password);
-      // The redirect is handled by the useAuth hook. 
-      // Do not show a toast here as it can interrupt the redirect flow.
     } catch (error: any) {
       // Error is already set in the auth context, just show toast for immediate feedback
-      if (error.code === 'INCOMPLETE_PROFILE') {
-        toast({
-          title: "Setup Required",
-          description: "Redirecting you to complete your profile.",
-        });
-      } else if (error.code === 'auth/too-many-requests') {
-        toast({
-          title: "Too Many Attempts",
-          description: "Please wait a few minutes before trying again.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      // The useAuth hook now handles throwing a user-friendly error.
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -149,26 +138,15 @@ export default function LoginPage() {
     
     try {
       await loginWithGoogle();
-      
-      toast({
-        title: "Sign-In Successful!",
-        description: "Welcome!",
-      });
+      // Redirect is handled by the useAuth provider
     } catch (error: any) {
       // Don't show toast for cancelled popup
       if (error.code !== 'auth/cancelled-popup-request') {
-        if (error.code === 'INCOMPLETE_PROFILE') {
-          toast({
-            title: "Setup Required",
-            description: "Redirecting you to complete your profile.",
-          });
-        } else {
-          toast({
+        toast({
             title: "Social Login Failed",
             description: error.message,
             variant: "destructive",
-          });
-        }
+        });
       }
     } finally {
       setIsSocialLoading(false);

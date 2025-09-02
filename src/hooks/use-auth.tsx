@@ -123,10 +123,13 @@ async function fetchUserFromApi(): Promise<User | null> {
   }
   
   if (response.status === 401) {
+    // This is an expected case where the session cookie is invalid or expired
+    // We sign out the client to clear any invalid state.
     await firebaseSignOut(auth);
     return null;
   }
-
+  
+  // For other server errors (5xx), we throw an error to trigger retry logic.
   throw new Error(`Failed to fetch user profile: ${response.status}`);
 }
 
@@ -137,30 +140,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const retryHandler = useRef(new ConnectionRetry());
-  const isInitialized = useRef(false);
+  const isRedirecting = useRef(false);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
-
+  
   const handleRedirect = useCallback((currentUser: User | null) => {
-    if (!isInitialized.current) return;
-    
+    // Prevent multiple concurrent redirects
+    if (isRedirecting.current) return;
+
     const isOnboardingPage = pathname.startsWith('/onboarding');
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
-    
+
+    let destination: string | null = null;
+
     if (currentUser) {
-        // User is logged in
-        if (currentUser.role !== 'tenant' && !currentUser.profileComplete && !isOnboardingPage) {
-            router.push('/onboarding/landlord-welcome');
-        } else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
-            router.push('/dashboard');
-        }
+      // User is LOGGED IN
+      if (!currentUser.profileComplete && currentUser.role !== 'tenant' && !isOnboardingPage) {
+        destination = '/onboarding/landlord-welcome';
+      } else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
+        destination = currentUser.role === 'tenant' ? '/tenant-portal' : '/dashboard';
+      }
     } else {
-        // User is not logged in, but trying to access a protected page
-        if (!isAuthPage && !isOnboardingPage) {
-            router.push('/login');
-        }
+      // User is LOGGED OUT
+      if (!isAuthPage && !isOnboardingPage) {
+        destination = '/login';
+      }
+    }
+    
+    if (destination && destination !== pathname) {
+      isRedirecting.current = true;
+      console.info(`[Auth] Redirecting from ${pathname} to ${destination}`);
+      router.replace(destination);
+      // Reset redirecting flag after navigation
+      setTimeout(() => { isRedirecting.current = false; }, 1000);
     }
   }, [pathname, router]);
 
@@ -173,18 +187,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Fetch the full user profile from our backend
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
       setUser(userProfile);
-      setError(null);
+      setError(null); // Clear any previous errors on success
       handleRedirect(userProfile);
     } catch (error: any) {
-      console.error("Error fetching user profile:", error);
+      console.error("Error setting user state:", error);
       setError({
         message: error.code === 'CONNECTION_FAILED' 
           ? 'Unable to connect to server. Please check your connection.' 
           : 'Failed to load user profile. Please try refreshing the page.',
         code: error.code || 'PROFILE_LOAD_FAILED'
       });
+      // Ensure local and server states are logged out
       await firebaseSignOut(auth);
       setUser(null);
     } finally {
@@ -194,16 +210,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, (firebaseUser) => {
-      if (!isInitialized.current) {
-        setLoading(false);
-        isInitialized.current = true;
-      }
+      // This listener handles all auth state changes: login, logout, token refresh.
       updateUserAndRedirect(firebaseUser);
     });
 
     return () => unsubscribe();
   }, [updateUserAndRedirect]);
-
+  
   const retryConnection = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -233,8 +246,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
         }
     }
-    await refreshUser();
-  }, [refreshUser]);
+    // After login API sets the cookie, onIdTokenChanged will fire, triggering a state update and redirect.
+    // We don't need to manually call refreshUser here anymore.
+  }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     try {
@@ -288,23 +302,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      setUser(null);
+      // Clearing local state first gives a faster UX
+      setUser(null); 
       clearError();
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       await firebaseSignOut(auth);
-      router.push('/login');
+      // The onIdTokenChanged listener will handle the redirect to /login
     } catch (error) {
       console.error("Error during logout:", error);
     }
   }, [router, clearError]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={{ 
