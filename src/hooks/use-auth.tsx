@@ -274,9 +274,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('[Auth] Login failed:', error);
       let message = 'Login failed. Please try again.';
-      if (error instanceof TypeError) { // Network error
-          message = 'The server is not responding. Please try again in a moment.';
-          error.code = 'CONNECTION_FAILED';
+      if (error instanceof TypeError || error instanceof AuthenticationError) {
+          message = error.message;
       } else {
           switch (error.code) {
               case 'auth/invalid-credential':
@@ -288,6 +287,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               case 'auth/too-many-requests':
                   message = 'Too many failed attempts. Please wait before trying again.';
                   break;
+              default:
+                  message = 'An unexpected error occurred during login.';
           }
       }
       setError({ message, code: error.code });
