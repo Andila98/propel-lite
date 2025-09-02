@@ -64,7 +64,7 @@ async function getLatePaymentData(landlordId: string): Promise<DashboardData['la
 
 export async function GET(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
+        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 503 });
     }
 
     const { landlordId, error: authError } = await getLandlordAndActor(req);
@@ -147,6 +147,6 @@ export async function GET(req: NextRequest) {
 
     } catch (error: any) {
         console.error('[ERROR: /api/dashboard]', error);
-        return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred while fetching dashboard data.' }, { status: 500 });
     }
 }
