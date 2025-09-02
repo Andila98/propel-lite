@@ -141,17 +141,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const retryHandler = useRef(new ConnectionRetry());
   const isRedirecting = useRef(false);
+  const isInitialized = useRef(false);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
   
   const handleRedirect = useCallback((currentUser: User | null) => {
+    console.log('handleRedirect called with:', { 
+      user: currentUser ? { uid: currentUser.uid, role: currentUser.role, profileComplete: currentUser.profileComplete } : null,
+      pathname,
+      isInitialized: isInitialized.current 
+    });
+
+    if (!isInitialized.current) {
+        console.log('Early return - not initialized');
+        return;
+    }
+    
     // Prevent multiple concurrent redirects
     if (isRedirecting.current) return;
 
     const isOnboardingPage = pathname.startsWith('/onboarding');
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
+
+    console.log('Redirect conditions:', { isOnboardingPage, isAuthPage, profileComplete: currentUser?.profileComplete });
 
     let destination: string | null = null;
 
@@ -182,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!firebaseUser) {
       setUser(null);
       setLoading(false);
+      isInitialized.current = true;
       handleRedirect(null);
       return;
     }
@@ -191,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
       setUser(userProfile);
       setError(null); // Clear any previous errors on success
+      isInitialized.current = true;
       handleRedirect(userProfile);
     } catch (error: any) {
       console.error("Error setting user state:", error);
@@ -237,10 +253,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       credentials: 'include'
     });
     
-    const responseBody = await response.json();
-
     if (!response.ok) {
-      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
+        const responseBody = await response.json();
+        throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
     // After login API sets the cookie, onIdTokenChanged will fire, triggering a state update and redirect.
   }, []);
