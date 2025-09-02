@@ -148,11 +148,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   
   const handleRedirect = useCallback((currentUser: User | null) => {
-    console.log('handleRedirect called with:', { 
-      user: currentUser ? { uid: currentUser.uid, role: currentUser.role, profileComplete: currentUser.profileComplete } : null,
-      pathname,
-      isInitialized: isInitialized.current 
-    });
+  console.log('handleRedirect called with:', { 
+    user: currentUser ? { uid: currentUser.uid, role: currentUser.role, profileComplete: currentUser.profileComplete } : null,
+    pathname,
+    isInitialized: isInitialized.current 
+  });
   
     if (!isInitialized.current) {
         console.log('Early return - not initialized');
@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isOnboardingPage = pathname.startsWith('/onboarding');
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
 
-    console.log('Redirect conditions:', { isOnboardingPage, isAuthPage, profileComplete: currentUser?.profileComplete });
+  console.log('Redirect conditions:', { isOnboardingPage, isAuthPage, profileComplete: currentUser?.profileComplete });
 
     let destination: string | null = null;
 
@@ -241,7 +241,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const retryConnection = useCallback(async () => {
     setLoading(true);
     setError(null);
-    await updateUserAndRedirect(auth.currentUser);
+    try {
+      await updateUserAndRedirect(auth.currentUser);
+    } catch (err: any) {
+       setError({
+         message: err.message || 'Failed to reconnect. Please try again.',
+         code: err.code
+       });
+    }
   }, [updateUserAndRedirect]);
 
   const refreshUser = useCallback(async () => {
@@ -327,7 +334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error during logout:", error);
     }
-  }, [router, clearError]);
+  }, [clearError]);
 
 
   return (
