@@ -26,12 +26,13 @@ export default function AddPropertyPage() {
   const [state, formAction] = useFormState(createPropertyAction, initialState);
 
   useEffect(() => {
-    if (state.success) {
+    if (state.success && state.propertyId) {
       toast({
         title: "Property Added!",
         description: "Your property has been successfully saved.",
       });
-      router.push('/onboarding/add-property-manager');
+      // Pass the new propertyId to the next step
+      router.push(`/onboarding/add-property-manager?propertyId=${state.propertyId}`);
     }
     if (state.error && !state.errors) {
        toast({
