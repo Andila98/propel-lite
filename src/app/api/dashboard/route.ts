@@ -193,7 +193,7 @@ export async function GET(req: NextRequest) {
         };
         
         console.log(`[DEBUG] Converting to JSON...`);
-        const result = toJSON(dashboardData);
+        const result = JSON.parse(JSON.stringify(dashboardData));
         
         console.log(`[DEBUG] Returning data successfully`);
         return NextResponse.json(result);
