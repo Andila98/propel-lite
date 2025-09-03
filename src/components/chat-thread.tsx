@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import type { Message } from '@/lib/types';
 import { Send, Loader2, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { toISOString } from '@/lib/utils';
 
 interface ChatThreadProps {
   tenantId: string;
@@ -93,6 +94,11 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
   if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (error) return <p className="text-destructive text-center">{error}</p>;
 
+  const getMessageTime = (timestamp: any): string => {
+    const date = new Date(toISOString(timestamp) || new Date());
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="flex flex-col h-[500px]">
       <ScrollArea className="flex-grow p-4 border rounded-lg" ref={scrollAreaRef}>
@@ -113,7 +119,7 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
               >
                 <p className="text-sm">{msg.content}</p>
                  <p className="text-xs opacity-70 mt-1 text-right">
-                    {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {getMessageTime(msg.timestamp)}
                 </p>
               </div>
             </div>

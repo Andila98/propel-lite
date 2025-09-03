@@ -1,7 +1,6 @@
 
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Timestamp } from "firebase-admin/firestore";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -26,12 +25,12 @@ export function toISOString(dateValue: any): string | null {
         }
     }
 
-    // Handle server-side Firestore Timestamps
-    if (typeof dateValue === 'object' && dateValue !== null && typeof dateValue.toDate === 'function') {
-        return (dateValue as Timestamp).toDate().toISOString();
+    // Handle server-side and client-side Firestore Timestamps by checking for the toDate method
+    if (dateValue && typeof dateValue.toDate === 'function') {
+        return dateValue.toDate().toISOString();
     }
-
-    // Handle client-side Firestore Timestamps (which might just be objects with seconds/nanos)
+    
+    // Handle objects that might be serialized Timestamps
     if (typeof dateValue === 'object' && 'seconds' in dateValue && 'nanoseconds' in dateValue) {
         return new Date(dateValue.seconds * 1000).toISOString();
     }
@@ -46,24 +45,36 @@ export function toISOString(dateValue: any): string | null {
  * @returns A new object or array with Timestamps converted to strings.
  */
 export function toJSON(data: any): any {
-  if (!data) return data;
+  if (data === null || data === undefined) return data;
 
+  // Handle server-side and client-side Firestore Timestamps
+  if (typeof data.toDate === 'function') {
+    return data.toDate().toISOString();
+  }
+  
+  // Handle Date objects
+  if (data instanceof Date) {
+    return data.toISOString();
+  }
+
+  // Handle arrays
   if (Array.isArray(data)) {
     return data.map(item => toJSON(item));
   }
 
+  // Handle objects
   if (typeof data === 'object') {
-     if (typeof data.toDate === 'function') { // It's a Firestore Timestamp
-      return data.toDate().toISOString();
-    }
-    
     const res: { [key: string]: any } = {};
     for (const key in data) {
-      res[key] = toJSON(data[key]);
+       // Ensure we are iterating over the object's own properties
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        res[key] = toJSON(data[key]);
+      }
     }
     return res;
   }
 
+  // Return primitives as is
   return data;
 }
 
