@@ -3,10 +3,17 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { authConfig } from '@/config/server-config';
 import { cookies } from 'next/headers';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { logoutRateLimit } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+    try {
+        await logoutRateLimit.check(req);
+    } catch (error) {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const cookieStore = cookies();
     const cookieName = authConfig.cookieName;
     const sessionCookie = cookieStore.get(cookieName)?.value;

@@ -18,6 +18,7 @@ export class RateLimiter {
     private cleanupInterval: NodeJS.Timeout;
 
     constructor(private options: RateLimitOptions) {
+        // Run cleanup every 5 minutes
         this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
     }
 
@@ -49,8 +50,12 @@ export class RateLimiter {
         const remaining = allowed ? this.options.max - entry.count : 0;
         const resetTime = entry.firstRequest + this.options.windowMs;
 
-        if (!allowed && this.options.onLimitReached) {
-            this.options.onLimitReached(key, req);
+        if (!allowed) {
+            if(this.options.onLimitReached) {
+                this.options.onLimitReached(key, req);
+            }
+            // Throw an error to be caught by the route handler
+            throw new Error('Rate limit exceeded');
         }
 
         return { allowed, remaining, resetTime };
@@ -77,6 +82,12 @@ export const loginRateLimit = new RateLimiter({
             timestamp: new Date().toISOString()
         });
     }
+});
+
+export const logoutRateLimit = new RateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // 10 logout attempts per IP per window
+    keyGenerator: (req) => `logout:${getIp(req)}`,
 });
 
 export const registrationRateLimit = new RateLimiter({
