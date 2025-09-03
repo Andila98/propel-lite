@@ -16,14 +16,15 @@ export async function GET(req: NextRequest) {
   try {
     const claims = await verifySession(req);
     
+    // Explicitly handle the case where the session is invalid or expired.
     if (!claims) {
-      // If the session is invalid or expired, send a 401 Unauthorized response
-      // and explicitly clear the cookie on the client side.
-      const response = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const response = NextResponse.json({ error: 'Unauthorized: Invalid or expired session.' }, { status: 401 });
+      // Instruct the browser to clear the invalid cookie.
       response.cookies.delete(authConfig.cookieName);
       return response;
     }
 
+    // If claims exist, proceed to fetch the full user profile.
     const userProfile = await getUserProfile(claims.uid);
     
     if (!userProfile) {
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
     
   } catch (error: any) {
     console.error('[ERROR: /api/auth/me]', error);
+    // This will catch any unexpected errors during profile fetching or other operations.
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
