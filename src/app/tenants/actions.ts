@@ -87,7 +87,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
             tenantId: tenantRef.id
         });
 
-        await logActivity(actor.displayName || 'Admin', `Created tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
+        await logActivity(actor.displayName || 'Admin', `Created tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name }, landlordId);
         
         revalidatePath('/tenants');
         revalidatePath('/dashboard');
@@ -99,7 +99,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         if (error.code === 'auth/email-already-exists') {
             return { error: 'An account with this email already exists.' };
         }
-        return { error: `Internal Server Error: ${error.message}` };
+        return { error: `Internal ServerError: ${error.message}` };
     }
 }
 
@@ -181,7 +181,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         
         await batch.commit();
 
-        await logActivity(actor.displayName || 'Admin', `Updated tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name });
+        await logActivity(actor.displayName || 'Admin', `Updated tenant "${tenantData.name}"`, { type: 'Tenant', name: tenantData.name }, landlordId);
 
         revalidatePath('/tenants');
         revalidatePath(`/tenants/${tenantId}`);

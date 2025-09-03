@@ -88,11 +88,11 @@
       ]
     },
     {
-      "collectionGroup": "payments",
+      "collectionGroup": "auditLogs",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "landlordId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" }
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     }
   ],

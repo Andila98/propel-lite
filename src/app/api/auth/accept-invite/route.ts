@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         await firestore.collection('managers').doc(userRecord.uid).set(newManager);
         
         const { actor: inviter } = await getLandlordAndActor(inviterId, true);
-        await logActivity(inviter?.displayName || 'Landlord', `Invited manager "${displayName}" accepted`, { type: 'Manager', name: displayName });
+        await logActivity(inviter?.displayName || 'Landlord', `Invited manager "${displayName}" accepted`, { type: 'Manager', name: displayName }, inviterId);
 
         return NextResponse.json({ message: 'Account created successfully.' }, { status: 201 });
 

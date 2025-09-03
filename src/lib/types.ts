@@ -152,6 +152,7 @@ export interface AuditLog {
     action: string;
     entityType: 'Property' | 'Unit' | 'Tenant' | 'Manager';
     entityName: string;
+    landlordId: string;
     timestamp: string | Timestamp;
 }
 

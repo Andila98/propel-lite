@@ -9,11 +9,12 @@ type LogInput = Omit<AuditLog, 'id' | 'timestamp'>;
 
 /**
  * Logs an important action to the audit log collection in Firestore.
- * @param actor - The user or system performing the action.
+ * @param actorName - The name of the user performing the action.
  * @param action - A description of the action being performed.
  * @param entity - The entity being acted upon.
+ * @param landlordId - The ID of the landlord account this log belongs to.
  */
-export async function logActivity(actorName: string, action: string, entity: { type: AuditLog['entityType']; name: string; id?: string; }) {
+export async function logActivity(actorName: string, action: string, entity: { type: AuditLog['entityType']; name: string; id?: string; }, landlordId: string) {
   try {
     if (!isFirebaseAdminInitialized) {
         console.warn("[AUDIT_LOG_SERVICE] Firestore not initialized. Skipping log.");
@@ -25,6 +26,7 @@ export async function logActivity(actorName: string, action: string, entity: { t
       action: action,
       entityType: entity.type,
       entityName: entity.name,
+      landlordId: landlordId, // Add landlordId for data scoping
       timestamp: FieldValue.serverTimestamp() as any, // Cast for type compatibility
     };
 

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        await inviteManagerRateLimit(req);
+        await inviteManagerRateLimit.check(req);
     } catch (error: any) {
         if (error.code === 'RATE_LIMIT_EXCEEDED') {
             return NextResponse.json({ error: 'Too many invitation requests. Please try again later.' }, { status: 429 });
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         
         const invitationLink = `${APP_URL}/onboarding/accept-invite?token=${token}`;
 
-        await logActivity(actor.displayName || 'Landlord', `Sent invitation to manager "${email}"`, { type: 'Manager', name: email });
+        await logActivity(actor.displayName || 'Landlord', `Sent invitation to manager "${email}"`, { type: 'Manager', name: email }, landlordId);
 
         return NextResponse.json({ invitationLink }, { status: 200 });
 

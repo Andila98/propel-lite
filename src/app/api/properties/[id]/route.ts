@@ -81,7 +81,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         await batch.commit();
 
         const propertyName = propertyData?.name || propertyData?.address;
-        await logActivity(actor.displayName || 'Admin', `Deleted property "${propertyName}"`, { type: 'Property', name: propertyName });
+        await logActivity(actor.displayName || 'Admin', `Deleted property "${propertyName}"`, { type: 'Property', name: propertyName }, landlordId);
 
         return NextResponse.json({ message: 'Property and its units deleted successfully.' }, { status: 200 });
 

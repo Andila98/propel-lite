@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
-import { getLandlordId, verifySession } from '@/lib/auth-utils';
+import { getLandlordAndActor } from '@/lib/auth-utils';
 import { toJSON } from '@/lib/utils';
 import type { Permission } from '@/lib/types';
 
@@ -13,8 +13,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
 
-    const claims = await verifySession(req);
-    if (!claims) {
+    const {landlordId, error: authError} = await getLandlordAndActor(req);
+    if (authError || !landlordId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const managerId = params.id;
         const managerDoc = await firestore.collection('managers').doc(managerId).get();
 
-        if (!managerDoc.exists) {
+        if (!managerDoc.exists || managerDoc.data()?.landlordId !== landlordId) {
             return NextResponse.json({ error: 'Manager not found' }, { status: 404 });
         }
         
@@ -39,8 +39,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-     const claims = await verifySession(req);
-    if (!claims || claims.role !== 'landlord') {
+    const {landlordId, actor, error: authError} = await getLandlordAndActor(req);
+    if (authError || !landlordId || !actor) {
         return NextResponse.json({ error: 'Unauthorized: Only landlords can edit managers.' }, { status: 401 });
     }
 
@@ -59,7 +59,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             permissions: body.permissions,
         });
 
-        await logActivity('Admin', `Updated manager "${body.name}"`, { type: 'Manager', name: body.name });
+        await logActivity(actor.displayName || 'Admin', `Updated manager "${body.name}"`, { type: 'Manager', name: body.name }, landlordId);
 
         return NextResponse.json({ message: 'Manager updated successfully.' }, { status: 200 });
     } catch (error: any) {
@@ -73,8 +73,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const claims = await verifySession(req);
-    if (!claims || claims.role !== 'landlord') {
+    const {landlordId, actor, error: authError} = await getLandlordAndActor(req);
+    if (authError || !landlordId || !actor) {
         return NextResponse.json({ error: 'Unauthorized: Only landlords can delete managers.' }, { status: 401 });
     }
 
@@ -92,7 +92,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         await managerRef.delete();
         await auth.deleteUser(managerId);
         
-        await logActivity('Admin', `Deleted manager "${managerData?.name}"`, { type: 'Manager', name: managerData?.name });
+        await logActivity(actor.displayName || 'Admin', `Deleted manager "${managerData?.name}"`, { type: 'Manager', name: managerData?.name }, landlordId);
 
         return NextResponse.json({ message: 'Manager successfully deleted.' }, { status: 200 });
     } catch (error: any) {

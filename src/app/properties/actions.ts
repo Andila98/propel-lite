@@ -75,7 +75,7 @@ export async function createPropertyAction(
         });
     });
 
-    await logActivity(actor.displayName || 'Admin', `Created property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
+    await logActivity(actor.displayName || 'Admin', `Created property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name }, landlordId);
     
     revalidatePath('/properties');
     revalidatePath('/dashboard');

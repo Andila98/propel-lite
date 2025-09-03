@@ -34,8 +34,8 @@ export async function updatePropertyAction(
     return { error: 'Unauthorized. Please log in.' };
   }
 
-  const { actor, error: authError } = await getLandlordAndActor(sessionCookie);
-  if (authError || !actor) {
+  const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+  if (authError || !landlordId || !actor) {
     return { error: authError?.message || 'Unauthorized. Could not identify user.' };
   }
   
@@ -82,8 +82,6 @@ export async function updatePropertyAction(
             updatedAt: FieldValue.serverTimestamp(),
         });
 
-        const landlordId = actor.customClaims?.role === 'landlord' ? actor.uid : actor.customClaims?.landlordId;
-
         // Add or update units
         units.forEach(unit => {
             const unitRef = unit.id ? propertyRef.collection('units').doc(unit.id) : propertyRef.collection('units').doc();
@@ -100,7 +98,7 @@ export async function updatePropertyAction(
         });
     });
 
-    await logActivity(actor.displayName || 'Admin', `Updated property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name });
+    await logActivity(actor.displayName || 'Admin', `Updated property "${mainPropertyData.name}"`, { type: 'Property', name: mainPropertyData.name }, landlordId);
     
     revalidatePath('/properties');
     revalidatePath(`/properties/${propertyId}`);
