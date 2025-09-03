@@ -73,7 +73,7 @@ const getIp = (req: NextRequest) => {
 
 export const loginRateLimit = new RateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 login attempts per IP per window
+    max: 100, // Increased from 5 to 100 for development
     keyGenerator: (req) => `login:${getIp(req)}`,
     onLimitReached: (key, req) => {
         console.warn(`[SECURITY] Rate limit exceeded for ${key}`, {
