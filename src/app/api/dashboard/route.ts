@@ -6,6 +6,7 @@ import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { sub, format, startOfDay } from 'date-fns';
 import { toJSON } from '@/lib/utils';
 import { getLandlordAndActor } from '@/lib/auth-utils';
+import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
@@ -61,172 +62,43 @@ async function getLatePaymentData(landlordId: string): Promise<DashboardData['la
     return data;
 }
 
+// Temporarily replace your entire GET function with this:
 export async function GET(req: NextRequest) {
-    const requestId = crypto.randomUUID();
-    
-    if (!isFirebaseAdminInitialized) {
-        console.error(`[ERROR: /api/dashboard][${requestId}] Firebase Admin not initialized`);
-        return NextResponse.json({ 
-            error: 'Backend services are not configured. Please contact support.' 
-        }, { status: 503 });
-    }
-
-    const { landlordId, actor, error: authError } = await getLandlordAndActor(req);
-    
-    if (authError || !landlordId) {
-        console.warn(`[WARN: /api/dashboard][${requestId}] Auth failed:`, authError?.message);
-        return NextResponse.json({ 
-            error: authError?.message || 'Unauthorized access' 
-        }, { status: authError?.statusCode || 401 });
-    }
-
     try {
-        const { searchParams } = new URL(req.url);
-        const timeframe = searchParams.get('timeframe') || 'month';
-
-        console.info(`[INFO: /api/dashboard][${requestId}] Fetching dashboard data for landlord: ${landlordId} with timeframe: ${timeframe}`);
+        console.log('Dashboard API hit');
         
-        let startDate: Date;
-        let days = 30;
-        switch (timeframe) {
-            case 'week':
-                days = 7;
-                break;
-            case 'month':
-                days = 30;
-                break;
-            case 'quarter':
-                days = 90;
-                break;
-            default:
-                days = 30;
+        const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+        if (!sessionCookie) {
+            return NextResponse.json({ error: 'No session' }, { status: 401 });
         }
-        startDate = startOfDay(sub(new Date(), { days: days }));
-        const previousStartDate = sub(startDate, { days: days });
         
-        // Parallel queries for better performance
-        const [
-            propertiesSnapshot,
-            tenantCountSnapshot,
-            currentPaymentsSnapshot,
-            previousPaymentsSnapshot,
-            unitCountSnapshot,
-        ] = await Promise.all([
-            firestore.collection('properties')
-                .where('landlordId', '==', landlordId)
-                .limit(10)
-                .get(),
-            firestore.collection('tenants')
-                .where('landlordId', '==', landlordId)
-                .count()
-                .get(),
-            firestore.collection('payments')
-                .where('landlordId', '==', landlordId)
-                .where('date', '>=', startDate)
-                .get(),
-             firestore.collection('payments')
-                .where('landlordId', '==', landlordId)
-                .where('date', '>=', previousStartDate)
-                .where('date', '<', startDate)
-                .get(),
-            firestore.collectionGroup('units')
-                .where('landlordId', '==', landlordId)
-                .count()
-                .get(),
-        ]);
-        
-        const payments: Payment[] = currentPaymentsSnapshot.docs.map(doc => ({ 
-            id: doc.id, 
-            ...doc.data() 
-        } as Payment));
-        
-        const previousPayments: Payment[] = previousPaymentsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Payment));
-
-        // Fetch units for each property
-        const unitsByPropertyId = new Map<string, Unit[]>();
-        for (const propDoc of propertiesSnapshot.docs) {
-            const unitsSnapshot = await propDoc.ref.collection('units').get();
-            const units = unitsSnapshot.docs.map(unitDoc => ({ 
-                id: unitDoc.id, 
-                ...unitDoc.data() 
-            } as Unit));
-            unitsByPropertyId.set(propDoc.id, units);
+        const { landlordId } = await getLandlordAndActor(sessionCookie);
+        if (!landlordId) {
+            return NextResponse.json({ error: 'No landlord' }, { status: 401 });
         }
-
-        const properties: Property[] = propertiesSnapshot.docs.map((doc) => {
-            const propertyData = { id: doc.id, ...doc.data() } as Property;
-            propertyData.units = unitsByPropertyId.get(doc.id) || [];
-            
-            // Set property-level rent and bedroom info from first unit
-            if (propertyData.units.length > 0) {
-                const firstUnit = propertyData.units[0];
-                propertyData.rent = firstUnit.rent;
-                propertyData.bedrooms = parseInt(firstUnit.size) || 0;
-                propertyData.bathrooms = 1; // Default assumption
-            }
-            return propertyData;
-        });
         
-        // Calculate dashboard metrics
-        const totalProperties = properties.length;
-        const totalTenants = tenantCountSnapshot.data().count;
-        const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-        const previousRevenue = previousPayments.reduce((sum, p) => sum + p.amount, 0);
-        const revenueChange = previousRevenue > 0 ? (totalRevenue - previousRevenue) / previousRevenue : (totalRevenue > 0 ? 1 : 0);
-        
-        const totalUnits = unitCountSnapshot.data().count;
-        const occupancyRate = totalUnits > 0 ? (totalTenants / totalUnits) * 100 : 0;
-        
-        // Generate AI insights with error handling
-        let aiSummary: string | undefined;
-        // try {
-        //     const insights = await generateDashboardInsights({ 
-        //         totalRevenue, 
-        //         occupancyRate, 
-        //         totalProperties, 
-        //         totalTenants 
-        //     });
-        //     aiSummary = insights.summary;
-        // } catch (aiError) {
-        //     console.warn(`[WARN: /api/dashboard][${requestId}] AI insights failed:`, aiError);
-        //     aiSummary = "AI insights are currently unavailable. Please check back later.";
-        // }
-        
-        // Get additional dashboard data
-        const [anomalyAlerts, latePaymentData, paymentMethodData] = await Promise.all([
-            getAnomalyAlerts(landlordId),
-            getLatePaymentData(landlordId),
-            getPaymentMethodData(payments)
-        ]);
-
-        const dashboardData: DashboardData = {
-            totalProperties,
-            totalTenants,
-            totalRevenue,
-            revenueChange,
-            occupancyRate,
-            properties,
-            anomalyAlerts,
-            aiSummary,
-            latePaymentData,
-            paymentMethodData
+        // Return minimal test data
+        const testData = {
+            totalProperties: 0,
+            totalTenants: 0,
+            totalRevenue: 0,
+            revenueChange: 0,
+            occupancyRate: 0,
+            properties: [],
+            anomalyAlerts: [],
+            aiSummary: "Test mode",
+            latePaymentData: [],
+            paymentMethodData: []
         };
-
-        console.info(`[INFO: /api/dashboard][${requestId}] Dashboard data fetched successfully`);
-        return NextResponse.json(toJSON(dashboardData));
-
-    } catch (error: any) {
-        console.error(`[ERROR: /api/dashboard][${requestId}]`, {
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-            landlordId
-        });
         
+        console.log('Returning test data');
+        return NextResponse.json(testData);
+        
+    } catch (error: any) {
+        console.error('Dashboard error:', error);
         return NextResponse.json({ 
-            error: 'Failed to fetch dashboard data. Please try again later.' 
+            error: 'Server error', 
+            details: error.message 
         }, { status: 500 });
     }
 }
