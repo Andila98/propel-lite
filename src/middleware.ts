@@ -93,6 +93,11 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
 
+  // Allow test DB route in development
+  if (process.env.NODE_ENV === 'development' && pathname === '/api/test-db') {
+    return true;
+  }
+
   // Auth API routes
   if (pathConfig.authApi.some(path => pathname.startsWith(path))) {
     return true;
