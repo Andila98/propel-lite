@@ -81,15 +81,35 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        console.info(`[INFO: /api/dashboard][${requestId}] Fetching dashboard data for landlord: ${landlordId}`);
+        const { searchParams } = new URL(req.url);
+        const timeframe = searchParams.get('timeframe') || 'month';
+
+        console.info(`[INFO: /api/dashboard][${requestId}] Fetching dashboard data for landlord: ${landlordId} with timeframe: ${timeframe}`);
         
-        const thirtyDaysAgo = startOfDay(sub(new Date(), { days: 30 }));
+        let startDate: Date;
+        let days = 30;
+        switch (timeframe) {
+            case 'week':
+                days = 7;
+                break;
+            case 'month':
+                days = 30;
+                break;
+            case 'quarter':
+                days = 90;
+                break;
+            default:
+                days = 30;
+        }
+        startDate = startOfDay(sub(new Date(), { days: days }));
+        const previousStartDate = sub(startDate, { days: days });
         
         // Parallel queries for better performance
         const [
             propertiesSnapshot,
             tenantCountSnapshot,
-            paymentsSnapshot,
+            currentPaymentsSnapshot,
+            previousPaymentsSnapshot,
             unitCountSnapshot,
         ] = await Promise.all([
             firestore.collection('properties')
@@ -102,7 +122,12 @@ export async function GET(req: NextRequest) {
                 .get(),
             firestore.collection('payments')
                 .where('landlordId', '==', landlordId)
-                .where('date', '>=', thirtyDaysAgo)
+                .where('date', '>=', startDate)
+                .get(),
+             firestore.collection('payments')
+                .where('landlordId', '==', landlordId)
+                .where('date', '>=', previousStartDate)
+                .where('date', '<', startDate)
                 .get(),
             firestore.collectionGroup('units')
                 .where('landlordId', '==', landlordId)
@@ -110,9 +135,14 @@ export async function GET(req: NextRequest) {
                 .get(),
         ]);
         
-        const payments: Payment[] = paymentsSnapshot.docs.map(doc => ({ 
+        const payments: Payment[] = currentPaymentsSnapshot.docs.map(doc => ({ 
             id: doc.id, 
             ...doc.data() 
+        } as Payment));
+        
+        const previousPayments: Payment[] = previousPaymentsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
         } as Payment));
 
         // Fetch units for each property
@@ -144,6 +174,9 @@ export async function GET(req: NextRequest) {
         const totalProperties = properties.length;
         const totalTenants = tenantCountSnapshot.data().count;
         const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
+        const previousRevenue = previousPayments.reduce((sum, p) => sum + p.amount, 0);
+        const revenueChange = previousRevenue > 0 ? (totalRevenue - previousRevenue) / previousRevenue : (totalRevenue > 0 ? 1 : 0);
+        
         const totalUnits = unitCountSnapshot.data().count;
         const occupancyRate = totalUnits > 0 ? (totalTenants / totalUnits) * 100 : 0;
         
@@ -173,7 +206,7 @@ export async function GET(req: NextRequest) {
             totalProperties,
             totalTenants,
             totalRevenue,
-            revenueChange: 0.12, // TODO: Calculate actual change from previous period
+            revenueChange,
             occupancyRate,
             properties,
             anomalyAlerts,

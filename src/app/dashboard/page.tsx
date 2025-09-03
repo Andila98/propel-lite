@@ -108,6 +108,9 @@ export default function DashboardPage() {
       return <p>No data available.</p>
     }
 
+    const revenueChangePercentage = (data.revenueChange * 100).toFixed(1);
+    const isRevenueIncrease = data.revenueChange >= 0;
+
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {data.aiSummary && <AiInsightsCard summary={data.aiSummary} />}
@@ -151,8 +154,8 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold">
               {formatCurrency(data.totalRevenue)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              +{(data.revenueChange * 100).toFixed(1)}% from last period
+            <p className={`text-xs ${isRevenueIncrease ? 'text-green-500' : 'text-red-500'}`}>
+              {isRevenueIncrease ? '+' : ''}{revenueChangePercentage}% from last period
             </p>
           </CardContent>
         </Card>
