@@ -149,6 +149,31 @@ export async function GET(req: NextRequest) {
         const totalUnits = unitCountSnapshot.data().count;
         const occupancyRate = totalUnits > 0 ? (totalTenants / totalUnits) * 100 : 0;
         
+        // Test each helper function individually
+        try {
+            console.log(`[DEBUG] Testing getAnomalyAlerts...`);
+            const alerts = await getAnomalyAlerts(landlordId);
+            console.log(`[DEBUG] Alerts result:`, alerts);
+        } catch (e) {
+            console.error(`[ERROR] getAnomalyAlerts failed:`, e);
+        }
+
+        try {
+            console.log(`[DEBUG] Testing getLatePaymentData...`);
+            const lateData = await getLatePaymentData(landlordId);
+            console.log(`[DEBUG] Late payment result:`, lateData);
+        } catch (e) {
+            console.error(`[ERROR] getLatePaymentData failed:`, e);
+        }
+
+        try {
+            console.log(`[DEBUG] Testing getPaymentMethodData...`);
+            const methodData = await getPaymentMethodData(payments);
+            console.log(`[DEBUG] Payment method result:`, methodData);
+        } catch (e) {
+            console.error(`[ERROR] getPaymentMethodData failed:`, e);
+        }
+        
         console.log(`[DEBUG] Calling helper functions...`);
         const anomalyAlerts = await getAnomalyAlerts(landlordId);
         const latePaymentData = await getLatePaymentData(landlordId);
