@@ -16,11 +16,14 @@ export const authConfig = {
         sameSite: 'strict' as const,
         maxAge: 12 * 60 * 60 * 24, // 12 days
     },
+    allowedDevOrigins: [
+      'https://*.cloudworkstations.dev', // wildcard for convenience
+    ],
 };
 
 // A simple log during development to confirm which project is being targeted by the Admin SDK.
 if (process.env.NODE_ENV === 'development') {
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-         console.log(`[AUTH_CONFIG] Firebase Admin SDK configured via GOOGLE_APPLICATION_CREDENTIALS.`);
+         console.log(`[AUTH_CONFIG] Firebase Admin configured via GOOGLE_APPLICATION_CREDENTIALS.`);
     }
 }
