@@ -182,18 +182,18 @@ export async function GET(req: NextRequest) {
         
         // Generate AI insights with error handling
         let aiSummary: string | undefined;
-        try {
-            const insights = await generateDashboardInsights({ 
-                totalRevenue, 
-                occupancyRate, 
-                totalProperties, 
-                totalTenants 
-            });
-            aiSummary = insights.summary;
-        } catch (aiError) {
-            console.warn(`[WARN: /api/dashboard][${requestId}] AI insights failed:`, aiError);
-            aiSummary = "AI insights are currently unavailable. Please check back later.";
-        }
+        // try {
+        //     const insights = await generateDashboardInsights({ 
+        //         totalRevenue, 
+        //         occupancyRate, 
+        //         totalProperties, 
+        //         totalTenants 
+        //     });
+        //     aiSummary = insights.summary;
+        // } catch (aiError) {
+        //     console.warn(`[WARN: /api/dashboard][${requestId}] AI insights failed:`, aiError);
+        //     aiSummary = "AI insights are currently unavailable. Please check back later.";
+        // }
         
         // Get additional dashboard data
         const [anomalyAlerts, latePaymentData, paymentMethodData] = await Promise.all([
