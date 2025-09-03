@@ -5,7 +5,7 @@ import {
   useState, 
   useEffect, 
   createContext, 
-  useContext, 
+  useContext,
   ReactNode, 
   useCallback,
   useRef
@@ -63,7 +63,7 @@ class AuthenticationError extends Error {
 
 class ConnectionRetry {
   private readonly maxAttempts = 3;
-  private readonly delays = [1000, 3000, 5000]; // 1s, 3s, 5s
+  private readonly delays = [1000, 3000, 5000];
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     let lastError: Error;
@@ -118,8 +118,8 @@ async function fetchUserFromApi(): Promise<User | null> {
   });
 
   if (response.status === 401) {
-      await firebaseSignOut(auth);
-      return null;
+    await firebaseSignOut(auth);
+    return null;
   }
   
   if (response.status === 429) {
@@ -144,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const retryHandler = useRef(new ConnectionRetry());
-  const isRedirecting = useRef(false);
   const isInitialized = useRef(false);
 
   const clearError = useCallback(() => {
@@ -152,11 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   
   const handleRedirect = useCallback((currentUser: User | null) => {
-    if (!isInitialized.current) {
-        return;
-    }
-    
-    if (isRedirecting.current) return;
+    if (!isInitialized.current) return;
 
     const isOnboardingPage = pathname.startsWith('/onboarding');
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
@@ -164,23 +159,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let destination: string | null = null;
 
     if (currentUser) {
-      // User is LOGGED IN
       if (!currentUser.profileComplete && currentUser.role !== 'tenant' && !isOnboardingPage) {
         destination = '/onboarding/landlord-welcome';
       } else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
         destination = currentUser.role === 'tenant' ? '/tenant-portal' : '/dashboard';
       }
     } else {
-      // User is LOGGED OUT
       if (!isAuthPage && !isOnboardingPage) {
         destination = '/login';
       }
     }
     
     if (destination && destination !== pathname) {
-      isRedirecting.current = true;
       router.replace(destination);
-      setTimeout(() => { isRedirecting.current = false; }, 1000);
     }
   }, [pathname, router]);
 
@@ -193,9 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // If the user in state is the same as the one from the auth event, don't refetch.
     if (user?.uid === firebaseUser.uid && isInitialized.current) {
-      handleRedirect(user); // Still check for redirects
+      setLoading(false); // Already loaded
+      handleRedirect(user);
       return;
     }
 
@@ -204,13 +195,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userProfile);
       setError(null);
       isInitialized.current = true;
-      
-      setTimeout(() => {
-        handleRedirect(userProfile);
-      }, 100);
+      handleRedirect(userProfile);
       
     } catch (error: any) {
-      console.error("Error setting user state:", error);
+      console.error("[Auth] Error setting user state:", error);
       setError({
         message: error.code === 'CONNECTION_FAILED' 
           ? 'Unable to connect to server. Please check your connection.' 
@@ -219,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       await firebaseSignOut(auth);
       setUser(null);
+      isInitialized.current = true;
     } finally {
       setLoading(false);
     }
@@ -237,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await firebaseSignOut(auth);
         setUser(null);
         setLoading(false);
+        isInitialized.current = true;
       }
     });
 
@@ -247,14 +237,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-        await updateUserAndRedirect(auth.currentUser);
+      await updateUserAndRedirect(auth.currentUser);
     } catch (err: any) {
-       setError({
-         message: err.message || 'Failed to reconnect. Please try again.',
-         code: err.code
-       });
+      setError({
+        message: err.message || 'Failed to reconnect. Please try again.',
+        code: err.code
+      });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   }, [updateUserAndRedirect]);
 
@@ -273,8 +263,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     
     if (!response.ok) {
-        const responseBody = await response.json();
-        throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
+      const responseBody = await response.json();
+      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
   }, []);
 
@@ -288,23 +278,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[Auth] Login failed:', error);
       let message = 'Login failed. Please try again.';
       if (error instanceof AuthenticationError) {
-          message = error.message;
+        message = error.message;
       } else {
-          switch (error.code) {
-              case 'auth/invalid-credential':
-              case 'auth/wrong-password':
-              case 'auth/user-not-found':
-                  message = 'Invalid email or password.';
-                  break;
-              case 'auth/user-disabled':
-                  message = 'Your account has been disabled.';
-                  break;
-              case 'auth/too-many-requests':
-                  message = 'Too many failed attempts. Please wait before trying again.';
-                  break;
-              default:
-                  message = 'An unexpected error occurred during login.';
-          }
+        switch (error.code) {
+          case 'auth/invalid-credential':
+          case 'auth/wrong-password':
+          case 'auth/user-not-found':
+            message = 'Invalid email or password.';
+            break;
+          case 'auth/user-disabled':
+            message = 'Your account has been disabled.';
+            break;
+          case 'auth/too-many-requests':
+            message = 'Too many failed attempts. Please wait before trying again.';
+            break;
+          default:
+            message = 'An unexpected error occurred during login.';
+        }
       }
       setError({ message, code: error.code });
       throw new AuthenticationError(message, error.code);
@@ -325,8 +315,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[Auth] Google login failed:', error);
       let message = 'Google sign-in failed. Please try again.';
       if (error.code !== 'auth/cancelled-popup-request') {
-          setError({ message, code: error.code });
-          throw new AuthenticationError(message, error.code);
+        setError({ message, code: error.code });
+        throw new AuthenticationError(message, error.code);
       }
     }
   }, [processLogin, clearError]);
@@ -337,11 +327,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearError();
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       await firebaseSignOut(auth);
+      router.replace('/login');
     } catch (error) {
       console.error("Error during logout:", error);
     }
-  }, [clearError]);
+  }, [clearError, router]);
 
+  if (loading && !isInitialized.current) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          <div className="text-center">
+            <p className="text-lg font-medium">Initializing...</p>
+            <p className="text-sm text-muted-foreground">Please wait while we prepare the application</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ 
