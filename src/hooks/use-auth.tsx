@@ -5,7 +5,7 @@ import {
   useState, 
   useEffect, 
   createContext, 
-  useContext,
+  useContext, 
   ReactNode, 
   useCallback,
   useRef
@@ -145,13 +145,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const retryHandler = useRef(new ConnectionRetry());
   const isInitialized = useRef(false);
+  const lastRedirectRef = useRef<string | null>(null);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
   
   const handleRedirect = useCallback((currentUser: User | null) => {
-    if (!isInitialized.current) return;
+    console.log('[Auth] handleRedirect called', { 
+      user: currentUser ? { uid: currentUser.uid, role: currentUser.role, profileComplete: currentUser.profileComplete } : null,
+      pathname,
+      isInitialized: isInitialized.current,
+      lastRedirect: lastRedirectRef.current
+    });
+
+    if (!isInitialized.current) {
+      console.log('[Auth] Not initialized yet, skipping redirect');
+      return;
+    }
 
     const isOnboardingPage = pathname.startsWith('/onboarding');
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
@@ -159,24 +170,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let destination: string | null = null;
 
     if (currentUser) {
+      console.log('[Auth] User is logged in, checking redirect conditions');
+      
+      // User needs onboarding
       if (!currentUser.profileComplete && currentUser.role !== 'tenant' && !isOnboardingPage) {
         destination = '/onboarding/landlord-welcome';
-      } else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
+        console.log('[Auth] User needs onboarding, redirecting to:', destination);
+      }
+      // User is complete but on auth pages or wrong onboarding page
+      else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
         destination = currentUser.role === 'tenant' ? '/tenant-portal' : '/dashboard';
+        console.log('[Auth] Complete user on wrong page, redirecting to:', destination);
       }
     } else {
+      console.log('[Auth] User is logged out');
+      // User is logged out but not on auth pages
       if (!isAuthPage && !isOnboardingPage) {
         destination = '/login';
+        console.log('[Auth] Logged out user not on auth page, redirecting to login');
       }
     }
     
-    if (destination && destination !== pathname) {
+    // Only redirect if we have a destination and it's different from current path and last redirect
+    if (destination && destination !== pathname && destination !== lastRedirectRef.current) {
+      console.log('[Auth] Performing redirect from', pathname, 'to', destination);
+      lastRedirectRef.current = destination;
+      
+      // Use replace to avoid back button issues
       router.replace(destination);
+      
+      // Clear the last redirect after a delay
+      setTimeout(() => {
+        lastRedirectRef.current = null;
+      }, 2000);
+    } else {
+      console.log('[Auth] No redirect needed', { destination, pathname, lastRedirect: lastRedirectRef.current });
     }
   }, [pathname, router]);
 
   const updateUserAndRedirect = useCallback(async (firebaseUser: FirebaseUser | null) => {
+    console.log('[Auth] updateUserAndRedirect called', { 
+      hasFirebaseUser: !!firebaseUser,
+      currentUserId: user?.uid,
+      firebaseUserId: firebaseUser?.uid
+    });
+
     if (!firebaseUser) {
+      console.log('[Auth] No Firebase user, clearing state');
       setUser(null);
       setLoading(false);
       isInitialized.current = true;
@@ -184,19 +224,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // If user is already set, no need to re-fetch unless forced
+    // Avoid unnecessary refetches if user hasn't changed
     if (user?.uid === firebaseUser.uid && isInitialized.current) {
+      console.log('[Auth] Same user, just checking redirects');
       setLoading(false);
       handleRedirect(user);
       return;
     }
 
     try {
+      console.log('[Auth] Fetching user profile from API');
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
+      
+      console.log('[Auth] User profile fetched:', { 
+        uid: userProfile?.uid, 
+        role: userProfile?.role, 
+        profileComplete: userProfile?.profileComplete 
+      });
+      
       setUser(userProfile);
       setError(null);
       isInitialized.current = true;
-      handleRedirect(userProfile);
+      
+      // Small delay to ensure state updates are processed
+      setTimeout(() => {
+        handleRedirect(userProfile);
+      }, 50);
       
     } catch (error: any) {
       console.error("[Auth] Error setting user state:", error);
@@ -215,6 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleRedirect, user]);
 
   useEffect(() => {
+    console.log('[Auth] Setting up onIdTokenChanged listener');
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       try {
         await updateUserAndRedirect(firebaseUser);
@@ -265,15 +319,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (!response.ok) {
       const responseBody = await response.json();
-      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
+      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.errorCode);
     }
-
-    const userProfile: User = await response.json();
-    setUser(userProfile);
-    setError(null);
-    isInitialized.current = true;
-    handleRedirect(userProfile);
-  }, [handleRedirect]);
+  }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     try {
@@ -340,14 +388,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearError, router]);
 
+  // Show loading screen with improved UX
   if (loading && !isInitialized.current) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
           <div className="text-center">
-            <p className="text-lg font-medium">Initializing...</p>
-            <p className="text-sm text-muted-foreground">Please wait while we prepare the application</p>
+            <p className="text-lg font-medium">Loading...</p>
+            <p className="text-sm text-muted-foreground">Please wait while we prepare your dashboard</p>
           </div>
         </div>
       </div>
