@@ -60,7 +60,7 @@ async function getLatePaymentData(landlordId: string): Promise<DashboardData['la
             latePayments,
         });
     }
-    return data;
+    return toJSON(data);
 }
 
 export async function GET(req: NextRequest) {
