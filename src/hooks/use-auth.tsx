@@ -184,8 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
+    // If user is already set, no need to re-fetch unless forced
     if (user?.uid === firebaseUser.uid && isInitialized.current) {
-      setLoading(false); // Already loaded
+      setLoading(false);
       handleRedirect(user);
       return;
     }
@@ -266,7 +267,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const responseBody = await response.json();
       throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
-  }, []);
+
+    const userProfile: User = await response.json();
+    setUser(userProfile);
+    setError(null);
+    isInitialized.current = true;
+    handleRedirect(userProfile);
+  }, [handleRedirect]);
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     try {
