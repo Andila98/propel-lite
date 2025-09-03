@@ -11,9 +11,22 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
 
-    const { landlordId, error: authError } = await getLandlordAndActor(req);
-    if (authError || !landlordId) {
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(req);
+    
+    if (authError || !actor) {
         return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
+    }
+    
+    const role = actor.customClaims?.role;
+    
+    // Explicit permission check for managers
+    if (role === 'manager' && !actor.customClaims?.permissions?.canViewTenants) {
+        return NextResponse.json({ error: "Forbidden: You don't have permission to view tenants." }, { status: 403 });
+    }
+
+    // A landlordId is required to fetch tenants
+    if (!landlordId) {
+         return NextResponse.json({ error: 'Unauthorized: Could not determine a landlord context.' }, { status: 401 });
     }
 
     try {
