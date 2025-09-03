@@ -1,3 +1,4 @@
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
@@ -30,14 +31,17 @@ describe('Auth Service', () => {
   let mockAuth: any;
   let mockFirestore: any;
 
-  beforeEach(() => {
-    // Dynamically import the mocked modules to get the latest mock functions
-    vi.isolateModules(async () => {
-        const admin = await import('../firebase-admin');
-        mockAuth = admin.auth;
-        mockFirestore = admin.firestore;
-        vi.clearAllMocks();
-    });
+  beforeEach(async () => {
+    // Reset modules to ensure mocks are fresh for each test
+    vi.resetModules();
+    
+    // Dynamically import the mocked modules after resetting
+    const admin = await import('../firebase-admin');
+    mockAuth = admin.auth;
+    mockFirestore = admin.firestore;
+    
+    // Clear mocks before each test
+    vi.clearAllMocks();
   });
 
   describe('signUpUser', () => {
