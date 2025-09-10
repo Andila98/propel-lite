@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authConfig } from './config/server-config';
+import { loginRateLimit } from './lib/rate-limiter';
 
 // Runtime configuration
 export const runtime = 'edge';
@@ -35,44 +36,6 @@ const pathConfig = {
   admin: ['/admin'],
 } as const;
 
-// Rate limiting store (simple in-memory for edge runtime)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-class RateLimiter {
-  private static cleanup() {
-    const now = Date.now();
-    for (const [key, data] of rateLimitStore.entries()) {
-      if (now > data.resetTime) {
-        rateLimitStore.delete(key);
-      }
-    }
-  }
-
-  static check(ip: string, limit: number = 100, windowMs: number = 15 * 60 * 1000): boolean {
-    this.cleanup();
-    
-    const now = Date.now();
-    const key = `rate_limit:${ip}`;
-    const existing = rateLimitStore.get(key);
-
-    if (!existing) {
-      rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
-      return true;
-    }
-
-    if (now > existing.resetTime) {
-      rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
-      return true;
-    }
-
-    if (existing.count >= limit) {
-      return false;
-    }
-
-    existing.count++;
-    return true;
-  }
-}
 
 // Helper functions
 function getClientIP(request: NextRequest): string {
@@ -83,7 +46,7 @@ function getClientIP(request: NextRequest): string {
     return forwarded.split(',')[0].trim();
   }
   
-  return realIP || 'unknown';
+  return realIP || request.ip || 'unknown';
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -163,18 +126,15 @@ export async function middleware(request: NextRequest) {
   if (!pathConfig.staticExtensions.test(pathname) && 
       !pathname.startsWith('/_next')) {
     
-    // More restrictive rate limiting for auth endpoints
-    const isAuthEndpoint = pathname.startsWith('/api/auth');
-    const limit = isAuthEndpoint ? 20 : 100; // 20 requests per 15min for auth, 100 for others
-    
-    if (!RateLimiter.check(ip, limit)) {
+    try {
+        await loginRateLimit.check(request);
+    } catch(error) {
       console.warn(`[Middleware] Rate limit exceeded for IP: ${ip}, path: ${pathname}`);
       
       if (pathname.startsWith('/api/')) {
         return createErrorResponse('Too many requests. Please try again later.', 429);
       }
       
-      // For non-API routes, redirect to a rate limit page or show error
       return createRedirectResponse(request, '/login?error=rate-limit');
     }
   }
