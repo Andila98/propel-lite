@@ -5,6 +5,7 @@ import { toJSON } from '@/lib/utils';
 import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance';
 import { verifySession, getLandlordAndActor } from '@/lib/auth-utils';
 import type { Tenant } from '@/lib/types';
+import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
@@ -13,7 +14,12 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
 
-    const { landlordId, error: authError } = await getLandlordAndActor(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    const { landlordId, error: authError } = await getLandlordAndActor(sessionCookie);
+
     if (authError || !landlordId) {
         return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }

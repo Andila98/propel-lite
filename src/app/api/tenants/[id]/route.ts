@@ -5,6 +5,7 @@ import { toJSON } from '@/lib/utils';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
+import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +13,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const { landlordId, error: authError } = await getLandlordAndActor(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    const { landlordId, error: authError } = await getLandlordAndActor(sessionCookie);
+
     if (authError || !landlordId) {
         return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }
@@ -42,7 +48,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const { landlordId, actor, error: authError } = await getLandlordAndActor(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+
     if (authError || !landlordId || !actor) {
         return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }

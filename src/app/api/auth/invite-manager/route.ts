@@ -6,6 +6,7 @@ import { getLandlordAndActor } from '@/lib/auth-utils';
 import { inviteManagerRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { logActivity } from '@/lib/audit-log-service';
+import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
@@ -25,7 +26,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
-    const { landlordId, actor, error: authError } = await getLandlordAndActor(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
     if (authError || !landlordId || !actor) {
         return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
     }
