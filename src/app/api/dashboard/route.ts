@@ -187,6 +187,7 @@ export async function GET(req: NextRequest) {
         };
 
         console.info(`[INFO: /api/dashboard][${requestId}] Dashboard data fetched successfully`);
+        console.log('Dashboard data being returned:', JSON.stringify(dashboardData, null, 2));
         return NextResponse.json(toJSON(dashboardData));
 
     } catch (error: any) {
