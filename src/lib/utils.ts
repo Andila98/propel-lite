@@ -45,8 +45,28 @@ export function toISOString(dateValue: any): string | null {
  * @returns A new object or array with Timestamps converted to strings.
  */
 export function toJSON(data: any): any {
-  // Temporarily simplified for debugging
-  return JSON.parse(JSON.stringify(data));
+  if (!data) return data;
+
+  if (Array.isArray(data)) {
+    return data.map(item => toJSON(item));
+  }
+
+  if (typeof data === 'object') {
+    if (typeof data.toDate === 'function') {
+      // It's a Firestore Timestamp
+      return data.toDate().toISOString();
+    }
+    
+    const newObj: { [key: string]: any } = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        newObj[key] = toJSON(data[key]);
+      }
+    }
+    return newObj;
+  }
+  
+  return data;
 }
 
 
