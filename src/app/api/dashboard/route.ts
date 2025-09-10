@@ -41,11 +41,21 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Auth failed' }, { status: 401 });
         }
         
-        console.log('[DEBUG] Returning success response');
+        // --- NEW TESTS ---
+        console.log('[DEBUG] Testing Firestore import');
+        const { firestore, isFirebaseAdminInitialized } = await import('@/lib/firebase-admin');
+        console.log('[DEBUG] Firebase initialized:', isFirebaseAdminInitialized);
+
+        console.log('[DEBUG] Testing date-fns import');
+        const { sub, startOfDay } = await import('date-fns');
+
+        console.log('[DEBUG] Testing utils import');  
+        const { toJSON } = await import('@/lib/utils');
+
+        console.log('[DEBUG] All new tests passed. Returning success response');
         return NextResponse.json({ 
             message: 'Debug successful',
-            landlordId: authResult.landlordId
-        }, { status: 200 });
+        });
 
     } catch (error: any) {
         console.error('[DEBUG] Test API error:', error);
