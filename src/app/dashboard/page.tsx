@@ -46,6 +46,29 @@ import { LatePaymentsChart } from "@/components/charts/late-payments-chart"
 import { PaymentMethodsChart } from "@/components/charts/payment-methods-chart"
 import { formatCurrency } from "@/lib/utils"
 
+// Safe number formatter
+const safeToFixed = (value: number | undefined | null, decimals: number = 1): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '0.' + '0'.repeat(decimals);
+  }
+  return value.toFixed(decimals);
+};
+
+// Safe currency formatter
+const safeCurrency = (value: number | undefined | null): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return formatCurrency(0);
+  }
+  return formatCurrency(value);
+};
+
+// Safe percentage formatter
+const safePercentage = (value: number | undefined | null): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '0.0';
+  }
+  return (value * 100).toFixed(1);
+};
 
 function AiInsightsCard({ summary }: { summary: string }) {
     return (
@@ -55,7 +78,7 @@ function AiInsightsCard({ summary }: { summary: string }) {
                     <Sparkles className="h-5 w-5 text-primary"/>
                     AI-Powered Insights
                 </CardTitle>
-                <CardDescription>{summary}</CardDescription>
+                <CardDescription>{summary || "No insights available"}</CardDescription>
             </CardHeader>
         </Card>
     )
@@ -74,14 +97,29 @@ export default function DashboardPage() {
     async function fetchData() {
       try {
         setLoading(true)
+        setError(null)
+        
+        console.log('Fetching dashboard data...')
         const response = await fetch(`/api/dashboard?timeframe=${timeframe}`)
-        const result = await response.json()
+        
         if (!response.ok) {
-          throw new Error(result.error || "Failed to fetch dashboard data.")
+          const errorText = await response.text()
+          console.error('Dashboard API error:', response.status, errorText)
+          throw new Error(`Failed to fetch dashboard data (${response.status})`)
         }
+        
+        const result = await response.json()
+        console.log('Dashboard data received:', result)
+        
+        // Validate the data structure
+        if (!result || typeof result !== 'object') {
+          throw new Error('Invalid dashboard data structure')
+        }
+        
         setData(result)
       } catch (err: any) {
-        setError(err.message)
+        console.error('Dashboard fetch error:', err)
+        setError(err.message || 'Failed to load dashboard data')
       } finally {
         setLoading(false)
       }
@@ -93,6 +131,7 @@ export default function DashboardPage() {
     if (loading) {
       return <DashboardSkeleton />
     }
+    
     if (error) {
       return (
         <div className="flex flex-col items-center justify-center h-64 text-center text-destructive p-4">
@@ -100,16 +139,31 @@ export default function DashboardPage() {
           <h3 className="text-xl font-semibold mb-2">
             Failed to Load Dashboard
           </h3>
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+          >
+            Retry
+          </button>
         </div>
       )
     }
+    
     if (!data) {
       return <p>No data available.</p>
     }
 
-    const revenueChangePercentage = (data.revenueChange * 100).toFixed(1);
-    const isRevenueIncrease = data.revenueChange >= 0;
+    // Safe data access with fallbacks
+    const totalProperties = data.totalProperties ?? 0
+    const totalTenants = data.totalTenants ?? 0
+    const totalRevenue = data.totalRevenue ?? 0
+    const revenueChange = data.revenueChange ?? 0
+    const occupancyRate = data.occupancyRate ?? 0
+    const properties = data.properties ?? []
+    const anomalyAlerts = data.anomalyAlerts ?? []
+    const latePaymentData = data.latePaymentData ?? []
+    const paymentMethodData = data.paymentMethodData ?? []
 
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -123,12 +177,13 @@ export default function DashboardPage() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.totalProperties}</div>
+            <div className="text-2xl font-bold">{totalProperties}</div>
             <p className="text-xs text-muted-foreground">
               {t("dashboard.totalPropertiesDesc")}
             </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -137,12 +192,13 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.totalTenants}</div>
+            <div className="text-2xl font-bold">{totalTenants}</div>
             <p className="text-xs text-muted-foreground">
               {t("dashboard.totalTenantsDesc")}
             </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -152,13 +208,14 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(data.totalRevenue)}
+              {safeCurrency(totalRevenue)}
             </div>
-            <p className={`text-xs ${isRevenueIncrease ? 'text-green-500' : 'text-red-500'}`}>
-              {isRevenueIncrease ? '+' : ''}{revenueChangePercentage}% from last period
+            <p className="text-xs text-muted-foreground">
+              +{safePercentage(revenueChange)}% from last period
             </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -168,21 +225,26 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(data.occupancyRate).toFixed(1)}%
+              {safeToFixed(occupancyRate, 1)}%
             </div>
             <Progress
-              value={data.occupancyRate}
+              value={Math.max(0, Math.min(100, occupancyRate || 0))}
               className="h-2 mt-2"
             />
           </CardContent>
         </Card>
 
-        <div className="lg:col-span-2">
-            <LatePaymentsChart data={data.latePaymentData} />
-        </div>
-        <div className="lg:col-span-2">
-            <PaymentMethodsChart data={data.paymentMethodData} />
-        </div>
+        {latePaymentData.length > 0 && (
+          <div className="lg:col-span-2">
+            <LatePaymentsChart data={latePaymentData} />
+          </div>
+        )}
+
+        {paymentMethodData.length > 0 && (
+          <div className="lg:col-span-2">
+            <PaymentMethodsChart data={paymentMethodData} />
+          </div>
+        )}
         
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -192,11 +254,17 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <PropertiesCarousel properties={data.properties} />
+            {properties.length > 0 ? (
+              <PropertiesCarousel properties={properties} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No properties found. Add your first property to get started.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        
         {user?.role === "landlord" && (
           <>
             <Card className="lg:col-span-2">
@@ -207,15 +275,30 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RecentActivities activities={data.anomalyAlerts} />
+                {anomalyAlerts.length > 0 ? (
+                  <RecentActivities activities={anomalyAlerts} />
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <AlertOctagon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No alerts at this time</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
+
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>{t("dashboard.propertyManagers")}</CardTitle>
               </CardHeader>
               <CardContent>
-                <PropertyManagerList managers={managers} />
+                {managers && managers.length > 0 ? (
+                  <PropertyManagerList managers={managers} />
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No property managers added yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </>
