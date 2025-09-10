@@ -4,6 +4,7 @@ import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
 import { verifySession } from '@/lib/auth-utils';
 import { FieldValue } from 'firebase-admin/firestore';
+import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +13,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!isFirebaseAdminInitialized) {
     return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
   }
-  const claims = await verifySession(req);
+  const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+  const claims = await verifySession(sessionCookie);
     if (!claims) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -59,7 +61,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ error: 'Message content is required.' }, { status: 400 });
     }
     
-    const claims = await verifySession(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    const claims = await verifySession(sessionCookie);
     if (!claims) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

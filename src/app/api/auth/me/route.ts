@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const claims = await verifySession(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    const claims = await verifySession(sessionCookie);
     
     // Explicitly handle the case where the session is invalid or expired.
     if (!claims) {

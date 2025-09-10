@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifySession, getLandlordId } from '@/lib/auth-utils';
 import { toJSON } from '@/lib/utils';
+import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +11,8 @@ export async function GET(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
-    const landlordId = await getLandlordId(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    const landlordId = await getLandlordId(sessionCookie);
     if (!landlordId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -123,13 +123,12 @@ export class InvalidSessionError extends AuthError {
 /**
  * Enhanced session verification with better error handling and logging
  */
-export async function verifySession(req: NextRequest): Promise<DecodedIdToken | null> {
+export async function verifySession(sessionCookie: string | undefined | null): Promise<DecodedIdToken | null> {
     if (!isFirebaseAdminInitialized) {
         console.warn('[AuthUtils] Firebase Admin not initialized');
         return null;
     }
 
-    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return null;
     }
@@ -167,8 +166,8 @@ export async function verifySession(req: NextRequest): Promise<DecodedIdToken | 
 /**
  * Enhanced landlord ID extraction with better role handling
  */
-export async function getLandlordId(req: NextRequest): Promise<string | null> {
-    const claims = await verifySession(req);
+export async function getLandlordId(sessionCookie: string | undefined | null): Promise<string | null> {
+    const claims = await verifySession(sessionCookie);
     if (!claims) return null;
 
     // Direct landlord access
@@ -194,7 +193,7 @@ export async function getLandlordId(req: NextRequest): Promise<string | null> {
 /**
  * Enhanced function for server actions with better error handling
  */
-export async function getLandlordAndActor(reqOrCookie: NextRequest | string, directUidFetch = false): Promise<{
+export async function getLandlordAndActor(reqOrCookie: string, directUidFetch = false): Promise<{
     landlordId: string | null;
     actor: UserRecord | null;
     error?: AuthError;
@@ -219,11 +218,6 @@ export async function getLandlordAndActor(reqOrCookie: NextRequest | string, dir
                 landlordId: null, actor: null,
                 error: new AuthError('User not found', 'USER_NOT_FOUND', 404)
             };
-        }
-    } else if (reqOrCookie instanceof NextRequest) {
-        claims = await verifySession(reqOrCookie);
-        if (claims) {
-            actor = await auth.getUser(claims.uid);
         }
     } else if (typeof reqOrCookie === 'string') {
         try {

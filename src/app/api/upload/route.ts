@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { uploadFile } from '@/lib/storage-service';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifySession, getClientIP } from '@/lib/auth-utils';
+import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -189,9 +190,10 @@ export async function POST(req: NextRequest) {
       'SERVICE_UNAVAILABLE'
     );
   }
-
+  
+  const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
   // Verify user authentication
-  const decodedToken = await verifySession(req);
+  const decodedToken = await verifySession(sessionCookie);
   if (!decodedToken) {
     console.warn(`[WARN: /api/upload][${requestId}] Unauthorized upload attempt from ${ip}`);
     return createErrorResponse(
@@ -375,7 +377,8 @@ export async function POST(req: NextRequest) {
 
 // Optional: Add a GET endpoint to retrieve upload statistics (for admin/monitoring)
 export async function GET(req: NextRequest) {
-  const decodedToken = await verifySession(req);
+  const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+  const decodedToken = await verifySession(sessionCookie);
   
   if (!decodedToken || decodedToken.role !== 'admin') {
     return createErrorResponse(

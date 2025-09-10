@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Missing description field.' }, { status: 400 });
     }
     
-    const decodedToken = await verifySession(req);
+    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+    const decodedToken = await verifySession(sessionCookie);
     if (!decodedToken || decodedToken.role !== 'tenant') {
         return NextResponse.json({ error: 'Unauthorized: Only tenants can submit requests.' }, { status: 401 });
     }
