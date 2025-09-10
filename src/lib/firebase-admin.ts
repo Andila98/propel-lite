@@ -41,6 +41,8 @@ if (admin.apps.length > 0) {
   }
 }
 
+console.log('Firebase Admin initialized:', isFirebaseAdminInitialized);
+
 let firestore: admin.firestore.Firestore;
 let auth: admin.auth.Auth;
 let storage: admin.storage.Storage;
