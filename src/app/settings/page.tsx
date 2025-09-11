@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, PlusCircle, Trash2, User, CreditCard } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useActionState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -27,7 +27,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFormState } from "react-dom";
 import { updateUserProfileAction } from "./actions";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -63,7 +62,7 @@ function ProfileSettingsTab() {
   const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(user?.avatarUrl || null);
 
-  const [state, formAction] = useFormState(updateUserProfileAction, { success: false });
+  const [state, formAction] = useActionState(updateUserProfileAction, { success: false });
 
   const form = useForm({
     defaultValues: {

@@ -12,11 +12,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Stepper } from '@/components/ui/stepper';
 import type { Unit, Property } from '@/lib/types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { createTenantAction } from '@/app/tenants/actions';
 
 
@@ -44,7 +44,7 @@ export default function AddTenantPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
 
-  const [state, formAction] = useFormState(createTenantAction, { success: false, errors: undefined, error: undefined });
+  const [state, formAction] = useActionState(createTenantAction, { success: false, errors: undefined, error: undefined });
 
   const {
     register,

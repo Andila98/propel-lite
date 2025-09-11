@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useActionState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm, Controller } from "react-hook-form";
@@ -19,7 +19,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { TenantUpdateSchema } from '@/lib/schemas';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { updateTenantAction } from '../../actions';
 
 type TenantUpdateValues = z.infer<typeof TenantUpdateSchema>;
@@ -46,7 +46,7 @@ export default function EditTenantPage() {
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   
   const updateTenantActionWithId = updateTenantAction.bind(null, tenantId);
-  const [state, formAction] = useFormState(updateTenantActionWithId, { success: false, errors: undefined, error: undefined });
+  const [state, formAction] = useActionState(updateTenantActionWithId, { success: false, errors: undefined, error: undefined });
 
   const form = useForm<TenantUpdateValues>({
     resolver: zodResolver(TenantUpdateSchema),

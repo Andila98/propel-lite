@@ -2,11 +2,10 @@
 
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useFormState } from 'react-dom';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Button } from '@/components/ui/button';
 import { PropertyForm } from '@/components/property-form';
@@ -28,7 +27,7 @@ export default function EditPropertyPage() {
   
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
   const updateActionWithId = updatePropertyAction.bind(null, propertyId);
-  const [state, formAction] = useFormState(updateActionWithId, initialState);
+  const [state, formAction] = useActionState(updateActionWithId, initialState);
   
   useEffect(() => {
     async function fetchProperty() {

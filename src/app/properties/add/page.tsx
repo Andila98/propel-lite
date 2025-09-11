@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { PropertyForm } from '@/components/property-form';
-import { useEffect } from 'react';
-import { useFormState } from 'react-dom';
+import { useEffect, useActionState } from 'react';
 import { createPropertyAction } from '@/app/properties/actions';
 import type { FormState } from '../[id]/edit/actions';
 
@@ -17,7 +16,7 @@ export default function AddPropertyPage() {
   const { toast } = useToast();
   
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
-  const [state, formAction] = useFormState(createPropertyAction, initialState);
+  const [state, formAction] = useActionState(createPropertyAction, initialState);
 
   useEffect(() => {
     if (state.success) {
