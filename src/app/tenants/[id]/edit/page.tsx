@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useEffect, useState, useActionState } from 'react';
@@ -90,7 +91,7 @@ export default function EditTenantPage() {
 
             if (!propertiesRes.ok) throw new Error('Failed to fetch properties.');
             const propertiesData = await propertiesRes.json();
-            setProperties(propertiesData);
+            setProperties(propertiesData.properties || []);
 
             // Reset form with fetched data
             const leaseStart = tenantData.leaseStart ? new Date(tenantData.leaseStart) : new Date();

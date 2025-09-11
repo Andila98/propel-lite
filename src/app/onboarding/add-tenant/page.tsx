@@ -81,7 +81,7 @@ export default function AddTenantPage() {
             const res = await fetch('/api/properties');
             if (!res.ok) throw new Error("Failed to fetch properties");
             const data = await res.json();
-            setProperties(data);
+            setProperties(data.properties || []);
         } catch (error) {
             toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
         } finally {
