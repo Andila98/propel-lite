@@ -1,12 +1,11 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { uploadFile } from '@/lib/storage-service';
-import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifySession, getClientIP } from '@/lib/auth-utils';
 import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force_dynamic';
 
 // File upload configuration
 const UPLOAD_CONFIG = {
@@ -180,16 +179,6 @@ function createErrorResponse(
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID();
   const ip = getClientIP(req);
-
-  // Check if Firebase Admin is initialized
-  if (!isFirebaseAdminInitialized) {
-    console.error(`[ERROR: /api/upload][${requestId}] Firebase Admin not initialized`);
-    return createErrorResponse(
-      'File upload service temporarily unavailable',
-      503,
-      'SERVICE_UNAVAILABLE'
-    );
-  }
   
   const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
   // Verify user authentication
@@ -347,22 +336,6 @@ export async function POST(req: NextRequest) {
         'Storage access denied',
         403,
         'STORAGE_UNAUTHORIZED'
-      );
-    }
-
-    if (error.code === 'storage/quota-exceeded') {
-      return createErrorResponse(
-        'Storage quota exceeded',
-        507,
-        'STORAGE_QUOTA_EXCEEDED'
-      );
-    }
-
-    if (error.code === 'storage/canceled') {
-      return createErrorResponse(
-        'Upload was cancelled',
-        408,
-        'UPLOAD_CANCELLED'
       );
     }
 
