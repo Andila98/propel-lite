@@ -1,0 +1,75 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if the user is an authenticated landlord for the given landlordId
+    function isLandlord(landlordId) {
+      return request.auth != null && request.auth.uid == landlordId && get(/databases/$(database)/documents/landlords/$(request.auth.uid)).data.role == 'landlord';
+    }
+    
+    // Check if the user is an authorized manager for the given landlordId
+    function isManager(landlordId) {
+      return request.auth != null && request.auth.token.role == 'manager' && request.auth.token.landlordId == landlordId;
+    }
+    
+    // Check if the user is the specific tenant for the document
+    function isTenant(tenantId) {
+      return request.auth != null && request.auth.uid == tenantId && get(/databases/$(database)/documents/tenants/$(tenantId)).data.role == 'tenant';
+    }
+    
+    // Landlords can manage their own profile
+    match /landlords/{landlordId} {
+      allow read, write: if isLandlord(landlordId);
+    }
+    
+    // Managers can be read by the landlord they belong to
+    match /managers/{managerId} {
+       allow read, write: if isLandlord(resource.data.landlordId);
+    }
+    
+    // Properties can be managed by their landlord or authorized managers
+    match /properties/{propertyId} {
+      allow read, create: if isLandlord(request.resource.data.landlordId) || isManager(request.resource.data.landlordId);
+      allow update, delete: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId);
+      
+      // Units are part of a property
+      match /units/{unitId} {
+        allow read, create: if isLandlord(request.resource.data.landlordId) || isManager(request.resource.data.landlordId);
+        allow update, delete: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId);
+      }
+    }
+    
+    // Tenants can be managed by their landlord/managers, and can read their own data
+    match /tenants/{tenantId} {
+      allow read: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId) || isTenant(tenantId);
+      allow create: if isLandlord(request.resource.data.landlordId) || isManager(request.resource.data.landlordId);
+      allow update: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId);
+      allow delete: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId);
+    }
+    
+    // Payments can be read by the landlord/manager, or the tenant they belong to
+    match /payments/{paymentId} {
+      allow read, create: if isLandlord(request.resource.data.landlordId) || isManager(request.resource.data.landlordId) || isTenant(request.resource.data.tenantId);
+    }
+    
+    // Maintenance requests can be created by tenants, and managed by landlords/managers
+    match /maintenanceRequests/{requestId} {
+      allow read: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId) || isTenant(resource.data.tenantId);
+      allow create: if isTenant(request.resource.data.tenantId);
+      allow update: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId);
+    }
+    
+    // Messages can be accessed by the landlord/manager, or the specific tenant
+    match /messages/{messageId} {
+       allow read, create: if isLandlord(get(/databases/$(database)/documents/tenants/$(request.resource.data.tenantId)).data.landlordId) || isManager(get(/databases/$(database)/documents/tenants/$(request.resource.data.tenantId)).data.landlordId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Audit logs are read-only for the landlord/manager
+    match /auditLogs/{logId} {
+        allow read: if isLandlord(resource.data.landlordId) || isManager(resource.data.landlordId);
+        allow write: if false; // Can only be written by backend server actions
+    }
+  }
+}
