@@ -79,13 +79,20 @@ async function clearData() {
     const collections = ['properties', 'tenants', 'payments', 'maintenanceRequests', 'landlords', 'managers', 'reminders', 'auditLogs'];
     for (const collection of collections) {
         console.log(`Deleting ${collection}...`);
+        // We need to handle subcollections for properties
+        if (collection === 'properties') {
+            const snapshot = await db.collection('properties').get();
+            for (const doc of snapshot.docs) {
+                await deleteCollection(`properties/${doc.id}/units`);
+            }
+        }
         await deleteCollection(collection);
     }
 
-    // Delete all users except the landlord user
+    // Delete all users except a protected account if needed
     const users = await auth.listUsers();
     const uidsToDelete = users.users
-      .filter(u => u.email !== LANDLORD_EMAIL)
+      .filter(u => u.email !== LANDLORD_EMAIL) // Don't delete the main landlord if it exists
       .map(u => u.uid);
       
     if(uidsToDelete.length > 0) {
@@ -138,70 +145,71 @@ async function seedDatabase() {
   // 3. Create Properties and Units
   console.log("Creating properties and units...");
   const propertyTypes: Property['type'][] = ['Apartment', 'Apartment', 'House'];
-  const propertyBatch = db.batch();
   const properties: Property[] = [];
 
-  for (let i = 0; i < propertyTypes.length; i++) {
+  for (const type of propertyTypes) {
     const propertyRef = db.collection('properties').doc();
-    const newProperty: Omit<Property, 'id' | 'units'> = {
+    const newPropertyData: Omit<Property, 'id' | 'units' | 'createdAt'> = {
       name: `${faker.location.street()
-      .split(' ')
-      .slice(1)
-      .join(' ')} Heights`,
-      address: faker.location.streetAddress(),
-      type: propertyTypes[i],
+        .split(' ').slice(1).join(' ')} Heights`,
+      address: faker.location.streetAddress(false),
+      type: type,
       landlordId,
       imageUrl: faker.image.urlLoremFlickr({ category: 'building', width: 800, height: 500 }),
       description: faker.lorem.paragraph(),
       currency: "KES",
-      createdAt: FieldValue.serverTimestamp() as any,
+      updatedAt: FieldValue.serverTimestamp() as any,
     };
-    propertyBatch.set(propertyRef, newProperty);
-    properties.push({ id: propertyRef.id, ...newProperty, units: [] } as Property);
-  }
-  await propertyBatch.commit();
-  console.log(`${properties.length} properties created.`);
+    
+    const propertyWithTimestamp = {
+        ...newPropertyData,
+        createdAt: FieldValue.serverTimestamp()
+    }
 
+    await propertyRef.set(propertyWithTimestamp);
+    
+    const createdProperty = { id: propertyRef.id, ...newPropertyData, units: [] } as Property;
 
-  // 4. Create Units for each property
-  const unitBatch = db.batch();
-  for (const property of properties) {
-    const unitCount = property.type === 'Apartment' ? faker.number.int({ min: 4, max: 10 }) : 1;
+    // Create Units for the property
+    const unitCount = type === 'Apartment' ? faker.number.int({ min: 4, max: 10 }) : 1;
+    const unitBatch = db.batch();
     for (let j = 0; j < unitCount; j++) {
-      const unitRef = db.collection('properties').doc(property.id).collection('units').doc();
+      const unitRef = propertyRef.collection('units').doc();
       const newUnit: Omit<Unit, 'id'> = {
-        unitNumber: property.type === 'Apartment' ? `A${j + 1}` : "Main House",
+        unitNumber: type === 'Apartment' ? `A${j + 1}` : "Main House",
         rent: faker.number.int({ min: 25000, max: 150000 }),
-        size: property.type === 'Apartment' ? `${faker.number.int({ min: 1, max: 3 })} Bedroom` : "4 Bedroom",
+        size: type === 'Apartment' ? `${faker.number.int({ min: 1, max: 3 })} Bedroom` : "4 Bedroom",
         isOccupied: false,
         landlordId,
       };
       unitBatch.set(unitRef, newUnit);
     }
+    await unitBatch.commit();
+    
+    // Fetch units back to add to the property object
+     const unitsSnapshot = await propertyRef.collection('units').get();
+     createdProperty.units = unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit));
+
+    properties.push(createdProperty);
   }
-  await unitBatch.commit();
-  console.log("Units created.");
-  
-  
-  // Fetch back units to assign tenants
-   for (const property of properties) {
-     const unitsSnapshot = await db.collection('properties').doc(property.id).collection('units').get();
-     property.units = unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit));
-   }
+  console.log(`${properties.length} properties and their units created.`);
    
 
-  // 5. Create Tenants
+  // 4. Create Tenants
   console.log("Creating tenants...");
   const allTenants: Tenant[] = [];
 
   for(const property of properties) {
     const unitsToFill = property.units.slice(0, faker.number.int({ min: 2, max: property.units.length }));
     for (const unit of unitsToFill) {
-       const tenantEmail = faker.internet.email();
+       if (unit.isOccupied) continue;
+
+       const tenantEmail = faker.internet.email({ firstName: faker.person.firstName(), lastName: faker.person.lastName() });
        const tenantName = faker.person.fullName();
        const tenantAuthUser = await auth.createUser({
          email: tenantEmail,
          displayName: tenantName,
+         password: 'password'
        });
        await auth.setCustomUserClaims(tenantAuthUser.uid, { role: 'tenant', profileComplete: true, landlordId });
 
@@ -226,12 +234,13 @@ async function seedDatabase() {
        const unitRef = db.collection('properties').doc(property.id).collection('units').doc(unit.id);
        await unitRef.update({ isOccupied: true, tenantId: tenantRef.id });
        
+       unit.isOccupied = true;
        allTenants.push({ ...newTenant, id: tenantRef.id } as Tenant);
     }
   }
   console.log(`${allTenants.length} tenants created.`);
 
-  // 6. Create Payments
+  // 5. Create Payments
   console.log("Creating payments...");
   const paymentBatch = db.batch();
   for (const tenant of allTenants) {
@@ -246,7 +255,7 @@ async function seedDatabase() {
                 landlordId,
                 propertyId: tenant.propertyId,
                 unitId: tenant.currentUnitId,
-                amount: unit.rent,
+                amount: unit.rent + faker.number.int({ min: -1000, max: 1000 }),
                 date: faker.date.past({ months: k }) as any,
                 method: faker.helpers.arrayElement(['Mpesa', 'Stripe', 'Card']),
                 status: 'confirmed',
@@ -260,7 +269,7 @@ async function seedDatabase() {
   console.log("Payments created.");
   
 
-  // 7. Create Maintenance Requests
+  // 6. Create Maintenance Requests
   console.log("Creating maintenance requests...");
   const maintBatch = db.batch();
   for (let i = 0; i < 5; i++) {
