@@ -230,7 +230,6 @@ export async function POST(req: NextRequest) {
     }
 
     const file = formData.get('file') as File;
-    const uploadType = formData.get('type') as string; // e.g., 'property-image', 'document'
 
     if (!file) {
       return createErrorResponse(
@@ -288,25 +287,11 @@ export async function POST(req: NextRequest) {
     const safeFileName = `${userId}_${timestamp}_${randomSuffix}${fileExtension}`;
 
     console.info(`[INFO: /api/upload][${requestId}] Starting upload for user ${userId}: ${file.name} -> ${safeFileName}`);
-
-    // Convert file to buffer for upload
-    const arrayBuffer = await file.arrayBuffer();
     
-    // Upload file with metadata
-    const uploadMetadata = {
-      originalName: file.name,
-      uploadedBy: userId,
-      uploadType: uploadType || 'general',
-      uploadDate: new Date().toISOString(),
-      fileSize: file.size.toString(),
-      mimeType: file.type,
-    };
-
+    // Upload file
     const url = await uploadFile(
-      arrayBuffer, 
-      file.type, 
-      safeFileName,
-      uploadMetadata
+      file, 
+      safeFileName
     );
 
     console.info(`[INFO: /api/upload][${requestId}] Upload successful: ${url}`);
