@@ -41,90 +41,36 @@ export async function GET(request: any) {
 
         console.log(`[INFO][${requestId}] Fetching properties for landlord: ${landlordId}`);
 
-        // Query properties and units in parallel for better performance
-        const [propertiesSnapshot, unitsSnapshot] = await Promise.all([
-            firestore.collection('properties')
-                .where('landlordId', '==', landlordId)
-                // .orderBy('createdAt', 'desc') // Temporarily removed to fix FAILED_PRECONDITION
-                .get(),
-            firestore.collectionGroup('units')
-                .where('landlordId', '==', landlordId)
-                .get()
-        ]);
+        // Temporarily simplified query to avoid FAILED_PRECONDITION error
+        const propertiesSnapshot = await firestore.collection('properties')
+            .where('landlordId', '==', landlordId)
+            .get();
 
-        console.log(`[INFO][${requestId}] Found ${propertiesSnapshot.docs.length} properties and ${unitsSnapshot.docs.length} units`);
-
-        // Group units by property ID for efficient lookup
-        const unitsByPropertyId = new Map<string, Unit[]>();
-        unitsSnapshot.docs.forEach(doc => {
-            const unit = { id: doc.id, ...doc.data() } as Unit;
-            const propertyId = doc.ref.parent.parent?.id;
-            if (propertyId) {
-                if (!unitsByPropertyId.has(propertyId)) {
-                    unitsByPropertyId.set(propertyId, []);
-                }
-                unitsByPropertyId.get(propertyId)!.push(unit);
-            }
+        console.log(`[INFO][${requestId}] Found ${propertiesSnapshot.docs.length} properties`);
+        
+        const properties: Property[] = propertiesSnapshot.docs.map(doc => {
+            const propertyData = { id: doc.id, ...doc.data() } as Property;
+            // Return empty units array to avoid collectionGroup query for now
+            propertyData.units = []; 
+            return propertyData;
+        }).sort((a, b) => {
+            const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
+            const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+            return bTime - aTime;
         });
 
-        // Build properties array with units and calculated fields
-        const properties: Property[] = propertiesSnapshot.docs
-            .map(doc => {
-                const propertyData = { id: doc.id, ...doc.data() } as Property;
-                const units = unitsByPropertyId.get(doc.id) || [];
-                
-                // Attach units to property
-                propertyData.units = units;
-                
-                // Calculate derived fields for display
-                if (units.length > 0) {
-                    // Set rent range or single rent
-                    const rents = units.map(u => u.rent).filter(r => r > 0);
-                    if (rents.length > 0) {
-                        propertyData.rent = Math.min(...rents); // Use minimum rent for sorting
-                    }
-                    
-                    // Estimate bedrooms from first unit's size
-                    const firstUnit = units[0];
-                    const bedroomMatch = firstUnit.size.match(/(\d+)\s*(bedroom|bed|br)/i);
-                    propertyData.bedrooms = bedroomMatch ? parseInt(bedroomMatch[1]) : 1;
-                    
-                    // Default bathroom count (you might want to add this to your schema)
-                    propertyData.bathrooms = propertyData.bedrooms || 1;
-                } else {
-                    // Default values for properties without units
-                    propertyData.rent = 0;
-                    propertyData.bedrooms = 0;
-                    propertyData.bathrooms = 0;
-                }
-                
-                return propertyData;
-            })
-            .sort((a, b) => {
-                // Sort by createdAt in descending order (newest first)
-                const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
-                const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
-                return bTime - aTime;
-            });
+        const totalUnits = 0; // Not fetching units for now
+        const occupiedUnits = 0;
 
-        // Add some useful metadata
-        const occupiedUnits = properties.reduce((count, prop) => 
-            count + (prop.units?.filter(u => u.isOccupied).length || 0), 0
-        );
-        const totalUnits = properties.reduce((count, prop) => 
-            count + (prop.units?.length || 0), 0
-        );
+        console.log(`[INFO][${requestId}] Returning ${properties.length} properties`);
 
-        console.log(`[INFO][${requestId}] Returning ${properties.length} properties with ${occupiedUnits}/${totalUnits} occupied units`);
-
-        // Return the properties with JSON serialization
         const response = {
             properties: toJSON(properties),
             meta: {
                 totalProperties: properties.length,
                 totalUnits,
                 occupiedUnits,
-                occupancyRate: totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0
+                occupancyRate: 0
             }
         };
 
