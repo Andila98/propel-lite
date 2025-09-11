@@ -68,37 +68,44 @@ export async function GET(request: NextRequest) {
         });
 
         // Build properties array with units and calculated fields
-        const properties: Property[] = propertiesSnapshot.docs.map(doc => {
-            const propertyData = { id: doc.id, ...doc.data() } as Property;
-            const units = unitsByPropertyId.get(doc.id) || [];
-            
-            // Attach units to property
-            propertyData.units = units;
-            
-            // Calculate derived fields for display
-            if (units.length > 0) {
-                // Set rent range or single rent
-                const rents = units.map(u => u.rent).filter(r => r > 0);
-                if (rents.length > 0) {
-                    propertyData.rent = Math.min(...rents); // Use minimum rent for sorting
+        const properties: Property[] = propertiesSnapshot.docs
+            .map(doc => {
+                const propertyData = { id: doc.id, ...doc.data() } as Property;
+                const units = unitsByPropertyId.get(doc.id) || [];
+                
+                // Attach units to property
+                propertyData.units = units;
+                
+                // Calculate derived fields for display
+                if (units.length > 0) {
+                    // Set rent range or single rent
+                    const rents = units.map(u => u.rent).filter(r => r > 0);
+                    if (rents.length > 0) {
+                        propertyData.rent = Math.min(...rents); // Use minimum rent for sorting
+                    }
+                    
+                    // Estimate bedrooms from first unit's size
+                    const firstUnit = units[0];
+                    const bedroomMatch = firstUnit.size.match(/(\d+)\s*(bedroom|bed|br)/i);
+                    propertyData.bedrooms = bedroomMatch ? parseInt(bedroomMatch[1]) : 1;
+                    
+                    // Default bathroom count (you might want to add this to your schema)
+                    propertyData.bathrooms = propertyData.bedrooms || 1;
+                } else {
+                    // Default values for properties without units
+                    propertyData.rent = 0;
+                    propertyData.bedrooms = 0;
+                    propertyData.bathrooms = 0;
                 }
                 
-                // Estimate bedrooms from first unit's size
-                const firstUnit = units[0];
-                const bedroomMatch = firstUnit.size.match(/(\d+)\s*(bedroom|bed|br)/i);
-                propertyData.bedrooms = bedroomMatch ? parseInt(bedroomMatch[1]) : 1;
-                
-                // Default bathroom count (you might want to add this to your schema)
-                propertyData.bathrooms = propertyData.bedrooms || 1;
-            } else {
-                // Default values for properties without units
-                propertyData.rent = 0;
-                propertyData.bedrooms = 0;
-                propertyData.bathrooms = 0;
-            }
-            
-            return propertyData;
-        });
+                return propertyData;
+            })
+            .sort((a, b) => {
+                // Sort by createdAt in descending order (newest first)
+                const aTime = (a.createdAt as any)?.toDate?.().getTime() || 0;
+                const bTime = (b.createdAt as any)?.toDate?.().getTime() || 0;
+                return bTime - aTime;
+            });
 
         // Add some useful metadata
         const occupiedUnits = properties.reduce((count, prop) => 
@@ -110,8 +117,18 @@ export async function GET(request: NextRequest) {
 
         console.log(`[INFO][${requestId}] Returning ${properties.length} properties with ${occupiedUnits}/${totalUnits} occupied units`);
 
-        // Just return the properties array
-        return NextResponse.json(toJSON(properties));
+        // Return the properties with JSON serialization
+        const response = {
+            properties: toJSON(properties),
+            meta: {
+                totalProperties: properties.length,
+                totalUnits,
+                occupiedUnits,
+                occupancyRate: totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0
+            }
+        };
+
+        return NextResponse.json(response);
 
     } catch (error: any) {
         console.error(`[ERROR][${requestId}] Properties API failed:`, {
