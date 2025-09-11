@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Building2, Users, Home } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,11 +17,23 @@ import type { Property } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
+interface PropertiesResponse {
+  properties: Property[];
+  meta: {
+    totalProperties: number;
+    totalUnits: number;
+    occupiedUnits: number;
+    occupancyRate: number;
+  };
+}
 
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
+  const [meta, setMeta] = useState<PropertiesResponse['meta'] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -30,52 +42,195 @@ export default function PropertiesPage() {
   useEffect(() => {
     async function fetchProperties() {
       setLoading(true);
+      setError(null);
+      
       try {
+        console.log('[Properties] Fetching properties...');
         const res = await fetch('/api/properties');
-        if (!res.ok) throw new Error("Failed to fetch properties");
-        const data = await res.json();
-        setProperties(data);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('[Properties] API error:', res.status, errorText);
+          throw new Error(`Failed to fetch properties (${res.status})`);
+        }
+        
+        const data: PropertiesResponse = await res.json();
+        console.log('[Properties] Data received:', data);
+        
+        // Handle both old and new response formats
+        if (Array.isArray(data)) {
+          // Old format - just array of properties
+          setProperties(data);
+          setMeta({
+            totalProperties: data.length,
+            totalUnits: data.reduce((count, prop) => count + (prop.units?.length || 0), 0),
+            occupiedUnits: data.reduce((count, prop) => count + (prop.units?.filter(u => u.isOccupied).length || 0), 0),
+            occupancyRate: 0
+          });
+        } else {
+          // New format - properties with metadata
+          setProperties(data.properties || []);
+          setMeta(data.meta || null);
+        }
+        
       } catch (err: any) {
-        toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
+        console.error('[Properties] Fetch error:', err);
+        setError(err.message || 'Failed to load properties');
+        toast({ 
+          title: "Error", 
+          description: "Could not load properties. Please try again.", 
+          variant: "destructive" 
+        });
       } finally {
         setLoading(false);
       }
     }
+    
     fetchProperties();
   }, [toast]);
 
   const renderSkeleton = () => (
-    <div className="space-y-2">
-        <Skeleton className="h-10 w-full" />
-        {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-8 w-16" />
+            </CardHeader>
+          </Card>
         ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
+
+  const renderError = () => (
+    <div className="space-y-4">
+      <Alert variant="destructive">
+        <AlertDescription>
+          {error}
+        </AlertDescription>
+      </Alert>
+      <Button onClick={() => window.location.reload()} variant="outline">
+        Retry
+      </Button>
+    </div>
+  );
+
+  const renderEmptyState = () => (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center py-16">
+        <Building2 className="h-16 w-16 text-muted-foreground mb-4" />
+        <h3 className="text-xl font-semibold mb-2">No Properties Yet</h3>
+        <p className="text-muted-foreground text-center mb-6">
+          Get started by adding your first property to begin managing your rental business.
+        </p>
+        {canAddProperties && (
+          <Link href="/properties/add">
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Your First Property
+            </Button>
+          </Link>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderStats = () => {
+    if (!meta) return null;
+    
+    return (
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Properties</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{meta.totalProperties}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Units</CardTitle>
+            <Home className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{meta.totalUnits}</div>
+            <p className="text-xs text-muted-foreground">
+              {meta.occupiedUnits} occupied
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {meta.occupancyRate.toFixed(1)}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Properties</h2>
-        {canAddProperties && (
+        {canAddProperties && properties.length > 0 && (
           <Link href="/properties/add">
             <Button>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Property
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Property
             </Button>
           </Link>
         )}
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Properties</CardTitle>
-          <CardDescription>
-            A list of all your managed properties. Click a row to view details.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? renderSkeleton() : <PropertyTable properties={properties} />}
-        </CardContent>
-      </Card>
+      
+      {loading && renderSkeleton()}
+      
+      {error && !loading && renderError()}
+      
+      {!loading && !error && properties.length === 0 && renderEmptyState()}
+      
+      {!loading && !error && properties.length > 0 && (
+        <>
+          {renderStats()}
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Properties</CardTitle>
+              <CardDescription>
+                A list of all your managed properties. Click a row to view details.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PropertyTable properties={properties} />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
