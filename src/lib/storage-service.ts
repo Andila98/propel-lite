@@ -40,8 +40,9 @@ export async function uploadFile(
             validation: 'md5' // Ensures data integrity
         });
 
-        // The public URL is in the format: https://storage.googleapis.com/[BUCKET_NAME]/[OBJECT_NAME]
-        return file.publicUrl();
+        // Manually construct the public URL for better reliability.
+        // This is the standard format for public objects in Google Cloud Storage.
+        return `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
     } catch (error: any) {
         console.error('[STORAGE_SERVICE_ERROR]', error);
