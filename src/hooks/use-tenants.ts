@@ -28,7 +28,9 @@ export function useTenants() {
       const propertiesData = await propertiesRes.json();
 
       setTenants(tenantsData);
-      setProperties(propertiesData);
+      // Correctly access the nested properties array from the API response
+      setProperties(propertiesData.properties || []);
+      
     } catch (err: any) {
       console.error("Hook Error: Failed to fetch tenant/property data:", err);
       const errorMessage = err.message || "An unknown error occurred while fetching data.";
