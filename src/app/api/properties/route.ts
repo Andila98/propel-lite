@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { Property, Unit } from '@/lib/types';
@@ -44,7 +45,7 @@ export async function GET(request: any) {
         const [propertiesSnapshot, unitsSnapshot] = await Promise.all([
             firestore.collection('properties')
                 .where('landlordId', '==', landlordId)
-                .orderBy('createdAt', 'desc')
+                // .orderBy('createdAt', 'desc') // Temporarily removed to fix FAILED_PRECONDITION
                 .get(),
             firestore.collectionGroup('units')
                 .where('landlordId', '==', landlordId)
