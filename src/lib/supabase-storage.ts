@@ -1,3 +1,4 @@
+
 'use server';
 
 import { supabase } from '@/lib/supabase-client';
@@ -12,32 +13,37 @@ import { supabase } from '@/lib/supabase-client';
 export async function uploadToSupabase(
     fileBuffer: ArrayBuffer,
     fileName: string,
-    contentType: string
+    contentType: string,
+    bucket = 'property-images'
 ): Promise<string> {
-    const bucketName = 'public-uploads';
-
-    const { data, error } = await supabase
-        .storage
-        .from(bucketName)
+    try {
+      console.log('[DEBUG] Starting Supabase upload:', { fileName, contentType, bucket });
+      
+      const { data, error } = await supabase.storage
+        .from(bucket)
         .upload(fileName, fileBuffer, {
-            contentType: contentType,
-            upsert: true, // Overwrite file if it exists
+          contentType,
+          upsert: true, // Allow overwriting existing files
+          cacheControl: '3600' // Cache for 1 hour
         });
 
-    if (error) {
-        console.error('[SUPABASE_STORAGE_ERROR]', error);
+      if (error) {
+        console.error('[ERROR] Supabase upload error:', error);
         throw new Error(`Supabase upload failed: ${error.message}`);
-    }
+      }
 
-    // After uploading, get the public URL for the file.
-    const { data: { publicUrl } } = supabase
-        .storage
-        .from(bucketName)
-        .getPublicUrl(data.path);
+      console.log('[DEBUG] Upload successful:', data);
 
-    if (!publicUrl) {
-        throw new Error("Could not retrieve public URL for the uploaded file.");
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(fileName);
+
+      console.log('[DEBUG] Public URL generated:', publicUrl);
+      return publicUrl;
+      
+    } catch (error: any) {
+      console.error('[ERROR] Upload function failed:', error);
+      throw error;
     }
-    
-    return publicUrl;
 }
