@@ -85,29 +85,48 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
     setValue("numberOfUnits", currentNum + 1);
   };
   
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setIsUploading(true);
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!res.ok) throw new Error('Upload failed');
-        const { url } = await res.json();
-        setValue('imageUrl', url);
-        setImagePreview(url);
-        toast({ title: 'Success', description: 'Image uploaded successfully.'});
-      } catch (error: any) {
-        console.error("Image upload failed:", error);
-        toast({ title: 'Upload Error', description: 'Could not upload image.', variant: 'destructive'});
-      } finally {
-        setIsUploading(false);
-      }
+        setIsUploading(true);
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            console.log('[DEBUG] Uploading file:', file.name);
+            const res = await fetch('/api/upload', { 
+                method: 'POST', 
+                body: formData 
+            });
+            
+            console.log('[DEBUG] Upload response status:', res.status);
+            
+            if (!res.ok) {
+                const errorData = await res.text();
+                console.error('[DEBUG] Upload error response:', errorData);
+                throw new Error(`Upload failed: ${res.status}`);
+            }
+            
+            const { url } = await res.json();
+            console.log('[DEBUG] Upload successful:', url);
+            
+            setValue('imageUrl', url);
+            setImagePreview(url);
+            toast({ title: 'Success', description: 'Image uploaded successfully.' });
+            
+        } catch (error: any) {
+            console.error('[ERROR] Upload failed:', error);
+            toast({ 
+                title: 'Upload Error', 
+                description: error.message, 
+                variant: 'destructive'
+            });
+        } finally {
+            setIsUploading(false);
+        }
     }
-  };
+};
 
   const removeImage = () => {
       setValue('imageUrl', '');
@@ -463,3 +482,5 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
     </TooltipProvider>
   );
 }
+
+    
