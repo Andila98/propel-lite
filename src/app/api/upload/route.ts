@@ -1,6 +1,6 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
+import { uploadToSupabase } from '@/lib/supabase-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,9 +9,7 @@ export async function POST(req: NextRequest) {
     try {
         console.log('[DEBUG] Upload API called');
         
-        const sessionCookie = req.cookies.get('RentEaseAuth')?.value;
-        const decodedToken = await verifySession(sessionCookie);
-
+        const decodedToken = await verifySession(req.cookies.get('RentEaseAuth')?.value);
         if (!decodedToken) {
             console.log('[DEBUG] No valid token');
             return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -37,12 +35,25 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         console.log('[DEBUG] File converted to buffer, size:', arrayBuffer.byteLength);
 
-        // TODO: Add your actual storage upload logic here
-        // For now, return a placeholder URL
-        const mockUrl = `https://placehold.co/800x500.png`;
-        
-        console.log('[DEBUG] Returning mock URL:', mockUrl);
-        return NextResponse.json({ url: mockUrl });
+        try {
+            const timestamp = Date.now();
+            const randomSuffix = Math.random().toString(36).substring(2, 8);
+            const fileExtension = file.name.split('.').pop();
+            const fileName = `${decodedToken.uid}_${timestamp}_${randomSuffix}.${fileExtension}`;
+
+            console.log('[DEBUG] Uploading to Supabase with filename:', fileName);
+            const url = await uploadToSupabase(arrayBuffer, fileName, file.type);
+            
+            console.log('[DEBUG] Upload successful:', url);
+            return NextResponse.json({ url });
+            
+        } catch (uploadError: any) {
+            console.error('[ERROR] Supabase upload failed:', uploadError);
+            return NextResponse.json({ 
+                error: 'Storage upload failed',
+                details: uploadError.message 
+            }, { status: 500 });
+        }
 
     } catch (error: any) {
         console.error('[ERROR] Upload failed:', {
