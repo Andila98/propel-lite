@@ -338,11 +338,11 @@ export async function GET(req: NextRequest) {
   const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
   const decodedToken = await verifySession(sessionCookie);
   
-  if (!decodedToken || decodedToken.role !== 'admin') {
+  if (!decodedToken) {
     return createErrorResponse(
-      'Admin access required',
-      403,
-      'ADMIN_REQUIRED'
+      'Authentication required',
+      401,
+      'UNAUTHORIZED'
     );
   }
 
