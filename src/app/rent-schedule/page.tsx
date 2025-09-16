@@ -43,11 +43,11 @@ export default function RentSchedulePage() {
                 fetch('/api/payments')
             ]);
 
-            const tenantsData: Tenant[] = await tenantsRes.json();
+            const tenantsResponse = await tenantsRes.json();
             const propertiesData: Property[] = await propertiesRes.json();
             const paymentsData: Payment[] = await paymentsRes.json();
             
-            setTenants(tenantsData);
+            setTenants(tenantsResponse.tenants || []);
             setProperties(propertiesData);
             setPayments(paymentsData);
         } catch (error) {

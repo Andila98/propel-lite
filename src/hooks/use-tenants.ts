@@ -24,11 +24,10 @@ export function useTenants() {
       if (!tenantsRes.ok) throw new Error('Failed to fetch tenants.');
       if (!propertiesRes.ok) throw new Error('Failed to fetch properties.');
       
-      const tenantsData = await tenantsRes.json();
+      const tenantsResponse = await tenantsRes.json();
       const propertiesData = await propertiesRes.json();
 
-      setTenants(tenantsData);
-      // Correctly handle the direct array from the API response
+      setTenants(tenantsResponse.tenants || []);
       setProperties(propertiesData || []);
       
     } catch (err: any) {

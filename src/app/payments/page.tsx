@@ -56,7 +56,8 @@ export default function PaymentsPage() {
                 fetch('/api/payments')
             ]);
 
-            const tenantsData: Tenant[] = await tenantsRes.json();
+            const tenantsResponse = await tenantsRes.json();
+            const tenantsData: Tenant[] = tenantsResponse.tenants || [];
             const propertiesData: Property[] = await propertiesRes.json();
             let paymentsData: Payment[] = await paymentsRes.json();
 
