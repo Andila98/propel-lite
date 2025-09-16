@@ -29,7 +29,7 @@ import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
-import { predictNextPayment } from '@/ai/flows/predict-payment-flow';
+import { predictPayment } from '@/ai/flows/predict-payment-flow';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useTenants } from '@/hooks/use-tenants';
 import { DeleteTenantButton } from '@/components/delete-tenant-button';
@@ -107,7 +107,7 @@ function PaymentPrediction({ tenantId, currentStatus }: { tenantId: string, curr
             if (!tenantId) return;
             setLoading(true);
             try {
-                const result = await predictNextPayment({ tenantId, currentStatus });
+                const result = await predictPayment({ tenantId, currentStatus });
                 setPrediction(result);
             } catch (error) {
                 console.error("Prediction Error:", error);

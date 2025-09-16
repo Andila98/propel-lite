@@ -20,3 +20,17 @@ export const DashboardInsightsOutputSchema = z.object({
   anomalies: z.array(z.string()).describe("A list of 1-3 potential issues or anomalies detected from the data, such as high vacancy rates or sudden income drops. If none, return an empty array."),
 });
 export type DashboardInsightsOutput = z.infer<typeof DashboardInsightsOutputSchema>;
+
+// src/ai/flows/predict-payment-flow.ts
+export const PredictPaymentInputSchema = z.object({
+  tenantId: z.string().describe("The ID of the tenant to analyze."),
+  currentStatus: z.string().describe("The tenant's current rent status for this month."),
+});
+export type PredictPaymentInput = z.infer<typeof PredictPaymentInputSchema>;
+
+export const PredictPaymentOutputSchema = z.object({
+  predictedStatus: z.nativeEnum(['Paid', 'Overdue', 'Partially Paid']).describe("The most likely payment status for the next month."),
+  confidence: z.number().describe("The probability of the predicted status (0 to 1)."),
+  reasoning: z.string().describe("A brief explanation of the prediction."),
+});
+export type PredictPaymentOutput = z.infer<typeof PredictPaymentOutputSchema>;

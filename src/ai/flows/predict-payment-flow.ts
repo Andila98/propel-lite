@@ -8,24 +8,15 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { subMonths, getMonth, getYear } from 'date-fns';
+import { 
+    PredictPaymentInputSchema, 
+    PredictPaymentOutputSchema, 
+    type PredictPaymentInput, 
+    type PredictPaymentOutput 
+} from '@/lib/schema-types';
+
 
 type PaymentStatus = 'Paid' | 'Overdue' | 'Partially Paid' | 'New';
-
-// Define the schema for the flow's input
-export const PredictPaymentInputSchema = z.object({
-  tenantId: z.string().describe("The ID of the tenant to analyze."),
-  currentStatus: z.string().describe("The tenant's current rent status for this month."),
-});
-export type PredictPaymentInput = z.infer<typeof PredictPaymentInputSchema>;
-
-// Define the schema for the flow's output
-export const PredictPaymentOutputSchema = z.object({
-  predictedStatus: z.nativeEnum(['Paid', 'Overdue', 'Partially Paid']).describe("The most likely payment status for the next month."),
-  confidence: z.number().describe("The probability of the predicted status (0 to 1)."),
-  reasoning: z.string().describe("A brief explanation of the prediction."),
-});
-export type PredictPaymentOutput = z.infer<typeof PredictPaymentOutputSchema>;
-
 
 /**
  * Builds a Markov chain transition matrix from a tenant's payment history.
@@ -139,7 +130,7 @@ export async function predictNextPayment(input: PredictPaymentInput): Promise<Pr
 
 
 // This defines the Genkit flow, which is essentially the serverless function.
-export const predictPaymentFlow = ai.defineFlow(
+const predictPaymentFlow = ai.defineFlow(
   {
     name: 'predictPaymentFlow',
     inputSchema: PredictPaymentInputSchema,
@@ -149,3 +140,7 @@ export const predictPaymentFlow = ai.defineFlow(
     return await predictNextPayment(input);
   }
 );
+
+export async function predictPayment(input: PredictPaymentInput): Promise<PredictPaymentOutput> {
+    return predictPaymentFlow(input);
+}
