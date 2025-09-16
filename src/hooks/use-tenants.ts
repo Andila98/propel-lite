@@ -28,8 +28,8 @@ export function useTenants() {
       const propertiesData = await propertiesRes.json();
 
       setTenants(tenantsData);
-      // Correctly access the nested properties array from the API response
-      setProperties(propertiesData.properties || []);
+      // Correctly handle the direct array from the API response
+      setProperties(propertiesData || []);
       
     } catch (err: any) {
       console.error("Hook Error: Failed to fetch tenant/property data:", err);
