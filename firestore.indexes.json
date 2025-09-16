@@ -58,16 +58,6 @@
       ]
     },
     {
-      "collectionGroup": "units",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "landlordId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "tenants",
       "queryScope": "COLLECTION",
       "fields": [

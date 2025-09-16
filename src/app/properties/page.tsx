@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PlusCircle, Building2, Users, Home, DoorOpen } from 'lucide-react';
+import { PlusCircle, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,20 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface PropertiesResponse {
-  properties: Property[];
-  meta: {
-    totalProperties: number;
-    totalUnits: number;
-    occupiedUnits: number;
-    vacantUnits: number;
-    occupancyRate: number;
-  };
-}
-
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [meta, setMeta] = useState<PropertiesResponse['meta'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -55,11 +43,10 @@ export default function PropertiesPage() {
           throw new Error(`Failed to fetch properties (${res.status})`);
         }
         
-        const data: PropertiesResponse = await res.json();
+        const data: Property[] = await res.json();
         console.log('[Properties] Data received:', data);
         
-        setProperties(data.properties || []);
-        setMeta(data.meta || null);
+        setProperties(data || []);
         
       } catch (err: any) {
         console.error('[Properties] Fetch error:', err);
@@ -79,16 +66,6 @@ export default function PropertiesPage() {
 
   const renderSkeleton = () => (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-8 w-16" />
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-32" />
@@ -139,60 +116,6 @@ export default function PropertiesPage() {
     </Card>
   );
 
-  const renderStats = () => {
-    if (!meta) return null;
-    
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Properties</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{meta.totalProperties}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Units</CardTitle>
-            <Home className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{meta.totalUnits}</div>
-            <p className="text-xs text-muted-foreground">
-              {meta.occupiedUnits} occupied
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {meta.occupancyRate.toFixed(1)}%
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vacant Units</CardTitle>
-            <DoorOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-accent">{meta.vacantUnits}</div>
-          </CardContent>
-        </Card>
-
-      </div>
-    );
-  };
-
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
@@ -215,8 +138,6 @@ export default function PropertiesPage() {
       
       {!loading && !error && properties.length > 0 && (
         <>
-          {renderStats()}
-          
           <Card>
             <CardHeader>
               <CardTitle>Your Properties</CardTitle>

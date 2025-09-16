@@ -34,40 +34,23 @@ export async function GET(request: NextRequest) {
 
         console.log(`[INFO][${requestId}] Fetching properties for landlord: ${landlordId}`);
 
-        const [propertiesSnapshot, unitsSnapshot] = await Promise.all([
-            firestore.collection('properties')
-                .where('landlordId', '==', landlordId)
-                .orderBy('createdAt', 'desc')
-                .get(),
-            firestore.collectionGroup('units')
-                .where('landlordId', '==', landlordId)
-                .get()
-        ]);
+        const propertiesSnapshot = await firestore.collection('properties')
+            .where('landlordId', '==', landlordId)
+            .orderBy('createdAt', 'desc')
+            .get();
         
-        const allUnits = unitsSnapshot.docs.map(doc => ({ id: doc.id, parentId: doc.ref.parent.parent?.id, ...doc.data() })) as (Unit & { parentId: string | undefined })[];
-
-        const properties: Property[] = propertiesSnapshot.docs.map(doc => {
+        const propertiesPromises = propertiesSnapshot.docs.map(async (doc) => {
             const propertyData = { id: doc.id, ...doc.data() } as Property;
-            propertyData.units = allUnits.filter(unit => unit.parentId === doc.id);
+            
+            const unitsSnapshot = await doc.ref.collection('units').get();
+            propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
+            
             return propertyData;
         });
 
-        const totalUnits = allUnits.length;
-        const occupiedUnits = allUnits.filter(u => u.isOccupied).length;
-        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+        const properties = await Promise.all(propertiesPromises);
         
-        const response = {
-            properties: toJSON(properties),
-            meta: {
-                totalProperties: properties.length,
-                totalUnits,
-                occupiedUnits,
-                vacantUnits: totalUnits - occupiedUnits,
-                occupancyRate
-            }
-        };
-
-        return NextResponse.json(response);
+        return NextResponse.json(toJSON(properties));
 
     } catch (error: any) {
         console.error(`[ERROR][${requestId}] Properties API failed:`, {
