@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PlusCircle, Building2 } from 'lucide-react';
+import { PlusCircle, Building2, Users, Home } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,8 +19,19 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+interface PropertiesResponse {
+  properties: Property[];
+  meta: {
+    totalProperties: number;
+    totalUnits: number;
+    occupiedUnits: number;
+    occupancyRate: number;
+  };
+}
+
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
+  const [meta, setMeta] = useState<PropertiesResponse['meta'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -43,10 +54,26 @@ export default function PropertiesPage() {
           throw new Error(`Failed to fetch properties (${res.status})`);
         }
         
-        const data: Property[] = await res.json();
+        const data: PropertiesResponse = await res.json();
         console.log('[Properties] Data received:', data);
         
-        setProperties(data || []);
+        // Handle both old and new response formats for resilience
+        if (Array.isArray(data)) {
+          // Old format - just array of properties
+          setProperties(data);
+          const totalUnits = data.reduce((count, prop) => count + (prop.units?.length || 0), 0);
+          const occupiedUnits = data.reduce((count, prop) => count + (prop.units?.filter(u => u.isOccupied).length || 0), 0);
+          setMeta({
+            totalProperties: data.length,
+            totalUnits: totalUnits,
+            occupiedUnits: occupiedUnits,
+            occupancyRate: totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0
+          });
+        } else {
+          // New format - properties with metadata
+          setProperties(data.properties || []);
+          setMeta(data.meta || null);
+        }
         
       } catch (err: any) {
         console.error('[Properties] Fetch error:', err);
@@ -66,6 +93,18 @@ export default function PropertiesPage() {
 
   const renderSkeleton = () => (
     <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-20" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-32" />
@@ -116,6 +155,49 @@ export default function PropertiesPage() {
     </Card>
   );
 
+  const renderStats = () => {
+    if (!meta) return null;
+    
+    return (
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Properties</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{meta.totalProperties}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Units</CardTitle>
+            <Home className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{meta.totalUnits}</div>
+            <p className="text-xs text-muted-foreground">
+              {meta.occupiedUnits} occupied
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {meta.occupancyRate.toFixed(1)}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
@@ -138,6 +220,8 @@ export default function PropertiesPage() {
       
       {!loading && !error && properties.length > 0 && (
         <>
+          {renderStats()}
+          
           <Card>
             <CardHeader>
               <CardTitle>Your Properties</CardTitle>

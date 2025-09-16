@@ -34,23 +34,48 @@ export async function GET(request: NextRequest) {
 
         console.log(`[INFO][${requestId}] Fetching properties for landlord: ${landlordId}`);
 
-        const propertiesSnapshot = await firestore.collection('properties')
-            .where('landlordId', '==', landlordId)
-            .orderBy('createdAt', 'desc')
-            .get();
+        // Fetch properties and all units in parallel
+        const [propertiesSnapshot, allUnitsSnapshot] = await Promise.all([
+            firestore.collection('properties')
+                .where('landlordId', '==', landlordId)
+                .orderBy('createdAt', 'desc')
+                .get(),
+            firestore.collectionGroup('units')
+                .where('landlordId', '==', landlordId)
+                .get()
+        ]);
         
-        const propertiesPromises = propertiesSnapshot.docs.map(async (doc) => {
+        const allUnits = allUnitsSnapshot.docs.map(doc => {
+            const unitData = doc.data() as Omit<Unit, 'id'>;
+            // The parent property ID is part of the document's path
+            const propertyId = doc.ref.parent.parent!.id; 
+            return { id: doc.id, ...unitData, propertyId };
+        });
+
+        const properties = propertiesSnapshot.docs.map(doc => {
             const propertyData = { id: doc.id, ...doc.data() } as Property;
-            
-            const unitsSnapshot = await doc.ref.collection('units').get();
-            propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
-            
+            // Assign units to their respective properties
+            propertyData.units = allUnits.filter(unit => unit.propertyId === doc.id);
             return propertyData;
         });
 
-        const properties = await Promise.all(propertiesPromises);
+        // Calculate metadata
+        const totalProperties = properties.length;
+        const totalUnits = allUnits.length;
+        const occupiedUnits = allUnits.filter(u => u.isOccupied).length;
+        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
         
-        return NextResponse.json(toJSON(properties));
+        const responseData = {
+            properties: toJSON(properties),
+            meta: {
+                totalProperties,
+                totalUnits,
+                occupiedUnits,
+                occupancyRate,
+            }
+        };
+        
+        return NextResponse.json(responseData);
 
     } catch (error: any) {
         console.error(`[ERROR][${requestId}] Properties API failed:`, {
