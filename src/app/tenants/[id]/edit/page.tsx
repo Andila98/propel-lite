@@ -126,7 +126,7 @@ export default function EditTenantPage() {
   }
   
   const selectedPropertyId = watch('propertyId');
-  const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units || [];
+  const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied || u.id === tenant?.currentUnitId) || [];
 
   if (tenantLoading || propertiesLoading) {
     return (
