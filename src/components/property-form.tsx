@@ -208,13 +208,19 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
   
-  const clientAction = (formData: FormData) => {
-     // We need to manually append the units array as it's not a standard form element
-    const propertyData = getValues();
-    formData.append('units', JSON.stringify(propertyData.units));
-    formData.append('imageUrl', propertyData.imageUrl || '');
+  const onClientSubmit = (data: PropertyFormValues) => {
+    const formData = new FormData();
+    // Append all form values to formData
+    Object.keys(data).forEach(key => {
+      const value = (data as any)[key];
+      if (key === 'units') {
+        formData.append(key, JSON.stringify(value));
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    });
     formAction(formData);
-  }
+  };
   
   const cardHeader = isOnboarding ? (
       <CardHeader>
@@ -230,7 +236,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <TooltipProvider>
-    <form action={clientAction}>
+    <form onSubmit={handleSubmit(onClientSubmit)}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-6">
                 <Card>
