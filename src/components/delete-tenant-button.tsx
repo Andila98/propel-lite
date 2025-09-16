@@ -11,6 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -26,7 +27,6 @@ interface DeleteTenantButtonProps {
 export function DeleteTenantButton({ tenantId, tenantName, onDeleted }: DeleteTenantButtonProps) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
-    const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     const handleDelete = async () => {
         setIsDeleting(true);
@@ -44,7 +44,7 @@ export function DeleteTenantButton({ tenantId, tenantName, onDeleted }: DeleteTe
                 title: "Tenant Deleted",
                 description: `${tenantName} has been removed from your records.`,
             });
-            onDeleted(); // Notify parent to refresh the list
+            onDeleted();
 
         } catch (err: any) {
             console.error("Delete tenant error:", err);
@@ -55,22 +55,20 @@ export function DeleteTenantButton({ tenantId, tenantName, onDeleted }: DeleteTe
             });
         } finally {
             setIsDeleting(false);
-            setIsAlertOpen(false);
         }
     };
     
     return (
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-            <DropdownMenuItem
-                className="text-destructive"
-                onSelect={(e) => {
-                    e.preventDefault();
-                    setIsAlertOpen(true);
-                }}
-            >
-                <AnimatedDeleteIcon />
-                Delete
-            </DropdownMenuItem>
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <DropdownMenuItem
+                    className="text-destructive"
+                    onSelect={(e) => e.preventDefault()}
+                >
+                    <AnimatedDeleteIcon />
+                    Delete
+                </DropdownMenuItem>
+            </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

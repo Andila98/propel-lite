@@ -11,11 +11,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
+import { Button } from './ui/button';
 
 interface DeleteManagerButtonProps {
     managerId: string;
@@ -26,7 +28,6 @@ interface DeleteManagerButtonProps {
 export function DeleteManagerButton({ managerId, managerName, onDeleted }: DeleteManagerButtonProps) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
-    const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     const handleDelete = async () => {
         setIsDeleting(true);
@@ -44,7 +45,7 @@ export function DeleteManagerButton({ managerId, managerName, onDeleted }: Delet
                 title: "Manager Deleted",
                 description: `${managerName} has been removed from your records.`,
             });
-            onDeleted(); // Notify parent to refresh the list
+            onDeleted(); 
 
         } catch (err: any) {
             console.error("Delete manager error:", err);
@@ -55,22 +56,20 @@ export function DeleteManagerButton({ managerId, managerName, onDeleted }: Delet
             });
         } finally {
             setIsDeleting(false);
-            setIsAlertOpen(false);
         }
     };
     
     return (
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-            <DropdownMenuItem
-                className="text-destructive"
-                onSelect={(e) => {
-                    e.preventDefault();
-                    setIsAlertOpen(true);
-                }}
-            >
-                <AnimatedDeleteIcon />
-                Delete
-            </DropdownMenuItem>
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                 <DropdownMenuItem
+                    className="text-destructive"
+                    onSelect={(e) => e.preventDefault()}
+                >
+                    <AnimatedDeleteIcon />
+                    Delete
+                </DropdownMenuItem>
+            </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -82,11 +81,11 @@ export function DeleteManagerButton({ managerId, managerName, onDeleted }: Delet
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                    disabled={isDeleting}
-                    className="bg-destructive hover:bg-destructive/90"
-                    onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={handleDelete}
                     >
-                    {isDeleting ? <Loader2 className="animate-spin" /> : "Continue"}
+                        {isDeleting ? <Loader2 className="animate-spin" /> : "Continue"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
