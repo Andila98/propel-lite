@@ -11,7 +11,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -62,15 +61,16 @@ export function DeleteManagerButton({ managerId, managerName, onDeleted }: Delet
     
     return (
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-            <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                    className="text-destructive"
-                    onSelect={(e) => e.preventDefault()} // Prevents DropdownMenu from closing
-                >
-                    <AnimatedDeleteIcon />
-                    Delete
-                </DropdownMenuItem>
-            </AlertDialogTrigger>
+            <DropdownMenuItem
+                className="text-destructive"
+                onSelect={(e) => {
+                    e.preventDefault();
+                    setIsAlertOpen(true);
+                }}
+            >
+                <AnimatedDeleteIcon />
+                Delete
+            </DropdownMenuItem>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
