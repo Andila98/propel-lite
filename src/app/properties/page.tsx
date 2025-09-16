@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PlusCircle, Building2, Users, Home } from 'lucide-react';
+import { PlusCircle, Building2, Users, Home, DoorOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,7 @@ interface PropertiesResponse {
     totalProperties: number;
     totalUnits: number;
     occupiedUnits: number;
+    vacantUnits: number;
     occupancyRate: number;
   };
 }
@@ -57,21 +58,8 @@ export default function PropertiesPage() {
         const data: PropertiesResponse = await res.json();
         console.log('[Properties] Data received:', data);
         
-        // Handle both old and new response formats
-        if (Array.isArray(data)) {
-          // Old format - just array of properties
-          setProperties(data);
-          setMeta({
-            totalProperties: data.length,
-            totalUnits: data.reduce((count, prop) => count + (prop.units?.length || 0), 0),
-            occupiedUnits: data.reduce((count, prop) => count + (prop.units?.filter(u => u.isOccupied).length || 0), 0),
-            occupancyRate: 0
-          });
-        } else {
-          // New format - properties with metadata
-          setProperties(data.properties || []);
-          setMeta(data.meta || null);
-        }
+        setProperties(data.properties || []);
+        setMeta(data.meta || null);
         
       } catch (err: any) {
         console.error('[Properties] Fetch error:', err);
@@ -91,8 +79,8 @@ export default function PropertiesPage() {
 
   const renderSkeleton = () => (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
+      <div className="grid gap-4 md:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
           <Card key={i}>
             <CardHeader>
               <Skeleton className="h-4 w-20" />
@@ -155,7 +143,7 @@ export default function PropertiesPage() {
     if (!meta) return null;
     
     return (
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Properties</CardTitle>
@@ -190,6 +178,17 @@ export default function PropertiesPage() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Vacant Units</CardTitle>
+            <DoorOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-accent">{meta.vacantUnits}</div>
+          </CardContent>
+        </Card>
+
       </div>
     );
   };

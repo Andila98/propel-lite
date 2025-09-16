@@ -26,10 +26,15 @@ export function PropertyTable({ properties }: PropertyTableProps) {
     router.push(`/properties/${propertyId}`);
   };
 
-  const getOccupancyStatus = (property: Property) => {
-    if (!property.units || property.units.length === 0) return 'Vacant';
-    const isOccupied = property.units.some(unit => unit.isOccupied);
-    return isOccupied ? 'Occupied' : 'Vacant';
+  const getOccupancyInfo = (property: Property) => {
+    const totalUnits = property.units?.length || 0;
+    const occupiedUnits = property.units?.filter(unit => unit.isOccupied).length || 0;
+    return {
+      totalUnits,
+      occupiedUnits,
+      isFull: totalUnits > 0 && occupiedUnits === totalUnits,
+      isEmpty: occupiedUnits === 0,
+    };
   };
 
   const formatCurrency = (amount?: number, currencyCode?: string) => {
@@ -59,38 +64,39 @@ export function PropertyTable({ properties }: PropertyTableProps) {
           <TableHead>Address</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Rent Range</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead>Occupancy</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {properties.map((prop) => (
-            <TableRow 
-              key={prop.id} 
-              onClick={() => handleRowClick(prop.id)}
-              className="cursor-pointer"
-            >
-              <TableCell>
-                <Image
-                  src={prop.imageUrl || 'https://placehold.co/100x100.png'}
-                  alt={prop.address}
-                  width={50}
-                  height={50}
-                  className="rounded-md object-cover"
-                  data-ai-hint="apartment building"
-                />
-              </TableCell>
-              <TableCell className="font-medium">{prop.name || prop.address}</TableCell>
-              <TableCell className="capitalize">{prop.type}</TableCell>
-              <TableCell>{getRentRange(prop)}</TableCell>
-              <TableCell>
-                {getOccupancyStatus(prop) === 'Occupied' ? (
-                  <Badge variant="secondary">Occupied</Badge>
-                ) : (
-                  <Badge variant="outline">Vacant</Badge>
-                )}
-              </TableCell>
-            </TableRow>
-          )
+        {properties.map((prop) => {
+            const occupancy = getOccupancyInfo(prop);
+            return (
+              <TableRow 
+                key={prop.id} 
+                onClick={() => handleRowClick(prop.id)}
+                className="cursor-pointer"
+              >
+                <TableCell>
+                  <Image
+                    src={prop.imageUrl || 'https://placehold.co/100x100.png'}
+                    alt={prop.address}
+                    width={50}
+                    height={50}
+                    className="rounded-md object-cover"
+                    data-ai-hint="apartment building"
+                  />
+                </TableCell>
+                <TableCell className="font-medium">{prop.name || prop.address}</TableCell>
+                <TableCell className="capitalize">{prop.type}</TableCell>
+                <TableCell>{getRentRange(prop)}</TableCell>
+                <TableCell>
+                  <Badge variant={occupancy.isEmpty ? 'outline' : (occupancy.isFull ? 'default' : 'secondary')}>
+                    {occupancy.occupiedUnits} / {occupancy.totalUnits} Occupied
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            )
+          }
         )}
       </TableBody>
     </Table>

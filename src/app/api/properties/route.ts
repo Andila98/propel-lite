@@ -1,5 +1,5 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { Property, Unit } from '@/lib/types';
 import { toJSON } from '@/lib/utils';
@@ -7,12 +7,10 @@ import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
-export async function GET(request: any) {
+export async function GET(request: NextRequest) {
     const requestId = crypto.randomUUID();
     
     try {
-        console.log(`[DEBUG][${requestId}] Properties API called`);
-        
         if (!isFirebaseAdminInitialized) {
             console.error(`[ERROR][${requestId}] Firebase Admin not initialized`);
             return NextResponse.json({ 
@@ -20,20 +18,15 @@ export async function GET(request: any) {
             }, { status: 500 });
         }
 
-        // Get session cookie and authenticate
         const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
-        
         if (!sessionCookie) {
-            console.warn(`[WARN][${requestId}] No session cookie found`);
             return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
 
-        console.log(`[DEBUG][${requestId}] Authenticating user`);
         const { getLandlordAndActor } = await import('@/lib/auth-utils');
-        const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+        const { landlordId, error: authError } = await getLandlordAndActor(sessionCookie);
         
         if (authError || !landlordId) {
-            console.warn(`[WARN][${requestId}] Auth failed:`, authError?.message);
             return NextResponse.json({ 
                 error: authError?.message || 'Unauthorized' 
             }, { status: authError?.statusCode || 401 });
@@ -41,36 +34,36 @@ export async function GET(request: any) {
 
         console.log(`[INFO][${requestId}] Fetching properties for landlord: ${landlordId}`);
 
-        // Temporarily simplified query to avoid FAILED_PRECONDITION error
-        const propertiesSnapshot = await firestore.collection('properties')
-            .where('landlordId', '==', landlordId)
-            .get();
-
-        console.log(`[INFO][${requestId}] Found ${propertiesSnapshot.docs.length} properties`);
+        const [propertiesSnapshot, unitsSnapshot] = await Promise.all([
+            firestore.collection('properties')
+                .where('landlordId', '==', landlordId)
+                .orderBy('createdAt', 'desc')
+                .get(),
+            firestore.collectionGroup('units')
+                .where('landlordId', '==', landlordId)
+                .get()
+        ]);
         
+        const allUnits = unitsSnapshot.docs.map(doc => ({ id: doc.id, parentId: doc.ref.parent.parent?.id, ...doc.data() })) as (Unit & { parentId: string | undefined })[];
+
         const properties: Property[] = propertiesSnapshot.docs.map(doc => {
             const propertyData = { id: doc.id, ...doc.data() } as Property;
-            // Return empty units array to avoid collectionGroup query for now
-            propertyData.units = []; 
+            propertyData.units = allUnits.filter(unit => unit.parentId === doc.id);
             return propertyData;
-        }).sort((a, b) => {
-            const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
-            const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
-            return bTime - aTime;
         });
 
-        const totalUnits = 0; // Not fetching units for now
-        const occupiedUnits = 0;
-
-        console.log(`[INFO][${requestId}] Returning ${properties.length} properties`);
-
+        const totalUnits = allUnits.length;
+        const occupiedUnits = allUnits.filter(u => u.isOccupied).length;
+        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+        
         const response = {
             properties: toJSON(properties),
             meta: {
                 totalProperties: properties.length,
                 totalUnits,
                 occupiedUnits,
-                occupancyRate: 0
+                vacantUnits: totalUnits - occupiedUnits,
+                occupancyRate
             }
         };
 
