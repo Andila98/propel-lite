@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import Link from 'next/link';
@@ -165,9 +166,9 @@ export default function AddTenantPage() {
                             name="unitId"
                             control={control}
                             render={({ field }) => (
-                                 <Select name="unitId" onValueChange={field.onChange} value={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                                 <Select name="unitId" onValueChange={field.onChange} value={field.value || ''} disabled={!selectedPropertyId || availableUnits.length === 0}>
                                     <SelectTrigger id="unitId">
-                                        <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
+                                        <SelectValue placeholder={!selectedPropertyId ? "Select a property first" : (availableUnits.length > 0 ? "Select a unit..." : "No available units")} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {availableUnits.map((u: Unit) => (
