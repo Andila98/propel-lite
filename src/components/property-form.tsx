@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -39,6 +38,25 @@ function SubmitButton({ isOnboarding }: { isOnboarding?: boolean }) {
         </Button>
     )
 }
+
+const unitTypes = [
+    "Studio",
+    "Alcove Studio",
+    "Convertible",
+    "Bedsitter",
+    "Junior 1-Bedroom",
+    "1 Bedroom",
+    "2 Bedrooms",
+    "3 Bedrooms",
+    "4+ Bedrooms",
+    "Loft",
+    "Duplex",
+    "Triplex",
+    "Penthouse",
+    "Townhouse",
+    "Garden Apartment"
+];
+
 
 export function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
@@ -180,7 +198,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
     const newUnits = Array.from({ length: num }, (_, i) => ({
       unitNumber: `Unit ${i + 1}`,
-      size: "2 Bedroom",
+      size: "2 Bedrooms",
       rent: 25000,
       isOccupied: false,
     }));
@@ -198,7 +216,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       setValue("numberOfUnits", 1);
       const newUnits = [{
         unitNumber: 'Main Unit',
-        size: type === 'House' ? '4 Bedroom' : 'Standard Bedsitter',
+        size: type === 'House' ? '4+ Bedrooms' : 'Bedsitter',
         rent: type === 'House' ? 120000 : 15000,
         isOccupied: false,
       }];
@@ -208,18 +226,19 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
   
-  const onClientSubmit = (data: PropertyFormValues) => {
-    const formData = new FormData();
-    // Append all form values to formData
-    Object.keys(data).forEach(key => {
-      const value = (data as any)[key];
-      if (key === 'units') {
-        formData.append(key, JSON.stringify(value));
-      } else if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
-    formAction(formData);
+  const onClientSubmit = () => {
+    handleSubmit((data) => {
+      const formData = new FormData();
+      Object.keys(data).forEach(key => {
+        const value = (data as any)[key];
+        if (key === 'units') {
+          formData.append(key, JSON.stringify(value));
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+      formAction(formData);
+    })();
   };
   
   const cardHeader = isOnboarding ? (
@@ -236,7 +255,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <TooltipProvider>
-    <form onSubmit={handleSubmit(onClientSubmit)}>
+    <form onSubmit={onClientSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-6">
                 <Card>
@@ -404,10 +423,25 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                              {initialState?.errors?.units?.[index]?.unitNumber && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].unitNumber[0]}</p>}
                           </div>
                           <div>
-                            <Label htmlFor={`units.${index}.size`}>Size/Type</Label>
-                             <Input id={`units.${index}.size`} {...register(`units.${index}.size`)} placeholder="e.g. 2 Bedroom"/>
-                             {initialState?.errors?.units?.[index]?.size && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].size[0]}</p>}
-                          </div>
+                                <Label htmlFor={`units.${index}.size`}>Size/Type</Label>
+                                <Controller
+                                    name={`units.${index}.size`}
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <SelectTrigger id={`units.${index}.size`}>
+                                                <SelectValue placeholder="Select unit type..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {unitTypes.map(type => (
+                                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                {initialState?.errors?.units?.[index]?.size && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].size[0]}</p>}
+                            </div>
                           <div>
                             <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
                             <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`, { valueAsNumber: true })} />
@@ -489,3 +523,5 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     </TooltipProvider>
   );
 }
+
+    

@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 // Enhanced validation helpers
@@ -24,11 +25,7 @@ export const UnitSchema = z.object({
   size: z
     .string()
     .min(3, "Please specify unit size")
-    .max(50, "Size description too long")
-    .refine(
-      (val) => /\d+\s*(bedroom|bed|br|studio)/i.test(val),
-      "Size should include bedroom count or 'studio'"
-    ),
+    .max(50, "Size description too long"),
   isOccupied: z.boolean().default(false),
   tenantId: z.string().optional(),
   landlordId: z.string().optional(),
@@ -348,3 +345,5 @@ export const validateLeaseDate = (startDate: string, endDate: string): boolean =
   return start >= now && end > start && 
          (end.getTime() - start.getTime()) >= (30 * 24 * 60 * 60 * 1000); // At least 30 days
 };
+
+    
