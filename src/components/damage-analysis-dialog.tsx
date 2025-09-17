@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, UploadCloud, AlertTriangle, CheckCircle, Wand2 } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
-import type { AnalyzeDamageOutput } from '@/ai/flows/analyze-damage-flow';
+import type { AnalyzeDamageDetections } from '@/lib/schema-types';
 
 
 interface DamageAnalysisDialogProps {
@@ -27,7 +27,7 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnalyzeDamageOutput | null>(null);
+  const [result, setResult] = useState<AnalyzeDamageDetections | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -71,7 +71,7 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
             throw new Error(errorData.error || 'Analysis failed');
         }
 
-      const analysisResult: AnalyzeDamageOutput = await response.json();
+      const analysisResult: AnalyzeDamageDetections = await response.json();
       setResult(analysisResult);
 
     } catch (error: any) {

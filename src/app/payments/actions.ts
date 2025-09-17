@@ -3,8 +3,8 @@
 
 import { z } from 'zod';
 import { generateReceipt } from '@/ai/flows/generate-receipt';
-import type { GenerateReceiptOutput } from '@/lib/types';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import type { GenerateReceiptOutput } from '@/lib/schema-types';
 
 export const ReceiptInputSchema = z.object({
     tenantId: z.string(),

@@ -10,17 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { PriceSuggestionInputSchema, PriceSuggestionOutputSchema, type PriceSuggestionInput, type PriceSuggestionOutput } from '@/lib/schema-types';
 import { PriceSuggestionSchema } from '@/lib/schemas';
-
-export type PriceSuggestionInput = z.infer<typeof PriceSuggestionSchema>;
-
-export const PriceSuggestionOutputSchema = z.object({
-  suggestedPrice: z.number().describe("The suggested monthly rental price as a number."),
-  currency: z.string().describe("The currency for the suggested price (e.g., KES, USD). Default to KES if not obvious."),
-  reasoning: z.string().describe("A detailed, 2-3 sentence explanation for how the price was determined, citing the provided market data and property features."),
-  overrideConsiderations: z.string().describe("A 1-2 sentence suggestion of factors that could justify a price higher or lower than the suggestion (e.g., premium finishes, recent renovations, or lack thereof)."),
-});
-export type PriceSuggestionOutput = z.infer<typeof PriceSuggestionOutputSchema>;
 
 
 export async function suggestPrice(input: PriceSuggestionInput): Promise<PriceSuggestionOutput> {

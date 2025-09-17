@@ -4,32 +4,16 @@
  * @fileOverview A flow to generate a monthly performance report for a property portfolio.
  *
  * - generateReport - A function that handles the report generation process.
- * - ReportInputSchema - The input type for the generateReport function.
- * - ReportOutputSchema - The return type for the generateReport function.
+ * - ReportInput - The input type for the generateReport function.
+ * - ReportOutput - The return type for the generateReport function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { endOfMonth, startOfMonth } from 'date-fns';
+import { ReportInputSchema, ReportOutputSchema, type ReportInput, type ReportOutput } from '@/lib/schema-types';
 
-export const ReportInputSchema = z.object({
-    month: z.number().min(0).max(11),
-    year: z.number().min(2020),
-});
-export type ReportInput = z.infer<typeof ReportInputSchema>;
-
-export const ReportOutputSchema = z.object({
-  reportTitle: z.string().describe("The title of the report, e.g., 'Performance Report for July 2024'."),
-  summary: z.string().describe("A 2-3 sentence executive summary of the month's performance."),
-  totalRevenue: z.number().describe("The total revenue collected during the month."),
-  occupancyRate: z.number().describe("The overall occupancy rate as a percentage (e.g., 95.5)."),
-  latePayments: z.number().describe("The number of late rent payments recorded."),
-  newMaintenanceRequests: z.number().describe("The number of new maintenance requests submitted."),
-  highlights: z.array(z.string()).describe("A list of 2-3 positive highlights for the month."),
-  areasForImprovement: z.array(z.string()).describe("A list of 2-3 areas that need attention or could be improved."),
-});
-export type ReportOutput = z.infer<typeof ReportOutputSchema>;
 
 async function getReportData(input: ReportInput) {
     if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");

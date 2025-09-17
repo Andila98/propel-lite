@@ -3,9 +3,10 @@
 
 import { z } from 'zod';
 import { generateMessage } from '@/ai/flows/generate-message-flow';
-import { generateInvoice, type GenerateInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
+import { generateInvoice } from '@/ai/flows/generate-invoice-flow';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
+import type { GenerateInvoiceOutput } from '@/lib/schema-types';
 
 const ReminderSuggestionInputSchema = z.object({
   tenantId: z.string(),

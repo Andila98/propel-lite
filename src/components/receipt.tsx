@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import type { GenerateReceiptOutput } from '@/ai/flows/generate-receipt';
+import type { GenerateReceiptOutput } from '@/lib/schema-types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface ReceiptProps {

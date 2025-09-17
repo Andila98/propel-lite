@@ -7,24 +7,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-
-export const GenerateReceiptInputSchema = z.object({
-    tenantId: z.string(),
-    paymentId: z.string(),
-});
-export type GenerateReceiptInput = z.infer<typeof GenerateReceiptInputSchema>;
-
-export const GenerateReceiptOutputSchema = z.object({
-  receiptNumber: z.string().describe("A unique receipt number, e.g., 'RCPT-00123'."),
-  paymentDate: z.string().describe("The date the payment was made, in ISO 8601 format."),
-  tenantName: z.string().describe("The full name of the tenant."),
-  propertyAddress: z.string().describe("The full address of the property."),
-  amountPaid: z.number().describe("The amount paid."),
-  currency: z.string().describe("The currency of the payment (e.g., KES, USD)."),
-  paymentMethod: z.string().describe("The method of payment (e.g., M-Pesa, Stripe)."),
-  notes: z.string().describe("A brief, courteous note for the tenant, e.g., 'Thank you for your payment.'"),
-});
-export type GenerateReceiptOutput = z.infer<typeof GenerateReceiptOutputSchema>;
+import { GenerateReceiptInputSchema, GenerateReceiptOutputSchema, type GenerateReceiptInput, type GenerateReceiptOutput } from '@/lib/schema-types';
 
 async function getReceiptData(input: GenerateReceiptInput) {
     if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");

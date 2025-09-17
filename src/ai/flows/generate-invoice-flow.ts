@@ -11,30 +11,8 @@
 import {ai} from '@/ai/genkit';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import {z} from 'genkit';
-import { add, format, getDaysInMonth } from 'date-fns';
-
-export const GenerateInvoiceInputSchema = z.object({
-  tenantId: z.string().describe("The ID of the tenant for whom to generate an invoice."),
-});
-export type GenerateInvoiceInput = z.infer<typeof GenerateInvoiceInputSchema>;
-
-const InvoiceItemSchema = z.object({
-    description: z.string().describe('Description of the invoice line item (e.g., "Monthly Rent").'),
-    amount: z.number().describe('The cost of the line item.'),
-});
-
-export const GenerateInvoiceOutputSchema = z.object({
-  invoiceNumber: z.string().describe("A unique invoice number, e.g., 'INV-2024-00123'."),
-  invoiceDate: z.string().describe("The date the invoice was generated, in ISO 8601 format."),
-  dueDate: z.string().describe("The date the payment is due, in ISO 8601 format."),
-  tenantName: z.string().describe("The full name of the tenant."),
-  propertyAddress: z.string().describe("The full address of the property."),
-  items: z.array(InvoiceItemSchema).describe("An array of line items for the invoice."),
-  totalAmount: z.number().describe("The total amount due."),
-  currency: z.string().describe("The currency of the payment (e.g., KES, USD)."),
-  notes: z.string().describe("A brief, courteous note for the tenant, e.g., 'Thank you for your timely payment.'"),
-});
-export type GenerateInvoiceOutput = z.infer<typeof GenerateInvoiceOutputSchema>;
+import { add, format } from 'date-fns';
+import { GenerateInvoiceInputSchema, GenerateInvoiceOutputSchema, type GenerateInvoiceInput, type GenerateInvoiceOutput } from '@/lib/schema-types';
 
 
 async function getInvoiceData(input: GenerateInvoiceInput) {

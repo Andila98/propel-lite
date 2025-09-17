@@ -20,7 +20,7 @@ import { Invoice } from '@/components/invoice';
 import type { Tenant } from '@/lib/types';
 import { useTenants } from '@/hooks/use-tenants';
 import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
-import type { GenerateInvoiceOutput } from '@/lib/types';
+import type { GenerateInvoiceOutput } from '@/lib/schema-types';
 import { getReminderSuggestionAction, getScheduleSuggestionAction, scheduleReminderAction, type ScheduleReminderState } from './actions';
 
 

@@ -9,18 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-export const GenerateMessageInputSchema = z.object({
-  tenantName: z.string().describe("The name of the tenant to address."),
-  reminderType: z.string().describe("The context for the message (e.g., 'rentDue', 'latePayment', 'maintenance', 'leaseRenewal')."),
-});
-export type GenerateMessageInput = z.infer<typeof GenerateMessageInputSchema>;
-
-export const GenerateMessageOutputSchema = z.object({
-  message: z.string().describe("The generated, friendly, and professional message content."),
-});
-export type GenerateMessageOutput = z.infer<typeof GenerateMessageOutputSchema>;
+import { GenerateMessageInputSchema, GenerateMessageOutputSchema, type GenerateMessageInput, type GenerateMessageOutput } from '@/lib/schema-types';
 
 
 export async function generateMessage(input: GenerateMessageInput): Promise<GenerateMessageOutput> {

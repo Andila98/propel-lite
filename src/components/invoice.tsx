@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { GenerateInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
+import type { GenerateInvoiceOutput } from '@/lib/schema-types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface InvoiceProps {

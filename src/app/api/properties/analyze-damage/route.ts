@@ -2,8 +2,9 @@
 'use server';
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { analyzeDamage, AnalyzeDamageInputSchema } from '@/ai/flows/analyze-damage-flow';
+import { analyzeDamage } from '@/ai/flows/analyze-damage-flow';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { AnalyzeDamageInputSchema } from '@/lib/schema-types';
 
 export const runtime = 'nodejs';
 

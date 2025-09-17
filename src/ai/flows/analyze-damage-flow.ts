@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow to analyze an image of a property for potential damage.
@@ -8,30 +9,10 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-export const AnalyzeDamageInputSchema = z.object({
-  photoDataUri: z
-    .string()
-    .describe(
-      "A photo of a property (interior or exterior), as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-});
-export type AnalyzeDamageInput = z.infer<typeof AnalyzeDamageInputSchema>;
-
-export const AnalyzeDamageOutputSchema = z.object({
-  hasDamage: z.boolean().describe('Whether or not any damage was detected in the image.'),
-  damageSummary: z.string().describe("A 1-2 sentence summary of the findings."),
-  detectedIssues: z.array(z.object({
-      issueType: z.string().describe('The type of damage detected (e.g., Water Stain, Crack, Scuff Mark, Hole).'),
-      description: z.string().describe("A brief description of the specific issue and its location in the image."),
-      severity: z.enum(['Low', 'Medium', 'High']).describe('The estimated severity of the damage.'),
-  })).describe('A list of specific issues detected in the image.'),
-});
-export type AnalyzeDamageOutput = z.infer<typeof AnalyzeDamageOutputSchema>;
+import { AnalyzeDamageInputSchema, AnalyzeDamageOutputSchema, type AnalyzeDamageInput, type AnalyzeDamageDetections } from '@/lib/schema-types';
 
 
-export async function analyzeDamage(input: AnalyzeDamageInput): Promise<AnalyzeDamageOutput> {
+export async function analyzeDamage(input: AnalyzeDamageInput): Promise<AnalyzeDamageDetections> {
   return analyzeDamageFlow(input);
 }
 
