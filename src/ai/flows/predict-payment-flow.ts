@@ -47,7 +47,7 @@ async function buildTransitionMatrix(tenantId: string) {
     const paymentsByMonth: Record<string, number> = {};
     paymentsSnapshot.forEach(doc => {
         const payment = doc.data();
-        const date = payment.date.toDate();
+        const date = (payment.date as any).toDate();
         const key = `${getYear(date)}-${getMonth(date)}`;
         paymentsByMonth[key] = (paymentsByMonth[key] || 0) + payment.amount;
     });
@@ -137,7 +137,12 @@ const predictPaymentFlow = ai.defineFlow(
     outputSchema: PredictPaymentOutputSchema,
   },
   async (input) => {
-    return await predictNextPayment(input);
+    try {
+        return await predictNextPayment(input);
+    } catch (error) {
+        console.error('[ERROR: predictPaymentFlow]', error);
+        throw new Error('Failed to predict payment due to an internal AI error.');
+    }
   }
 );
 

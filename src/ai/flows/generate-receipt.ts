@@ -28,7 +28,7 @@ async function getReceiptData(input: GenerateReceiptInput) {
 
     return {
         receiptNumber: `RCPT-${paymentSnapshot.id.substring(0, 6).toUpperCase()}`,
-        paymentDate: (payment.date.toDate() as Date).toISOString(),
+        paymentDate: (payment.date as any).toDate().toISOString(),
         tenantName: tenant.name,
         propertyAddress: property.address,
         amountPaid: payment.amount,
@@ -71,7 +71,7 @@ export const generateReceiptFlow = ai.defineFlow(
         return output!;
     } catch (error) {
         console.error('[ERROR: generateReceiptFlow]', error);
-        throw new Error('Failed to generate receipt due to an internal error.');
+        throw new Error('Failed to generate receipt due to an internal AI error.');
     }
   }
 );

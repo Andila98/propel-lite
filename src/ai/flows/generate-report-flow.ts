@@ -45,7 +45,7 @@ async function getReportData(input: ReportInput) {
     const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
     
     // This is a simplified calculation for late payments
-    const latePayments = paymentsSnapshot.docs.filter(doc => new Date(doc.data().date).getDate() > 5).length;
+    const latePayments = paymentsSnapshot.docs.filter(doc => (doc.data().date as any).toDate().getDate() > 5).length;
     
     const newMaintenanceRequests = maintenanceSnapshot.size;
 
@@ -105,7 +105,7 @@ export const generateReportFlow = ai.defineFlow(
         return output!;
     } catch (error) {
         console.error('[ERROR: generateReportFlow]', error);
-        throw new Error('Failed to generate report due to an internal error.');
+        throw new Error('Failed to generate report due to an internal AI error.');
     }
   }
 );

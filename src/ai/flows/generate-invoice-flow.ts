@@ -92,7 +92,7 @@ export const generateInvoiceFlow = ai.defineFlow(
         return output!;
     } catch (error) {
         console.error('[ERROR: generateInvoiceFlow]', error);
-        throw new Error('Failed to generate invoice due to an internal error.');
+        throw new Error('Failed to generate invoice due to an internal AI error.');
     }
   }
 );
