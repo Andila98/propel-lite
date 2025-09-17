@@ -8,8 +8,6 @@ import {
   CardContent,
   CardHeader,
   CardFooter,
-  CardTitle,
-  CardDescription
 } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay } from 'date-fns';
@@ -41,30 +39,23 @@ type Reminder = { id: string; scheduledFor: string; reminderType: string; tenant
 
 const StatusIndicator = ({ status, size = "sm" }: { status: Tenant['rentStatus'], size?: "sm" | "md" }) => {
   const statusConfig = {
-    'Paid': 'success-gradient',
-    'Overdue': 'destructive-gradient',
-    'Partially Paid': 'warning-gradient',
-    'Advance': 'info-gradient',
+    'Paid': { variant: 'success-gradient' as const, icon: CheckCircle2 },
+    'Overdue': { variant: 'destructive-gradient' as const, icon: AlertTriangle },
+    'Partially Paid': { variant: 'warning-gradient' as const, icon: Clock },
+    'Advance': { variant: 'info-gradient' as const, icon: TrendingUp }
   } as const;
 
-  const IconConfig = {
-    'Paid': CheckCircle2,
-    'Overdue': AlertTriangle,
-    'Partially Paid': Clock,
-    'Advance': TrendingUp,
-  }
-
-  const variant = statusConfig[status];
-  const Icon = IconConfig[status];
+  const config = statusConfig[status];
+  const Icon = config.icon;
+  const dotSize = size === "sm" ? "h-2 w-2" : "h-3 w-3";
 
   return (
-    <div className="flex items-center gap-1.5">
-      <Badge variant={variant} className="w-2 h-2 p-0 rounded-full border-0" />
-      {size === 'md' && <Icon className="h-4 w-4" />}
+    <div className={cn("flex items-center gap-2", size === "md" && "p-2 rounded-lg border bg-card/50")}>
+      <Badge variant={config.variant} className={cn("p-0 rounded-full", dotSize)} />
+      {size === "md" && <Icon className="h-4 w-4" />}
     </div>
   );
 };
-
 
 const DayCell = ({ day, statuses, reminders }: { day: Date, statuses: TenantWithDetails[], reminders: Reminder[] }) => {
   const overdueCount = statuses.filter(t => t.rentStatus === 'Overdue').length;
@@ -78,7 +69,7 @@ const DayCell = ({ day, statuses, reminders }: { day: Date, statuses: TenantWith
   return (
     <div className={cn(
       "flex flex-col h-full p-2 text-xs text-left relative overflow-hidden transition-all duration-200",
-      isRentDueDay && "bg-primary/5 border-l-2 border-primary",
+      isRentDueDay && "bg-primary/5 dark:bg-primary/10 border-l-2 border-l-primary",
       hasRentDue && "hover:shadow-md hover:scale-105"
     )}>
       <div className="flex justify-between items-start mb-1">
@@ -94,10 +85,30 @@ const DayCell = ({ day, statuses, reminders }: { day: Date, statuses: TenantWith
           <div className="space-y-1">
             <p className="font-medium text-muted-foreground">{statuses.length} tenant{statuses.length !== 1 ? 's' : ''}</p>
             <div className="flex flex-wrap gap-1">
-              {paidCount > 0 && <div className="flex items-center gap-1"><StatusIndicator status="Paid" /><span className="text-green-600 font-medium">{paidCount}</span></div>}
-              {overdueCount > 0 && <div className="flex items-center gap-1"><StatusIndicator status="Overdue" /><span className="text-destructive font-medium">{overdueCount}</span></div>}
-              {partialCount > 0 && <div className="flex items-center gap-1"><StatusIndicator status="Partially Paid" /><span className="text-yellow-600 font-medium">{partialCount}</span></div>}
-              {advanceCount > 0 && <div className="flex items-center gap-1"><StatusIndicator status="Advance" /><span className="text-blue-600 font-medium">{advanceCount}</span></div>}
+              {paidCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <StatusIndicator status="Paid" />
+                  <span className="text-green-600 font-medium">{paidCount}</span>
+                </div>
+              )}
+              {overdueCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <StatusIndicator status="Overdue" />
+                  <span className="text-destructive font-medium">{overdueCount}</span>
+                </div>
+              )}
+              {partialCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <StatusIndicator status="Partially Paid" />
+                  <span className="text-yellow-600 font-medium">{partialCount}</span>
+                </div>
+              )}
+              {advanceCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <StatusIndicator status="Advance" />
+                  <span className="text-blue-600 font-medium">{advanceCount}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -122,7 +133,7 @@ const StatsCard = ({ title, value, icon: Icon, trend, color }: {
 }) => (
   <Card>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <h3 className="text-sm font-medium">{title}</h3>
       <Icon className="h-4 w-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
@@ -250,11 +261,11 @@ export default function RentSchedulePage() {
 
   const renderStatusBadge = (status: Tenant['rentStatus']) => {
     const statusMap = {
-      'Paid': 'success-gradient',
-      'Overdue': 'destructive-gradient',
-      'Partially Paid': 'warning-gradient',
-      'Advance': 'info-gradient',
-    } as const;
+      'Paid': 'success-gradient' as const,
+      'Overdue': 'destructive-gradient' as const,
+      'Partially Paid': 'warning-gradient' as const,
+      'Advance': 'info-gradient' as const
+    };
     const variant = statusMap[status];
     return <Badge variant={variant} className="text-white">{status}</Badge>;
   };
@@ -278,8 +289,8 @@ export default function RentSchedulePage() {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard title="Total Tenants" value={stats.totalTenants} icon={Users} trend={`${stats.totalTenants} tenants with rent due`} />
-          <StatsCard title="Paid This Month" value={stats.paidCount} icon={CheckCircle2} trend={`${((stats.paidCount / stats.totalTenants) * 100 || 0).toFixed(1)}% paid`} color="text-green-600" />
-          <StatsCard title="Overdue" value={stats.overdueCount} icon={AlertTriangle} trend={stats.overdueCount > 0 ? "Needs attention" : "All caught up!"} color="text-destructive" />
+          <StatsCard title="Paid This Month" value={stats.paidCount} icon={CheckCircle2} trend={`${((stats.paidCount / stats.totalTenants) * 100 || 0).toFixed(1)}% paid`} color="text-green-600 dark:text-green-400" />
+          <StatsCard title="Overdue" value={stats.overdueCount} icon={AlertTriangle} trend={stats.overdueCount > 0 ? "Needs attention" : "All caught up!"} color="text-destructive dark:text-red-400" />
           <StatsCard title="Expected Revenue" value={formatCurrency(stats.totalRevenue)} icon={DollarSign} trend="This month" />
         </div>
 
@@ -345,7 +356,7 @@ export default function RentSchedulePage() {
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Filters & Search</CardTitle>
+                <h3 className="text-lg font-semibold">Filters & Search</h3>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -446,7 +457,7 @@ export default function RentSchedulePage() {
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Rent Schedule</h2>
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">Rent Schedule</h2>
           <p className="text-muted-foreground mt-1">Monitor rent payments and manage tenant reminders</p>
         </div>
       </div>
@@ -454,5 +465,3 @@ export default function RentSchedulePage() {
     </div>
   );
 }
-
-```
