@@ -38,8 +38,6 @@ export function useTenants() {
       setLoading(true);
       setError(null);
       
-      console.log('[useTenants] Fetching tenants and properties...');
-      
       const [tenantsRes, propertiesRes] = await Promise.all([
         fetch('/api/tenants'),
         fetch('/api/properties'),
@@ -59,38 +57,12 @@ export function useTenants() {
         throw new Error(`Failed to fetch properties (${propertiesRes.status})`);
       }
 
-      const tenantsData: TenantsResponse | Tenant[] = await tenantsRes.json();
-      const propertiesData: PropertiesResponse | Property[] = await propertiesRes.json();
+      const tenantsData: TenantsResponse = await tenantsRes.json();
+      const propertiesData: PropertiesResponse = await propertiesRes.json();
 
-      console.log('[useTenants] Data received:', { 
-        tenants: tenantsData, 
-        properties: propertiesData 
-      });
-
-      // Handle tenants data (support both old and new formats)
-      if (Array.isArray(tenantsData)) {
-        // Old format - just array of tenants
-        setTenants(tenantsData);
-        setTenantsMeta({
-          totalTenants: tenantsData.length,
-          activeTenants: tenantsData.filter(t => t.rentStatus === 'Paid' || t.rentStatus === 'Advance').length,
-          overdueTenants: tenantsData.filter(t => t.rentStatus === 'Overdue').length,
-          occupancyRate: 0
-        });
-      } else {
-        // New format - with metadata
-        setTenants(tenantsData.tenants || []);
-        setTenantsMeta(tenantsData.meta || null);
-      }
-
-      // Handle properties data (support both old and new formats)
-      if (Array.isArray(propertiesData)) {
-        // Old format - just array of properties
-        setProperties(propertiesData);
-      } else {
-        // New format - with metadata
-        setProperties((propertiesData as PropertiesResponse).properties || []);
-      }
+      setTenants(tenantsData.tenants || []);
+      setTenantsMeta(tenantsData.meta || null);
+      setProperties(propertiesData.properties || []);
 
     } catch (err: any) {
       console.error("[useTenants] Error fetching data:", err);
@@ -136,23 +108,17 @@ export function useTenant(tenantId: string) {
       setLoading(true);
       setError(null);
       
-      console.log(`[useTenant] Fetching tenant: ${tenantId}`);
-      
       const response = await fetch(`/api/tenants/${tenantId}`);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[useTenant] API error:`, response.status, errorText);
         throw new Error(`Tenant not found (${response.status})`);
       }
 
       const data = await response.json();
-      console.log(`[useTenant] Tenant data received:`, data);
-      
       setTenant(data);
       
     } catch (err: any) {
-      console.error(`[useTenant] Error fetching tenant ${tenantId}:`, err);
       setError(err.message || "An unknown error occurred.");
     } finally {
       setLoading(false);

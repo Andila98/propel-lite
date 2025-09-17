@@ -1,93 +1,72 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { getLandlordAndActor } from '@/lib/auth-utils';
+import { toJSON } from '@/lib/utils';
+import type { Property, Unit } from '@/lib/types';
 import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
 
-export async function GET(request: any) {
-    const requestId = crypto.randomUUID();
+export async function GET(request: NextRequest) {
+    if (!isFirebaseAdminInitialized) {
+        return NextResponse.json({ error: 'Backend services are not configured' }, { status: 503 });
+    }
+
+    const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
     
+    const { landlordId, error: authError } = await getLandlordAndActor(sessionCookie);
+
+    if (authError || !landlordId) {
+        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
+    }
+
     try {
-        console.log(`[DEBUG][${requestId}] Properties API called`);
-        
-        if (!isFirebaseAdminInitialized) {
-            console.error(`[ERROR][${requestId}] Firebase Admin not initialized`);
-            return NextResponse.json({ 
-                error: 'Firebase not configured' 
-            }, { status: 503 });
-        }
-
-        const sessionCookie = request.cookies.get(authConfig.cookieName)?.value;
-        if (!sessionCookie) {
-            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-        }
-
-        console.log(`[DEBUG][${requestId}] Testing basic Firestore connection...`);
-        
-        // Test 1: Simple collection access
-        const testCollection = firestore.collection('properties');
-        console.log(`[DEBUG][${requestId}] Collection reference created successfully`);
-        
-        // Test 2: Simple query without where clause
-        const allPropsSnapshot = await testCollection.limit(1).get();
-        console.log(`[DEBUG][${requestId}] Basic query successful, found ${allPropsSnapshot.docs.length} docs`);
-        
-        // Test 3: Authentication
-        const { getLandlordAndActor } = await import('@/lib/auth-utils');
-        const { landlordId, error: authError } = await getLandlordAndActor(sessionCookie);
-        
-        if (authError || !landlordId) {
-            return NextResponse.json({ error: 'Auth failed' }, { status: 401 });
-        }
-        
-        console.log(`[DEBUG][${requestId}] Auth successful for landlord: ${landlordId}`);
-        
-        // Test 4: Query with where clause
-        console.log(`[DEBUG][${requestId}] Testing where query...`);
-        const filteredSnapshot = await testCollection
+        const propertiesSnapshot = await firestore.collection('properties')
             .where('landlordId', '==', landlordId)
-            .limit(1)
             .get();
-            
-        console.log(`[DEBUG][${requestId}] Where query successful, found ${filteredSnapshot.docs.length} matching docs`);
         
-        // Return the actual data if we get this far
-        const properties = filteredSnapshot.docs.map(doc => ({
+        const properties: Property[] = propertiesSnapshot.docs.map(doc => ({
             id: doc.id,
-            ...doc.data(),
-            units: [] // Skip units for now
-        }));
+            ...doc.data()
+        } as Property));
 
+        const unitsPromises = properties.map(p => 
+            firestore.collection('properties').doc(p.id).collection('units').get()
+        );
+        const unitsSnapshots = await Promise.all(unitsPromises);
+
+        properties.forEach((p, index) => {
+            p.units = unitsSnapshots[index].docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
+        });
+
+        // Calculate metadata
+        const totalProperties = properties.length;
+        const totalUnits = properties.reduce((sum, prop) => sum + prop.units.length, 0);
+        const occupiedUnits = properties.reduce((sum, prop) => 
+            sum + prop.units.filter(u => u.isOccupied).length, 
+        0);
+        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+        
         const response = {
-            properties,
+            properties: toJSON(properties),
             meta: {
-                totalProperties: properties.length,
-                totalUnits: 0,
-                occupiedUnits: 0,
-                occupancyRate: 0
-            },
-            debug: {
-                landlordId,
-                totalDocsInCollection: allPropsSnapshot.docs.length,
-                matchingDocs: filteredSnapshot.docs.length
+                totalProperties,
+                totalUnits,
+                occupiedUnits,
+                occupancyRate,
             }
         };
 
         return NextResponse.json(response);
-
     } catch (error: any) {
-        console.error(`[ERROR][${requestId}] Detailed error info:`, {
-            name: error.name,
-            message: error.message,
-            code: error.code,
-            stack: error.stack
-        });
-        
+        console.error('[ERROR: /api/properties]', { message: error.message, stack: error.stack });
         return NextResponse.json({ 
-            error: 'Firestore query failed',
-            details: error.message,
-            errorCode: error.code
+            error: 'Internal server error',
+            details: error.message 
         }, { status: 500 });
     }
 }

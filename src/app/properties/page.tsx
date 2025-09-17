@@ -45,35 +45,17 @@ export default function PropertiesPage() {
       setError(null);
       
       try {
-        console.log('[Properties] Fetching properties...');
         const res = await fetch('/api/properties');
         
         if (!res.ok) {
           const errorText = await res.text();
-          console.error('[Properties] API error:', res.status, errorText);
-          throw new Error(`Failed to fetch properties (${res.status})`);
+          throw new Error(`Failed to fetch properties (${res.status}): ${errorText}`);
         }
         
         const data: PropertiesResponse = await res.json();
-        console.log('[Properties] Data received:', data);
         
-        // Handle both old and new response formats for resilience
-        if (Array.isArray(data)) {
-          // Old format - just array of properties
-          setProperties(data);
-          const totalUnits = data.reduce((count, prop) => count + (prop.units?.length || 0), 0);
-          const occupiedUnits = data.reduce((count, prop) => count + (prop.units?.filter(u => u.isOccupied).length || 0), 0);
-          setMeta({
-            totalProperties: data.length,
-            totalUnits: totalUnits,
-            occupiedUnits: occupiedUnits,
-            occupancyRate: totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0
-          });
-        } else {
-          // New format - properties with metadata
-          setProperties(data.properties || []);
-          setMeta(data.meta || null);
-        }
+        setProperties(data.properties || []);
+        setMeta(data.meta || null);
         
       } catch (err: any) {
         console.error('[Properties] Fetch error:', err);
