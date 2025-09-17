@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { Tenant, Property, Payment } from '@/lib/types';
+import type { Payment, Property } from '@/lib/types';
 import Link from 'next/link';
 import { Receipt as ReceiptIcon, Loader2 } from 'lucide-react';
 import { getReceiptAction, type ReceiptState } from './actions';
@@ -35,49 +35,32 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
+type PaymentWithDetails = Payment & { tenantName: string; propertyAddress: string; property: Property };
+
 export default function PaymentsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [receiptResult, setReceiptResult] = useState<ReceiptState | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [payments, setPayments] = useState<(Payment & { tenantName?: string, propertyAddress?: string})[]>([]);
+  const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
         setDataLoading(true);
         try {
-            const [tenantsRes, propertiesRes, paymentsRes] = await Promise.all([
-                fetch('/api/tenants'),
-                fetch('/api/properties'),
-                fetch('/api/payments')
-            ]);
+            const paymentsRes = await fetch('/api/payments');
+            if (!paymentsRes.ok) {
+              const errorData = await paymentsRes.json();
+              throw new Error(errorData.error || 'Failed to fetch payments');
+            }
 
-            const tenantsResponse = await tenantsRes.json();
-            const tenantsData: Tenant[] = tenantsResponse.tenants || [];
-            const propertiesData: Property[] = await propertiesRes.json();
-            let paymentsData: Payment[] = await paymentsRes.json();
-
-            const paymentsWithDetails = paymentsData.map(p => {
-                const tenant = tenantsData.find(t => t.id === p.tenantId);
-                const property = propertiesData.find(prop => prop.id === p.propertyId);
-                return {
-                    ...p,
-                    tenantName: tenant?.name,
-                    propertyAddress: property?.address,
-                    property: property,
-                }
-            })
-
-            setTenants(tenantsData);
-            setProperties(propertiesData);
-            setPayments(paymentsWithDetails);
-        } catch (error) {
+            const paymentsData: PaymentWithDetails[] = await paymentsRes.json();
+            setPayments(paymentsData);
+        } catch (error: any) {
             console.error(error);
-            toast({ title: "Error", description: "Failed to fetch payment data.", variant: "destructive" });
+            toast({ title: "Error", description: `Failed to fetch payment data: ${error.message}`, variant: "destructive" });
         } finally {
             setDataLoading(false);
         }
@@ -154,17 +137,17 @@ export default function PaymentsPage() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {payments.map((payment: any) => (
+                {payments.map((payment) => (
                     <TableRow key={payment.id}>
                     <TableCell>{formatDate(payment.date)}</TableCell>
                     <TableCell>
                         <Link href={`/tenants/${payment.tenantId}`} className="text-primary hover:underline">
-                            {payment.tenantName || 'N/A'}
+                            {payment.tenantName}
                         </Link>
                     </TableCell>
                     <TableCell>
                         <Link href={`/properties/${payment.propertyId}`} className="text-primary hover:underline">
-                            {payment.propertyAddress || 'N/A'}
+                            {payment.propertyAddress}
                         </Link>
                     </TableCell>
                     <TableCell>
