@@ -9,17 +9,12 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-export const PrioritizeMaintenanceInputSchema = z.object({
-  description: z.string().describe('A description of the maintenance issue reported by a tenant.'),
-});
-export type PrioritizeMaintenanceInput = z.infer<typeof PrioritizeMaintenanceInputSchema>;
-
-export const PrioritizeMaintenanceOutputSchema = z.object({
-  priority: z.enum(['High', 'Medium', 'Low']).describe('The calculated priority of the request.'),
-  reasoning: z.string().describe('A brief (1-sentence) explanation for why this priority was assigned.'),
-});
-export type PrioritizeMaintenanceOutput = z.infer<typeof PrioritizeMaintenanceOutputSchema>;
+import { 
+    PrioritizeMaintenanceInputSchema,
+    PrioritizeMaintenanceOutputSchema,
+    type PrioritizeMaintenanceInput,
+    type PrioritizeMaintenanceOutput
+} from '@/lib/schema-types';
 
 
 export async function prioritizeMaintenanceRequest(input: PrioritizeMaintenanceInput): Promise<PrioritizeMaintenanceOutput> {

@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Centralized Zod schemas and TypeScript types for the application.
  * This helps avoid "use server" directive conflicts by separating data structures
@@ -35,3 +34,15 @@ export const PredictPaymentOutputSchema = z.object({
   reasoning: z.string().describe("A brief explanation of the prediction."),
 });
 export type PredictPaymentOutput = z.infer<typeof PredictPaymentOutputSchema>;
+
+// src/ai/flows/prioritize-maintenance.ts
+export const PrioritizeMaintenanceInputSchema = z.object({
+  description: z.string().describe('A description of the maintenance issue reported by a tenant.'),
+});
+export type PrioritizeMaintenanceInput = z.infer<typeof PrioritizeMaintenanceInputSchema>;
+
+export const PrioritizeMaintenanceOutputSchema = z.object({
+  priority: z.enum(['High', 'Medium', 'Low']).describe('The calculated priority of the request.'),
+  reasoning: z.string().describe('A brief (1-sentence) explanation for why this priority was assigned.'),
+});
+export type PrioritizeMaintenanceOutput = z.infer<typeof PrioritizeMaintenanceOutputSchema>;
