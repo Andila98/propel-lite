@@ -10,21 +10,33 @@ import { formatCurrency } from '@/lib/utils';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-    if (!isFirebaseAdminInitialized) {
-        return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
-    }
-    
-    const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
-    if (!sessionCookie) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-    const { landlordId, error: authError } = await getLandlordAndActor(sessionCookie);
-
-    if (authError || !landlordId) {
-        return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
-    }
+    const requestId = crypto.randomUUID();
 
     try {
+        console.log(`[INFO][${requestId}] /api/payments GET endpoint called`);
+
+        if (!isFirebaseAdminInitialized) {
+            console.error(`[ERROR][${requestId}] Firebase Admin not initialized.`);
+            return NextResponse.json({ 
+                error: 'Backend services are not configured. Please contact support.' 
+            }, { status: 503 });
+        }
+        
+        const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
+        if (!sessionCookie) {
+            console.warn(`[WARN][${requestId}] No session cookie provided.`);
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
+        console.log(`[DEBUG][${requestId}] Verifying session and getting landlord ID.`);
+        const { landlordId, error: authError } = await getLandlordAndActor(sessionCookie);
+
+        if (authError || !landlordId) {
+            console.warn(`[WARN][${requestId}] Authentication failed: ${authError?.message}`);
+            return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: authError?.statusCode || 401 });
+        }
+
+        console.log(`[INFO][${requestId}] Fetching data for landlord: ${landlordId}`);
         const [paymentsSnapshot, tenantsSnapshot, propertiesSnapshot] = await Promise.all([
             firestore.collection('payments')
                 .where('landlordId', '==', landlordId)
@@ -34,6 +46,8 @@ export async function GET(req: NextRequest) {
             firestore.collection('properties').where('landlordId', '==', landlordId).get()
         ]);
         
+        console.log(`[DEBUG][${requestId}] Fetched ${paymentsSnapshot.size} payments, ${tenantsSnapshot.size} tenants, ${propertiesSnapshot.size} properties.`);
+
         const tenantsMap = new Map<string, Tenant>(tenantsSnapshot.docs.map(doc => [doc.id, doc.data() as Tenant]));
         const propertiesMap = new Map<string, Property>(propertiesSnapshot.docs.map(doc => [doc.id, doc.data() as Property]));
 
@@ -47,14 +61,22 @@ export async function GET(req: NextRequest) {
                 ...payment,
                 tenantName: tenant?.name || 'N/A',
                 propertyAddress: property?.address || 'N/A',
-                property,
-                // The formattedAmount is no longer needed here as formatting is done client-side
+                property: property || null,
             };
         });
         
+        console.log(`[INFO][${requestId}] Successfully processed ${payments.length} payments. Sending response.`);
         return NextResponse.json(toJSON(payments));
+
     } catch (error: any) {
-      console.error('[ERROR: /api/payments GET]', error);
-      return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
+      console.error(`[ERROR][${requestId}] /api/payments GET failed:`, {
+          message: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+      return NextResponse.json({ 
+          error: 'An internal server error occurred while fetching payments.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          requestId,
+      }, { status: 500 });
     }
 }
