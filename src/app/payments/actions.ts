@@ -21,6 +21,6 @@ export async function getReceiptAction(input: GenerateReceiptInput): Promise<Rec
         return { receipt };
     } catch (error: any) {
         console.error('[ERROR: getReceiptAction]', error);
-        return { error: error.message || "An unknown error occurred" };
+        return { error: error.message || "An unknown error occurred while generating the receipt." };
     }
 }
