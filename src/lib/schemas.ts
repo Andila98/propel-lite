@@ -322,6 +322,12 @@ export const MaintenanceRequestSchema = z.object({
 
 export type MaintenanceRequest = z.infer<typeof MaintenanceRequestSchema>;
 
+// src/app/payments/actions.ts
+export const ReceiptInputSchema = z.object({
+    tenantId: z.string(),
+    paymentId: z.string(),
+});
+
 // Validation helper functions
 export const validateKenyanPhoneNumber = (phone: string): boolean => {
   return phoneRegex.test(phone);

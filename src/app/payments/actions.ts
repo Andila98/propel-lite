@@ -1,15 +1,11 @@
 
 "use server";
 
-import { z } from 'zod';
 import { generateReceipt } from '@/ai/flows/generate-receipt';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { GenerateReceiptOutput } from '@/lib/schema-types';
-
-export const ReceiptInputSchema = z.object({
-    tenantId: z.string(),
-    paymentId: z.string(),
-});
+import { ReceiptInputSchema } from '@/lib/schemas';
+import type { z } from 'zod';
 
 export interface ReceiptState {
     error?: string;
