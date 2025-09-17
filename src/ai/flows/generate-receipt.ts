@@ -28,7 +28,7 @@ async function getReceiptData(input: GenerateReceiptInput) {
 
     return {
         receiptNumber: `RCPT-${paymentSnapshot.id.substring(0, 6).toUpperCase()}`,
-        paymentDate: payment.date.toDate().toISOString(), // Convert Firestore Timestamp to ISO string
+        paymentDate: (payment.date.toDate() as Date).toISOString(),
         tenantName: tenant.name,
         propertyAddress: property.address,
         amountPaid: payment.amount,
@@ -40,15 +40,7 @@ async function getReceiptData(input: GenerateReceiptInput) {
 const prompt = ai.definePrompt({
   name: 'generateReceiptPrompt',
   input: {
-    schema: GenerateReceiptOutputSchema.pick({
-        receiptNumber: true,
-        paymentDate: true,
-        tenantName: true,
-        propertyAddress: true,
-        amountPaid: true,
-        currency: true,
-        paymentMethod: true,
-    })
+    schema: GenerateReceiptOutputSchema
   },
   output: {schema: GenerateReceiptOutputSchema},
   prompt: `You are an accounting assistant. Your task is to generate a formal receipt based on the provided transaction data.
@@ -61,7 +53,7 @@ Data:
 - Amount Paid: {{amountPaid}} {{currency}}
 - Payment Method: {{paymentMethod}}
 
-Generate the full receipt object. Include a brief, polite thank you note.`,
+Generate the full receipt object. You MUST include a brief, polite thank you note in the 'notes' field.`,
 });
 
 export const generateReceiptFlow = ai.defineFlow(
@@ -73,7 +65,9 @@ export const generateReceiptFlow = ai.defineFlow(
   async (input) => {
     try {
         const receiptData = await getReceiptData(input);
-        const { output } = await prompt(receiptData);
+        // We call the prompt with the data needed for the *output* schema.
+        // The prompt will then fill in the 'notes' field.
+        const { output } = await prompt(receiptData as any);
         return output!;
     } catch (error) {
         console.error('[ERROR: generateReceiptFlow]', error);
