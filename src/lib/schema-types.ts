@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Centralized Zod schemas and TypeScript types for the application.
  * This helps avoid "use server" directive conflicts by separating data structures

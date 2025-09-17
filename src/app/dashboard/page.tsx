@@ -23,15 +23,9 @@ import {
   DollarSign,
   TrendingUp,
   AlertOctagon,
-  UserCheck,
-  Banknote,
-  Home,
-  AlertTriangle,
+  Sparkles,
   Loader2,
   WifiOff,
-  Sparkles,
-  BarChart,
-  TrendingDown,
 } from "lucide-react"
 import { PropertiesCarousel } from "@/components/properties-carousel"
 import { RecentActivities } from "@/components/recent-activities"
@@ -40,7 +34,6 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/hooks/use-auth"
 import { useManagers } from "@/hooks/use-managers"
-import { Separator } from "@/components/ui/separator"
 import type { DashboardData } from "@/lib/types"
 import { LatePaymentsChart } from "@/components/charts/late-payments-chart"
 import { PaymentMethodsChart } from "@/components/charts/payment-methods-chart"
@@ -70,7 +63,7 @@ const safePercentage = (value: number | undefined | null): string => {
   return (value * 100).toFixed(1);
 };
 
-function AiInsightsCard({ summary }: { summary: string }) {
+function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: DashboardData['anomalyAlerts'] }) {
     return (
         <Card className="lg:col-span-4 bg-primary/5 border-primary/20">
             <CardHeader>
@@ -78,8 +71,13 @@ function AiInsightsCard({ summary }: { summary: string }) {
                     <Sparkles className="h-5 w-5 text-primary"/>
                     AI-Powered Insights
                 </CardTitle>
-                <CardDescription>{summary || "No insights available"}</CardDescription>
+                <CardDescription>{summary || "No insights available."}</CardDescription>
             </CardHeader>
+             {anomalies && anomalies.length > 0 && (
+                <CardContent>
+                    <RecentActivities activities={anomalies} />
+                </CardContent>
+            )}
         </Card>
     )
 }
@@ -99,26 +97,16 @@ export default function DashboardPage() {
         setLoading(true)
         setError(null)
         
-        console.log('Fetching dashboard data...')
         const response = await fetch(`/api/dashboard?timeframe=${timeframe}`)
         
         if (!response.ok) {
           const errorText = await response.text()
-          console.error('Dashboard API error:', response.status, errorText)
           throw new Error(`Failed to fetch dashboard data (${response.status})`)
         }
         
         const result = await response.json()
-        console.log('Dashboard data received:', result)
-        
-        // Validate the data structure
-        if (!result || typeof result !== 'object') {
-          throw new Error('Invalid dashboard data structure')
-        }
-        
         setData(result)
       } catch (err: any) {
-        console.error('Dashboard fetch error:', err)
         setError(err.message || 'Failed to load dashboard data')
       } finally {
         setLoading(false)
@@ -154,7 +142,6 @@ export default function DashboardPage() {
       return <p>No data available.</p>
     }
 
-    // Safe data access with fallbacks
     const totalProperties = data.totalProperties ?? 0
     const totalTenants = data.totalTenants ?? 0
     const totalRevenue = data.totalRevenue ?? 0
@@ -167,7 +154,7 @@ export default function DashboardPage() {
 
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {data.aiSummary && <AiInsightsCard summary={data.aiSummary} />}
+        {data.aiSummary && <AiInsightsCard summary={data.aiSummary} anomalies={anomalyAlerts} />}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -266,26 +253,6 @@ export default function DashboardPage() {
         </Card>
 
         {user?.role === "landlord" && (
-          <>
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>{t("dashboard.anomalyAlerts")}</CardTitle>
-                <CardDescription>
-                  {t("dashboard.anomalyAlertsDesc")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {anomalyAlerts.length > 0 ? (
-                  <RecentActivities activities={anomalyAlerts} />
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <AlertOctagon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No alerts at this time</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>{t("dashboard.propertyManagers")}</CardTitle>
@@ -301,7 +268,6 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-          </>
         )}
       </div>
     )
@@ -334,7 +300,7 @@ export default function DashboardPage() {
 function DashboardSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="lg:col-span-4">
+      <Card className="lg:col-span-4 bg-primary/5 border-primary/20">
         <CardHeader>
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-full" />
