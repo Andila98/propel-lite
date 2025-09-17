@@ -26,6 +26,7 @@ import type { Tenant, Property } from '@/lib/types';
 import { AnimatedEditIcon } from './icons/animated-edit-icon';
 import { useTenants } from '@/hooks/use-tenants';
 import { DeleteTenantButton } from './delete-tenant-button';
+import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
 
 
 export function TenantTable({ tenants, properties }: { tenants: Tenant[], properties: Property[] }) {
