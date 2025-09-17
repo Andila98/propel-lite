@@ -18,7 +18,7 @@ import Link from 'next/link';
 import type { Tenant, Property, Payment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 type TenantWithDetails = Tenant & { propertyAddress?: string; propertyCurrency?: string; balance: number };
 
@@ -44,11 +44,11 @@ export default function RentSchedulePage() {
             ]);
 
             const tenantsResponse = await tenantsRes.json();
-            const propertiesData: Property[] = await propertiesRes.json();
+            const propertiesData = await propertiesRes.json();
             const paymentsData: Payment[] = await paymentsRes.json();
             
             setTenants(tenantsResponse.tenants || []);
-            setProperties(propertiesData);
+            setProperties(propertiesData.properties || []);
             setPayments(paymentsData);
         } catch (error) {
             toast({ title: "Error", description: "Could not load schedule data.", variant: "destructive" });
