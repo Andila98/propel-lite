@@ -64,7 +64,7 @@ export default function MaintenancePage() {
 
     useEffect(() => {
         fetchRequests();
-    }, [toast]);
+    }, []);
 
     const priorityVariant = (priority: MaintenanceRequest['priority']) => {
         switch (priority) {
