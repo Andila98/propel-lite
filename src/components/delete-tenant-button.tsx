@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
@@ -22,11 +22,14 @@ interface DeleteTenantButtonProps {
     tenantId: string;
     tenantName: string;
     onDeleted: () => void;
+    asChild?: boolean;
+    children?: React.ReactNode;
 }
 
-export function DeleteTenantButton({ tenantId, tenantName, onDeleted }: DeleteTenantButtonProps) {
+export function DeleteTenantButton({ tenantId, tenantName, onDeleted, asChild, children }: DeleteTenantButtonProps) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     const handleDelete = async () => {
         setIsDeleting(true);
@@ -44,6 +47,7 @@ export function DeleteTenantButton({ tenantId, tenantName, onDeleted }: DeleteTe
                 title: "Tenant Deleted",
                 description: `${tenantName} has been removed from your records.`,
             });
+            setIsAlertOpen(false);
             onDeleted();
 
         } catch (err: any) {
@@ -59,15 +63,13 @@ export function DeleteTenantButton({ tenantId, tenantName, onDeleted }: DeleteTe
     };
     
     return (
-        <AlertDialog>
+        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
             <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                    className="text-destructive"
-                    onSelect={(e) => e.preventDefault()}
-                >
-                    <AnimatedDeleteIcon />
-                    Delete
-                </DropdownMenuItem>
+                {asChild ? children : (
+                    <Button variant="destructive">
+                        <AnimatedDeleteIcon /> Delete Tenant
+                    </Button>
+                )}
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>

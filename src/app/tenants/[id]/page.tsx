@@ -20,9 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit } from 'lucide-react';
+import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit, MoreVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Tenant, Property, Payment, Message } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
@@ -259,7 +265,20 @@ export default function TenantDetailPage() {
                     <AnimatedEditIcon /> Edit
                 </Button>
             </Link>
-            <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} onDeleted={handleTenantDeleted} />
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <MoreVertical />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                   <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} onDeleted={handleTenantDeleted} asChild>
+                       <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                            <AnimatedDeleteIcon /> Delete
+                       </DropdownMenuItem>
+                   </DeleteTenantButton>
+                </DropdownMenuContent>
+             </DropdownMenu>
         </div>
       </div>
       

@@ -111,7 +111,14 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} onDeleted={refreshTenants} />
+                      <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} onDeleted={refreshTenants} asChild>
+                         <DropdownMenuItem
+                            className="text-destructive"
+                            onSelect={(e) => e.preventDefault()}
+                          >
+                              <AnimatedDeleteIcon /> Delete
+                          </DropdownMenuItem>
+                      </DeleteTenantButton>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
