@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -24,7 +25,7 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import type { Tenant, Property, Payment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -243,7 +244,7 @@ export default function RentSchedulePage() {
           };
 
           // Apply filters
-          if (filterStatus !== "all" && status.toLowerCase().replace(' ', '') !== filterStatus.replace('partial', 'partiallypaid')) {
+          if (filterStatus !== "all" && status.toLowerCase().replace(' ', '').replace('paid', '') !== filterStatus.replace('partial', 'partially')) {
             return;
           }
           
@@ -279,15 +280,19 @@ export default function RentSchedulePage() {
   const selectedDayKey = selectedDay ? format(selectedDay, 'yyyy-MM-dd') : null;
   const selectedDayEvents = selectedDayKey ? eventDataByDay[selectedDayKey] : null;
 
-  const renderStatusBadge = (status: Tenant['rentStatus']) => {
-    const statusMap = {
-      'Paid': { variant: 'default' as const, className: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0' },
-      'Overdue': { variant: 'destructive' as const, className: 'bg-gradient-to-r from-red-500 to-rose-500 text-white border-0' },
-      'Partially Paid': { variant: 'secondary' as const, className: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0' },
-      'Advance': { variant: 'outline' as const, className: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0' }
-    };
-    const config = statusMap[status];
-    return <Badge variant={config.variant} className={config.className}>{status}</Badge>;
+  const getStatusBadgeVariant = (status: Tenant['rentStatus']): BadgeProps['variant'] => {
+    switch (status) {
+      case 'Paid':
+        return 'success-gradient';
+      case 'Overdue':
+        return 'destructive-gradient';
+      case 'Partially Paid':
+        return 'warning-gradient';
+      case 'Advance':
+        return 'info-gradient';
+      default:
+        return 'default';
+    }
   };
 
   const renderContent = () => {
@@ -505,7 +510,7 @@ export default function RentSchedulePage() {
                                   </Link>
                                   <p className="text-xs text-gray-500">{tenant.propertyAddress}</p>
                                 </div>
-                                {renderStatusBadge(tenant.rentStatus)}
+                                <Badge variant={getStatusBadgeVariant(tenant.rentStatus)}>{tenant.rentStatus}</Badge>
                               </div>
                               <div className="flex items-center justify-between text-xs text-gray-600">
                                 <span>Balance:</span>
@@ -574,3 +579,5 @@ export default function RentSchedulePage() {
     </div>
   );
 }
+
+```

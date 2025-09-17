@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -66,11 +65,11 @@ export default function MaintenancePage() {
         fetchRequests();
     }, []);
 
-    const priorityVariant = (priority: MaintenanceRequest['priority']) => {
+    const priorityVariant = (priority?: MaintenanceRequest['priority']): 'destructive-gradient' | 'warning-gradient' | 'info-gradient' | 'default' => {
         switch (priority) {
-            case 'High': return 'destructive';
-            case 'Medium': return 'secondary';
-            case 'Low': return 'outline';
+            case 'High': return 'destructive-gradient';
+            case 'Medium': return 'warning-gradient';
+            case 'Low': return 'info-gradient';
             default: return 'default';
         }
     };
