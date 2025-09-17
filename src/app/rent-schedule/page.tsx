@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -41,26 +42,26 @@ const StatusIndicator = ({ status, size = "sm" }: { status: Tenant['rentStatus']
     'Paid': { 
       color: 'bg-gradient-to-r from-emerald-500 to-green-500', 
       icon: CheckCircle2, 
-      textColor: 'text-emerald-700',
-      bgColor: 'bg-emerald-50 border-emerald-200'
+      textColor: 'text-emerald-700 dark:text-emerald-400',
+      bgColor: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800'
     },
     'Overdue': { 
       color: 'bg-gradient-to-r from-red-500 to-rose-500', 
       icon: AlertTriangle, 
-      textColor: 'text-red-700',
-      bgColor: 'bg-red-50 border-red-200'
+      textColor: 'text-red-700 dark:text-red-400',
+      bgColor: 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'
     },
     'Partially Paid': { 
       color: 'bg-gradient-to-r from-amber-500 to-orange-500', 
       icon: Clock, 
-      textColor: 'text-amber-700',
-      bgColor: 'bg-amber-50 border-amber-200'
+      textColor: 'text-amber-700 dark:text-amber-400',
+      bgColor: 'bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800'
     },
     'Advance': { 
       color: 'bg-gradient-to-r from-blue-500 to-cyan-500', 
       icon: TrendingUp, 
-      textColor: 'text-blue-700',
-      bgColor: 'bg-blue-50 border-blue-200'
+      textColor: 'text-blue-700 dark:text-blue-400',
+      bgColor: 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800'
     }
   };
 
@@ -88,51 +89,51 @@ const DayCell = ({ day, statuses, reminders }: { day: Date, statuses: TenantWith
   return (
     <div className={cn(
       "flex flex-col h-full p-2 text-xs text-left relative overflow-hidden transition-all duration-200",
-      isRentDueDay && "bg-gradient-to-br from-purple-50 to-pink-50 border-l-2 border-l-purple-400",
+      isRentDueDay && "bg-gradient-to-br from-purple-50 to-pink-50 border-l-2 border-l-purple-400 dark:from-purple-950/50 dark:to-pink-950/50 dark:border-l-purple-600",
       hasRentDue && "hover:shadow-md hover:scale-105"
     )}>
       <div className="flex justify-between items-start mb-1">
-        <span className={cn("font-medium", isRentDueDay && "text-purple-700")}>{format(day, 'd')}</span>
+        <span className={cn("font-medium", isRentDueDay && "text-purple-700 dark:text-purple-400")}>{format(day, 'd')}</span>
         <div className="flex items-center gap-1">
           {hasReminder && <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 animate-pulse" />}
-          {isRentDueDay && <CalendarIcon className="h-3 w-3 text-purple-600" />}
+          {isRentDueDay && <CalendarIcon className="h-3 w-3 text-purple-600 dark:text-purple-400" />}
         </div>
       </div>
       
       <div className="flex-grow space-y-1">
         {hasRentDue && (
           <div className="space-y-1">
-            <p className="font-medium text-gray-700">{statuses.length} tenant{statuses.length !== 1 ? 's' : ''}</p>
+            <p className="font-medium text-gray-700 dark:text-gray-300">{statuses.length} tenant{statuses.length !== 1 ? 's' : ''}</p>
             <div className="flex flex-wrap gap-1">
               {paidCount > 0 && (
                 <div className="flex items-center gap-1">
                   <StatusIndicator status="Paid" />
-                  <span className="text-emerald-600 font-medium">{paidCount}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{paidCount}</span>
                 </div>
               )}
               {overdueCount > 0 && (
                 <div className="flex items-center gap-1">
                   <StatusIndicator status="Overdue" />
-                  <span className="text-red-600 font-medium">{overdueCount}</span>
+                  <span className="text-red-600 dark:text-red-400 font-medium">{overdueCount}</span>
                 </div>
               )}
               {partialCount > 0 && (
                 <div className="flex items-center gap-1">
                   <StatusIndicator status="Partially Paid" />
-                  <span className="text-amber-600 font-medium">{partialCount}</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">{partialCount}</span>
                 </div>
               )}
               {advanceCount > 0 && (
                 <div className="flex items-center gap-1">
                   <StatusIndicator status="Advance" />
-                  <span className="text-blue-600 font-medium">{advanceCount}</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">{advanceCount}</span>
                 </div>
               )}
             </div>
           </div>
         )}
         {hasReminder && !hasRentDue && (
-          <div className="flex items-center gap-1 text-green-600">
+          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
             <Clock className="h-3 w-3" />
             <span>Reminder</span>
           </div>
@@ -152,11 +153,11 @@ const StatsCard = ({ title, value, icon: Icon, trend, color }: {
   <div className={cn("p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-lg hover:-translate-y-1", color)}>
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        {trend && <p className="text-xs text-gray-500 mt-1">{trend}</p>}
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{value}</p>
+        {trend && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{trend}</p>}
       </div>
-      <Icon className="h-8 w-8 text-gray-700" />
+      <Icon className="h-8 w-8 text-gray-700 dark:text-gray-300" />
     </div>
   </div>
 );
@@ -243,7 +244,7 @@ export default function RentSchedulePage() {
           };
 
           // Apply filters
-          if (filterStatus !== "all" && status.toLowerCase().replace(' ', '').replace('paid', '') !== filterStatus.replace('partial', 'partially')) {
+          if (filterStatus !== "all" && status.toLowerCase().replace(' ', '').replace('paid', '') !== filterStatus.replace('partial', 'partiallypaid')) {
             return;
           }
           
@@ -282,13 +283,13 @@ export default function RentSchedulePage() {
   const getStatusBadgeVariant = (status: Tenant['rentStatus']): BadgeProps['variant'] => {
     switch (status) {
       case 'Paid':
-        return 'success-gradient';
+        return 'success';
       case 'Overdue':
-        return 'destructive-gradient';
+        return 'destructive';
       case 'Partially Paid':
-        return 'warning-gradient';
+        return 'secondary';
       case 'Advance':
-        return 'info-gradient';
+        return 'outline';
       default:
         return 'default';
     }
@@ -318,33 +319,33 @@ export default function RentSchedulePage() {
             value={stats.totalTenants}
             icon={Users}
             trend={`${stats.totalTenants} properties`}
-            color="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200"
+            color="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200 dark:bg-gray-900/50 dark:border-gray-800"
           />
           <StatsCard
             title="Paid This Month"
             value={stats.paidCount}
             icon={CheckCircle2}
             trend={`${((stats.paidCount / stats.totalTenants) * 100 || 0).toFixed(1)}% completion`}
-            color="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200"
+            color="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200 dark:bg-gray-900/50 dark:border-gray-800"
           />
           <StatsCard
             title="Overdue"
             value={stats.overdueCount}
             icon={AlertTriangle}
             trend={stats.overdueCount > 0 ? "Needs attention" : "All caught up!"}
-            color={stats.overdueCount > 0 ? "bg-gradient-to-br from-red-50 to-rose-50 border-red-200" : "bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200"}
+            color={stats.overdueCount > 0 ? "bg-gradient-to-br from-red-50 to-rose-50 border-red-200 dark:bg-gray-900/50 dark:border-gray-800" : "bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-800"}
           />
           <StatsCard
             title="Expected Revenue"
             value={formatCurrency(stats.totalRevenue)}
             icon={DollarSign}
             trend="This month"
-            color="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200"
+            color="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 dark:bg-gray-900/50 dark:border-gray-800"
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2 bg-gradient-to-br from-white to-gray-50/50 shadow-xl border-0">
+          <Card className="lg:col-span-2 bg-gradient-to-br from-white to-gray-50/50 shadow-xl border-0 dark:from-gray-900/50 dark:to-gray-950/50 dark:border-gray-800">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -368,9 +369,9 @@ export default function RentSchedulePage() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg">
-                  <CalendarIcon className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-700">Rent due on 1st</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg dark:from-purple-950/50 dark:to-pink-950/50">
+                  <CalendarIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Rent due on 1st</span>
                 </div>
               </div>
             </CardHeader>
@@ -384,14 +385,14 @@ export default function RentSchedulePage() {
                 classNames={{
                   table: 'w-full border-collapse',
                   head_row: 'flex mb-4',
-                  head_cell: 'w-full text-center font-semibold text-gray-600 text-sm py-2',
+                  head_cell: 'w-full text-center font-semibold text-gray-600 dark:text-gray-400 text-sm py-2',
                   row: 'flex w-full mt-2',
-                  cell: 'h-32 flex-1 text-center text-sm p-1 relative',
-                  day: 'h-full w-full p-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 hover:shadow-lg transition-all duration-200 border border-gray-100',
+                  cell: 'h-32 flex-1 text-center text-sm p-1 relative dark:text-gray-200',
+                  day: 'h-full w-full p-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 hover:shadow-lg transition-all duration-200 border border-gray-100 dark:border-gray-800',
                   day_selected: 'ring-2 ring-purple-500 ring-offset-2 bg-gradient-to-br from-purple-500 to-pink-500 text-white border-purple-500',
                   day_today: 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg',
-                  day_outside: 'text-gray-300',
-                  day_disabled: 'text-gray-300',
+                  day_outside: 'text-gray-300 dark:text-gray-600',
+                  day_disabled: 'text-gray-300 dark:text-gray-700',
                 }}
                 components={{ 
                   DayContent: ({ date }) => (
@@ -404,23 +405,23 @@ export default function RentSchedulePage() {
                 }}
               />
             </CardContent>
-            <CardFooter className="flex justify-between items-center border-t pt-6 bg-gradient-to-r from-gray-50 to-white">
+            <CardFooter className="flex justify-between items-center border-t pt-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-950/50 dark:border-gray-800">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
                 <div className="flex items-center gap-2">
                   <StatusIndicator status="Paid" size="md" />
-                  <span className="font-medium">Paid</span>
+                  <span className="font-medium text-foreground">Paid</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusIndicator status="Overdue" size="md" />
-                  <span className="font-medium">Overdue</span>
+                  <span className="font-medium text-foreground">Overdue</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusIndicator status="Partially Paid" size="md" />
-                  <span className="font-medium">Partial</span>
+                  <span className="font-medium text-foreground">Partial</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusIndicator status="Advance" size="md" />
-                  <span className="font-medium">Advance</span>
+                  <span className="font-medium text-foreground">Advance</span>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -438,13 +439,13 @@ export default function RentSchedulePage() {
           
           <div className="lg:col-span-1 space-y-6">
             {/* Enhanced Filters */}
-            <Card className="bg-gradient-to-br from-white to-gray-50/50 shadow-lg border-0">
+            <Card className="bg-gradient-to-br from-white to-gray-50/50 shadow-lg border-0 dark:from-gray-900/50 dark:to-gray-950/50 dark:border-gray-800">
               <CardHeader className="pb-3">
-                <h3 className="font-semibold text-gray-900">Filters & Search</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Filters & Search</h3>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600 mb-2 block">Status Filter</label>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Status Filter</label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="All statuses" />
@@ -459,7 +460,7 @@ export default function RentSchedulePage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600 mb-2 block">Search Tenants</label>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Search Tenants</label>
                   <Input 
                     placeholder="Type tenant name..." 
                     value={searchTerm}
@@ -471,23 +472,23 @@ export default function RentSchedulePage() {
             </Card>
 
             {/* Details Panel */}
-            <Card className="min-h-[400px] bg-gradient-to-br from-white to-gray-50/50 shadow-lg border-0">
+            <Card className="min-h-[400px] bg-gradient-to-br from-white to-gray-50/50 shadow-lg border-0 dark:from-gray-900/50 dark:to-gray-950/50 dark:border-gray-800">
               <CardContent className="p-6">
                 {!selectedDayEvents || (selectedDayEvents.statuses.length === 0 && selectedDayEvents.reminders.length === 0) ? (
                   <div className="flex flex-col items-center justify-center h-full text-center pt-16">
-                    <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mb-4">
-                      <CalendarIcon className="h-10 w-10 text-purple-600" />
+                    <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-950/50 dark:to-pink-950/50 rounded-full flex items-center justify-center mb-4">
+                      <CalendarIcon className="h-10 w-10 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a day to view details</h3>
-                    <p className="text-sm text-gray-500">Click on any calendar day to see tenant information and reminders.</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Select a day to view details</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Click on any calendar day to see tenant information and reminders.</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
                         {selectedDay ? format(selectedDay, 'PPP') : "Select a day"}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {selectedDayEvents.statuses.length} tenant{selectedDayEvents.statuses.length !== 1 ? 's' : ''} 
                         {selectedDayEvents.reminders.length > 0 && ` • ${selectedDayEvents.reminders.length} reminder${selectedDayEvents.reminders.length !== 1 ? 's' : ''}`}
                       </p>
@@ -495,27 +496,27 @@ export default function RentSchedulePage() {
                     
                     {selectedDayEvents.statuses.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
                           <DollarSign className="h-4 w-4" />
                           Rent Status
                         </h4>
                         <div className="space-y-3">
                           {selectedDayEvents.statuses.map(tenant => (
-                            <div key={tenant.id} className="p-3 rounded-lg border bg-white hover:shadow-md transition-all duration-200">
+                            <div key={tenant.id} className="p-3 rounded-lg border bg-background dark:border-gray-800 hover:shadow-md transition-all duration-200">
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <Link href={`/tenants/${tenant.id}`} className="font-medium text-gray-900 hover:text-purple-600 transition-colors">
+                                  <Link href={`/tenants/${tenant.id}`} className="font-medium text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
                                     {tenant.name}
                                   </Link>
-                                  <p className="text-xs text-gray-500">{tenant.propertyAddress}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{tenant.propertyAddress}</p>
                                 </div>
-                                <Badge variant={getStatusBadgeVariant(tenant.rentStatus)}>{tenant.rentStatus}</Badge>
+                                <Badge variant={getStatusBadgeVariant(tenant.rentStatus)} className="text-white dark:text-gray-900">{tenant.rentStatus}</Badge>
                               </div>
-                              <div className="flex items-center justify-between text-xs text-gray-600">
+                              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
                                 <span>Balance:</span>
                                 <span className={cn(
                                   "font-semibold",
-                                  tenant.balance > 0 ? "text-red-600" : "text-green-600"
+                                  tenant.balance > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
                                 )}>
                                   {formatCurrency(tenant.balance, tenant.propertyCurrency)}
                                 </span>
@@ -528,7 +529,7 @@ export default function RentSchedulePage() {
                     
                     {selectedDayEvents.reminders.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
                           <Clock className="h-4 w-4" />
                           Scheduled Reminders
                         </h4>
@@ -536,15 +537,15 @@ export default function RentSchedulePage() {
                           {selectedDayEvents.reminders.map(reminder => {
                             const tenant = tenants.find(t => t.id === reminder.tenantId);
                             return (
-                              <div key={reminder.id} className="p-3 rounded-lg border bg-white hover:shadow-md transition-all duration-200">
+                              <div key={reminder.id} className="p-3 rounded-lg border bg-background dark:border-gray-800 hover:shadow-md transition-all duration-200">
                                 <div className="flex justify-between items-center">
                                   <div>
-                                    <p className="font-medium text-gray-900 capitalize">
+                                    <p className="font-medium text-gray-900 dark:text-gray-100 capitalize">
                                       {reminder.reminderType.replace('Due', ' Due')}
                                     </p>
-                                    <p className="text-xs text-gray-500">{tenant?.name || 'N/A'}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{tenant?.name || 'N/A'}</p>
                                   </div>
-                                  <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-green-200">
+                                  <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-green-200 dark:from-green-950/50 dark:to-emerald-950/50 dark:text-green-300 dark:border-green-800">
                                     Scheduled
                                   </Badge>
                                 </div>
@@ -565,13 +566,13 @@ export default function RentSchedulePage() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-gradient-to-br from-gray-50 to-white min-h-screen">
+    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-gradient-to-br from-gray-50 to-white min-h-screen dark:from-gray-950 dark:to-black">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             Rent Schedule
           </h2>
-          <p className="text-gray-600 mt-1">Monitor rent payments and manage tenant reminders</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Monitor rent payments and manage tenant reminders</p>
         </div>
       </div>
       {renderContent()}
