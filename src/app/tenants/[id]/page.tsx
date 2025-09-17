@@ -33,6 +33,7 @@ import { useState, useEffect } from 'react';
 import type { Tenant, Property, Payment, Message } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatThread } from '@/components/chat-thread';
 import { predictPayment } from '@/ai/flows/predict-payment-flow';
