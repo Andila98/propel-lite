@@ -30,10 +30,12 @@ async function getInvoiceData(input: GenerateInvoiceInput) {
     const unit = unitSnapshot.data()!;
     
     const now = new Date();
+    const invoiceNumber = `INV-${format(now, 'yyyy')}-${Math.floor(1000 + Math.random() * 9000)}`;
     const invoiceDate = format(now, 'yyyy-MM-dd');
     const dueDate = format(add(now, { days: 5 }), 'yyyy-MM-dd'); // Due in 5 days
 
     return {
+        invoiceNumber,
         tenantName: tenant.name,
         propertyAddress: `${property.address}, Unit ${unit.unitNumber}`,
         rentAmount: unit.rent,
@@ -48,6 +50,7 @@ const prompt = ai.definePrompt({
   name: 'generateInvoicePrompt',
   input: {
     schema: z.object({
+        invoiceNumber: z.string(),
         tenantName: z.string(),
         propertyAddress: z.string(),
         rentAmount: z.number(),
@@ -60,12 +63,12 @@ const prompt = ai.definePrompt({
   prompt: `You are an accounting assistant. Your task is to generate a formal rent invoice.
   
 The current month is ${format(new Date(), 'MMMM yyyy')}.
-The invoice number should be a unique combination of 'INV-', the current year, and a 4-digit random number.
 The invoice should include a line item for the monthly rent.
 The total amount is just the rent amount.
 Include a polite, standard note for the tenant.
 
 Data:
+- Invoice Number: {{invoiceNumber}}
 - Tenant Name: {{tenantName}}
 - Property Address: {{propertyAddress}}
 - Rent Amount: {{rentAmount}}
