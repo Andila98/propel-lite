@@ -3,16 +3,14 @@
 
 import { generateReceipt } from '@/ai/flows/generate-receipt';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import type { GenerateReceiptOutput } from '@/lib/schema-types';
-import { ReceiptInputSchema } from '@/lib/schemas';
-import type { z } from 'zod';
+import type { GenerateReceiptOutput, GenerateReceiptInput } from '@/lib/schema-types';
 
 export interface ReceiptState {
     error?: string;
     receipt?: GenerateReceiptOutput;
 }
 
-export async function getReceiptAction(input: z.infer<typeof ReceiptInputSchema>): Promise<ReceiptState> {
+export async function getReceiptAction(input: GenerateReceiptInput): Promise<ReceiptState> {
     if (!isFirebaseAdminInitialized) {
         console.error('[ERROR: getReceiptAction] Backend services are not configured.');
         return { error: "Backend services are not configured. Please contact support." };

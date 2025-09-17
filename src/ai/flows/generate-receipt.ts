@@ -5,7 +5,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { GenerateReceiptInputSchema, GenerateReceiptOutputSchema, type GenerateReceiptInput, type GenerateReceiptOutput } from '@/lib/schema-types';
 
@@ -38,18 +37,17 @@ async function getReceiptData(input: GenerateReceiptInput) {
     };
 }
 
-
 const prompt = ai.definePrompt({
   name: 'generateReceiptPrompt',
   input: {
-    schema: z.object({
-        receiptNumber: z.string(),
-        paymentDate: z.string(),
-        tenantName: z.string(),
-        propertyAddress: z.string(),
-        amountPaid: z.number(),
-        currency: z.string(),
-        paymentMethod: z.string(),
+    schema: GenerateReceiptOutputSchema.pick({
+        receiptNumber: true,
+        paymentDate: true,
+        tenantName: true,
+        propertyAddress: true,
+        amountPaid: true,
+        currency: true,
+        paymentMethod: true,
     })
   },
   output: {schema: GenerateReceiptOutputSchema},
@@ -65,7 +63,6 @@ Data:
 
 Generate the full receipt object. Include a brief, polite thank you note.`,
 });
-
 
 export const generateReceiptFlow = ai.defineFlow(
   {
