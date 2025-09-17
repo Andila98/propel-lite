@@ -43,6 +43,16 @@ export async function GET(request: any) {
         }
         
         console.log('[DEBUG] Auth successful for landlord:', landlordId);
+
+        // Add this before any Firestore queries
+        try {
+            console.log(`[DEBUG] Testing Firestore connection...`);
+            const testQuery = await firestore.collection('properties').limit(1).get();
+            console.log(`[DEBUG] Basic Firestore test successful, found ${testQuery.docs.length} docs`);
+        } catch (testError: any) {
+            console.error(`[DEBUG] Firestore test failed:`, testError);
+            throw new Error(`Firestore connection failed: ${testError.message}`);
+        }
         
         // Start with basic Firestore queries
         console.log('[DEBUG] Querying Firestore...');
