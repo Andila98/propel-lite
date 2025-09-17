@@ -113,22 +113,17 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             const formData = new FormData();
             formData.append('file', file);
             
-            console.log('[DEBUG] Uploading file:', file.name);
             const res = await fetch('/api/upload', { 
                 method: 'POST', 
                 body: formData 
             });
             
-            console.log('[DEBUG] Upload response status:', res.status);
-            
             if (!res.ok) {
-                const errorData = await res.text();
-                console.error('[DEBUG] Upload error response:', errorData);
-                throw new Error(`Upload failed: ${res.status}`);
+                const errorData = await res.json();
+                throw new Error(errorData.error || `Upload failed: ${res.status}`);
             }
             
             const { url } = await res.json();
-            console.log('[DEBUG] Upload successful:', url);
             
             setValue('imageUrl', url);
             setImagePreview(url);
@@ -226,17 +221,27 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
   
-  const onClientSubmit = () => {
+  const clientAction = (formData: FormData) => {
+    // This is the client-side validation before submitting to the server action.
     handleSubmit((data) => {
-      const formData = new FormData();
+      // Append all form data to the FormData object to be sent to the server action.
       Object.keys(data).forEach(key => {
         const value = (data as any)[key];
         if (key === 'units') {
-          formData.append(key, JSON.stringify(value));
+          formData.set(key, JSON.stringify(value));
         } else if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
+          formData.set(key, String(value));
         }
       });
+      // The `imageUrl` is handled separately because it's part of the React Hook Form state
+      // but not a direct input in the form itself. This ensures the uploaded URL is sent.
+      const imageUrl = getValues('imageUrl');
+      if (imageUrl) {
+        formData.set('imageUrl', imageUrl);
+      } else {
+        formData.delete('imageUrl');
+      }
+      
       formAction(formData);
     })();
   };
@@ -255,7 +260,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <TooltipProvider>
-    <form onSubmit={onClientSubmit}>
+    <form action={clientAction}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-6">
                 <Card>
@@ -523,5 +528,3 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     </TooltipProvider>
   );
 }
-
-    
