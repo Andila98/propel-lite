@@ -20,6 +20,15 @@ import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormStatus } from 'react-dom';
 import { createTenantAction } from '../actions';
 
+interface PropertiesResponse {
+  properties: Property[];
+  meta: {
+    totalProperties: number;
+    totalUnits: number;
+    occupiedUnits: number;
+    occupancyRate: number;
+  };
+}
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -80,9 +89,9 @@ export default function AddTenantPage() {
       try {
         const res = await fetch('/api/properties');
         if (!res.ok) throw new Error("Failed to fetch properties");
-        const data = await res.json();
-        // Correctly access the array directly from the API response
-        setProperties(data || []);
+        const data: PropertiesResponse = await res.json();
+        // Correctly access the properties array from the API response
+        setProperties(data.properties || []);
       } catch (err: any) {
         toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
       } finally {
