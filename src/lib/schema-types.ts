@@ -99,7 +99,7 @@ export const GenerateReceiptOutputSchema = z.object({
 });
 export type GenerateReceiptOutput = z.infer<typeof GenerateReceiptOutputSchema>;
 
-// src/ai/flows/generate-report-flow.ts
+// src/ai/flows/generate-report-flow.ts & src/app/reports/actions.ts
 export const ReportInputSchema = z.object({
     month: z.number().min(0).max(11),
     year: z.number().min(2020),

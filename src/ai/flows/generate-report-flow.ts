@@ -45,7 +45,7 @@ async function getReportData(input: ReportInput) {
     const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
     
     // This is a simplified calculation for late payments
-    const latePayments = paymentsSnapshot.docs.filter(doc => new Date(doc.data().date.toDate()).getDate() > 5).length;
+    const latePayments = paymentsSnapshot.docs.filter(doc => new Date(doc.data().date).getDate() > 5).length;
     
     const newMaintenanceRequests = maintenanceSnapshot.size;
 
