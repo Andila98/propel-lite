@@ -6,7 +6,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { subMonths, getMonth, getYear } from 'date-fns';
 import { 
     PredictPaymentInputSchema, 
@@ -29,10 +29,10 @@ async function buildTransitionMatrix(tenantId: string) {
     const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
     if (!tenantDoc.exists) throw new Error("Tenant not found");
     const tenantData = tenantDoc.data();
-    if (!tenantData) throw new Error("Tenant data is missing.");
+    if (!tenantData || !tenantData.propertyId) throw new Error("Tenant data is incomplete or missing propertyId.");
 
     const propertyDoc = await firestore.collection('properties').doc(tenantData.propertyId).get();
-    if (!propertyDoc.exists) throw new Error("Property not found");
+    if (!propertyDoc.exists) throw new Error("Property not found for tenant.");
     
     const unitDoc = await propertyDoc.ref.collection('units').doc(tenantData.currentUnitId).get();
     if (!unitDoc.exists) throw new Error("Unit not found for tenant.");
@@ -141,7 +141,7 @@ const predictPaymentFlow = ai.defineFlow(
   async (input) => {
     try {
         return await predictNextPayment(input);
-    } catch (error) {
+    } catch (error: any) {
         console.error('[ERROR: predictPaymentFlow]', error);
         throw new Error('Failed to predict payment due to an internal AI error.');
     }
