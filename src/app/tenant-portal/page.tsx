@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -213,7 +214,7 @@ export default function TenantPortalPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Welcome, {tenant.name}</h2>
+        <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Welcome, {tenant.name}</h2>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -237,13 +238,19 @@ export default function TenantPortalPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Rent Status</span>
-              <span className={`font-semibold ${rentStatus === 'Paid' ? 'text-green-600' : 'text-destructive'}`}>{rentStatus}</span>
+              <span className={cn(
+                  "font-semibold",
+                  rentStatus === 'Paid' && 'text-green-600',
+                  rentStatus === 'Overdue' && 'text-destructive',
+                  rentStatus === 'Partially Paid' && 'text-yellow-600',
+                  rentStatus === 'Advance' && 'text-blue-600',
+              )}>{rentStatus}</span>
             </div>
           </CardContent>
           <CardFooter className="flex-col items-stretch gap-2">
             <Dialog>
                 <DialogTrigger asChild>
-                    <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Make a Payment</Button>
+                    <Button className="w-full">Make a Payment</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>

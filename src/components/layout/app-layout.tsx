@@ -143,7 +143,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sticky top-0 z-30 md:px-6">
+        <header className="flex h-14 items-center gap-4 border-b bg-card/70 backdrop-blur-sm px-4 sticky top-0 z-30 md:px-6 shadow-sm">
           <SidebarTrigger className="md:hidden" />
           <div className="flex w-full items-center justify-end gap-4">
             <ThemeToggle />
@@ -155,7 +155,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
-        <main className="flex flex-1 flex-col bg-background">
+        <main className="flex flex-1 flex-col bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-black">
           {children}
         </main>
       </SidebarInset>

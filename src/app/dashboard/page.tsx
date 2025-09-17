@@ -276,7 +276,7 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex flex-col items-start justify-between space-y-2 sm:flex-row sm:items-center">
-        <h2 className="text-3xl font-bold tracking-tight">
+        <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
           {t("dashboard.title")}
         </h2>
         <div className="flex items-center space-x-2">
