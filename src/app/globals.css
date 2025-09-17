@@ -82,4 +82,14 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
+  
+  /* Add smooth transitions to common interactive elements */
+  button, a, [role="button"], input, textarea, select {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Add a subtle glow effect on focus for better accessibility */
+  *:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
 }
