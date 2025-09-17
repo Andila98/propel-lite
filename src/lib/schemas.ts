@@ -54,7 +54,7 @@ export const PropertyFormSchema = z.object({
       (val) => val.split(',').length >= 2,
       "Address should include area/city (use commas to separate)"
     ),
-  type: z.enum(["Apartment", "House", "Bedsitter", "Commercial", "Office"], {
+  type: z.enum(["Apartment", "House", "Bedsitter"], {
     required_error: "Please select a property type",
   }),
   description: z
@@ -254,7 +254,7 @@ export type PriceSuggestionValues = z.infer<typeof PriceSuggestionSchema>;
 // REMINDER Schema with enhanced validation
 export const ScheduleReminderFormSchema = z.object({
   tenantId: z.string().min(1, "Please select a tenant"),
-  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance', 'inspection', 'custom'], {
+  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance'], {
     required_error: "Please select a reminder type"
   }),
   scheduledFor: z
