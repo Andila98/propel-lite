@@ -5,6 +5,7 @@ import { toJSON } from '@/lib/utils';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { authConfig } from '@/config/server-config';
 import type { Tenant, Property, Payment } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
                 tenantName: tenant?.name || 'N/A',
                 propertyAddress: property?.address || 'N/A',
                 property,
+                // The formattedAmount is no longer needed here as formatting is done client-side
             };
         });
         
