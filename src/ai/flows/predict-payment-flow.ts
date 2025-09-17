@@ -43,7 +43,6 @@ async function buildTransitionMatrix(tenantId: string) {
 
     const paymentsSnapshot = await firestore.collection('payments')
         .where('tenantId', '==', tenantId)
-        .where('type', '==', 'Rent')
         .orderBy('date', 'asc')
         .get();
         
