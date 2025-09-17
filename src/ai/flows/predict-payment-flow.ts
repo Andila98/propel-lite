@@ -25,17 +25,20 @@ type PaymentStatus = 'Paid' | 'Overdue' | 'Partially Paid' | 'New';
  */
 async function buildTransitionMatrix(tenantId: string) {
     if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");
+    
     const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
     if (!tenantDoc.exists) throw new Error("Tenant not found");
-    const tenantData = tenantDoc.data()!;
+    const tenantData = tenantDoc.data();
+    if (!tenantData) throw new Error("Tenant data is missing.");
 
     const propertyDoc = await firestore.collection('properties').doc(tenantData.propertyId).get();
     if (!propertyDoc.exists) throw new Error("Property not found");
-    const propertyData = propertyDoc.data()!;
-
+    
     const unitDoc = await propertyDoc.ref.collection('units').doc(tenantData.currentUnitId).get();
-    if (!unitDoc.exists) throw new Error("Unit not found");
-    const unitData = unitDoc.data()!;
+    if (!unitDoc.exists) throw new Error("Unit not found for tenant.");
+    const unitData = unitDoc.data();
+    if (!unitData) throw new Error("Unit data is missing.");
+
     const rentAmount = unitData.rent;
 
     const paymentsSnapshot = await firestore.collection('payments')
