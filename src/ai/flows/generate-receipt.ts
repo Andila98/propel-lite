@@ -28,7 +28,7 @@ async function getReceiptData(input: GenerateReceiptInput) {
 
     return {
         receiptNumber: `RCPT-${paymentSnapshot.id.substring(0, 6).toUpperCase()}`,
-        paymentDate: new Date(payment.date).toISOString(), // Correctly handle the date string
+        paymentDate: payment.date.toDate().toISOString(), // Convert Firestore Timestamp to ISO string
         tenantName: tenant.name,
         propertyAddress: property.address,
         amountPaid: payment.amount,

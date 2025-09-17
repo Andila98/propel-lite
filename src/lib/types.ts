@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from "firebase-admin/firestore";
 import type { GenerateReceiptOutput as GenReceiptOutput } from '@/ai/flows/generate-receipt';
 import type { GenerateInvoiceOutput as GenInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
