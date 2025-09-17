@@ -33,6 +33,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 
 type TenantWithDetails = Tenant & { propertyAddress?: string; propertyCurrency?: string; balance: number };
 type Reminder = { id: string; scheduledFor: string; reminderType: string; tenantId: string };
