@@ -319,7 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (!response.ok) {
       const responseBody = await response.json();
-      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.errorCode);
+      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
   }, []);
 

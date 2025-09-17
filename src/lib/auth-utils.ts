@@ -1,4 +1,5 @@
 
+
 import type { NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
@@ -190,14 +191,59 @@ export async function getLandlordId(sessionCookie: string | undefined | null): P
     return null;
 }
 
-/**
- * Enhanced function for server actions with better error handling
- */
-export async function getLandlordAndActor(reqOrCookie: string, directUidFetch = false): Promise<{
+// Result type for getLandlordAndActor
+type GetActorResult = {
     landlordId: string | null;
     actor: UserRecord | null;
     error?: AuthError;
-}> {
+};
+
+
+async function getActorFromUid(uid: string): Promise<GetActorResult> {
+    try {
+        const actor = await auth.getUser(uid);
+        const role = actor.customClaims?.role;
+        let landlordId: string | null = null;
+        
+        switch (role) {
+            case 'landlord':
+                landlordId = actor.uid;
+                break;
+            case 'manager':
+                landlordId = actor.customClaims?.landlordId;
+                if (!landlordId) {
+                    return { landlordId: null, actor, error: new AuthError('Manager is not linked to a landlord', 'INVALID_MANAGER_SETUP', 403) };
+                }
+                break;
+        }
+
+        return { landlordId, actor };
+    } catch (e) {
+        return { landlordId: null, actor: null, error: new AuthError('User not found', 'USER_NOT_FOUND', 404) };
+    }
+}
+
+
+async function getActorFromCookie(cookie: string): Promise<GetActorResult> {
+    try {
+        const claims = await auth.verifySessionCookie(cookie, true);
+        return getActorFromUid(claims.uid);
+    } catch (error: any) {
+        if (error.code === 'auth/session-cookie-expired') {
+            return { landlordId: null, actor: null, error: new SessionExpiredError() };
+        }
+        return { landlordId: null, actor: null, error: new InvalidSessionError() };
+    }
+}
+
+/**
+ * Enhanced function to get the acting user (actor) and their associated landlord ID.
+ * It can operate based on a session cookie or directly from a UID.
+ */
+export async function getLandlordAndActor(
+    identifier: string,
+    isUid: boolean = false
+): Promise<GetActorResult> {
     if (!isFirebaseAdminInitialized) {
         return {
             landlordId: null,
@@ -205,77 +251,11 @@ export async function getLandlordAndActor(reqOrCookie: string, directUidFetch = 
             error: new AuthError('Authentication service unavailable', 'SERVICE_UNAVAILABLE', 503)
         };
     }
-
-    let claims: DecodedIdToken | null = null;
-    let actor: UserRecord | null = null;
-
-    if (directUidFetch && typeof reqOrCookie === 'string') {
-        try {
-            actor = await auth.getUser(reqOrCookie);
-            claims = actor.customClaims as DecodedIdToken;
-        } catch (e) {
-            return {
-                landlordId: null, actor: null,
-                error: new AuthError('User not found', 'USER_NOT_FOUND', 404)
-            };
-        }
-    } else if (typeof reqOrCookie === 'string') {
-        try {
-            claims = await auth.verifySessionCookie(reqOrCookie, true);
-            actor = await auth.getUser(claims.uid);
-        } catch (error: any) {
-             if (error.code === 'auth/session-cookie-expired') {
-                return { landlordId: null, actor: null, error: new SessionExpiredError() };
-            }
-            return { landlordId: null, actor: null, error: new InvalidSessionError() };
-        }
-    }
-
-    if (!claims || !actor) {
-        return {
-            landlordId: null,
-            actor: null,
-            error: new AuthError('No session found', 'NO_SESSION')
-        };
-    }
-
-    try {
-        let landlordId: string | null = null;
-        const role = actor.customClaims?.role;
-
-        switch (role) {
-            case 'landlord':
-                landlordId = actor.uid;
-                break;
-            case 'manager':
-                landlordId = actor.customClaims?.landlordId || null;
-                if (!landlordId) {
-                    return {
-                        landlordId: null,
-                        actor: null,
-                        error: new AuthError('Manager missing landlordId', 'INVALID_MANAGER_SETUP')
-                    };
-                }
-                break;
-            case 'admin':
-                landlordId = null; 
-                break;
-            default:
-                return {
-                    landlordId: null,
-                    actor: null,
-                    error: new AuthError('Invalid role for this operation', 'INVALID_ROLE')
-                };
-        }
-        
-        return { landlordId, actor };
-    } catch (error: any) {
-        console.error('[AuthUtils] getLandlordAndActor failed:', error.code);
-        return {
-            landlordId: null,
-            actor: null,
-            error: new AuthError('Authentication failed', 'AUTH_ERROR', 500)
-        };
+    
+    if (isUid) {
+        return getActorFromUid(identifier);
+    } else {
+        return getActorFromCookie(identifier);
     }
 }
 

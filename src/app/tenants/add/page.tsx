@@ -124,19 +124,19 @@ export default function AddTenantPage() {
                 <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
-                    <Input id="name" name="name" autoComplete="name" {...register('name')} />
+                    <Input id="name" autoComplete="name" {...register('name')} />
                     {state.errors?.name && <p className="text-sm text-destructive mt-1">{state.errors.name[0]}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="email">Tenant Email</Label>
-                        <Input id="email" name="email" type="email" autoComplete="email" {...register('email')} />
+                        <Input id="email" type="email" autoComplete="email" {...register('email')} />
                         {state.errors?.email && <p className="text-sm text-destructive mt-1">{state.errors.email[0]}</p>}
                     </div>
                      <div>
                         <Label htmlFor="phone">Phone Number (Optional)</Label>
-                        <Input id="phone" name="phone" autoComplete="tel" {...register('phone')} />
+                        <Input id="phone" autoComplete="tel" {...register('phone')} />
                         {state.errors?.phone && <p className="text-sm text-destructive mt-1">{state.errors.phone[0]}</p>}
                     </div>
                 </div>
@@ -152,7 +152,6 @@ export default function AddTenantPage() {
                                         field.onChange(value);
                                         setValue('unitId', ''); // Reset unit when property changes
                                     }} 
-                                    name="propertyId" 
                                     defaultValue={field.value} 
                                     disabled={propertiesLoading}
                                 >
@@ -175,7 +174,7 @@ export default function AddTenantPage() {
                             name="unitId"
                             control={control}
                             render={({ field }) => (
-                                 <Select name="unitId" onValueChange={field.onChange} value={field.value || ''} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                                 <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedPropertyId || availableUnits.length === 0}>
                                     <SelectTrigger id="unitId">
                                         <SelectValue placeholder={!selectedPropertyId ? "Select a property first" : (availableUnits.length > 0 ? "Select a unit..." : "No available units")} />
                                     </SelectTrigger>
@@ -196,12 +195,12 @@ export default function AddTenantPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                     <Label htmlFor="leaseStart">Lease Start Date</Label>
-                    <Input id="leaseStart" name="leaseStart" type="date" {...register('leaseStart')} />
+                    <Input id="leaseStart" type="date" {...register('leaseStart')} />
                     {state.errors?.leaseStart && <p className="text-sm text-destructive mt-1">{state.errors.leaseStart[0]}</p>}
                     </div>
                     <div>
                     <Label htmlFor="leaseEnd">Lease End Date</Label>
-                    <Input id="leaseEnd" name="leaseEnd" type="date" {...register('leaseEnd')} />
+                    <Input id="leaseEnd" type="date" {...register('leaseEnd')} />
                     {state.errors?.leaseEnd && <p className="text-sm text-destructive mt-1">{state.errors.leaseEnd[0]}</p>}
                     </div>
                 </div>
