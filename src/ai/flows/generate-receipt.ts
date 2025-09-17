@@ -28,7 +28,7 @@ async function getReceiptData(input: GenerateReceiptInput) {
 
     return {
         receiptNumber: `RCPT-${paymentSnapshot.id.substring(0, 6).toUpperCase()}`,
-        paymentDate: (payment.date.toDate() as Date).toISOString(),
+        paymentDate: new Date(payment.date).toISOString(), // Correctly handle the date string
         tenantName: tenant.name,
         propertyAddress: property.address,
         amountPaid: payment.amount,
