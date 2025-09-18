@@ -57,11 +57,25 @@ export async function POST(req: NextRequest) {
             displayName,
         });
 
+        const defaultPermissions = {
+            canAddProperties: false,
+            canEditProperties: true,
+            canDeleteProperties: false,
+            canAddTenants: true,
+            canEditTenants: true,
+            canDeleteTenants: false,
+            canViewPayments: true,
+            canViewTenants: true, // Grant view permission by default
+            canManageManagers: false,
+            canManageSettings: false,
+        };
+
         // 2. Set custom claims for role-based access in middleware/security rules
         await auth.setCustomUserClaims(userRecord.uid, { 
             role: role, 
             profileComplete: true,
-            landlordId: inviterId
+            landlordId: inviterId,
+            permissions: defaultPermissions
         });
 
         // 3. Create the manager profile in Firestore, making it the source of truth for permissions
@@ -72,17 +86,7 @@ export async function POST(req: NextRequest) {
             role: 'manager', // Store role directly in Firestore
             propertiesManaged: [],
             landlordId: inviterId, 
-            permissions: {
-                canAddProperties: false,
-                canEditProperties: true,
-                canDeleteProperties: false,
-                canAddTenants: true,
-                canEditTenants: true,
-                canDeleteTenants: false,
-                canViewPayments: true,
-                canManageManagers: false,
-                canManageSettings: false,
-            },
+            permissions: defaultPermissions,
         };
         
         await firestore.collection('managers').doc(userRecord.uid).set(newManager);
