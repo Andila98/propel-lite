@@ -4,6 +4,8 @@
  * @fileOverview Configuration management system for AI flows
  */
 
+import {z} from 'zod';
+
 export interface FlowConfig {
     enabled: boolean;
     timeout: number;
