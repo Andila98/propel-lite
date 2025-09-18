@@ -15,7 +15,12 @@ import {
 } from '@/lib/schema-types';
 import { withErrorHandling } from '@/lib/flow-errors';
 import { withMonitoring } from '@/lib/flow-monitor';
+import { logActivity } from '@/lib/audit-log-service';
+import { getLandlordAndActor } from '@/lib/auth-utils';
+import { cookies } from 'next/headers';
+import { authConfig } from '@/config/server-config';
 
+// Extended interface for receipt data
 interface ReceiptData {
     receiptNumber: string;
     paymentDate: string;
@@ -43,6 +48,7 @@ async function getReceiptData(input: GenerateReceiptInput): Promise<ReceiptData>
     const tenant = tenantSnapshot.data()!;
     const payment = paymentSnapshot.data()!;
     
+    // Validate tenant-payment relationship
     if (payment.tenantId !== input.tenantId) {
         throw new Error('Payment does not belong to the specified tenant');
     }
@@ -53,31 +59,41 @@ async function getReceiptData(input: GenerateReceiptInput): Promise<ReceiptData>
     
     let unitInfo = '';
     if (tenant.currentUnitId) {
-        const unitSnapshot = await propertySnapshot.ref.collection('units').doc(tenant.currentUnitId).get();
-        if (unitSnapshot.exists) {
-            const unit = unitSnapshot.data()!;
-            unitInfo = `, Unit ${unit.unitNumber}`;
+        try {
+            // Use payment.propertyId which is guaranteed to be correct for this payment
+            const unitSnapshot = await firestore.collection('properties').doc(payment.propertyId).collection('units').doc(tenant.currentUnitId).get();
+            if (unitSnapshot.exists) {
+                const unit = unitSnapshot.data()!;
+                unitInfo = `, Unit ${unit.unitNumber}`;
+            }
+        } catch (error) {
+            console.warn('Could not retrieve unit information:', error);
         }
     }
     
-    // Robust date handling
     let paymentDate: string;
-    if (payment.date && typeof (payment.date as any).toDate === 'function') {
-        paymentDate = (payment.date as any).toDate().toISOString();
-    } else if (typeof payment.date === 'string') {
-        paymentDate = new Date(payment.date).toISOString();
-    } else {
-        paymentDate = new Date().toISOString(); // Fallback
+    try {
+        if (payment.date && typeof (payment.date as any).toDate === 'function') {
+            paymentDate = (payment.date as any).toDate().toISOString();
+        } else if (typeof payment.date === 'string') {
+            paymentDate = new Date(payment.date).toISOString();
+        } else {
+            console.warn('Payment date not found or invalid, using current date');
+            paymentDate = new Date().toISOString();
+        }
+    } catch (error) {
+        console.warn('Error parsing payment date:', error);
+        paymentDate = new Date().toISOString();
     }
     
     return {
         receiptNumber: `RCPT-${paymentSnapshot.id.substring(0, 8).toUpperCase()}`,
         paymentDate,
-        tenantName: tenant.name,
-        propertyAddress: `${property.address}${unitInfo}`,
-        amountPaid: payment.amount,
+        tenantName: tenant.name || 'Unknown Tenant',
+        propertyAddress: `${property.address || 'Unknown Address'}${unitInfo}`,
+        amountPaid: payment.amount || 0,
         currency: property.currency || 'KES',
-        paymentMethod: payment.method,
+        paymentMethod: payment.method || 'Unknown',
         paymentDescription: (payment as any).description || 'Monthly Rent Payment',
     };
 }
@@ -90,22 +106,30 @@ const noteGenerationPrompt = ai.definePrompt({
             tenantName: z.string(),
             amountPaid: z.number(),
             currency: z.string(),
-            paymentMethod: z.string(),
         })
     },
     output: { schema: z.object({ notes: z.string() }) },
-    prompt: `Generate a brief, professional, and courteous thank you note for a receipt.
+    prompt: `Generate a brief, professional, and courteous thank you note for a payment receipt.
     
-    Tenant Name: {{tenantName}}
-    Amount: {{amountPaid}} {{currency}}
+    Context:
+    - Tenant: {{tenantName}}
+    - Amount: {{amountPaid}} {{currency}}
     
-    Make the note friendly and confirm the payment. Do not include any other details, only the note itself.`,
+    Requirements:
+    - Keep it under 40 words.
+    - Be warm but professional.
+    - Thank them for the payment.
+    
+    Example: "Thank you for your payment of {{amountPaid}} {{currency}}. We appreciate your promptness and value you as a tenant."`,
     config: {
-        temperature: 0.5,
-        timeout: 10, // 10-second timeout
+        temperature: 0.3,
+        timeout: 10000,
     },
 });
 
+function generateFallbackNote(data: ReceiptData): string {
+    return `Thank you for your payment of ${data.currency} ${data.amountPaid.toLocaleString()}. We appreciate your promptness and value you as a tenant.`;
+}
 
 export const generateReceiptFlow = ai.defineFlow(
     {
@@ -114,19 +138,36 @@ export const generateReceiptFlow = ai.defineFlow(
         outputSchema: GenerateReceiptOutputSchema,
     },
     withMonitoring('generateReceiptFlow', withErrorHandling('generateReceiptFlow', async (input) => {
+        
         const receiptData = await getReceiptData(input);
         
-        const { output } = await noteGenerationPrompt({
-            tenantName: receiptData.tenantName,
-            amountPaid: receiptData.amountPaid,
-            currency: receiptData.currency,
-            paymentMethod: receiptData.paymentMethod,
-        });
-
+        let notes: string;
+        try {
+            const { output } = await noteGenerationPrompt({
+                tenantName: receiptData.tenantName,
+                amountPaid: receiptData.amountPaid,
+                currency: receiptData.currency,
+            });
+            notes = output?.notes || generateFallbackNote(receiptData);
+        } catch (aiError) {
+            console.warn('AI note generation failed, using fallback:', aiError);
+            notes = generateFallbackNote(receiptData);
+        }
+        
         const result: GenerateReceiptOutput = {
             ...receiptData,
-            notes: output?.notes || `Thank you for your payment of ${receiptData.currency} ${receiptData.amountPaid}.`,
+            notes,
         };
+        
+        try {
+            const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+            const { actor, landlordId } = await getLandlordAndActor(sessionCookie || '');
+            if (actor && landlordId) {
+                 await logActivity(actor.displayName || 'System', `Generated receipt ${result.receiptNumber} for tenant "${result.tenantName}"`, { type: 'Tenant', name: result.tenantName }, landlordId);
+            }
+        } catch (auditError) {
+            console.error('Failed to create audit trail:', auditError);
+        }
         
         return result;
     }))
