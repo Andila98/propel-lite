@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview Configuration management system for AI flows
  */
@@ -300,11 +299,9 @@ export const FeatureFlags = {
     isEnabled: (flagName: string) => configManager.getFeatureFlag(flagName),
 };
 
-export async function getBusinessConfig() {
-    return {
-        highPriorityKeywords: ['fire', 'leak', 'gas', 'electrical', 'security', 'lock', 'broken window', 'no heat', 'no water'],
-        satisfactionThreshold: 7,
-        propertyAgeThreshold: 15,
-        occupancyRateThreshold: 85, // Default threshold for flagging low occupancy
-    }
-};
+export const BUSINESS_CONFIG = {
+    highPriorityKeywords: ['fire', 'leak', 'gas', 'electrical', 'security', 'lock', 'broken window', 'no heat', 'no water'],
+    satisfactionThreshold: 7,
+    propertyAgeThreshold: 15,
+    occupancyRateThreshold: 85, // Default threshold for flagging low occupancy
+} as const;
