@@ -33,8 +33,9 @@ Analyze the following information:
 - Bathrooms: {{bathrooms}}
 - Property Description: {{propertyDescription}}
 - Provided Market Data / Comps: "{{marketData}}"
+- Currency: {{currency}}
 
-Based on this, provide a suggested monthly rent in KES. Your reasoning should directly reference the provided market data and the property's features (size, number of rooms) to justify your price. Also, provide a brief suggestion on what factors could lead a landlord to price the property slightly higher or lower.`,
+Based on this, provide a suggested monthly rent in the specified currency. Your reasoning should directly reference the provided market data and the property's features (size, number of rooms) to justify your price. Also, provide a brief suggestion on what factors could lead a landlord to price the property slightly higher or lower.`,
 });
 
 const suggestPriceFlow = ai.defineFlow(
@@ -45,8 +46,6 @@ const suggestPriceFlow = ai.defineFlow(
   },
   withMonitoring('suggestPriceFlow', withErrorHandling('suggestPriceFlow', async input => {
     const {output} = await prompt(input);
-    // Add the currency to the output as the prompt doesn't explicitly return it.
-    // A more advanced version could determine currency from the address.
-    return { ...output!, currency: 'KES' };
+    return { ...output!, currency: input.currency || 'KES' };
   }))
 );

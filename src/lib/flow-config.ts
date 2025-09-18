@@ -301,7 +301,8 @@ export const FeatureFlags = {
 };
 
 export const getBusinessConfig = () => ({
-    highPriorityKeywords: ['fire', 'leak', 'gas', 'electrical', 'security', 'lock'],
+    highPriorityKeywords: ['fire', 'leak', 'gas', 'electrical', 'security', 'lock', 'broken window', 'no heat', 'no water'],
     satisfactionThreshold: 7,
     propertyAgeThreshold: 15,
+    occupancyRateThreshold: 85, // Default threshold for flagging low occupancy
 });

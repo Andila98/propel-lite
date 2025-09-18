@@ -18,11 +18,13 @@ import {
 } from '@/lib/schema-types';
 import { withErrorHandling } from '@/lib/flow-errors';
 import { withMonitoring } from '@/lib/flow-monitor';
-
+import { getBusinessConfig } from '@/lib/flow-config';
 
 export async function generateDashboardInsights(input: DashboardInsightsInput): Promise<DashboardInsightsOutput> {
   return dashboardInsightsFlow(input);
 }
+
+const businessConfig = getBusinessConfig();
 
 const prompt = ai.definePrompt({
   name: 'dashboardInsightsPrompt',
@@ -31,7 +33,7 @@ const prompt = ai.definePrompt({
   prompt: `You are a property management expert analyzing a portfolio dashboard.
   
 Given the following key metrics, provide a concise summary (1-2 sentences) and identify any potential anomalies or areas of concern.
-- An occupancy rate below 85% is concerning.
+- An occupancy rate below ${businessConfig.occupancyRateThreshold}% is concerning.
 - A significant drop in revenue compared to the number of properties/tenants is an anomaly.
 
 Metrics:
