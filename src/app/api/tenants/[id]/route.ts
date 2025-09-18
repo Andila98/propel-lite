@@ -101,7 +101,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
             }
         }
         
-        await logActivity(actor.displayName || 'Admin', `Deleted tenant "${name}"`, { type: 'Tenant', name: name });
+        await logActivity(actor.displayName || 'Admin', `Deleted tenant "${name}"`, { type: 'Tenant', name: name }, landlordId);
 
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
     } catch (error: any) {
