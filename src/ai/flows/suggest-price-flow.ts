@@ -9,9 +9,11 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { PriceSuggestionInputSchema, PriceSuggestionOutputSchema, type PriceSuggestionInput, type PriceSuggestionOutput } from '@/lib/schema-types';
 import { PriceSuggestionSchema } from '@/lib/schemas';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
 
 
 export async function suggestPrice(input: PriceSuggestionInput): Promise<PriceSuggestionOutput> {
@@ -41,15 +43,10 @@ const suggestPriceFlow = ai.defineFlow(
     inputSchema: PriceSuggestionSchema,
     outputSchema: PriceSuggestionOutputSchema,
   },
-  async input => {
-    try {
-        const {output} = await prompt(input);
-        // Add the currency to the output as the prompt doesn't explicitly return it.
-        // A more advanced version could determine currency from the address.
-        return { ...output!, currency: 'KES' };
-    } catch (error) {
-        console.error('[ERROR: suggestPriceFlow]', error);
-        throw new Error('Failed to suggest price due to an internal AI error.');
-    }
-  }
+  withMonitoring('suggestPriceFlow', withErrorHandling('suggestPriceFlow', async input => {
+    const {output} = await prompt(input);
+    // Add the currency to the output as the prompt doesn't explicitly return it.
+    // A more advanced version could determine currency from the address.
+    return { ...output!, currency: 'KES' };
+  }))
 );

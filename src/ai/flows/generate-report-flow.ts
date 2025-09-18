@@ -13,6 +13,8 @@ import {z} from 'zod';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { ReportInputSchema, ReportOutputSchema, type ReportInput, type ReportOutput } from '@/lib/schema-types';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
 
 
 async function getReportData(input: ReportInput) {
@@ -97,23 +99,18 @@ export const generateReportFlow = ai.defineFlow(
     inputSchema: ReportInputSchema,
     outputSchema: ReportOutputSchema,
   },
-  async (input) => {
-    try {
-        const reportData = await getReportData(input);
-        
-        const llmInput = {
-            ...reportData,
-            month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
-            year: input.year,
-        };
-        
-        const { output } = await prompt(llmInput);
-        return output!;
-    } catch (error) {
-        console.error('[ERROR: generateReportFlow]', error);
-        throw new Error('Failed to generate report due to an internal AI error.');
-    }
-  }
+  withMonitoring('generateReportFlow', withErrorHandling('generateReportFlow', async (input) => {
+    const reportData = await getReportData(input);
+    
+    const llmInput = {
+        ...reportData,
+        month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
+        year: input.year,
+    };
+    
+    const { output } = await prompt(llmInput);
+    return output!;
+  }))
 );
 
 export async function generateReport(input: ReportInput): Promise<ReportOutput> {

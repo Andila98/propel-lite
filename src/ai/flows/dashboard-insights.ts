@@ -9,13 +9,15 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { 
     DashboardInsightsInputSchema, 
     DashboardInsightsOutputSchema,
     type DashboardInsightsInput,
     type DashboardInsightsOutput
 } from '@/lib/schema-types';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
 
 
 export async function generateDashboardInsights(input: DashboardInsightsInput): Promise<DashboardInsightsOutput> {
@@ -47,13 +49,8 @@ const dashboardInsightsFlow = ai.defineFlow(
     inputSchema: DashboardInsightsInputSchema,
     outputSchema: DashboardInsightsOutputSchema,
   },
-  async input => {
-    try {
-        const {output} = await prompt(input);
-        return output!;
-    } catch (error) {
-        console.error('[ERROR: dashboardInsightsFlow]', error);
-        throw new Error('Failed to generate dashboard insights due to an internal AI error.');
-    }
-  }
+  withMonitoring('dashboardInsightsFlow', withErrorHandling('dashboardInsightsFlow', async input => {
+    const {output} = await prompt(input);
+    return output!;
+  }))
 );
