@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Centralized Zod schemas and TypeScript types for the application.
  * This helps avoid "use server" directive conflicts by separating data structures
@@ -103,6 +104,7 @@ export type GenerateReceiptOutput = z.infer<typeof GenerateReceiptOutputSchema>;
 export const ReportInputSchema = z.object({
     month: z.number().min(0).max(11),
     year: z.number().min(2020),
+    landlordId: z.string().min(1, "Landlord ID is required."),
 });
 export type ReportInput = z.infer<typeof ReportInputSchema>;
 

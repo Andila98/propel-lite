@@ -100,6 +100,10 @@ const noteGenerationPrompt = ai.definePrompt({
     Amount: {{amountPaid}} {{currency}}
     
     Make the note friendly and confirm the payment. Do not include any other details, only the note itself.`,
+    config: {
+        temperature: 0.5,
+        timeout: 10, // 10-second timeout
+    },
 });
 
 

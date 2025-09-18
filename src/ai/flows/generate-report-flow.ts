@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { ReportInputSchema, ReportOutputSchema, type ReportInput, type ReportOutput } from '@/lib/schema-types';
@@ -20,18 +20,20 @@ async function getReportData(input: ReportInput) {
     const startDate = startOfMonth(new Date(input.year, input.month));
     const endDate = endOfMonth(new Date(input.year, input.month));
 
-    // Fetch all relevant data in parallel
+    // Fetch all relevant data in parallel, scoped to the landlord
     const [
         paymentsSnapshot,
         unitsSnapshot,
         maintenanceSnapshot
     ] = await Promise.all([
         firestore.collection('payments')
+            .where('landlordId', '==', input.landlordId)
             .where('date', '>=', startDate)
             .where('date', '<=', endDate)
             .get(),
-        firestore.collectionGroup('units').get(),
+        firestore.collectionGroup('units').where('landlordId', '==', input.landlordId).get(),
         firestore.collection('maintenanceRequests')
+            .where('landlordId', '==', input.landlordId)
             .where('submittedDate', '>=', startDate.toISOString())
             .where('submittedDate', '<=', endDate.toISOString())
             .get(),
@@ -82,6 +84,10 @@ Data:
 - New Maintenance Requests: {{newMaintenanceRequests}}
 
 Analyze the data to identify positive trends (highlights) and potential issues (areas for improvement). Be specific and provide actionable insights.`,
+    config: {
+        temperature: 0.6,
+        timeout: 20, // 20-second timeout
+    },
 });
 
 
