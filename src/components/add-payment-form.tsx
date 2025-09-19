@@ -144,7 +144,9 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
             </div>
             
             <div className="flex justify-end pt-4">
-                <SubmitButton />
+                <Button type="submit">
+                    Record Payment
+                </Button>
             </div>
         </form>
     );
