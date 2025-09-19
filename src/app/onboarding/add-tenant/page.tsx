@@ -95,14 +95,6 @@ export default function AddTenantPage() {
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
 
-  const onClientSubmit = (data: TenantFormValues) => {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-        formData.append(key, (data as any)[key]);
-    });
-    formAction(formData);
-  };
-
   return (
     <div className="container mx-auto p-4 md:p-8">
       <div className="mx-auto max-w-2xl space-y-8">
@@ -113,7 +105,7 @@ export default function AddTenantPage() {
             <CardDescription>Fill in the tenant's details to assign them to an available unit.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onClientSubmit)} className="space-y-4">
+            <form action={formAction} className="space-y-4">
                <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} />
@@ -146,7 +138,7 @@ export default function AddTenantPage() {
                                 <Select onValueChange={(value) => {
                                     field.onChange(value);
                                     setValue('unitId', ''); // Reset unit when property changes
-                                }} defaultValue={field.value} disabled={propertiesLoading}>
+                                }} defaultValue={field.value} name={field.name} disabled={propertiesLoading}>
                                 <SelectTrigger id="propertyId">
                                     <SelectValue placeholder={propertiesLoading ? "Loading..." : "Select a property..."} />
                                 </SelectTrigger>
@@ -167,7 +159,7 @@ export default function AddTenantPage() {
                             name="unitId"
                             control={control}
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedPropertyId || availableUnits.length === 0}>
+                                <Select onValueChange={field.onChange} value={field.value} name={field.name} disabled={!selectedPropertyId || availableUnits.length === 0}>
                                     <SelectTrigger id="unitId">
                                         <SelectValue placeholder={availableUnits.length > 0 ? "Select a unit..." : "No available units"} />
                                     </SelectTrigger>
