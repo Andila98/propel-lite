@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from 'next/link';
-import { PlusCircle, Building2, Users, Home } from 'lucide-react';
+import { PlusCircle, Building2, Users, Home, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,8 +48,8 @@ export default function PropertiesPage() {
         const res = await fetch('/api/properties');
         
         if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Failed to fetch properties (${res.status}): ${errorText}`);
+          const errorData = await res.json();
+          throw new Error(errorData.error || `Failed to fetch properties (${res.status})`);
         }
         
         const data: PropertiesResponse = await res.json();
@@ -106,6 +107,7 @@ export default function PropertiesPage() {
   const renderError = () => (
     <div className="space-y-4">
       <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
           {error}
         </AlertDescription>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -16,7 +17,7 @@ import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import type { Property, Unit } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Wand2 } from 'lucide-react';
+import { Camera, Wand2, CheckCircle, Clock } from 'lucide-react';
 import { DamageAnalysisDialog } from '@/components/damage-analysis-dialog';
 import { DeletePropertyButton } from './delete-property-button';
 import { useState, useEffect } from 'react';
@@ -130,7 +131,7 @@ export default function PropertyDetailPage() {
         <div className="lg:col-span-3">
              <Card className="overflow-hidden">
                 <Image
-                    src={property.imageUrl || "https://placehold.co/800x500.png"}
+                    src={property.imageUrl || "https://picsum.photos/seed/prop1/800/500"}
                     alt={property.name || 'Property Image'}
                     width={800}
                     height={500}
@@ -182,18 +183,41 @@ export default function PropertyDetailPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {property.units.map((unit: Unit) => (
+                            {property.units && property.units.map((unit: Unit) => (
                                     <TableRow key={unit.id}>
                                         <TableCell className="font-medium">{unit.unitNumber}</TableCell>
                                         <TableCell>{unit.size}</TableCell>
                                         <TableCell>{formatCurrency(unit.rent, property.currency || 'KES')}</TableCell>
                                         <TableCell>
-                                            <Badge variant={unit.isOccupied ? 'secondary' : 'outline'}>
-                                                {unit.isOccupied ? 'Occupied' : 'Vacant'}
+                                            <Badge 
+                                                variant={unit.isOccupied ? 'default' : 'secondary'}
+                                                className={unit.isOccupied 
+                                                  ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' 
+                                                  : 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200'
+                                                }
+                                            >
+                                                {unit.isOccupied ? (
+                                                  <>
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    Occupied
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Clock className="h-3 w-3 mr-1" />
+                                                    Vacant
+                                                  </>
+                                                )}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>
-                                )
+                                ))
+                            }
+                             {!property.units || property.units.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                        No units found for this property.
+                                    </TableCell>
+                                </TableRow>
                             )}
                         </TableBody>
                     </Table>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef } from 'react';
@@ -87,10 +88,10 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
   
   const severityVariant = (severity: 'Low' | 'Medium' | 'High') => {
     switch (severity) {
-        case 'High': return 'destructive';
-        case 'Medium': return 'secondary';
-        case 'Low': return 'outline';
-        default: return 'default';
+        case 'High': return 'destructive' as 'destructive';
+        case 'Medium': return 'secondary' as 'secondary';
+        case 'Low': return 'outline' as 'outline';
+        default: return 'default' as 'default';
     }
   };
 
