@@ -39,7 +39,7 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
     const initialState: FormState = { success: false };
     const [state, formAction] = useActionState(recordPaymentAction, initialState);
 
-    const { register, control, handleSubmit, formState: { errors } } = useForm<PaymentFormValues>({
+    const { register, control, formState: { errors }, watch, setValue } = useForm<PaymentFormValues>({
         resolver: zodResolver(PaymentFormSchema),
         defaultValues: {
             tenantId: '',
@@ -67,26 +67,24 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
         }
     }, [state, toast, onPaymentAdded]);
     
-    const onClientSubmit = (data: PaymentFormValues) => {
-        const formData = new FormData();
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                formData.append(key, String(value));
-            }
-        });
-        formAction(formData);
-    };
+    // Watch for changes in controlled fields to update hidden inputs
+    const tenantIdValue = watch('tenantId');
+    const methodValue = watch('method');
 
     return (
-        <form onSubmit={handleSubmit(onClientSubmit)} className="grid gap-4 py-4">
+        <form action={formAction} className="grid gap-4 py-4">
+            {/* Hidden inputs to ensure controlled values are submitted */}
+            <input type="hidden" {...register('tenantId')} value={tenantIdValue} />
+            <input type="hidden" {...register('method')} value={methodValue} />
+
             <div>
-                <Label htmlFor="tenantId">Tenant</Label>
+                <Label htmlFor="tenantId-select">Tenant</Label>
                 <Controller
                     name="tenantId"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
+                        <Select onValueChange={(value) => setValue('tenantId', value)} value={tenantIdValue}>
+                            <SelectTrigger id="tenantId-select">
                                 <SelectValue placeholder="Select a tenant..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -113,13 +111,13 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
                     {state.errors?.date && <p className="text-sm text-destructive mt-1">{state.errors.date[0]}</p>}
                 </div>
                 <div>
-                    <Label htmlFor="method">Payment Method</Label>
-                    <Controller
+                    <Label htmlFor="method-select">Payment Method</Label>
+                     <Controller
                         name="method"
                         control={control}
                         render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger>
+                            <Select onValueChange={(value) => setValue('method', value as any)} value={methodValue}>
+                                <SelectTrigger id="method-select">
                                     <SelectValue placeholder="Select method..." />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -144,9 +142,7 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
             </div>
             
             <div className="flex justify-end pt-4">
-                <Button type="submit">
-                    Record Payment
-                </Button>
+                <SubmitButton />
             </div>
         </form>
     );
