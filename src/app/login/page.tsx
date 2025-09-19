@@ -87,11 +87,14 @@ export default function LoginPage() {
 
   // Clear auth errors when user starts typing
   useEffect(() => {
-    if (authError) {
-      const timer = setTimeout(clearError, 5000); // Auto-clear after 5 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [authError, clearError]);
+    const unregister = form.watch(() => {
+      if (authError) {
+        clearError();
+      }
+    });
+    return () => unregister.unsubscribe();
+  }, [authError, clearError, form]);
+
 
   const handleLogin = useCallback(async (data: LoginFormValues) => {
     if (!connectionStatus.isOnline) {
@@ -104,24 +107,17 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    clearError(); // Clear any previous errors
     
     try {
-      // The login function will trigger the onIdTokenChanged listener in useAuth,
-      // which handles the redirect. We don't need to do anything else here.
       await login(data.email, data.password);
+      // Redirect is handled by the useAuth provider
     } catch (error: any) {
-      // Error is already set in the auth context, just show toast for immediate feedback
-      // The useAuth hook now handles throwing a user-friendly error.
-      toast({
-        title: "Login Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // The authError state in useAuth is already set. We don't need to do anything here.
+      // The Alert component will display the error.
     } finally {
       setIsLoading(false);
     }
-  }, [login, toast, clearError, connectionStatus.isOnline]);
+  }, [login, toast, connectionStatus.isOnline]);
   
   const handleSocialLogin = useCallback(async () => {
     if (!connectionStatus.isOnline) {
@@ -134,24 +130,16 @@ export default function LoginPage() {
     }
 
     setIsSocialLoading(true);
-    clearError();
     
     try {
       await loginWithGoogle();
       // Redirect is handled by the useAuth provider
     } catch (error: any) {
-      // Don't show toast for cancelled popup
-      if (error.code !== 'auth/cancelled-popup-request') {
-        toast({
-            title: "Social Login Failed",
-            description: error.message,
-            variant: "destructive",
-        });
-      }
+      // Don't show toast for cancelled popup, as the error is handled in useAuth.
     } finally {
       setIsSocialLoading(false);
     }
-  }, [loginWithGoogle, toast, clearError, connectionStatus.isOnline]);
+  }, [loginWithGoogle, toast, connectionStatus.isOnline]);
 
   const handleRetryConnection = useCallback(async () => {
     setIsLoading(true);
@@ -161,12 +149,8 @@ export default function LoginPage() {
         title: "Connection Restored",
         description: "You can now try logging in again.",
       });
-    } catch (error) {
-      toast({
-        title: "Connection Failed",
-        description: "Unable to restore connection. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      // The error is already set in the useAuth hook, no need to toast again.
     } finally {
       setIsLoading(false);
     }
@@ -209,8 +193,9 @@ export default function LoginPage() {
                     size="sm"
                     onClick={handleRetryConnection}
                     className="ml-2 h-auto p-0 text-xs underline"
+                    disabled={isLoading}
                   >
-                    Retry
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Retry'}
                   </Button>
                 )}
               </AlertDescription>
@@ -358,5 +343,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
