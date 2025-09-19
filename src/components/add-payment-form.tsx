@@ -42,6 +42,7 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
     const { register, control, handleSubmit, formState: { errors } } = useForm<PaymentFormValues>({
         resolver: zodResolver(PaymentFormSchema),
         defaultValues: {
+            tenantId: '',
             date: new Date().toISOString().split('T')[0],
             method: 'Mpesa',
         },
