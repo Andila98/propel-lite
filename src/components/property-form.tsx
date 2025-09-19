@@ -83,13 +83,17 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
 
   // Handle form state changes from the server action
   useEffect(() => {
-    if (initialState.success) {
+    if (initialState.success && initialState.propertyId) {
       toast({
         title: isOnboarding ? "Property Added!" : "Property Updated!",
         description: "Your property has been successfully saved.",
       });
-      if (isOnboarding && initialState.propertyId) {
+      if (isOnboarding) {
         router.push(`/onboarding/add-property-manager?propertyId=${initialState.propertyId}`);
+      } else if (initialData) {
+        router.push(`/properties/${initialData.id}`);
+      } else {
+         router.push('/properties');
       }
     }
     if (initialState.error && !initialState.errors) {
@@ -99,7 +103,7 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
             variant: "destructive"
         });
     }
-  }, [initialState, router, toast, isOnboarding]);
+  }, [initialState, router, toast, isOnboarding, initialData]);
 
   useEffect(() => {
     if (initialData) {
@@ -466,7 +470,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                     />
                                 )}
                                 />
-                              <Label htmlFor={`units.${index}.isOccupied`}>Occupied</label>
+                              <Label htmlFor={`units.${index}.isOccupied`}>Occupied</Label>
                             </div>
                         </div>
                       </Card>
