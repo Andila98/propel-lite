@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { 
@@ -119,7 +120,6 @@ async function fetchUserFromApi(): Promise<User | null> {
 
   if (response.status === 401) {
     // The server has confirmed the session is invalid.
-    // The onIdTokenChanged listener will handle client-side sign out.
     return null;
   }
   
@@ -176,15 +176,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (destination && destination !== pathname) {
       isRedirecting.current = true;
       router.replace(destination);
-      // Reset the flag after a short delay to prevent race conditions
       setTimeout(() => { isRedirecting.current = false; }, 1000);
     }
   }, [pathname, router]);
 
   const updateUserAndRedirect = useCallback(async (firebaseUser: FirebaseUser | null) => {
-    // If no firebaseUser, clear user state and handle redirect for logged-out user.
     if (!firebaseUser) {
-      if (user !== null) setUser(null); // Only update state if it changes
+      if (user !== null) setUser(null);
       if (!isInitialized.current) {
         isInitialized.current = true;
         setLoading(false);
@@ -193,17 +191,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // If we already have the correct user, do nothing to prevent loops.
-    if (user?.uid === firebaseUser.uid && isInitialized.current) {
-      setLoading(false);
-      return;
+    if (user?.uid === firebaseUser.uid && isInitialized.current && !loading) {
+      return; // Already logged in and initialized, do nothing.
     }
 
     try {
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
       setUser(userProfile);
       setError(null);
+      if (!isInitialized.current) {
+          isInitialized.current = true;
+      }
+      handleRedirect(userProfile);
     } catch (error: any) {
+      console.error("[Auth] Error fetching user profile:", error);
       setError({
         message: error.code === 'CONNECTION_FAILED' 
           ? 'Unable to connect to server. Check connection.' 
@@ -212,16 +213,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       await firebaseSignOut(auth);
       setUser(null);
+      handleRedirect(null);
     } finally {
-      if (!isInitialized.current) {
-        isInitialized.current = true;
+      if (loading) {
+        setLoading(false);
       }
-      setLoading(false);
-      // We get the user profile first, then call handleRedirect with the fresh profile.
-      const finalProfile = await fetchUserFromApi().catch(() => null);
-      handleRedirect(finalProfile);
     }
-  }, [handleRedirect, user]);
+  }, [handleRedirect, user, loading]);
 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, updateUserAndRedirect);
@@ -239,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await updateUserAndRedirect(auth.currentUser);
   }, [updateUserAndRedirect]);
 
-  const processLogin = useCallback(async (idToken: string): Promise<void> => {
+  const processLogin = useCallback(async (idToken: string): Promise<User> => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
@@ -249,10 +247,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       credentials: 'include'
     });
     
+    const responseBody = await response.json();
     if (!response.ok) {
-      const responseBody = await response.json();
       throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
+    return responseBody as User;
   }, []);
 
   const login = useCallback(async (email: string, password: string, isSignUp: boolean = false): Promise<void> => {
@@ -260,12 +259,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loginAttempt = async () => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
-        await processLogin(idToken);
+        const userProfile = await processLogin(idToken);
+        setUser(userProfile);
+        handleRedirect(userProfile);
     };
 
     try {
         if (isSignUp) {
-            // If it's a signup, retry on "user-not-found" to handle replication delay
             let attempts = 0;
             const maxAttempts = 3;
             while (attempts < maxAttempts) {
@@ -276,9 +276,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     attempts++;
                     if (error.code === 'auth/user-not-found' && attempts < maxAttempts) {
                         console.warn(`Login attempt ${attempts} failed due to replication delay. Retrying...`);
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retrying
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                     } else {
-                        throw error; // Re-throw other errors or on final attempt
+                        throw error;
                     }
                 }
             }
@@ -310,7 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(authError);
         throw new AuthenticationError(message, error.code);
     }
-}, [processLogin, clearError]);
+}, [processLogin, clearError, handleRedirect]);
   
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     clearError();
@@ -321,7 +321,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const userCredential = await signInWithPopup(auth, provider);
       const idToken = await userCredential.user.getIdToken();
-      await processLogin(idToken);
+      const userProfile = await processLogin(idToken);
+      setUser(userProfile);
+      handleRedirect(userProfile);
+
     } catch (error: any) {
       let message = 'Google sign-in failed. Please try again.';
       if (error.code !== 'auth/cancelled-popup-request') {
@@ -330,7 +333,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new AuthenticationError(message, error.code);
       }
     }
-  }, [processLogin, clearError]);
+  }, [processLogin, clearError, handleRedirect]);
 
   const logout = useCallback(async () => {
     try {
@@ -338,14 +341,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null); 
       await firebaseSignOut(auth);
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      isRedirecting.current = false; // Reset redirect lock on logout
+      isRedirecting.current = false;
       router.replace('/login');
     } catch (error) {
       console.error("Error during logout:", error);
     }
   }, [clearError, router]);
 
-  if (loading || !isInitialized.current) {
+  if (loading && !isInitialized.current) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
@@ -383,3 +386,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

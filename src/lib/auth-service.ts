@@ -1,9 +1,11 @@
 
+
 'use server';
 
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
+import { FieldValue } from 'firebase-admin/firestore';
 
 if (!isFirebaseAdminInitialized) {
     throw new Error('Firebase Admin SDK is not initialized. Authentication services are unavailable.');
@@ -36,7 +38,7 @@ export async function signUpUser({ email, password, displayName }: { email: stri
             email: userRecord.email,
             name: userRecord.displayName,
             role: 'landlord',
-            createdAt: new Date(),
+            createdAt: FieldValue.serverTimestamp(),
         });
 
         return userRecord;
@@ -87,7 +89,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
                 email: userRecord.email,
                 name: userRecord.displayName || 'New User',
                 role: userRoleClaim,
-                createdAt: new Date(),
+                createdAt: FieldValue.serverTimestamp(),
                 // For managers, you might want to set default empty permissions
                 ...(userRoleClaim === 'manager' && { permissions: {}, propertiesManaged: [] }),
             };
@@ -139,3 +141,4 @@ export async function createSession(idToken: string): Promise<{ sessionCookie: s
 
     return { sessionCookie, userProfile };
 }
+
