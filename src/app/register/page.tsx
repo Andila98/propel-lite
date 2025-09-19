@@ -70,9 +70,9 @@ export default function RegisterPage() {
             description: "Logging you in to begin setup...",
         });
 
-        // After successful signup, immediately log in to start the session
-        // The AuthProvider will then handle the redirect to onboarding.
-        await login(data.email, data.password);
+        // After successful signup, immediately log in to start the session.
+        // We pass `isSignUp: true` to enable the retry logic in the login function.
+        await login(data.email, data.password, true);
         
     } catch (error: any) {
         toast({

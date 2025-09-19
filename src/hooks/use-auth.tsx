@@ -44,7 +44,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: AuthError | null;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string, isSignUp?: boolean) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -255,38 +255,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<void> => {
+  const login = useCallback(async (email: string, password: string, isSignUp: boolean = false): Promise<void> => {
     clearError();
+    const loginAttempt = async () => {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        await processLogin(idToken);
+    };
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const idToken = await userCredential.user.getIdToken();
-      await processLogin(idToken);
-    } catch (error: any) {
-      let message = 'Login failed. Please try again.';
-      if (error instanceof AuthenticationError) {
-        message = error.message;
-      } else {
-        switch (error.code) {
-          case 'auth/invalid-credential':
-          case 'auth/wrong-password':
-          case 'auth/user-not-found':
-            message = 'Invalid email or password.';
-            break;
-          case 'auth/user-disabled':
-            message = 'Your account has been disabled.';
-            break;
-          case 'auth/too-many-requests':
-            message = 'Too many failed attempts. Please wait before trying again.';
-            break;
-          default:
-            message = 'An unexpected error occurred during login.';
+        if (isSignUp) {
+            // If it's a signup, retry on "user-not-found" to handle replication delay
+            let attempts = 0;
+            const maxAttempts = 3;
+            while (attempts < maxAttempts) {
+                try {
+                    await loginAttempt();
+                    return; // Success
+                } catch (error: any) {
+                    attempts++;
+                    if (error.code === 'auth/user-not-found' && attempts < maxAttempts) {
+                        console.warn(`Login attempt ${attempts} failed due to replication delay. Retrying...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retrying
+                    } else {
+                        throw error; // Re-throw other errors or on final attempt
+                    }
+                }
+            }
+        } else {
+            await loginAttempt();
         }
-      }
-      const authError = { message, code: error.code };
-      setError(authError);
-      throw new AuthenticationError(message, error.code);
+    } catch (error: any) {
+        let message = 'Login failed. Please try again.';
+        if (error instanceof AuthenticationError) {
+            message = error.message;
+        } else {
+            switch (error.code) {
+                case 'auth/invalid-credential':
+                case 'auth/wrong-password':
+                case 'auth/user-not-found':
+                    message = 'Invalid email or password.';
+                    break;
+                case 'auth/user-disabled':
+                    message = 'Your account has been disabled.';
+                    break;
+                case 'auth/too-many-requests':
+                    message = 'Too many failed attempts. Please wait before trying again.';
+                    break;
+                default:
+                    message = 'An unexpected error occurred during login.';
+            }
+        }
+        const authError = { message, code: error.code };
+        setError(authError);
+        throw new AuthenticationError(message, error.code);
     }
-  }, [processLogin, clearError]);
+}, [processLogin, clearError]);
   
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     clearError();
