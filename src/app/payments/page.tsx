@@ -23,44 +23,59 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { Payment, Property } from '@/lib/types';
+import type { Payment, Property, Tenant } from '@/lib/types';
 import Link from 'next/link';
-import { Receipt as ReceiptIcon, Loader2 } from 'lucide-react';
+import { Receipt as ReceiptIcon, Loader2, PlusCircle } from 'lucide-react';
 import { getReceiptAction, type ReceiptState } from './actions';
 import { Receipt } from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { AddPaymentForm } from '@/components/add-payment-form';
 
 type PaymentWithDetails = Payment & { tenantName: string; propertyAddress: string; property: Property };
 
 export default function PaymentsPage() {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptResult, setReceiptResult] = useState<ReceiptState | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
   
   const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
         setDataLoading(true);
         try {
-            const paymentsRes = await fetch('/api/payments');
+            const [paymentsRes, tenantsRes] = await Promise.all([
+              fetch('/api/payments'),
+              fetch('/api/tenants')
+            ]);
+
             if (!paymentsRes.ok) {
               const errorData = await paymentsRes.json();
               throw new Error(errorData.error || 'Failed to fetch payments');
             }
-
+            if (!tenantsRes.ok) {
+              const errorData = await tenantsRes.json();
+              throw new Error(errorData.error || 'Failed to fetch tenants');
+            }
+            
             const paymentsData: PaymentWithDetails[] = await paymentsRes.json();
+            const tenantsData = await tenantsRes.json();
+            
             setPayments(paymentsData);
+            setTenants(tenantsData.tenants || []);
         } catch (error: any) {
             console.error(error);
-            toast({ title: "Error", description: `Failed to fetch payment data: ${error.message}`, variant: "destructive" });
+            toast({ title: "Error", description: `Failed to fetch page data: ${error.message}`, variant: "destructive" });
         } finally {
             setDataLoading(false);
         }
@@ -70,7 +85,7 @@ export default function PaymentsPage() {
   
 
   const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
-    setLoading(true);
+    setReceiptLoading(true);
     setIsReceiptOpen(true);
     setReceiptResult(null);
 
@@ -81,7 +96,7 @@ export default function PaymentsPage() {
       setReceiptResult(result);
     }
 
-    setLoading(false);
+    setReceiptLoading(false);
   }
   
   const renderSkeleton = () => (
@@ -115,6 +130,23 @@ export default function PaymentsPage() {
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Payments History</h2>
+        <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Record Payment
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Record a New Payment</DialogTitle>
+                    <DialogDescription>
+                        Manually enter a payment received from a tenant.
+                    </DialogDescription>
+                </DialogHeader>
+                <AddPaymentForm tenants={tenants} onPaymentAdded={() => setIsAddPaymentOpen(false)} />
+            </DialogContent>
+        </Dialog>
       </div>
       <Card>
         <CardHeader>
@@ -161,7 +193,7 @@ export default function PaymentsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleGenerateReceipt(payment.tenantId, payment.id)}
-                            disabled={loading}
+                            disabled={receiptLoading}
                         >
                             <ReceiptIcon className="mr-2 h-4 w-4" />
                             Receipt
@@ -184,7 +216,7 @@ export default function PaymentsPage() {
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                {loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                {receiptLoading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
                 {receiptResult?.receipt && <Receipt receipt={receiptResult.receipt} />}
                 {receiptResult?.error && <p className="text-destructive">{receiptResult.error}</p>}
             </div>

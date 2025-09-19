@@ -284,43 +284,15 @@ export const ScheduleReminderFormSchema = z.object({
 
 export type ScheduleReminderFormValues = z.infer<typeof ScheduleReminderFormSchema>;
 
-// PAYMENT Schema for tracking rent payments
-export const PaymentSchema = z.object({
-  id: z.string().optional(),
-  tenantId: z.string().min(1, "Tenant ID required"),
-  propertyId: z.string().min(1, "Property ID required"),
-  unitId: z.string().min(1, "Unit ID required"),
-  amount: currencyAmountSchema,
-  paymentDate: z.date(),
-  paymentMethod: z.enum(['Cash', 'Bank Transfer', 'Mobile Money', 'Cheque', 'Online']),
-  reference: z.string().optional(),
-  status: z.enum(['Paid', 'Pending', 'Overdue', 'Partial']).default('Paid'),
-  notes: z.string().max(500).optional(),
+export const PaymentFormSchema = z.object({
+    tenantId: z.string().min(1, "Please select a tenant."),
+    amount: z.coerce.number().positive("Amount must be a positive number."),
+    date: z.string().refine((d) => !isNaN(Date.parse(d)), "Invalid date."),
+    method: z.enum(['Mpesa', 'Stripe', 'Card', 'Bank Transfer', 'Cash', 'Other']),
+    notes: z.string().max(200, "Notes are too long.").optional(),
 });
+export type PaymentFormValues = z.infer<typeof PaymentFormSchema>;
 
-export type Payment = z.infer<typeof PaymentSchema>;
-
-// MAINTENANCE REQUEST Schema
-export const MaintenanceRequestSchema = z.object({
-  id: z.string().optional(),
-  tenantId: z.string().min(1, "Tenant ID required"),
-  propertyId: z.string().min(1, "Property ID required"),
-  unitId: z.string().min(1, "Unit ID required"),
-  title: z.string().min(5, "Please provide a clear title").max(100),
-  description: z.string().min(20, "Please provide detailed description").max(1000),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
-  category: z.enum([
-    'Plumbing', 'Electrical', 'HVAC', 'Appliances', 
-    'Doors/Windows', 'Flooring', 'Painting', 'Other'
-  ]),
-  status: z.enum(['Open', 'In Progress', 'Completed', 'Cancelled']).default('Open'),
-  estimatedCost: currencyAmountSchema.optional(),
-  actualCost: currencyAmountSchema.optional(),
-  requestDate: z.date().default(() => new Date()),
-  completedDate: z.date().optional(),
-});
-
-export type MaintenanceRequest = z.infer<typeof MaintenanceRequestSchema>;
 
 // src/app/payments/actions.ts
 export const ReceiptInputSchema = z.object({
