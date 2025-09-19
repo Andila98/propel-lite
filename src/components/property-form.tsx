@@ -22,6 +22,8 @@ import type { Unit } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFormStatus } from 'react-dom';
 import type { FormState } from '@/app/properties/[id]/edit/actions';
+import { useRouter } from 'next/navigation';
+
 
 interface PropertyFormProps {
     formAction: (payload: FormData) => void;
@@ -60,6 +62,7 @@ const unitTypes = [
 
 export function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -77,6 +80,26 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
   
   const { register, control, handleSubmit, formState, setValue, watch, getValues, setError, reset } = form;
   const { errors } = formState;
+
+  // Handle form state changes from the server action
+  useEffect(() => {
+    if (initialState.success) {
+      toast({
+        title: isOnboarding ? "Property Added!" : "Property Updated!",
+        description: "Your property has been successfully saved.",
+      });
+      if (isOnboarding && initialState.propertyId) {
+        router.push(`/onboarding/add-property-manager?propertyId=${initialState.propertyId}`);
+      }
+    }
+    if (initialState.error && !initialState.errors) {
+       toast({
+            title: "Operation Failed",
+            description: `There was an error saving your property: ${initialState.error}`,
+            variant: "destructive"
+        });
+    }
+  }, [initialState, router, toast, isOnboarding]);
 
   useEffect(() => {
     if (initialData) {
@@ -221,31 +244,6 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
   
-  const clientAction = (formData: FormData) => {
-    // This is the client-side validation before submitting to the server action.
-    handleSubmit((data) => {
-      // Append all form data to the FormData object to be sent to the server action.
-      Object.keys(data).forEach(key => {
-        const value = (data as any)[key];
-        if (key === 'units') {
-          formData.set(key, JSON.stringify(value));
-        } else if (value !== undefined && value !== null) {
-          formData.set(key, String(value));
-        }
-      });
-      // The `imageUrl` is handled separately because it's part of the React Hook Form state
-      // but not a direct input in the form itself. This ensures the uploaded URL is sent.
-      const imageUrl = getValues('imageUrl');
-      if (imageUrl) {
-        formData.set('imageUrl', imageUrl);
-      } else {
-        formData.delete('imageUrl');
-      }
-      
-      formAction(formData);
-    })();
-  };
-  
   const cardHeader = isOnboarding ? (
       <CardHeader>
         <CardTitle>Step 2: Add Your First Property</CardTitle>
@@ -260,7 +258,11 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <TooltipProvider>
-    <form action={clientAction}>
+    <form action={formAction}>
+         {/* Hidden inputs to pass complex data not supported by native FormData */}
+        <input type="hidden" {...register('imageUrl')} />
+        <input type="hidden" value={JSON.stringify(watch('units'))} {...register('units')} />
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-6">
                 <Card>
@@ -464,7 +466,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                     />
                                 )}
                                 />
-                              <Label htmlFor={`units.${index}.isOccupied`}>Occupied</Label>
+                              <Label htmlFor={`units.${index}.isOccupied`}>Occupied</label>
                             </div>
                         </div>
                       </Card>

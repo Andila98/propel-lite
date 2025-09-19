@@ -71,6 +71,7 @@ export async function createPropertyAction(
 
         units.forEach(unit => {
             const unitRef = propertyRef.collection('units').doc();
+            // Ensure landlordId is set on units
             transaction.set(unitRef, { ...unit, landlordId: landlordId });
         });
     });

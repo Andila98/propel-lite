@@ -25,23 +25,24 @@ export default function AddPropertyPage() {
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
   const [state, formAction] = useActionState(createPropertyAction, initialState);
 
-  useEffect(() => {
-    if (state.success && state.propertyId) {
-      toast({
-        title: "Property Added!",
-        description: "Your property has been successfully saved.",
-      });
-      // Pass the new propertyId to the next step
-      router.push(`/onboarding/add-property-manager?propertyId=${state.propertyId}`);
-    }
-    if (state.error && !state.errors) {
-       toast({
-            title: "Upload Failed",
-            description: `There was an error saving your property: ${state.error}`,
-            variant: "destructive"
-        });
-    }
-  }, [state, router, toast]);
+  // This will be handled inside PropertyForm now
+  // useEffect(() => {
+  //   if (state.success && state.propertyId) {
+  //     toast({
+  //       title: "Property Added!",
+  //       description: "Your property has been successfully saved.",
+  //     });
+  //     // Pass the new propertyId to the next step
+  //     router.push(`/onboarding/add-property-manager?propertyId=${state.propertyId}`);
+  //   }
+  //   if (state.error && !state.errors) {
+  //      toast({
+  //           title: "Upload Failed",
+  //           description: `There was an error saving your property: ${state.error}`,
+  //           variant: "destructive"
+  //       });
+  //   }
+  // }, [state, router, toast]);
 
   return (
     <div className="container mx-auto p-4 md:p-8">
