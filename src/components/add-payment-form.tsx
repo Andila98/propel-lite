@@ -45,6 +45,8 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
             tenantId: '',
             date: new Date().toISOString().split('T')[0],
             method: 'Mpesa',
+            amount: 0,
+            notes: '',
         },
     });
 
@@ -65,8 +67,18 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
         }
     }, [state, toast, onPaymentAdded]);
     
+    const onClientSubmit = (data: PaymentFormValues) => {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                formData.append(key, String(value));
+            }
+        });
+        formAction(formData);
+    };
+
     return (
-        <form action={formAction} className="grid gap-4 py-4">
+        <form onSubmit={handleSubmit(onClientSubmit)} className="grid gap-4 py-4">
             <div>
                 <Label htmlFor="tenantId">Tenant</Label>
                 <Controller
