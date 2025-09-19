@@ -2,7 +2,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useTranslation } from "react-i18next"
 import {
   Card,
   CardContent,
@@ -26,272 +25,426 @@ import {
   Sparkles,
   Loader2,
   WifiOff,
+  ArrowUpRight,
+  ArrowDownRight,
+  BarChart3,
+  PieChart,
+  Calendar,
+  MapPin,
+  Bell,
+  Zap,
+  Eye,
+  Star
 } from "lucide-react"
-import { PropertiesCarousel } from "@/components/properties-carousel"
-import { RecentActivities } from "@/components/recent-activities"
-import { PropertyManagerList } from "@/components/property-manager-list"
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell } from 'recharts'
 import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useAuth } from "@/hooks/use-auth"
-import { useManagers } from "@/hooks/use-managers"
-import type { DashboardData } from "@/lib/types"
-import { LatePaymentsChart } from "@/components/charts/late-payments-chart"
-import { PaymentMethodsChart } from "@/components/charts/payment-methods-chart"
-import { formatCurrency } from "@/lib/utils"
 
-// Safe number formatter
-const safeToFixed = (value: number | undefined | null, decimals: number = 1): string => {
+// Mock data for demonstration
+const mockData = {
+  totalProperties: 24,
+  totalTenants: 156,
+  totalRevenue: 125000,
+  revenueChange: 0.12,
+  occupancyRate: 94.2,
+  properties: [
+    { id: 1, name: "Sunset Apartments", location: "Downtown", units: 12, occupancy: 91.7 },
+    { id: 2, name: "Oakwood Complex", location: "Suburbs", units: 8, occupancy: 100 },
+    { id: 3, name: "Pine Street Lofts", location: "Arts District", units: 6, occupancy: 83.3 }
+  ],
+  aiSummary: "Revenue is up 12% this month with strong occupancy rates. Consider raising rent at Pine Street Lofts to match market rates.",
+  anomalyAlerts: [
+    { id: 1, type: "payment", message: "Unusual payment pattern detected in Building A", severity: "high", time: "2h ago" },
+    { id: 2, type: "maintenance", message: "Higher than normal maintenance requests", severity: "medium", time: "5h ago" }
+  ],
+  latePaymentData: [
+    { month: 'Jan', payments: 12, late: 2 },
+    { month: 'Feb', payments: 15, late: 1 },
+    { month: 'Mar', payments: 18, late: 3 },
+    { month: 'Apr', payments: 20, late: 1 }
+  ],
+  paymentMethodData: [
+    { method: 'Online', value: 65, color: '#8b5cf6' },
+    { method: 'Bank Transfer', value: 25, color: '#ec4899' },
+    { method: 'Cash', value: 10, color: '#f59e0b' }
+  ]
+}
+
+const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
+
+// Safe formatters
+const safeToFixed = (value: number, decimals = 1) => {
   if (value === null || value === undefined || isNaN(value)) {
     return '0.' + '0'.repeat(decimals);
   }
   return value.toFixed(decimals);
 };
 
-// Safe currency formatter
-const safeCurrency = (value: number | undefined | null): string => {
+const safeCurrency = (value: number) => {
   if (value === null || value === undefined || isNaN(value)) {
-    return formatCurrency(0);
+    return '$0';
   }
-  return formatCurrency(value);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 };
 
-// Safe percentage formatter
-const safePercentage = (value: number | undefined | null): string => {
+const safePercentage = (value: number) => {
   if (value === null || value === undefined || isNaN(value)) {
     return '0.0';
   }
   return (value * 100).toFixed(1);
 };
 
-function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: DashboardData['anomalyAlerts'] }) {
-    return (
-        <Card className="lg:col-span-4 bg-primary/5 border-primary/20">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary"/>
-                    AI-Powered Insights
-                </CardTitle>
-                <CardDescription>{summary || "No insights available."}</CardDescription>
-            </CardHeader>
-             {anomalies && anomalies.length > 0 && (
-                <CardContent>
-                    <RecentActivities activities={anomalies} />
-                </CardContent>
-            )}
-        </Card>
-    )
+function MetricCard({ title, value, change, icon: Icon, trend, color = "primary", className = "" }: { title: string, value: string | number, change: number, icon: React.ElementType, trend: string, color?: string, className?: string }) {
+  const isPositive = change > 0
+  const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight
+  
+  return (
+    <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group ${className}`}>
+      <div className={`absolute inset-0 bg-gradient-to-br from-${color}-500/5 via-transparent to-${color}-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className={`p-2 rounded-full bg-${color}-500/10 text-${color}-500 group-hover:bg-${color}-500/20 transition-colors duration-300`}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </CardHeader>
+      <CardContent className="relative z-10">
+        <div className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+          {value}
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className={`flex items-center space-x-1 text-sm ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+            <TrendIcon className="h-3 w-3" />
+            <span className="font-medium">{Math.abs(change)}%</span>
+          </div>
+          <span className="text-xs text-muted-foreground">{trend}</span>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: any[] }) {
+  return (
+    <Card className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-orange-500/10 border-purple-500/20 group hover:shadow-2xl transition-all duration-500">
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-transparent to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <CardHeader className="relative z-10">
+        <CardTitle className="flex items-center gap-3 text-lg">
+          <div className="p-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <span className="bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+              AI-Powered Insights
+            </span>
+            <div className="flex items-center mt-1">
+              <div className="h-1 w-1 bg-green-500 rounded-full mr-2 animate-pulse" />
+              <span className="text-xs text-muted-foreground">Live Analysis</span>
+            </div>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="relative z-10">
+        <p className="text-sm text-foreground/80 mb-4 leading-relaxed">{summary}</p>
+        {anomalies && anomalies.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Bell className="h-4 w-4 text-orange-500" />
+              Active Alerts
+            </h4>
+            {anomalies.slice(0, 2).map((alert, index) => (
+              <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-card/50 border border-border/50 backdrop-blur-sm">
+                <div className={`h-2 w-2 rounded-full ${alert.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'} animate-pulse`} />
+                <div className="flex-1">
+                  <p className="text-xs text-foreground/70">{alert.message}</p>
+                  <p className="text-xs text-muted-foreground">{alert.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function PropertyShowcase({ properties }: { properties: any[] }) {
+  return (
+    <Card className="lg:col-span-2 overflow-hidden hover:shadow-xl transition-all duration-300">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Building2 className="h-5 w-5" />
+          Property Portfolio
+        </CardTitle>
+        <CardDescription>Your top performing properties</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {properties.map((property, index) => (
+            <div key={property.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors duration-200 group">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                  {property.name.charAt(0)}
+                </div>
+                <div>
+                  <h4 className="font-medium group-hover:text-primary transition-colors">{property.name}</h4>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {property.location} • {property.units} units
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium">{property.occupancy}%</div>
+                <div className="flex items-center space-x-1">
+                  <div className="h-2 w-12 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-500"
+                      style={{ width: `${property.occupancy}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ChartCard({ title, children, className = "" }: { title: string, children: React.ReactNode, className?: string }) {
+  return (
+    <Card className={`hover:shadow-lg transition-all duration-300 ${className}`}>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <BarChart3 className="h-4 w-4" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  )
 }
 
 export default function DashboardPage() {
-  const { t } = useTranslation()
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState(mockData)
+  const [loading, setLoading] = useState(false)
   const [timeframe, setTimeframe] = useState("month")
-  const { user } = useAuth()
-  const { managers } = useManagers()
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const response = await fetch(`/api/dashboard?timeframe=${timeframe}`)
-        
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to fetch dashboard data (${response.status})`)
-        }
-        
-        const result = await response.json()
-        setData(result)
-      } catch (err: any) {
-        setError(err.message || 'Failed to load dashboard data')
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
-  }, [timeframe])
 
   const renderContent = () => {
     if (loading) {
       return <DashboardSkeleton />
     }
-    
-    if (error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-center text-destructive p-4">
-          <WifiOff className="h-12 w-12 mb-4" />
-          <h3 className="text-xl font-semibold mb-2">
-            Failed to Load Dashboard
-          </h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-          >
-            Retry
-          </button>
-        </div>
-      )
-    }
-    
-    if (!data) {
-      return <p>No data available.</p>
-    }
-
-    const totalProperties = data.totalProperties ?? 0
-    const totalTenants = data.totalTenants ?? 0
-    const totalRevenue = data.totalRevenue ?? 0
-    const revenueChange = data.revenueChange ?? 0
-    const occupancyRate = data.occupancyRate ?? 0
-    const properties = data.properties ?? []
-    const anomalyAlerts = data.anomalyAlerts ?? []
-    const latePaymentData = data.latePaymentData ?? []
-    const paymentMethodData = data.paymentMethodData ?? []
 
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {data.aiSummary && <AiInsightsCard summary={data.aiSummary} anomalies={anomalyAlerts} />}
+      <div className="space-y-6">
+        {/* Hero Metrics */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            title="Total Properties"
+            value={data.totalProperties}
+            change={8.2}
+            trend="vs last month"
+            icon={Building2}
+            color="purple"
+          />
+          <MetricCard
+            title="Active Tenants"
+            value={data.totalTenants}
+            change={5.1}
+            trend="vs last month"
+            icon={Users}
+            color="pink"
+          />
+          <MetricCard
+            title="Monthly Revenue"
+            value={safeCurrency(data.totalRevenue)}
+            change={parseFloat(safePercentage(data.revenueChange))}
+            trend="vs last month"
+            icon={DollarSign}
+            color="green"
+          />
+          <MetricCard
+            title="Occupancy Rate"
+            value={`${safeToFixed(data.occupancyRate, 1)}%`}
+            change={2.3}
+            trend="vs last month"
+            icon={TrendingUp}
+            color="blue"
+          />
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("dashboard.totalProperties")}
-            </CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalProperties}</div>
-            <p className="text-xs text-muted-foreground">
-              {t("dashboard.totalPropertiesDesc")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("dashboard.totalTenants")}
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalTenants}</div>
-            <p className="text-xs text-muted-foreground">
-              {t("dashboard.totalTenantsDesc")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("dashboard.totalRevenue")}
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {safeCurrency(totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +{safePercentage(revenueChange)}% from last period
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("dashboard.occupancyRate")}
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {safeToFixed(occupancyRate, 1)}%
-            </div>
-            <Progress
-              value={Math.max(0, Math.min(100, occupancyRate || 0))}
-              className="h-2 mt-2"
-            />
-          </CardContent>
-        </Card>
-
-        {latePaymentData.length > 0 && (
-          <div className="lg:col-span-2">
-            <LatePaymentsChart data={latePaymentData} />
-          </div>
-        )}
-
-        {paymentMethodData.length > 0 && (
-          <div className="lg:col-span-2">
-            <PaymentMethodsChart data={paymentMethodData} />
-          </div>
-        )}
-        
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t("dashboard.propertiesShowcase")}</CardTitle>
-            <CardDescription>
-              {t("dashboard.propertiesShowcaseDesc")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {properties.length > 0 ? (
-              <PropertiesCarousel properties={properties} />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No properties found. Add your first property to get started.</p>
+        {/* AI Insights and Quick Stats */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <AiInsightsCard summary={data.aiSummary} anomalies={data.anomalyAlerts} />
+          
+          {/* Quick Actions */}
+          <Card className="hover:shadow-lg transition-all duration-300 group">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-orange-500" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <button className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-200 group/item">
+                  <span className="text-sm font-medium">Add New Property</span>
+                  <ArrowUpRight className="h-4 w-4 opacity-0 group-hover/item:opacity-100 transform translate-x-0 group-hover/item:translate-x-1 transition-all duration-200" />
+                </button>
+                <button className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-200 group/item">
+                  <span className="text-sm font-medium">Generate Reports</span>
+                  <ArrowUpRight className="h-4 w-4 opacity-0 group-hover/item:opacity-100 transform translate-x-0 group-hover/item:translate-x-1 transition-all duration-200" />
+                </button>
+                <button className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-200 group/item">
+                  <span className="text-sm font-medium">Review Maintenance</span>
+                  <ArrowUpRight className="h-4 w-4 opacity-0 group-hover/item:opacity-100 transform translate-x-0 group-hover/item:translate-x-1 transition-all duration-200" />
+                </button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        {user?.role === "landlord" && (
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>{t("dashboard.propertyManagers")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {managers && managers.length > 0 ? (
-                  <PropertyManagerList managers={managers} />
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No property managers added yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-        )}
+        {/* Charts Section */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ChartCard title="Payment Trends">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data.latePaymentData}>
+                  <defs>
+                    <linearGradient id="colorPayments" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+                  <YAxis stroke="#6b7280" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1f2937', 
+                      border: '1px solid #374151', 
+                      borderRadius: '8px',
+                      color: '#f3f4f6'
+                    }} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="payments" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorPayments)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          <ChartCard title="Payment Methods">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart>
+                  <Pie
+                    data={data.paymentMethodData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ method, value }: { method: string, value: number }) => `${method}: ${value}%`}
+                  >
+                    {data.paymentMethodData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1f2937', 
+                      border: '1px solid #374151', 
+                      borderRadius: '8px',
+                      color: '#f3f4f6'
+                    }} 
+                  />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+        </div>
+
+        {/* Property Showcase */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <PropertyShowcase properties={data.properties} />
+          
+          {/* Performance Metrics */}
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-yellow-500" />
+                Performance Metrics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Avg. Rent Collection</span>
+                  <span className="font-medium">97.2%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-green-400 to-green-500 w-[97.2%] transition-all duration-500" />
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Maintenance Response</span>
+                  <span className="font-medium">4.8/5</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-blue-400 to-blue-500 w-[96%] transition-all duration-500" />
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Tenant Satisfaction</span>
+                  <span className="font-medium">4.6/5</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-purple-400 to-purple-500 w-[92%] transition-all duration-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex flex-col items-start justify-between space-y-2 sm:flex-row sm:items-center">
-        <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
-          {t("dashboard.title")}
-        </h2>
-        <div className="flex items-center space-x-2">
+    <div className="flex-1 space-y-6 p-6">
+      {/* Header */}
+      <div className="flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back! Here's what's happening with your properties.
+          </p>
+        </div>
+        <div className="flex items-center space-x-4">
           <Select value={timeframe} onValueChange={setTimeframe}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-[140px] bg-card/50 backdrop-blur-sm">
               <SelectValue placeholder="Timeframe" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">{t("dashboard.week")}</SelectItem>
-              <SelectItem value="month">{t("dashboard.month")}</SelectItem>
-              <SelectItem value="quarter">{t("dashboard.quarter")}</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="quarter">This Quarter</SelectItem>
             </SelectContent>
           </Select>
+          <button className="p-2 rounded-lg bg-card/50 hover:bg-card border border-border/50 transition-all duration-200">
+            <Eye className="h-4 w-4" />
+          </button>
         </div>
       </div>
+
       {renderContent()}
     </div>
   )
@@ -299,45 +452,37 @@ export default function DashboardPage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="lg:col-span-4 bg-primary/5 border-primary/20">
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-full" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-10 w-full" />
-        </CardContent>
-      </Card>
-      {[...Array(4)].map((_, i) => (
-        <Card key={i}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <Skeleton className="h-5 w-24" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-4 w-full mt-1" />
-          </CardContent>
-        </Card>
-      ))}
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-full" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-80 w-full" />
-        </CardContent>
-      </Card>
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-full" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-2">
+              <div className="h-4 bg-muted rounded w-24"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-muted rounded w-16 mb-2"></div>
+              <div className="h-3 bg-muted rounded w-32"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="h-6 bg-muted rounded w-48"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="h-4 bg-muted rounded w-full"></div>
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
+
+    
