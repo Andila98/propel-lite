@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
 import { PlusCircle, Image as ImageIcon, Upload, Info, Loader2, XCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
+import { PropertyFormSchema, type PropertyFormValues, UnitSchema } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import Papa from 'papaparse';
 import type { Unit } from '@/lib/types';
@@ -90,7 +90,7 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
       });
       if (isOnboarding) {
         router.push(`/onboarding/add-property-manager?propertyId=${initialState.propertyId}`);
-      } else if (initialData) {
+      } else if (initialData?.id) {
         router.push(`/properties/${initialData.id}`);
       } else {
          router.push('/properties');
@@ -181,30 +181,46 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         header: true,
         skipEmptyLines: true,
         complete: (result) => {
-          try {
-              const units = result.data.map((row: any): Partial<Unit> => ({
-                unitNumber: row.unitNumber || '',
-                size: row.size || '',
-                rent: parseFloat(row.rent) || 0,
-                isOccupied: String(row.isOccupied).toLowerCase() === 'true',
-              }));
-              replace(units as any);
-              setValue("numberOfUnits", units.length);
-              toast({
-                title: "CSV Parsed!",
-                description: `${units.length} units have been loaded from the file.`
-              })
-          } catch (error) {
-              toast({
-                  title: "CSV Parsing Error",
-                  description: "Could not parse CSV. Make sure it has headers: unitNumber, size, rent, isOccupied.",
-                  variant: "destructive"
-              });
+          const validatedUnits: Unit[] = [];
+          let validationError = null;
+
+          for (let i = 0; i < result.data.length; i++) {
+            const row: any = result.data[i];
+            const parsedRow = {
+              unitNumber: row.unitNumber,
+              size: row.size,
+              rent: parseFloat(row.rent),
+              isOccupied: String(row.isOccupied).toLowerCase() === 'true',
+            };
+            
+            const validation = UnitSchema.safeParse(parsedRow);
+            if (validation.success) {
+              validatedUnits.push(validation.data as Unit);
+            } else {
+              const firstError = validation.error.errors[0];
+              validationError = `Row ${i + 2}: ${firstError.path.join('.')} - ${firstError.message}`;
+              break; // Stop on first error
+            }
+          }
+
+          if (validationError) {
+             toast({
+                title: "CSV Validation Error",
+                description: validationError,
+                variant: "destructive",
+            });
+          } else {
+            replace(validatedUnits);
+            setValue("numberOfUnits", validatedUnits.length);
+            toast({
+              title: "CSV Parsed!",
+              description: `${validatedUnits.length} units have been successfully loaded and validated.`,
+            });
           }
         },
         error: (error) => {
             toast({
-                title: "CSV Error",
+                title: "CSV Parsing Error",
                 description: error.message,
                 variant: "destructive"
             });
@@ -534,3 +550,4 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     </TooltipProvider>
   );
 }
+
