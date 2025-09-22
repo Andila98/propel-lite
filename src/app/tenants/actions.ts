@@ -219,92 +219,108 @@ export async function createTenantsFromCsvAction(
         return acc;
     }, {} as Record<string, any[]>);
     console.log(`[CSV_ACTION] Found ${properties.length} properties and their units.`);
-
-    let createdCount = 0;
-    const batch = firestore.batch();
-
+    
+    // --- Phase 1: Validation ---
+    console.log('[CSV_ACTION] Starting Phase 1: Validation...');
+    const validatedTenants = [];
+    const assignedUnits = new Set<string>(); // Tracks units assigned in this batch
+    
     for (let i = 0; i < tenantsData.length; i++) {
         const row = tenantsData[i];
         const rowIndex = i + 2; // CSV is 1-based, plus header row
-        console.log(`[CSV_ACTION] Processing row ${rowIndex}:`, row);
-
+        
         const validation = TenantFormSchema.safeParse({
             name: row.name,
             email: row.email,
             phone: row.phone,
             leaseStart: row.lease_start,
             leaseEnd: row.lease_end,
-            propertyId: 'temp', // Will be replaced, needed for schema validation
-            unitId: 'temp',     // Will be replaced, needed for schema validation
+            propertyId: 'temp', 
+            unitId: 'temp',
         });
-
+        
         if (!validation.success) {
             const firstError = validation.error.errors[0];
             const errorMessage = `Row ${rowIndex}: Invalid data for '${firstError.path.join('.')}'. Error: ${firstError.message}.`;
-            console.error('[CSV_ACTION] Validation failed:', errorMessage);
             return { success: false, error: `Row ${rowIndex} has invalid data.`, details: errorMessage };
         }
-
+        
         const property = properties.find(p => p.address === row.property_address);
         if (!property) {
             const errorMessage = `Row ${rowIndex}: Property not found for address "${row.property_address}".`;
-            console.error('[CSV_ACTION] Property lookup failed:', errorMessage);
-            return { success: false, error: errorMessage };
-        }
-        
-        const unit = unitsByProperty[property.id]?.find(u => u.unitNumber === row.unit_number);
-        if (!unit) {
-            const errorMessage = `Row ${rowIndex}: Unit "${row.unit_number}" not found in property "${property.address}".`;
-            console.error('[CSV_ACTION] Unit lookup failed:', errorMessage);
-            return { success: false, error: errorMessage };
-        }
-        if (unit.isOccupied) {
-            const errorMessage = `Row ${rowIndex}: Unit "${row.unit_number}" is already occupied.`;
-            console.error('[CSV_ACTION] Unit conflict:', errorMessage);
             return { success: false, error: errorMessage };
         }
 
+        const unit = unitsByProperty[property.id]?.find(u => u.unitNumber === row.unit_number);
+        if (!unit) {
+            const errorMessage = `Row ${rowIndex}: Unit "${row.unit_number}" not found in property "${property.address}".`;
+            return { success: false, error: errorMessage };
+        }
+        
+        if (unit.isOccupied) {
+            const errorMessage = `Row ${rowIndex}: Unit "${unit.unitNumber}" is already occupied.`;
+            return { success: false, error: errorMessage };
+        }
+        
+        const unitAssignmentKey = `${property.id}-${unit.id}`;
+        if (assignedUnits.has(unitAssignmentKey)) {
+            const errorMessage = `Row ${rowIndex}: Unit "${unit.unitNumber}" is assigned multiple times in this CSV.`;
+            return { success: false, error: errorMessage };
+        }
+        assignedUnits.add(unitAssignmentKey);
+
+        validatedTenants.push({
+            data: validation.data,
+            propertyId: property.id,
+            unitId: unit.id,
+        });
+    }
+    console.log(`[CSV_ACTION] Phase 1: Validation successful for ${validatedTenants.length} tenants.`);
+
+    // --- Phase 2: Creation ---
+    console.log('[CSV_ACTION] Starting Phase 2: User and Data Creation...');
+    const batch = firestore.batch();
+    
+    for (const { data, propertyId, unitId } of validatedTenants) {
         try {
-            console.log(`[CSV_ACTION] Row ${rowIndex}: Creating Firebase Auth user for ${row.email}`);
-            const userRecord = await auth.createUser({ email: row.email, displayName: row.name });
+            const userRecord = await auth.createUser({ email: data.email, displayName: data.name });
             await auth.setCustomUserClaims(userRecord.uid, { role: 'tenant', profileComplete: true, landlordId });
 
             const tenantRef = firestore.collection('tenants').doc(userRecord.uid);
             batch.set(tenantRef, {
-                ...validation.data,
+                ...data,
                 uid: userRecord.uid,
-                propertyId: property.id,
-                currentUnitId: unit.id,
+                propertyId: propertyId,
+                currentUnitId: unitId,
                 landlordId: landlordId,
                 rentStatus: 'Paid',
                 createdAt: FieldValue.serverTimestamp(),
-                 leaseStart: new Date(validation.data.leaseStart),
-                leaseEnd: new Date(validation.data.leaseEnd),
+                leaseStart: new Date(data.leaseStart),
+                leaseEnd: new Date(data.leaseEnd),
             });
 
-            const unitRef = firestore.collection('properties').doc(property.id).collection('units').doc(unit.id);
+            const unitRef = firestore.collection('properties').doc(propertyId).collection('units').doc(unitId);
             batch.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
-            
-            // Mark unit as occupied in our local cache to prevent duplicate assignments in the same batch
-            unit.isOccupied = true;
-            createdCount++;
-            console.log(`[CSV_ACTION] Row ${rowIndex}: Successfully staged creation for tenant ${row.name}.`);
 
         } catch (error: any) {
-            const errorMessage = `Row ${rowIndex}: Failed to create user for ${row.email}. Error: ${error.message}`;
+            const errorMessage = `Failed to create auth user for ${data.email}. Error: ${error.message}. Halting process.`;
             console.error('[CSV_ACTION] Firebase Auth user creation failed:', errorMessage, error);
-            return { success: false, error: `Failed on row ${rowIndex}.`, details: errorMessage };
+            // Don't proceed with batch commit if any user creation fails
+            return { success: false, error: `Failed during user creation.`, details: errorMessage };
         }
     }
 
     try {
-        console.log(`[CSV_ACTION] Committing batch of ${createdCount} tenants to database.`);
+        console.log(`[CSV_ACTION] Committing batch of ${validatedTenants.length} tenants to database.`);
         await batch.commit();
-        await logActivity(actor.displayName || 'Admin', `Bulk created ${createdCount} tenants from CSV`, { type: 'Tenant', name: 'Multiple Tenants' }, landlordId);
+        await logActivity(actor.displayName || 'Admin', `Bulk created ${validatedTenants.length} tenants from CSV`, { type: 'Tenant', name: 'Multiple Tenants' }, landlordId);
+        
         revalidatePath('/tenants');
         revalidatePath('/dashboard');
+        
         console.log('[CSV_ACTION] Batch commit successful. Process finished.');
-        return { success: true, createdCount };
+        return { success: true, createdCount: validatedTenants.length };
+        
     } catch (error: any) {
         console.error('[CSV_ACTION] Final batch commit failed:', error);
         return { success: false, error: `Failed to commit changes to database.`, details: error.message };
