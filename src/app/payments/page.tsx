@@ -23,14 +23,16 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, Property, Tenant } from '@/lib/types';
 import Link from 'next/link';
-import { Receipt as ReceiptIcon, Loader2, PlusCircle } from 'lucide-react';
-import { getReceiptAction, type ReceiptState } from './actions';
+import { Receipt as ReceiptIcon, Loader2, PlusCircle, Download, Mail } from 'lucide-react';
+import { getReceiptAction, emailReceiptAction, type ReceiptState } from './actions';
 import { Receipt } from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -41,8 +43,10 @@ type PaymentWithDetails = Payment & { tenantName: string; propertyAddress: strin
 
 export default function PaymentsPage() {
   const { toast } = useToast();
-  const [receiptLoading, setReceiptLoading] = useState(false);
-  const [receiptResult, setReceiptResult] = useState<ReceiptState | null>(null);
+  const [receiptState, setReceiptState] = useState<{ loading: boolean; result: ReceiptState | null; currentPaymentId?: string }>({
+    loading: false,
+    result: null,
+  });
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
   
@@ -85,20 +89,38 @@ export default function PaymentsPage() {
   
 
   const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
-    setReceiptLoading(true);
+    setReceiptState({ loading: true, result: null, currentPaymentId: paymentId });
     setIsReceiptOpen(true);
-    setReceiptResult(null);
 
     const result = await getReceiptAction({ tenantId, paymentId });
     if (result.error) {
       toast({ title: "Error", description: result.error, variant: "destructive" });
-    } else {
-      setReceiptResult(result);
     }
-
-    setReceiptLoading(false);
+    
+    setReceiptState({ loading: false, result, currentPaymentId: paymentId });
   }
   
+  const handleEmailReceipt = async (tenantId: string, paymentId: string) => {
+    toast({ title: "Sending...", description: "Emailing the receipt to the tenant." });
+    const result = await emailReceiptAction({ tenantId, paymentId });
+    if (result.error) {
+      toast({ title: "Error", description: `Failed to email receipt: ${result.error}`, variant: "destructive" });
+    } else {
+      toast({ title: "Success!", description: "Receipt has been emailed to the tenant." });
+    }
+  };
+  
+  const handleDownloadPdf = () => {
+    if (receiptState.result?.pdf && receiptState.result?.receipt) {
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${receiptState.result.pdf}`;
+      link.download = `Receipt-${receiptState.result.receipt.receiptNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   const renderSkeleton = () => (
      <Table>
         <TableHeader>
@@ -193,9 +215,12 @@ export default function PaymentsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleGenerateReceipt(payment.tenantId, payment.id)}
-                            disabled={receiptLoading}
+                            disabled={receiptState.loading && receiptState.currentPaymentId === payment.id}
                         >
-                            <ReceiptIcon className="mr-2 h-4 w-4" />
+                            {receiptState.loading && receiptState.currentPaymentId === payment.id 
+                                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                                : <ReceiptIcon className="mr-2 h-4 w-4" />
+                            }
                             Receipt
                         </Button>
                     </TableCell>
@@ -216,10 +241,28 @@ export default function PaymentsPage() {
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                {receiptLoading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-                {receiptResult?.receipt && <Receipt receipt={receiptResult.receipt} />}
-                {receiptResult?.error && <p className="text-destructive">{receiptResult.error}</p>}
+                {receiptState.loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                {receiptState.result?.receipt && <Receipt receipt={receiptState.result.receipt} />}
+                {receiptState.result?.error && <p className="text-destructive">{receiptState.result.error}</p>}
             </div>
+             <DialogFooter>
+                 <DialogClose asChild>
+                    <Button type="button" variant="secondary">Close</Button>
+                </DialogClose>
+                <Button 
+                    onClick={handleDownloadPdf}
+                    disabled={!receiptState.result?.pdf}
+                    variant="outline"
+                >
+                    <Download className="mr-2 h-4 w-4" /> Download PDF
+                </Button>
+                <Button 
+                    onClick={() => handleEmailReceipt(receiptState.result?.receipt!.tenantName, receiptState.currentPaymentId!)}
+                    disabled={!receiptState.result?.receipt}
+                >
+                    <Mail className="mr-2 h-4 w-4" /> Email to Tenant
+                </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import type { GenerateReceiptOutput } from '@/lib/schema-types';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { PropelLiteLogo } from './icons/logo';
 
 interface ReceiptProps {
   receipt: GenerateReceiptOutput;
@@ -13,22 +14,31 @@ interface ReceiptProps {
 export function Receipt({ receipt }: ReceiptProps) {
   return (
     <Card className="text-sm border-dashed">
-      <CardHeader>
-        <CardTitle className="text-base">Receipt {receipt.receiptNumber}</CardTitle>
-        <CardDescription>For: {receipt.tenantName}</CardDescription>
+      <CardHeader className="flex flex-row items-start gap-4">
+        <div className="p-2 bg-muted rounded-full">
+            <PropelLiteLogo className="h-8 w-8" />
+        </div>
+        <div className="grid gap-0.5">
+            <CardTitle className="text-lg">Receipt</CardTitle>
+            <CardDescription>Receipt #{receipt.receiptNumber}</CardDescription>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-2">
             <div className="flex justify-between">
-                <span>Property:</span>
+                <span className="text-muted-foreground">Tenant:</span>
+                <span className="font-medium">{receipt.tenantName}</span>
+            </div>
+            <div className="flex justify-between">
+                <span className="text-muted-foreground">Property:</span>
                 <span className="font-medium text-right">{receipt.propertyAddress}</span>
             </div>
             <div className="flex justify-between">
-                <span>Payment Date:</span>
+                <span className="text-muted-foreground">Payment Date:</span>
                 <span className="font-medium">{formatDate(receipt.paymentDate)}</span>
             </div>
              <div className="flex justify-between">
-                <span>Payment Method:</span>
+                <span className="text-muted-foreground">Payment Method:</span>
                 <span className="font-medium">{receipt.paymentMethod}</span>
             </div>
         </div>
@@ -39,7 +49,7 @@ export function Receipt({ receipt }: ReceiptProps) {
         </div>
         <Separator />
       </CardContent>
-      <CardFooter className="text-xs text-muted-foreground">
+      <CardFooter className="text-xs text-muted-foreground text-center justify-center">
         <p>{receipt.notes}</p>
       </CardFooter>
     </Card>

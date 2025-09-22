@@ -21,15 +21,17 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Image from 'next/image';
 import type { Tenant, Property, Payment, MaintenanceRequest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download, Mail, Receipt } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { getReceiptAction, emailReceiptAction, type ReceiptState } from '../payments/actions';
+import { Receipt as ReceiptComponent } from '@/components/receipt';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -155,6 +157,13 @@ export default function TenantPortalPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  const [receiptState, setReceiptState] = useState<{ loading: boolean; result: ReceiptState | null; currentPaymentId?: string }>({
+    loading: false,
+    result: null,
+  });
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
 
   useEffect(() => {
     async function fetchData() {
@@ -187,6 +196,41 @@ export default function TenantPortalPage() {
     }
     fetchData();
   }, [user, toast]);
+  
+  const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
+    setReceiptState({ loading: true, result: null, currentPaymentId: paymentId });
+    setIsReceiptOpen(true);
+
+    const result = await getReceiptAction({ tenantId, paymentId });
+    if (result.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+    }
+    
+    setReceiptState({ loading: false, result, currentPaymentId: paymentId });
+  }
+
+  const handleEmailReceipt = async () => {
+    if (!receiptState.result?.receipt || !receiptState.currentPaymentId || !tenant) return;
+    toast({ title: "Sending...", description: "Emailing your receipt." });
+    const result = await emailReceiptAction({ tenantId: tenant.id, paymentId: receiptState.currentPaymentId });
+    if (result.error) {
+      toast({ title: "Error", description: `Failed to email receipt: ${result.error}`, variant: "destructive" });
+    } else {
+      toast({ title: "Success!", description: "Receipt has been sent to your email." });
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (receiptState.result?.pdf && receiptState.result?.receipt) {
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${receiptState.result.pdf}`;
+      link.download = `Receipt-${receiptState.result.receipt.receiptNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
 
   if (loading) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
@@ -287,6 +331,7 @@ export default function TenantPortalPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,6 +340,19 @@ export default function TenantPortalPage() {
                     <TableCell>{formatDate(payment.date)}</TableCell>
                     <TableCell>{formatCurrency(payment.amount, property.currency)}</TableCell>
                     <TableCell>{payment.method}</TableCell>
+                    <TableCell className="text-right">
+                       <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGenerateReceipt(payment.tenantId, payment.id)}
+                            disabled={receiptState.loading && receiptState.currentPaymentId === payment.id}
+                        >
+                            {receiptState.loading && receiptState.currentPaymentId === payment.id 
+                                ? <Loader2 className="h-4 w-4 animate-spin" /> 
+                                : <Receipt className="h-4 w-4" />
+                            }
+                        </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -302,6 +360,27 @@ export default function TenantPortalPage() {
           </CardContent>
         </Card>
       </div>
+
+       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Your Receipt</DialogTitle>
+                <DialogDescription>
+                    Here is the receipt for your transaction.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                {receiptState.loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                {receiptState.result?.receipt && <ReceiptComponent receipt={receiptState.result.receipt} />}
+                {receiptState.result?.error && <p className="text-destructive">{receiptState.result.error}</p>}
+            </div>
+             <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="secondary">Close</Button></DialogClose>
+                <Button onClick={handleDownloadPdf} disabled={!receiptState.result?.pdf} variant="outline"><Download className="mr-2 h-4 w-4" /> Download</Button>
+                <Button onClick={handleEmailReceipt} disabled={!receiptState.result?.receipt}><Mail className="mr-2 h-4 w-4" /> Email Me</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
