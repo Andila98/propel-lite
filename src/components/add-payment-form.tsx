@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useActionState } from 'react';
@@ -12,14 +12,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from 'lucide-react';
-import { recordPaymentAction } from '@/app/payments/actions';
+import { Loader2, UserPlus, FileUp, Info, Upload } from 'lucide-react';
+import { recordPaymentAction, createPaymentsFromCsvAction } from '@/app/payments/actions';
 import { PaymentFormSchema, type PaymentFormValues } from "@/lib/schemas";
 import type { Tenant } from '@/lib/types';
 import type { FormState } from '@/app/tenants/actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CardDescription } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Papa from 'papaparse';
 
 
-function SubmitButton() {
+function ManualSubmitButton() {
     const { pending } = useFormStatus();
     return (
         <Button type="submit" disabled={pending}>
@@ -29,12 +33,12 @@ function SubmitButton() {
     )
 }
 
-interface AddPaymentFormProps {
+interface ManualPaymentFormProps {
     tenants: Tenant[];
     onPaymentAdded: () => void;
 }
 
-export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps) {
+function ManualPaymentForm({ tenants, onPaymentAdded }: ManualPaymentFormProps) {
     const { toast } = useToast();
     const initialState: FormState = { success: false };
     const [state, formAction] = useActionState(recordPaymentAction, initialState);
@@ -67,23 +71,15 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
         }
     }, [state, toast, onPaymentAdded]);
     
-    // Watch for changes in controlled fields to update hidden inputs
-    const tenantIdValue = watch('tenantId');
-    const methodValue = watch('method');
-
     return (
         <form action={formAction} className="grid gap-4 py-4">
-            {/* Hidden inputs to ensure controlled values are submitted */}
-            <input type="hidden" {...register('tenantId')} value={tenantIdValue} />
-            <input type="hidden" {...register('method')} value={methodValue} />
-
             <div>
                 <Label htmlFor="tenantId-select">Tenant</Label>
                 <Controller
                     name="tenantId"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={(value) => setValue('tenantId', value)} value={tenantIdValue}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger id="tenantId-select">
                                 <SelectValue placeholder="Select a tenant..." />
                             </SelectTrigger>
@@ -116,7 +112,7 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
                         name="method"
                         control={control}
                         render={({ field }) => (
-                            <Select onValueChange={(value) => setValue('method', value as any)} value={methodValue}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger id="method-select">
                                     <SelectValue placeholder="Select method..." />
                                 </SelectTrigger>
@@ -142,8 +138,118 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
             </div>
             
             <div className="flex justify-end pt-4">
-                <SubmitButton />
+                <ManualSubmitButton />
             </div>
         </form>
+    );
+}
+
+interface BulkImportFormProps {
+    onImportComplete: () => void;
+}
+
+function BulkImportForm({ onImportComplete }: BulkImportFormProps) {
+    const { toast } = useToast();
+    const [isBulkLoading, setIsBulkLoading] = useState(false);
+
+    const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsBulkLoading(true);
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (result) => {
+                const paymentsData = result.data as any[];
+                if (!paymentsData || paymentsData.length === 0) {
+                    toast({ title: "CSV Error", description: "CSV file is empty or invalid.", variant: "destructive" });
+                    setIsBulkLoading(false);
+                    return;
+                }
+
+                const state = await createPaymentsFromCsvAction(paymentsData);
+
+                if (state.success) {
+                    toast({
+                        title: "Payments Imported!",
+                        description: `${state.createdCount} payments have been successfully recorded.`,
+                    });
+                    onImportComplete();
+                } else {
+                    toast({
+                        title: `Bulk Import Failed: ${state.error}`,
+                        description: state.details || "Please check the CSV data and try again.",
+                        variant: "destructive",
+                        duration: 10000,
+                    });
+                }
+                setIsBulkLoading(false);
+            },
+            error: (error) => {
+                toast({ title: "CSV Parsing Error", description: error.message, variant: "destructive" });
+                setIsBulkLoading(false);
+            }
+        });
+    };
+
+    return (
+        <TooltipProvider>
+            <div className="space-y-4 py-4">
+                <CardDescription>
+                    Upload a CSV file with tenant payments. Ensure your file has the correct headers.
+                </CardDescription>
+                <div className="p-6 border-2 border-dashed rounded-lg text-center">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-medium">Drop a CSV file here or click to upload</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Bulk record payments in one go.</p>
+                    <div className="mt-4">
+                        <Button asChild variant="outline">
+                            <label htmlFor="csvFile" className="cursor-pointer">
+                                {isBulkLoading ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</>
+                                ) : (
+                                    <><FileUp className="mr-2 h-4 w-4" />Select File</>
+                                )}
+                                <input id="csvFile" name="csvFile" type="file" accept=".csv" className="sr-only" onChange={handleCsvUpload} disabled={isBulkLoading} />
+                            </label>
+                        </Button>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Info className="h-4 w-4" />
+                    Required headers: `tenant_email`, `amount`, `date`, `method`.
+                </div>
+            </div>
+        </TooltipProvider>
+    );
+}
+
+interface AddPaymentFormProps {
+    tenants: Tenant[];
+    onPaymentAdded: () => void;
+}
+
+export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps) {
+    return (
+        <Tabs defaultValue="manual" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual">
+                    <UserPlus className="mr-2 h-4 w-4"/>
+                    Manual Entry
+                </TabsTrigger>
+                <TabsTrigger value="bulk">
+                    <FileUp className="mr-2 h-4 w-4"/>
+                    Bulk Import (CSV)
+                </TabsTrigger>
+            </TabsList>
+            <TabsContent value="manual">
+                <ManualPaymentForm tenants={tenants} onPaymentAdded={onPaymentAdded} />
+            </TabsContent>
+            <TabsContent value="bulk">
+                <BulkImportForm onImportComplete={onPaymentAdded} />
+            </TabsContent>
+        </Tabs>
     );
 }

@@ -145,3 +145,103 @@ export async function recordPaymentAction(prevState: FormState, formData: FormDa
         return { error: `Failed to record payment: ${error.message}` };
     }
 }
+
+
+const CsvPaymentSchema = z.object({
+  tenant_email: z.string().email("Invalid email format."),
+  amount: z.coerce.number().positive("Amount must be a positive number."),
+  date: z.string().refine((d) => !isNaN(Date.parse(d)), "Invalid date format."),
+  method: z.enum(['Mpesa', 'Stripe', 'Card', 'Bank Transfer', 'Cash', 'Other'], {
+    errorMap: () => ({ message: "Invalid payment method." })
+  }),
+  notes: z.string().optional(),
+});
+
+
+export async function createPaymentsFromCsvAction(
+    paymentsData: any[]
+): Promise<{ success: boolean; error?: string; details?: string; createdCount?: number }> {
+    console.log('[CSV_ACTION] Starting CSV payment creation process.');
+    if (!isFirebaseAdminInitialized) {
+        console.error('[CSV_ACTION] Error: Backend services are not configured.');
+        return { success: false, error: 'Backend services are not configured.' };
+    }
+    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return { success: false, error: 'Unauthorized.' };
+    }
+    const { landlordId, actor } = await getLandlordAndActor(sessionCookie);
+    if (!landlordId || !actor) {
+        return { success: false, error: 'Unauthorized user.' };
+    }
+
+    // --- Phase 1: Validation ---
+    console.log('[CSV_ACTION] Starting Phase 1: Payment Validation...');
+    const validatedPayments = [];
+    const tenantCache = new Map<string, any>();
+
+    const tenantsSnapshot = await firestore.collection('tenants').where('landlordId', '==', landlordId).get();
+    tenantsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        tenantCache.set(data.email, { id: doc.id, ...data });
+    });
+
+    for (let i = 0; i < paymentsData.length; i++) {
+        const row = paymentsData[i];
+        const rowIndex = i + 2;
+
+        const validation = CsvPaymentSchema.safeParse(row);
+        if (!validation.success) {
+            const firstError = validation.error.errors[0];
+            const errorMessage = `Row ${rowIndex}: Invalid data for '${firstError.path.join('.')}'. Error: ${firstError.message}.`;
+            return { success: false, error: `Row ${rowIndex} has invalid data.`, details: errorMessage };
+        }
+
+        const tenant = tenantCache.get(validation.data.tenant_email);
+        if (!tenant) {
+            const errorMessage = `Row ${rowIndex}: Tenant with email "${validation.data.tenant_email}" not found.`;
+            return { success: false, error: errorMessage };
+        }
+
+        validatedPayments.push({
+            ...validation.data,
+            tenantId: tenant.id,
+            propertyId: tenant.propertyId,
+            unitId: tenant.currentUnitId,
+            landlordId: landlordId,
+        });
+    }
+    console.log(`[CSV_ACTION] Phase 1: Validation successful for ${validatedPayments.length} payments.`);
+
+    // --- Phase 2: Creation ---
+    console.log('[CSV_ACTION] Starting Phase 2: Database Creation...');
+    const batch = firestore.batch();
+
+    for (const payment of validatedPayments) {
+        const paymentRef = firestore.collection('payments').doc();
+        const { tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
+
+        batch.set(paymentRef, {
+            ...dbPayment,
+            date: new Date(payment.date),
+            status: 'confirmed',
+            type: 'Rent',
+            createdAt: new Date(),
+        });
+    }
+
+    try {
+        await batch.commit();
+        await logActivity(actor.displayName || 'Admin', `Bulk recorded ${validatedPayments.length} payments from CSV`, { type: 'Tenant', name: 'Multiple Tenants' }, landlordId);
+
+        revalidatePath('/payments');
+        revalidatePath('/dashboard');
+        
+        console.log('[CSV_ACTION] Batch commit successful. Process finished.');
+        return { success: true, createdCount: validatedPayments.length };
+        
+    } catch (error: any) {
+        console.error('[CSV_ACTION] Final batch commit failed:', error);
+        return { success: false, error: `Failed to commit changes to database.`, details: error.message };
+    }
+}
