@@ -131,11 +131,7 @@ export const TenantFormSchema = z.object({
     .min(1, "Please select a unit"),
   leaseStart: z
     .string()
-    .refine((val) => !isNaN(Date.parse(val)), "Invalid start date")
-    .refine(
-      (val) => new Date(val) >= new Date(new Date().toDateString()), // Compare date part only
-      "Lease start date cannot be in the past"
-    ),
+    .refine((val) => !isNaN(Date.parse(val)), "Invalid start date"),
   leaseEnd: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), "Invalid end date"),
