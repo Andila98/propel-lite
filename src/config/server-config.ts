@@ -18,6 +18,9 @@ export const authConfig = {
     },
 };
 
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+
 // A simple log during development to confirm which project is being targeted by the Admin SDK.
 if (process.env.NODE_ENV === 'development') {
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
