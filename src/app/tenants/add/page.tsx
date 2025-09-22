@@ -132,8 +132,9 @@ export default function AddTenantPage() {
             } else {
                  toast({
                     title: `Bulk Creation Failed: ${state.error}`,
-                    description: state.details,
-                    variant: "destructive"
+                    description: state.details || "Please check the CSV data and try again.",
+                    variant: "destructive",
+                    duration: 10000,
                 });
             }
             setIsBulkLoading(false);
