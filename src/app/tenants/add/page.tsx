@@ -14,11 +14,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { useState, useEffect, useActionState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload, Info } from 'lucide-react';
 import type { Unit, Property } from '@/lib/types';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormStatus } from 'react-dom';
-import { createTenantAction } from '../actions';
+import { createTenantAction, createTenantsFromCsvAction } from '../actions';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Papa from 'papaparse';
 
 interface PropertiesResponse {
   properties: Property[];
@@ -45,6 +48,7 @@ export default function AddTenantPage() {
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   const [state, formAction] = useActionState(createTenantAction, { success: false, errors: undefined, error: undefined });
 
@@ -90,7 +94,6 @@ export default function AddTenantPage() {
         const res = await fetch('/api/properties');
         if (!res.ok) throw new Error("Failed to fetch properties");
         const data: PropertiesResponse = await res.json();
-        // Correctly access the properties array from the API response
         setProperties(data.properties || []);
       } catch (err: any) {
         toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
@@ -100,11 +103,57 @@ export default function AddTenantPage() {
     }
     fetchProperties();
   }, [toast]);
+
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsBulkLoading(true);
+
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (result) => {
+            const tenantsData = result.data as any[];
+             if (!tenantsData || tenantsData.length === 0) {
+                toast({ title: "CSV Error", description: "CSV file is empty or invalid.", variant: "destructive" });
+                setIsBulkLoading(false);
+                return;
+            }
+
+            const state = await createTenantsFromCsvAction(tenantsData);
+
+            if (state.success) {
+                 toast({
+                    title: "Tenants Created!",
+                    description: `${state.createdCount} tenants have been successfully added.`,
+                });
+                router.push('/tenants');
+            } else {
+                 toast({
+                    title: `Bulk Creation Failed: ${state.error}`,
+                    description: state.details,
+                    variant: "destructive"
+                });
+            }
+            setIsBulkLoading(false);
+        },
+        error: (error) => {
+            toast({
+                title: "CSV Parsing Error",
+                description: error.message,
+                variant: "destructive",
+            });
+            setIsBulkLoading(false);
+        }
+    });
+  };
   
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied) || [];
 
   return (
+    <TooltipProvider>
     <div className="flex-1 space-y-4 p-4 md:p-6">
        <div className="flex items-center gap-4">
             <Link href="/tenants">
@@ -118,9 +167,37 @@ export default function AddTenantPage() {
         <Card className="max-w-2xl mx-auto">
             <CardHeader>
                 <CardTitle>Tenant Information</CardTitle>
-                <CardDescription>Enter the details for the new tenant and assign them to a unit.</CardDescription>
+                <CardDescription>Enter the details for the new tenant and assign them to a unit, or upload a CSV for bulk creation.</CardDescription>
             </CardHeader>
             <CardContent>
+                 <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="csvFile">Upload Tenants (CSV)</Label>
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                            <p className="max-w-xs">Required headers: `name`, `email`, `phone`, `property_address`, `unit_number`, `lease_start`, `lease_end`.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Input id="csvFile" type="file" accept=".csv" onChange={handleCsvUpload} disabled={isBulkLoading}/>
+                         <Button type="button" variant="outline" size="icon" asChild>
+                            <Label htmlFor="csvFile" className="cursor-pointer">
+                                <Upload className="h-4 w-4" />
+                            </Label>
+                        </Button>
+                        {isBulkLoading && <Loader2 className="h-5 w-5 animate-spin" />}
+                    </div>
+                </div>
+
+                <div className="relative my-6">
+                    <Separator />
+                    <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">OR</span>
+                </div>
+
                 <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
@@ -150,7 +227,7 @@ export default function AddTenantPage() {
                             render={({ field }) => (
                                 <Select onValueChange={(value) => {
                                         field.onChange(value);
-                                        setValue('unitId', ''); // Reset unit when property changes
+                                        setValue('unitId', '');
                                     }} 
                                     defaultValue={field.value} 
                                     disabled={propertiesLoading}
@@ -212,5 +289,6 @@ export default function AddTenantPage() {
             </CardContent>
         </Card>
     </div>
+    </TooltipProvider>
   );
 }

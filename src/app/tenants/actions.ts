@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -35,7 +36,6 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         return { error: authError?.message || 'Unauthorized. Could not identify user.' };
     }
     
-    // Permission Check
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddTenants) {
         return { error: "You don't have permission to add tenants." };
     }
@@ -65,14 +65,14 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         await auth.setCustomUserClaims(userRecord.uid, { 
             role: 'tenant', 
             profileComplete: true, 
-            landlordId: landlordId // STRICTLY link tenant to landlord
+            landlordId: landlordId
         });
 
         const newTenant = {
             ...tenantData,
             uid: userRecord.uid,
             currentUnitId: unitId,
-            rentStatus: 'Paid', // Default status for new tenant
+            rentStatus: 'Paid',
             createdAt: FieldValue.serverTimestamp(),
             leaseStart: new Date(tenantData.leaseStart),
             leaseEnd: new Date(tenantData.leaseEnd),
@@ -82,7 +82,6 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
         const tenantRef = firestore.collection('tenants').doc(userRecord.uid);
         await tenantRef.set(newTenant);
         
-        // Update the unit to be occupied
         await firestore.collection('properties').doc(tenantData.propertyId).collection('units').doc(unitId).update({
             isOccupied: true,
             tenantId: tenantRef.id
@@ -119,7 +118,6 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         return { error: authError?.message || 'Unauthorized. Could not identify user.' };
     }
 
-    // Permission Check
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditTenants) {
         return { error: "You don't have permission to edit tenants." };
     }
@@ -149,7 +147,6 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         }
         const oldTenantData = tenantDoc.data();
         
-        // Ownership check
         if (oldTenantData?.landlordId !== landlordId) {
             return { error: "Forbidden: You do not have permission to update this tenant." };
         }
@@ -171,12 +168,10 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         batch.update(tenantRef, updateData);
 
         if (oldUnitId !== currentUnitId && oldPropertyId) {
-            // Mark old unit as vacant
             const oldUnitRef = firestore.collection('properties').doc(oldPropertyId).collection('units').doc(oldUnitId);
             batch.update(oldUnitRef, { isOccupied: false, tenantId: FieldValue.delete() });
         }
         
-        // Mark new unit as occupied
         const newUnitRef = firestore.collection('properties').doc(propertyId).collection('units').doc(currentUnitId);
         batch.update(newUnitRef, { isOccupied: true, tenantId: tenantId });
         
@@ -191,5 +186,98 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     } catch (error: any) {
         console.error(`[ERROR: updateTenantAction]`, error);
         return { error: `Internal Server Error: ${error.message}` };
+    }
+}
+
+
+export async function createTenantsFromCsvAction(
+    tenantsData: any[]
+): Promise<{ success: boolean; error?: string; details?: string; createdCount?: number }> {
+    if (!isFirebaseAdminInitialized) {
+        return { success: false, error: 'Backend services are not configured. Please contact support.' };
+    }
+    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    if (!sessionCookie) {
+        return { success: false, error: 'Unauthorized. Please log in.' };
+    }
+    const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
+    if (authError || !landlordId || !actor) {
+        return { success: false, error: authError.message || 'Unauthorized. Could not identify user.' };
+    }
+
+    const propertiesSnapshot = await firestore.collection('properties').where('landlordId', '==', landlordId).get();
+    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const unitsSnapshots = await Promise.all(properties.map(p => p.ref.collection('units').get()));
+    const unitsByProperty = properties.reduce((acc, prop, index) => {
+        acc[prop.id] = unitsSnapshots[index].docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return acc;
+    }, {} as Record<string, any[]>);
+
+    let createdCount = 0;
+    const batch = firestore.batch();
+
+    for (let i = 0; i < tenantsData.length; i++) {
+        const row = tenantsData[i];
+        const validation = TenantFormSchema.safeParse({
+            name: row.name,
+            email: row.email,
+            phone: row.phone,
+            leaseStart: row.lease_start,
+            leaseEnd: row.lease_end,
+            propertyId: 'temp', // Will be replaced
+            unitId: 'temp', // Will be replaced
+        });
+
+        if (!validation.success) {
+            return { success: false, error: `Row ${i + 2} is invalid.`, details: validation.error.flatten().fieldErrors.name?.[0] };
+        }
+
+        const property = properties.find(p => p.address === row.property_address);
+        if (!property) {
+            return { success: false, error: `Row ${i + 2}: Property not found for address "${row.property_address}".` };
+        }
+        
+        const unit = unitsByProperty[property.id].find(u => u.unitNumber === row.unit_number);
+        if (!unit) {
+            return { success: false, error: `Row ${i + 2}: Unit "${row.unit_number}" not found in property "${property.address}".` };
+        }
+         if (unit.isOccupied) {
+            return { success: false, error: `Row ${i + 2}: Unit "${row.unit_number}" is already occupied.` };
+        }
+
+        try {
+            const userRecord = await auth.createUser({ email: row.email, displayName: row.name });
+            await auth.setCustomUserClaims(userRecord.uid, { role: 'tenant', profileComplete: true, landlordId });
+
+            const tenantRef = firestore.collection('tenants').doc(userRecord.uid);
+            batch.set(tenantRef, {
+                ...validation.data,
+                uid: userRecord.uid,
+                propertyId: property.id,
+                currentUnitId: unit.id,
+                landlordId: landlordId,
+                rentStatus: 'Paid',
+                createdAt: FieldValue.serverTimestamp(),
+            });
+
+            const unitRef = firestore.collection('properties').doc(property.id).collection('units').doc(unit.id);
+            batch.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
+            
+            unit.isOccupied = true;
+            createdCount++;
+        } catch (error: any) {
+            return { success: false, error: `Row ${i + 2}: Failed to create user for ${row.email}.`, details: error.message };
+        }
+    }
+
+    try {
+        await batch.commit();
+        await logActivity(actor.displayName || 'Admin', `Bulk created ${createdCount} tenants from CSV`, { type: 'Tenant', name: 'Multiple Tenants' }, landlordId);
+        revalidatePath('/tenants');
+        revalidatePath('/dashboard');
+        return { success: true, createdCount };
+    } catch (error: any) {
+        return { success: false, error: `Failed to commit changes to database.`, details: error.message };
     }
 }
