@@ -33,7 +33,7 @@ import type { Payment, Property, Tenant } from '@/lib/types';
 import Link from 'next/link';
 import { Receipt as ReceiptIcon, Loader2, PlusCircle, Download, Mail } from 'lucide-react';
 import { getReceiptAction, emailReceiptAction, type ReceiptState } from './actions';
-import { Receipt } from '@/components/receipt';
+import Receipt from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
