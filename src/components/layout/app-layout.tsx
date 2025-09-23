@@ -2,9 +2,23 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { 
+  Home,
+  Building2,
+  Users,
+  DollarSign,
+  BarChart3,
+  Settings,
+  MessageSquare,
+  Wrench,
+  CalendarCheck,
+  FileClock,
+  UserCog,
+  CalendarClock,
+  LogOut,
+  LayoutDashboard
+} from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { DollarSign, MessageCircle, LogOut, Building, UserCog, Banknote, CalendarClock, Settings, LayoutDashboard, FileClock, CalendarCheck, Wrench, BarChartHorizontal } from "lucide-react"
 import { PropelLiteLogo } from "../icons/logo"
 import {
   Sidebar,
@@ -18,7 +32,6 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from "@/components/ui/sidebar"
-import { AnimatedUsersIcon } from "../icons/animated-users-icon"
 import { ThemeToggle } from "../theme-toggle"
 import { LogoutButton } from "./logout-button"
 import { useAuth } from "@/hooks/use-auth"
@@ -26,19 +39,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['landlord', 'manager'] },
-  { href: "/properties", label: "Properties", icon: Building, roles: ['landlord', 'manager'] },
-  { href: "/tenants", label: "Tenants", icon: AnimatedUsersIcon, roles: ['landlord', 'manager'] },
-  { href: "/payments", label: "Payments", icon: Banknote, roles: ['landlord', 'manager'] },
+  { href: "/properties", label: "Properties", icon: Building2, roles: ['landlord', 'manager'] },
+  { href: "/tenants", label: "Tenants", icon: Users, roles: ['landlord', 'manager'] },
+  { href: "/payments", label: "Payments", icon: DollarSign, roles: ['landlord', 'manager'] },
   { href: "/rent-schedule", label: "Rent Schedule", icon: CalendarCheck, roles: ['landlord', 'manager'] },
   { href: "/maintenance", label: "Maintenance", icon: Wrench, roles: ['landlord', 'manager'] },
-  { href: "/reports", label: "Reports", icon: BarChartHorizontal, roles: ['landlord'] },
+  { href: "/reports", label: "Reports", icon: BarChart3, roles: ['landlord'] },
   { href: "/property-managers", label: "Managers", icon: UserCog, roles: ['landlord'] },
   { href: "/audit-log", label: "Audit Log", icon: FileClock, roles: ['landlord'] },
 ];
 
 const aiTools = [
   { href: "/price-suggestion", label: "Price Suggestion", icon: DollarSign, roles: ['landlord'] },
-  { href: "/smart-messaging", label: "Smart Messaging", icon: MessageCircle, roles: ['landlord', 'manager'] },
+  { href: "/smart-messaging", label: "Smart Messaging", icon: MessageSquare, roles: ['landlord', 'manager'] },
   { href: "/reminders", label: "Reminders", icon: CalendarClock, roles: ['landlord'] },
 ]
 
@@ -93,6 +106,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+             <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+                  Main
+              </SidebarMenuItem>
             {filteredNavItems.map(({ href, label, icon: Icon }) => (
               <SidebarMenuItem key={href}>
                 <Link href={href}>
