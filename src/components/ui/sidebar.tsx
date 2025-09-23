@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -255,7 +254,7 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             className={cn(
               "flex h-full w-full flex-col relative overflow-hidden",
-              "bg-sidebar bg-gradient-to-b", // Added bg-gradient-to-b
+              "bg-gradient-to-b from-background/95 via-background/90 to-background/95",
               "backdrop-blur-xl border-r border-border/50",
               "before:absolute before:inset-0 before:bg-gradient-to-b before:from-purple-500/5 before:via-transparent before:to-pink-500/5 before:pointer-events-none",
               "group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-border/30 group-data-[variant=floating]:shadow-2xl group-data-[variant=floating]:shadow-purple-500/10"

@@ -1,4 +1,3 @@
-
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -36,6 +35,8 @@ import { ThemeToggle } from "../theme-toggle"
 import { LogoutButton } from "./logout-button"
 import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['landlord', 'manager'] },
@@ -59,9 +60,36 @@ const utilityPages = [
     { href: "/settings", label: "Settings", icon: Settings, roles: ['landlord'] },
 ]
 
+function NavSection({ title, items, pathname, userRole, isCollapsed }: { title: string, items: any[], pathname: string, userRole: string, isCollapsed: boolean }) {
+  const filteredItems = items.filter(item => userRole && item.roles.includes(userRole));
+  if (filteredItems.length === 0) return null;
+
+  return (
+    <AccordionItem value={title.toLowerCase()} className="border-b-0">
+      <AccordionTrigger className={cn("px-2 text-xs font-medium text-sidebar-foreground/70 hover:no-underline group-data-[collapsible=icon]:hidden", { 'justify-center': isCollapsed })}>
+        {!isCollapsed && title}
+      </AccordionTrigger>
+      <AccordionContent className="pb-0">
+        <SidebarMenu>
+          {filteredItems.map(({ href, label, icon: Icon }) => (
+            <SidebarMenuItem key={href}>
+              <Link href={href}>
+                <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard')}>
+                  <Icon />
+                  <span>{label}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const userRole = user?.role;
 
   const getInitials = (name: string) => {
@@ -90,10 +118,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  
-  const filteredNavItems = navItems.filter(item => userRole && item.roles.includes(userRole));
-  const filteredAiTools = aiTools.filter(item => userRole && item.roles.includes(userRole));
-  const filteredUtilityPages = utilityPages.filter(item => userRole && item.roles.includes(userRole));
 
   return (
     <SidebarProvider>
@@ -105,44 +129,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
-             <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
-                  Main
-              </SidebarMenuItem>
-            {filteredNavItems.map(({ href, label, icon: Icon }) => (
-              <SidebarMenuItem key={href}>
-                <Link href={href}>
-                    <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard')}>
-                        <Icon />
-                        <span>{label}</span>
-                    </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          
-          {filteredAiTools.length > 0 && (
-            <SidebarMenu>
-              <SidebarMenuItem className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
-                  AI Tools
-              </SidebarMenuItem>
-              {filteredAiTools.map(({ href, label, icon: Icon }) => (
-                <SidebarMenuItem key={href}>
-                  <Link href={href}>
-                      <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href)}>
-                          <Icon />
-                          <span>{label}</span>
-                      </SidebarMenuButton>
-                  </Link>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          )}
-
+           <Accordion type="multiple" defaultValue={['main', 'ai tools', 'utilities']} className="w-full">
+            <NavSection title="Main" items={navItems} pathname={pathname} userRole={userRole || ''} isCollapsed={false} />
+            <NavSection title="AI Tools" items={aiTools} pathname={pathname} userRole={userRole || ''} isCollapsed={false} />
+          </Accordion>
         </SidebarContent>
         <SidebarFooter>
            <SidebarMenu>
-             {filteredUtilityPages.map(({ href, label, icon: Icon }) => (
+             {utilityPages.filter(item => userRole && item.roles.includes(userRole)).map(({ href, label, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
                     <Link href={href}>
                         <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href)}>
