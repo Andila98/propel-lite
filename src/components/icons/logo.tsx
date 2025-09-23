@@ -3,18 +3,30 @@ import { cn } from "@/lib/utils";
 export const PropelLiteLogo = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={cn("text-primary", className)}
+    viewBox="0 0 1000 1000"
+    className={cn(className)}
     {...props}
   >
-    <path d="M3 3v18h18V3H3z" fill="hsl(var(--primary))" stroke="none" />
-    <path d="M9 9v6l6-3-6-3z" fill="hsl(var(--primary-foreground))" />
-    <path d="M9 9v6l6-3-6-3z" stroke="hsl(var(--primary-foreground))" strokeWidth="1.5" />
+    <defs>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feOffset result="offOut" in="SourceGraphic" dx="0" dy="15" />
+        <feGaussianBlur result="blurOut" in="offOut" stdDeviation="15" />
+        <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+      </filter>
+      <linearGradient id="metallicGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style={{stopColor: 'rgb(240,240,240)', stopOpacity: 1}} />
+        <stop offset="50%" style={{stopColor: 'rgb(150,150,150)', stopOpacity: 1}} />
+        <stop offset="100%" style={{stopColor: 'rgb(220,220,220)', stopOpacity: 1}} />
+      </linearGradient>
+    </defs>
+    <g filter="url(#shadow)">
+      <path d="M 450 670 L 300 200 L 360 200 L 480 670 Z" fill="#2d2d2d" />
+      <path d="M 550 670 L 690 200 L 630 200 L 520 670 Z" fill="#2d2d2d" />
+      <path d="M 390 440 L 590 440 L 580 470 L 380 470 Z" fill="url(#metallicGradient)" />
+      <path d="M 520 200 L 550 200 L 500 400 L 470 400 Z" fill="#3d3d3d" />
+      <path d="M 370 240 L 450 490 L 460 500 L 400 240 Z" fill="#b0b0b0" />
+      <path d="M 530 500 L 590 250 L 540 250 L 500 500 Z" fill="#b0b0b0" />
+    </g>
   </svg>
 );
 
