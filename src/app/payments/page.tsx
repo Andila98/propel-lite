@@ -33,7 +33,7 @@ import type { Payment, Property, Tenant } from '@/lib/types';
 import Link from 'next/link';
 import { Receipt as ReceiptIcon, Loader2, PlusCircle, Download, Mail } from 'lucide-react';
 import { getReceiptAction, emailReceiptAction, type ReceiptState } from './actions';
-import Receipt from '@/components/receipt';
+import ReceiptComponent from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -242,7 +242,7 @@ export default function PaymentsPage() {
             </DialogHeader>
             <div className="py-4">
                 {receiptState.loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-                {receiptState.result?.receipt && <Receipt receipt={receiptState.result.receipt} />}
+                {receiptState.result?.receipt && <ReceiptComponent receipt={receiptState.result.receipt} />}
                 {receiptState.result?.error && <p className="text-destructive">{receiptState.result.error}</p>}
             </div>
              <DialogFooter>

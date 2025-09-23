@@ -13,9 +13,8 @@ import { logActivity } from '@/lib/audit-log-service';
 import { PaymentFormSchema } from '@/lib/schemas';
 import type { FormState } from '../tenants/actions';
 import { sendEmail } from '@/lib/email-service';
-import ReactDOMServer from 'react-dom/server';
+import { APP_URL } from '@/config/server-config';
 import pdf from 'html-pdf';
-import ReceiptComponent from '@/components/receipt';
 
 
 export interface ReceiptState {
@@ -25,26 +24,17 @@ export interface ReceiptState {
 }
 
 async function createPdf(receipt: GenerateReceiptOutput): Promise<Buffer> {
-    const receiptHtml = ReactDOMServer.renderToStaticMarkup(
-        <ReceiptComponent receipt={receipt} />
-    );
+    const response = await fetch(`${APP_URL}/api/pdf/receipt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receipt }),
+    });
 
-    const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8" />
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333; }
-                .container { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, .15); }
-            </style>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body>
-            ${receiptHtml}
-        </body>
-        </html>
-    `;
+    if (!response.ok) {
+        throw new Error('Failed to render receipt HTML for PDF generation.');
+    }
+    
+    const html = await response.text();
 
     return new Promise((resolve, reject) => {
         pdf.create(html, {

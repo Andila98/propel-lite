@@ -31,7 +31,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { getReceiptAction, emailReceiptAction, type ReceiptState } from '../payments/actions';
-import { Receipt as ReceiptComponent } from '@/components/receipt';
+import ReceiptComponent from '@/components/receipt';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">

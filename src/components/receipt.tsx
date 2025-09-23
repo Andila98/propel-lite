@@ -11,8 +11,7 @@ interface ReceiptProps {
   receipt: GenerateReceiptOutput;
 }
 
-// Make the component a default export to allow dynamic import in the API route
-export default function Receipt({ receipt }: ReceiptProps) {
+const ReceiptComponent = ({ receipt }: ReceiptProps) => {
   return (
     <Card className="text-sm border-dashed">
       <CardHeader className="flex flex-row items-start gap-4">
@@ -56,3 +55,5 @@ export default function Receipt({ receipt }: ReceiptProps) {
     </Card>
   );
 }
+
+export default ReceiptComponent;
