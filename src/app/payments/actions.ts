@@ -13,12 +13,52 @@ import { logActivity } from '@/lib/audit-log-service';
 import { PaymentFormSchema } from '@/lib/schemas';
 import type { FormState } from '../tenants/actions';
 import { sendEmail } from '@/lib/email-service';
-import { APP_URL } from '@/config/server-config';
+import ReactDOMServer from 'react-dom/server';
+import pdf from 'html-pdf';
+import ReceiptComponent from '@/components/receipt';
+import { Suspense } from 'react';
+
 
 export interface ReceiptState {
     error?: string;
     receipt?: GenerateReceiptOutput;
     pdf?: string; // base64 encoded PDF
+}
+
+async function createPdf(receipt: GenerateReceiptOutput): Promise<Buffer> {
+    const receiptHtml = ReactDOMServer.renderToStaticMarkup(
+        <Suspense fallback={null}>
+            <ReceiptComponent receipt={receipt} />
+        </Suspense>
+    );
+
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8" />
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333; }
+                .container { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, .15); }
+            </style>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body>
+            ${receiptHtml}
+        </body>
+        </html>
+    `;
+
+    return new Promise((resolve, reject) => {
+        pdf.create(html, {
+            format: 'A5',
+            orientation: 'portrait',
+            border: "0.5in"
+        }).toBuffer((err, buffer) => {
+            if (err) return reject(err);
+            resolve(buffer);
+        });
+    });
 }
 
 export async function getReceiptAction(input: GenerateReceiptInput): Promise<ReceiptState> {
@@ -29,20 +69,8 @@ export async function getReceiptAction(input: GenerateReceiptInput): Promise<Rec
     
     try {
         const receipt = await generateReceipt(input);
-        
-        // Call the new API route to generate the PDF
-        const pdfResponse = await fetch(`${APP_URL}/api/pdf/receipt`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(receipt),
-        });
-
-        if (!pdfResponse.ok) {
-            const errorData = await pdfResponse.json();
-            throw new Error(errorData.error || 'Failed to generate PDF');
-        }
-
-        const { pdf: pdfBase64 } = await pdfResponse.json();
+        const pdfBuffer = await createPdf(receipt);
+        const pdfBase64 = pdfBuffer.toString('base64');
 
         return { receipt, pdf: pdfBase64 };
     } catch (error: any) {
@@ -50,6 +78,7 @@ export async function getReceiptAction(input: GenerateReceiptInput): Promise<Rec
         return { error: error.message || "An unknown error occurred while generating the receipt." };
     }
 }
+
 
 export async function emailReceiptAction(input: GenerateReceiptInput): Promise<{ error?: string, success?: boolean }> {
     if (!isFirebaseAdminInitialized) return { error: "Backend services not configured." };
@@ -245,3 +274,5 @@ export async function createPaymentsFromCsvAction(
         return { success: false, error: `Failed to commit changes to database.`, details: error.message };
     }
 }
+
+    
