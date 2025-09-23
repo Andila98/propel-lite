@@ -16,7 +16,6 @@ import { sendEmail } from '@/lib/email-service';
 import ReactDOMServer from 'react-dom/server';
 import pdf from 'html-pdf';
 import ReceiptComponent from '@/components/receipt';
-import { Suspense } from 'react';
 
 
 export interface ReceiptState {
@@ -27,9 +26,7 @@ export interface ReceiptState {
 
 async function createPdf(receipt: GenerateReceiptOutput): Promise<Buffer> {
     const receiptHtml = ReactDOMServer.renderToStaticMarkup(
-        <Suspense fallback={null}>
-            <ReceiptComponent receipt={receipt} />
-        </Suspense>
+        <ReceiptComponent receipt={receipt} />
     );
 
     const html = `
@@ -274,5 +271,3 @@ export async function createPaymentsFromCsvAction(
         return { success: false, error: `Failed to commit changes to database.`, details: error.message };
     }
 }
-
-    
