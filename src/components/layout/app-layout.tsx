@@ -90,7 +90,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }, [])
   
   return (
-    <>
+    <div className="flex flex-col h-screen">
       <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/60 px-4 backdrop-blur-xl sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
         <SidebarTrigger className="sm:hidden" />
         <div className="relative flex-1 md:grow-0">
@@ -142,7 +142,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <SearchDialog open={openSearch} onOpenChange={setOpenSearch} />
-    </>
+    </div>
   );
 }
 
@@ -162,7 +162,7 @@ export function AppLayout({
         <header className="flex h-14 items-center justify-between border-b px-4 md:px-6">
            <Link href="/" className="flex items-center gap-2 font-semibold">
               <PropelLiteLogo className="h-6 w-6" />
-              <span>RentEase Tenant Portal</span>
+              <span>Propel Lite Tenant Portal</span>
             </Link>
             <div className="flex items-center gap-2">
               <ThemeToggle />
@@ -180,7 +180,7 @@ export function AppLayout({
         <SidebarHeader>
           <div className="flex items-center gap-2 font-semibold">
             <PropelLiteLogo className="h-6 w-6" />
-            <span className="group-data-[collapsible=icon]:hidden">RentEase</span>
+            <span className="group-data-[collapsible=icon]:hidden">Propel Lite</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
