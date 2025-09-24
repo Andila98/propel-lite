@@ -80,37 +80,37 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   
   return (
     <>
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/60 px-4 backdrop-blur-xl sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
         <SidebarTrigger className="sm:hidden" />
         <div className="relative flex-1 md:grow-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search..."
-              className="w-full rounded-lg bg-background pl-8 md:w-[280px] lg:w-[320px]"
+              className="w-full rounded-lg bg-background/80 pl-8 md:w-[280px] lg:w-[320px]"
             />
         </div>
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
                 <Bell className="h-4 w-4" />
                 <span className="sr-only">Notifications</span>
             </Button>
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
-                  className="flex items-center gap-2"
+                  variant="ghost"
+                  className="flex items-center gap-2 rounded-full p-1 h-auto"
                 >
-                  <Avatar className="h-6 w-6">
+                  <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.avatarUrl} alt={user?.name} />
                     <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline-block">{user?.name}</span>
-                  <ChevronDown className="h-4 w-4" />
+                  <span className="hidden sm:inline-block text-sm">{user?.name}</span>
+                  <ChevronDown className="h-4 w-4 hidden sm:block" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <Link href="/settings">
@@ -213,7 +213,6 @@ export function AppLayout({
           </Accordion>
         </SidebarContent>
         <SidebarFooter>
-          {/* Footer content can be placed here if needed */}
         </SidebarFooter>
       </Sidebar>
       <div className="flex flex-col transition-[margin-left] duration-300 ease-out md:ml-[var(--sidebar-width)] group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]">
