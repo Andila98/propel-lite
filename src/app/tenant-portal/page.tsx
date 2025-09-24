@@ -32,6 +32,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { getReceiptAction, emailReceiptAction, type ReceiptState } from '../payments/actions';
 import ReceiptComponent from '@/components/receipt';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -73,39 +74,62 @@ function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
             toast({ title: 'Error', description: 'Please provide a description of the issue.', variant: 'destructive' });
             return;
         }
-
         setLoading(true);
 
-        const requestData = {
-          description: description,
+        // Using FormData to handle both text and file upload
+        const formData = new FormData();
+        formData.append('description', description);
+        if (imageFile) {
+            formData.append('image', imageFile);
         }
 
         try {
-          const response = await fetch('/api/maintenance', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData)
-          });
+            // Note: We send to a different endpoint if there's an image
+            const endpoint = imageFile ? '/api/properties/analyze-damage' : '/api/maintenance';
+            let response;
+            if (imageFile) {
+                 const analyzeResponse = await fetch('/api/properties/analyze-damage', {
+                    method: 'POST',
+                    body: formData,
+                 });
+                 if (!analyzeResponse.ok) throw new Error('Failed to analyze damage.');
+                 const analysisResult = await analyzeResponse.json();
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to submit request');
-          }
-           toast({
-              title: 'Request Submitted!',
-              description: 'Your maintenance request has been sent.',
-          });
-           // Reset form
-          setDescription('');
-          setImageFile(null);
-          setImagePreview(null);
-          setIsDialogOpen(false);
+                 const requestData = {
+                     description: description,
+                     // You can add analysisResult to the body if the API supports it
+                 };
+                 response = await fetch('/api/maintenance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                 });
+            } else {
+                 response = await fetch('/api/maintenance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description }),
+                 });
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to submit request');
+            }
+
+            toast({
+                title: 'Request Submitted!',
+                description: 'Your maintenance request has been sent.',
+            });
+            // Reset form
+            setDescription('');
+            setImageFile(null);
+            setImagePreview(null);
+            setIsDialogOpen(false);
         } catch (err: any) {
-          toast({ title: 'Submission Failed', description: err.message, variant: 'destructive'});
+            toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
         } finally {
-          setLoading(false);
+            setLoading(false);
         }
     };
 
@@ -171,22 +195,13 @@ export default function TenantPortalPage() {
 
       try {
         setLoading(true);
-        // User object from Auth context has the tenantId (which is the user.uid)
-        const tenantRes = await fetch(`/api/tenants/${user.uid}`);
-        if (!tenantRes.ok) throw new Error('Failed to fetch your details.');
-        const tenantData: Tenant = await tenantRes.json();
-        setTenant(tenantData);
-
-        const [propertyRes, paymentsRes] = await Promise.all([
-          fetch(`/api/properties/${tenantData.propertyId}`),
-          fetch(`/api/tenants/${tenantData.id}/payments`)
-        ]);
-
-        if (!propertyRes.ok) throw new Error('Failed to fetch property details.');
-        if (!paymentsRes.ok) throw new Error('Failed to fetch payments.');
+        const res = await fetch(`/api/tenant-portal`);
+        if (!res.ok) throw new Error('Failed to fetch your portal data.');
+        const portalData = await res.json();
         
-        setProperty(await propertyRes.json());
-        setPayments(await paymentsRes.json());
+        setTenant(portalData.tenant);
+        setProperty(portalData.property);
+        setPayments(portalData.payments);
 
       } catch (err: any) {
         toast({ title: "Error", description: err.message, variant: "destructive"});
@@ -233,7 +248,15 @@ export default function TenantPortalPage() {
 
 
   if (loading) {
-    return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+            <Skeleton className="h-8 w-64 mb-4" />
+             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-[400px] lg:col-span-3 xl:col-span-1" />
+                <Skeleton className="h-[400px] lg:col-span-3 xl:col-span-2" />
+            </div>
+        </div>
+    )
   }
   
   if (!tenant || !property) {
@@ -343,7 +366,7 @@ export default function TenantPortalPage() {
                     <TableCell className="text-right">
                        <Button
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleGenerateReceipt(payment.tenantId, payment.id)}
                             disabled={receiptState.loading && receiptState.currentPaymentId === payment.id}
                         >
