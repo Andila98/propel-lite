@@ -16,7 +16,9 @@ import {
   UserCog,
   CalendarClock,
   LogOut,
-  LayoutDashboard
+  LayoutDashboard,
+  Search,
+  Bell
 } from "lucide-react"
 
 import { PropelLiteLogo } from "../icons/logo"
@@ -32,6 +34,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
+  SidebarInput,
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "../theme-toggle"
 import { LogoutButton } from "./logout-button"
@@ -70,7 +73,7 @@ function NavSection({ title, items, pathname, userRole, isCollapsed }: { title: 
     <AccordionItem value={title.toLowerCase()} className="border-b-0">
       <AccordionTrigger 
         className={cn(
-          "px-2 text-xs font-medium text-sidebar-foreground/70 hover:no-underline",
+          "px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/70 hover:no-underline hover:text-sidebar-foreground",
           isCollapsed && "hidden"
         )}
       >
@@ -132,46 +135,70 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     <>
       <Sidebar>
         <SidebarHeader>
-           <Link href="/" className="flex items-center gap-2 font-semibold">
-              <PropelLiteLogo className="h-6 w-6" />
-              <span className="group-data-[collapsible=icon]:hidden">RentEase</span>
-            </Link>
+           <div className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-2 font-semibold flex-1 min-w-0">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-white" />
+                </div>
+                <div className="group-data-[collapsible=icon]:hidden">
+                    <h1 className="text-sm font-semibold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+                        RentEase
+                    </h1>
+                    <p className="text-xs text-muted-foreground">Property Management</p>
+                </div>
+              </Link>
+              <SidebarTrigger />
+           </div>
         </SidebarHeader>
         <SidebarContent>
+           <div className="relative z-10 px-3 pb-2 group-data-[collapsible=icon]:hidden">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <SidebarInput placeholder="Search..." className="pl-9" />
+            </div>
+          </div>
            <Accordion type="multiple" defaultValue={['main', 'ai tools', 'utilities']} className="w-full">
             <NavSection title="Main" items={navItems} pathname={pathname} userRole={userRole || ''} isCollapsed={isCollapsed} />
             <NavSection title="AI Tools" items={aiTools} pathname={pathname} userRole={userRole || ''} isCollapsed={isCollapsed} />
           </Accordion>
         </SidebarContent>
         <SidebarFooter>
-           <SidebarMenu>
-             {utilityPages.filter(item => userRole && item.roles.includes(userRole)).map(({ href, label, icon: Icon }) => (
-                <SidebarMenuItem key={href}>
-                    <Link href={href}>
-                        <SidebarMenuButton tooltip={label} isActive={pathname.startsWith(href)}>
-                            <Icon />
-                            <span>{label}</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-                ))}
-             <SidebarMenuItem>
-                <LogoutButton />
-            </SidebarMenuItem>
-            </SidebarMenu>
+            <div className="flex items-center gap-3">
+                {!isCollapsed && (
+                <>
+                    <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.avatarUrl} />
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs font-medium">
+                        {getInitials(user?.name || '')}
+                    </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate capitalize">{user?.role}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <ThemeToggle />
+                        <LogoutButton />
+                    </div>
+                </>
+                )}
+                {isCollapsed && (
+                <div className="flex flex-col items-center gap-2 w-full">
+                    <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.avatarUrl} />
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs font-medium">
+                        {getInitials(user?.name || '')}
+                    </AvatarFallback>
+                    </Avatar>
+                </div>
+                )}
+          </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card/70 backdrop-blur-sm px-4 sticky top-0 z-30 md:px-6 shadow-sm">
           <SidebarTrigger className="md:hidden" />
           <div className="flex w-full items-center justify-end gap-4">
-            <ThemeToggle />
-             {user && (
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatarUrl} />
-                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-              </Avatar>
-            )}
           </div>
         </header>
         <main className="flex flex-1 flex-col bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-black">

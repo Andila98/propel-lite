@@ -4,8 +4,9 @@
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
-import { LogOut } from "lucide-react"; // Changed from LogIn to LogOut for semantic clarity
+import { LogOut } from "lucide-react"; 
 import { useAuth } from "@/hooks/use-auth";
+import { Button } from "../ui/button";
 
 
 export function LogoutButton() {
@@ -35,12 +36,13 @@ export function LogoutButton() {
   };
 
   return (
-    <SidebarMenuButton
-      tooltip="Logout"
-      onClick={handleLogout}
+     <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleLogout}
+        className="h-7 w-7 p-0 hover:bg-gradient-to-br hover:from-red-500/10 hover:to-red-600/10 text-muted-foreground hover:text-red-500"
     >
-      <LogOut />
-      <span>Logout</span>
-    </SidebarMenuButton>
+        <LogOut className="h-3 w-3" />
+    </Button>
   );
 }
