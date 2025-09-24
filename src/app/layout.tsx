@@ -8,6 +8,13 @@ import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 // No metadata here because this is a client component
 
@@ -24,19 +31,12 @@ export default function RootLayout({
     || pathname.startsWith('/onboarding/accept-invite');
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head>
         <title>RentEase - Streamlined Property Management</title>
         <meta name="description" content="The easiest way to manage your rental properties." />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        ></link>
-        
       </head>
-      <body className="bg-background">
+      <body className="bg-background font-body">
         <ThemeProvider
             attribute="class"
             defaultTheme="system"
