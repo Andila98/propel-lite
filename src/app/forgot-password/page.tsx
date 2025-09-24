@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
             <div className="mb-4 flex justify-center">
-              <PropelLiteLogo className="h-12 w-12" />
+              <PropelLiteLogo className="h-16 w-16" />
             </div>
             <h1 className="text-3xl font-bold">Forgot your password?</h1>
             <p className="text-balance text-muted-foreground">
@@ -123,8 +123,8 @@ export default function ForgotPasswordPage() {
       </div>
       <div className="hidden bg-muted lg:block">
         <Image
-          src="https://placehold.co/1080x1920.png"
-          alt="Image"
+          src="https://picsum.photos/seed/forgot-password/1080/1920"
+          alt="Abstract pattern"
           width="1920"
           height="1080"
           className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"

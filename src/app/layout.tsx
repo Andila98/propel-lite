@@ -33,8 +33,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head>
-        <title>RentEase - Streamlined Property Management</title>
-        <meta name="description" content="The easiest way to manage your rental properties." />
+        <title>Propel Lite - Smart Property Management</title>
+        <meta name="description" content="AI-powered tools to streamline your rental business." />
       </head>
       <body className="bg-background font-body">
         <ThemeProvider

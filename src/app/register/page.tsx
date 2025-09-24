@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 
 const RegisterSchema = z.object({
     displayName: z.string().min(2, "Full name must be at least 2 characters."),
@@ -114,13 +115,14 @@ export default function RegisterPage() {
 
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
-      <Card className="w-full max-w-sm">
+     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+      <div className="flex items-center justify-center py-12">
+        <Card className="w-full max-w-sm border-none shadow-none">
           <CardHeader className="text-center">
              <div className="mb-4 flex justify-center">
-                <PropelLiteLogo className="h-12 w-12" />
+                <PropelLiteLogo className="h-16 w-16" />
             </div>
-            <CardTitle className="text-2xl">Create an account</CardTitle>
+            <CardTitle className="text-3xl font-bold">Create an account</CardTitle>
             <CardDescription>
               Enter your details below to create your landlord account.
             </CardDescription>
@@ -196,6 +198,17 @@ export default function RegisterPage() {
           </div>
           </CardContent>
       </Card>
+      </div>
+       <div className="hidden bg-muted lg:block">
+        <Image
+          src="https://picsum.photos/seed/register/1080/1920"
+          alt="Abstract pattern"
+          width="1920"
+          height="1080"
+          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          data-ai-hint="serene abstract pattern"
+        />
+      </div>
     </div>
   );
 }

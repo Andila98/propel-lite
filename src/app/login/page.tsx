@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PropelLiteLogo, GoogleIcon } from '@/components/icons/logo';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image';
 
 // Enhanced validation schema
 const LoginSchema = z.object({
@@ -159,18 +160,19 @@ export default function LoginPage() {
   const isFormDisabled = isLoading || isSocialLoading || !connectionStatus.isOnline;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mb-4 flex justify-center">
-            <PropelLiteLogo className="h-12 w-12" />
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+       <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[350px] gap-6">
+           <div className="grid gap-2 text-center">
+            <div className="mb-4 flex justify-center">
+              <PropelLiteLogo className="h-16 w-16" />
+            </div>
+            <h1 className="text-3xl font-bold">Welcome Back</h1>
+            <p className="text-balance text-muted-foreground">
+              Enter your credentials to access your dashboard.
+            </p>
           </div>
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your dashboard.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          
           {/* Connection Status Alert */}
           {!connectionStatus.isOnline && (
             <Alert variant="destructive">
@@ -228,7 +230,7 @@ export default function LoginPage() {
                   <Label htmlFor="password">Password</Label>
                   <Link
                     href="/forgot-password"
-                    className="ml-auto inline-block text-sm underline hover:no-underline"
+                    className="ml-auto inline-block text-sm underline hover:text-accent hover:no-underline"
                     tabIndex={isFormDisabled ? -1 : 0}
                   >
                     Forgot your password?
@@ -315,7 +317,7 @@ export default function LoginPage() {
             Don&apos;t have an account?{" "}
             <Link 
               href="/register" 
-              className="underline hover:no-underline"
+              className="underline hover:text-accent hover:no-underline"
               tabIndex={isFormDisabled ? -1 : 0}
             >
               Sign up
@@ -338,8 +340,18 @@ export default function LoginPage() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+       <div className="hidden bg-muted lg:block">
+        <Image
+          src="https://picsum.photos/seed/login/1080/1920"
+          alt="Abstract pattern"
+          width="1920"
+          height="1080"
+          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          data-ai-hint="serene abstract pattern"
+        />
+      </div>
     </div>
   );
 }
