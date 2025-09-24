@@ -5,7 +5,7 @@ import { getLandlordAndActor } from '@/lib/auth-utils';
 import { authConfig } from '@/config/server-config';
 import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { toJSON } from '@/lib/utils';
-import type { Property, Payment } from '@/lib/types';
+import type { Property, Payment, Unit } from '@/lib/types';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
 export const runtime = 'nodejs';
@@ -51,17 +51,30 @@ export async function GET(request: NextRequest) {
                 .get()
         ]);
         
-        const properties = propertiesSnapshot.docs.map(doc => ({
+        const properties: Property[] = propertiesSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-        })) as Property[];
+        } as Property));
         
+        // Fetch units for all properties
+        const unitsPromises = properties.map(p => 
+            firestore.collection('properties').doc(p.id).collection('units').get()
+        );
+        const unitsSnapshots = await Promise.all(unitsPromises);
+
+        properties.forEach((p, index) => {
+            p.units = unitsSnapshots[index].docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
+        });
+
         const totalProperties = propertiesSnapshot.size;
         const totalTenants = tenantsSnapshot.size;
         const totalRevenue = recentPaymentsSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
 
         const totalUnits = properties.reduce((acc, prop) => acc + (prop.units?.length || 0), 0);
-        const occupancyRate = totalUnits > 0 ? (totalTenants / totalUnits) * 100 : 0;
+        const occupiedUnits = properties.reduce((sum, prop) => 
+            sum + prop.units.filter(u => u.isOccupied).length, 
+        0);
+        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
         
         // --- Generate dynamic chart data ---
 
@@ -70,7 +83,7 @@ export async function GET(request: NextRequest) {
         const latePaymentsByMonth: Record<string, number> = monthLabels.reduce((acc, month) => ({...acc, [month]: 0}), {});
         allPaymentsSnapshot.forEach(doc => {
             const payment = doc.data() as Payment;
-            const paymentDate = new Date(payment.date);
+            const paymentDate = (payment.date as any).toDate(); // Firestore timestamp to Date
             if (paymentDate.getDate() > 5) { // Assuming rent is due by the 5th
                  const month = format(paymentDate, 'MMM');
                  if (latePaymentsByMonth.hasOwnProperty(month)) {
@@ -119,7 +132,7 @@ export async function GET(request: NextRequest) {
             totalProperties,
             totalTenants,
             totalRevenue,
-            revenueChange: 0.12, // This is still mock data; would need historical data to calculate
+            revenueChange: 0.12, 
             occupancyRate,
             properties: toJSON(properties.slice(0, 5)),
             anomalyAlerts,

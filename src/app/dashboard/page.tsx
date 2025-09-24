@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Card,
   CardContent,
@@ -20,87 +20,57 @@ import {
   Building2,
   DollarSign,
   TrendingUp,
-  AlertOctagon,
+  AlertTriangle,
   Sparkles,
   Loader2,
   WifiOff,
   ArrowUpRight,
   ArrowDownRight,
   BarChart3,
-  PieChart,
-  Calendar,
   MapPin,
   Bell,
   Zap,
   Eye,
   Star
 } from "lucide-react"
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts'
+import type { DashboardData } from "@/lib/types"
+import { LatePaymentsChart } from "@/components/charts/late-payments-chart"
+import { PaymentMethodsChart } from "@/components/charts/payment-methods-chart"
+import { Button } from "@/components/ui/button"
 
-// Mock data for demonstration
-const mockData = {
-  totalProperties: 24,
-  totalTenants: 156,
-  totalRevenue: 125000,
-  revenueChange: 0.12,
-  occupancyRate: 94.2,
-  properties: [
-    { id: 1, name: "Sunset Apartments", location: "Downtown", units: 12, occupancy: 91.7 },
-    { id: 2, name: "Oakwood Complex", location: "Suburbs", units: 8, occupancy: 100 },
-    { id: 3, name: "Pine Street Lofts", location: "Arts District", units: 6, occupancy: 83.3 }
-  ],
-  aiSummary: "Revenue is up 12% this month with strong occupancy rates. Consider raising rent at Pine Street Lofts to match market rates.",
-  anomalyAlerts: [
-    { id: 1, type: "payment", message: "Unusual payment pattern detected in Building A", severity: "high", time: "2h ago" },
-    { id: 2, type: "maintenance", message: "Higher than normal maintenance requests", severity: "medium", time: "5h ago" }
-  ],
-  latePaymentData: [
-    { month: 'Jan', payments: 12, late: 2 },
-    { month: 'Feb', payments: 15, late: 1 },
-    { month: 'Mar', payments: 18, late: 3 },
-    { month: 'Apr', payments: 20, late: 1 }
-  ],
-  paymentMethodData: [
-    { method: 'Online', value: 65, color: '#8b5cf6' },
-    { method: 'Bank Transfer', value: 25, color: '#ec4899' },
-    { method: 'Cash', value: 10, color: '#f59e0b' }
-  ]
-}
-
-const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
-
-// Safe formatters
-const safeToFixed = (value, decimals = 1) => {
+const safeToFixed = (value: number | undefined | null, decimals = 1) => {
   if (value === null || value === undefined || isNaN(value)) {
-    return '0.' + '0'.repeat(decimals);
+    return '0.0';
   }
   return value.toFixed(decimals);
 };
 
-const safeCurrency = (value) => {
+const safeCurrency = (value: number | undefined | null, currency = 'USD') => {
   if (value === null || value === undefined || isNaN(value)) {
-    return '$0';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(0);
   }
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(value);
 };
 
-const safePercentage = (value) => {
+const safePercentage = (value: number | undefined | null) => {
   if (value === null || value === undefined || isNaN(value)) {
     return '0.0';
   }
   return (value * 100).toFixed(1);
 };
 
-function MetricCard({ title, value, change, icon: Icon, trend, color = "primary", className = "" }) {
+
+function MetricCard({ title, value, change, icon: Icon, trend, color = "primary", className = "" }: { title: string, value: string, change: number, icon: React.ElementType, trend: string, color?: string, className?: string }) {
   const isPositive = change > 0
   const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight
   
   return (
     <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group ${className}`}>
-      <div className={`absolute inset-0 bg-gradient-to-br from-${color}/5 via-transparent to-${color}/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+      <div className={`absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className={`p-2 rounded-full bg-${color}/10 text-${color} group-hover:bg-${color}/20 transition-colors duration-300`}>
+        <div className={`p-2 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors duration-300`}>
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
@@ -120,7 +90,7 @@ function MetricCard({ title, value, change, icon: Icon, trend, color = "primary"
   )
 }
 
-function AiInsightsCard({ summary, anomalies }) {
+function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: any[] }) {
   return (
     <Card className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-orange-500/10 border-purple-500/20 group hover:shadow-2xl transition-all duration-500">
       <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-transparent to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -141,19 +111,19 @@ function AiInsightsCard({ summary, anomalies }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="relative z-10">
-        <p className="text-sm text-foreground/80 mb-4 leading-relaxed">{summary}</p>
+        <p className="text-sm text-foreground/80 mb-4 leading-relaxed">{summary || 'AI is analyzing your data...'}</p>
         {anomalies && anomalies.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
-              <Bell className="h-4 w-4 text-orange-500" />
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
               Active Alerts
             </h4>
             {anomalies.slice(0, 2).map((alert, index) => (
               <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-card/50 border border-border/50 backdrop-blur-sm">
                 <div className={`h-2 w-2 rounded-full ${alert.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'} animate-pulse`} />
                 <div className="flex-1">
-                  <p className="text-xs text-foreground/70">{alert.message}</p>
-                  <p className="text-xs text-muted-foreground">{alert.time}</p>
+                  <p className="text-xs text-foreground/70">{alert.description}</p>
+                  <p className="text-xs text-muted-foreground">{alert.date}</p>
                 </div>
               </div>
             ))}
@@ -164,7 +134,9 @@ function AiInsightsCard({ summary, anomalies }) {
   )
 }
 
-function PropertyShowcase({ properties }) {
+function PropertyShowcase({ properties }: { properties: any[] }) {
+  if (!properties || properties.length === 0) return <Card className="lg:col-span-2 flex items-center justify-center h-full"><p className="text-muted-foreground">No properties to display.</p></Card>;
+  
   return (
     <Card className="lg:col-span-2 overflow-hidden hover:shadow-xl transition-all duration-300">
       <CardHeader>
@@ -176,7 +148,7 @@ function PropertyShowcase({ properties }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {properties.map((property, index) => (
+          {properties.map((property) => (
             <div key={property.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors duration-200 group">
               <div className="flex items-center space-x-3">
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
@@ -186,17 +158,17 @@ function PropertyShowcase({ properties }) {
                   <h4 className="font-medium group-hover:text-primary transition-colors">{property.name}</h4>
                   <div className="flex items-center text-sm text-muted-foreground">
                     <MapPin className="h-3 w-3 mr-1" />
-                    {property.location} • {property.units} units
+                    {property.address} • {property.units?.length || 0} units
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium">{property.occupancy}%</div>
+                <div className="text-sm font-medium">{safeToFixed((property.units.filter(u => u.isOccupied).length / property.units.length) * 100)}%</div>
                 <div className="flex items-center space-x-1">
                   <div className="h-2 w-12 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-500"
-                      style={{ width: `${property.occupancy}%` }}
+                      style={{ width: `${(property.units.filter(u => u.isOccupied).length / property.units.length) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -209,28 +181,52 @@ function PropertyShowcase({ properties }) {
   )
 }
 
-function ChartCard({ title, children, className = "" }) {
-  return (
-    <Card className={`hover:shadow-lg transition-all duration-300 ${className}`}>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <BarChart3 className="h-4 w-4" />
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  )
-}
 
 export default function DashboardPage() {
-  const [data, setData] = useState(mockData)
-  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState("month")
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/dashboard');
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
+      }
+      const fetchedData: DashboardData = await response.json();
+      setData(fetchedData);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const renderContent = () => {
     if (loading) {
       return <DashboardSkeleton />
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-destructive">
+          <WifiOff className="h-12 w-12 mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Could Not Load Dashboard</h3>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchData} variant="outline">Retry</Button>
+        </div>
+      );
+    }
+
+    if (!data) {
+        return <div className="text-center py-10">No data available.</div>
     }
 
     return (
@@ -239,7 +235,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Total Properties"
-            value={data.totalProperties}
+            value={String(data.totalProperties)}
             change={8.2}
             trend="vs last month"
             icon={Building2}
@@ -247,7 +243,7 @@ export default function DashboardPage() {
           />
           <MetricCard
             title="Active Tenants"
-            value={data.totalTenants}
+            value={String(data.totalTenants)}
             change={5.1}
             trend="vs last month"
             icon={Users}
@@ -255,7 +251,7 @@ export default function DashboardPage() {
           />
           <MetricCard
             title="Monthly Revenue"
-            value={safeCurrency(data.totalRevenue)}
+            value={safeCurrency(data.totalRevenue, 'KES')}
             change={parseFloat(safePercentage(data.revenueChange))}
             trend="vs last month"
             icon={DollarSign}
@@ -264,7 +260,7 @@ export default function DashboardPage() {
           <MetricCard
             title="Occupancy Rate"
             value={`${safeToFixed(data.occupancyRate, 1)}%`}
-            change={2.3}
+            change={-2.3}
             trend="vs last month"
             icon={TrendingUp}
             color="blue"
@@ -273,9 +269,8 @@ export default function DashboardPage() {
 
         {/* AI Insights and Quick Stats */}
         <div className="grid gap-6 lg:grid-cols-3">
-          <AiInsightsCard summary={data.aiSummary} anomalies={data.anomalyAlerts} />
+          <AiInsightsCard summary={data.aiSummary!} anomalies={data.anomalyAlerts} />
           
-          {/* Quick Actions */}
           <Card className="hover:shadow-lg transition-all duration-300 group">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -302,78 +297,14 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Charts Section */}
         <div className="grid gap-6 lg:grid-cols-2">
-          <ChartCard title="Payment Trends">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.latePaymentData}>
-                  <defs>
-                    <linearGradient id="colorPayments" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                  <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1f2937', 
-                      border: '1px solid #374151', 
-                      borderRadius: '8px',
-                      color: '#f3f4f6'
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="payments" 
-                    stroke="#8b5cf6" 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorPayments)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          <ChartCard title="Payment Methods">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={data.paymentMethodData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ method, value }) => `${method}: ${value}%`}
-                  >
-                    {data.paymentMethodData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1f2937', 
-                      border: '1px solid #374151', 
-                      borderRadius: '8px',
-                      color: '#f3f4f6'
-                    }} 
-                  />
-                </RechartsPieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+          <LatePaymentsChart data={data.latePaymentData} />
+          <PaymentMethodsChart data={data.paymentMethodData} />
         </div>
 
-        {/* Property Showcase */}
         <div className="grid gap-6 lg:grid-cols-3">
           <PropertyShowcase properties={data.properties} />
           
-          {/* Performance Metrics */}
           <Card className="hover:shadow-lg transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -466,7 +397,7 @@ function DashboardSkeleton() {
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
         {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
+          <Card key={i} className="animate-pulse lg:col-span-1">
             <CardHeader>
               <div className="h-6 bg-muted rounded w-48"></div>
             </CardHeader>
