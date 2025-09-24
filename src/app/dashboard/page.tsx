@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -199,7 +198,7 @@ function PropertyShowcase({ properties }) {
                   <div className="h-2 w-12 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-500"
-                      style={{ width: `${'\'\'\'${property.occupancy}%\'\'\''}` }}
+                      style={{ width: `${property.occupancy}%` }}
                     />
                   </div>
                 </div>
@@ -266,7 +265,7 @@ export default function DashboardPage() {
           />
           <MetricCard
             title="Occupancy Rate"
-            value={`${'\'\'\'${safeToFixed(data.occupancyRate, 1)}%\'\'\''}`}
+            value={`${safeToFixed(data.occupancyRate, 1)}%`}
             change={2.3}
             trend="vs last month"
             icon={TrendingUp}
@@ -352,7 +351,7 @@ export default function DashboardPage() {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    label={({ method, value }) => `${'\'\'\'${method}: ${value}%\'\'\''}`}
+                    label={({ method, value }) => `${method}: ${value}%`}
                   >
                     {data.paymentMethodData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -485,5 +484,3 @@ function DashboardSkeleton() {
     </div>
   )
 }
-
-    
