@@ -15,7 +15,10 @@ import {
   FileClock,
   UserCog,
   CalendarClock,
-  LogOut
+  LogOut,
+  Bell,
+  Search,
+  ChevronDown
 } from "lucide-react"
 
 import { PropelLiteLogo } from "../icons/logo"
@@ -40,6 +43,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Input } from "../ui/input"
+import { Button } from "../ui/button"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "../ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home, roles: ['landlord', 'manager'] },
@@ -59,9 +66,69 @@ const aiTools = [
   { href: "/reminders", label: "Reminders", icon: CalendarClock, roles: ['landlord'] },
 ]
 
-const utilityPages = [
-    { href: "/settings", label: "Settings", icon: Settings, roles: ['landlord'] },
-]
+function getInitials(name: string | undefined | null) {
+    if (!name) return "";
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[1][0]}`;
+    }
+    return name.substring(0, 2);
+}
+
+function MainLayoutContent({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  
+  return (
+    <>
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+        <SidebarTrigger className="sm:hidden" />
+        <div className="relative flex-1 md:grow-0">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="w-full rounded-lg bg-background pl-8 md:w-[280px] lg:w-[320px]"
+            />
+        </div>
+        <div className="ml-auto flex items-center gap-4">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Bell className="h-4 w-4" />
+                <span className="sr-only">Notifications</span>
+            </Button>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                    <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline-block">{user?.name}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <Link href="/settings">
+                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                </Link>
+                <DropdownMenuSeparator />
+                <LogoutButton />
+              </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+      </header>
+      <main className="flex-1 overflow-auto">
+        {children}
+      </main>
+    </>
+  );
+}
+
 
 export function AppLayout({
   children,
@@ -98,10 +165,9 @@ export function AppLayout({
             <PropelLiteLogo className="h-6 w-6" />
             <span className="group-data-[collapsible=icon]:hidden">RentEase</span>
           </div>
-          <SidebarTrigger />
         </SidebarHeader>
         <SidebarContent>
-           <Accordion type="multiple" defaultValue={['main', 'ai tools', 'utilities']} className="w-full">
+           <Accordion type="multiple" defaultValue={['main', 'ai tools']} className="w-full">
             <AccordionItem value="main" className="border-b-0">
               <AccordionTrigger className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:no-underline">
                 Main
@@ -147,15 +213,12 @@ export function AppLayout({
           </Accordion>
         </SidebarContent>
         <SidebarFooter>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
+          {/* Footer content can be placed here if needed */}
         </SidebarFooter>
       </Sidebar>
-      <main className="flex flex-1 flex-col transition-[margin-left] duration-300 ease-out md:ml-[var(--sidebar-width)] group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]">
-          {children}
-      </main>
+      <div className="flex flex-col transition-[margin-left] duration-300 ease-out md:ml-[var(--sidebar-width)] group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]">
+          <MainLayoutContent>{children}</MainLayoutContent>
+      </div>
     </SidebarProvider>
   );
 }

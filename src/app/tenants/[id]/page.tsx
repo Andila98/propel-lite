@@ -30,7 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit, MoreVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { Tenant, Property, Payment, Message } from '@/lib/types';
+import type { Tenant, Property, Payment } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';

@@ -5,7 +5,7 @@ import { getLandlordAndActor } from '@/lib/auth-utils';
 import { authConfig } from '@/config/server-config';
 import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { toJSON } from '@/lib/utils';
-import type { Property, Payment, Unit } from '@/lib/types';
+import type { Property, Payment, Unit, ActivityItem } from '@/lib/types';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
 export const runtime = 'nodejs';
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
         
         // --- AI Insights ---
         let aiSummary = 'AI insights are being generated...';
-        let anomalyAlerts: any[] = [];
+        let anomalyAlerts: ActivityItem[] = [];
         try {
             const insights = await generateDashboardInsights({
                 totalProperties,
@@ -119,9 +119,10 @@ export async function GET(request: NextRequest) {
             aiSummary = insights.summary;
             anomalyAlerts = insights.anomalies.map((anomaly, index) => ({
                 id: `anomaly-${index}`,
-                type: 'vacancy-rate',
+                type: 'vacancy-rate', // This could be more dynamic in a real app
                 description: anomaly,
-                date: 'Just now'
+                date: 'Just now',
+                severity: 'medium'
             }));
         } catch (aiError) {
             console.warn('[DASHBOARD_API] AI insight generation failed:', aiError);

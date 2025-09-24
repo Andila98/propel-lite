@@ -70,7 +70,7 @@ export interface Payment {
     unitId: string;
     amount: number;
     date: string; // Keep as string for client-side compatibility
-    method: 'Mpesa' | 'Stripe' | 'Bank Transfer' | 'Card' | 'Other';
+    method: 'Mpesa' | 'Stripe' | 'Bank Transfer' | 'Card' | 'Cash' | 'Other';
     status: 'pending' | 'confirmed' | 'failed';
     txRef?: string;
     type?: 'Rent' | 'Deposit' | 'Other';
@@ -91,6 +91,7 @@ export interface ActivityItem {
   type: 'new-tenant' | 'rent-paid' | 'lease-ending' | 'income-drop' | 'vacancy-rate';
   description: string;
   date: string;
+  severity?: 'high' | 'medium' | 'low';
 }
 
 export interface MaintenanceRequest {

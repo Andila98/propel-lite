@@ -17,12 +17,6 @@ interface TenantsResponse {
 
 interface PropertiesResponse {
   properties: Property[];
-  meta?: {
-    totalProperties: number;
-    totalUnits: number;
-    occupiedUnits: number;
-    occupancyRate: number;
-  };
 }
 
 export function useTenants() {
@@ -90,44 +84,4 @@ export function useTenants() {
     error, 
     refresh: fetchData 
   };
-}
-
-// Individual tenant hook
-export function useTenant(tenantId: string) {
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTenant = useCallback(async () => {
-    if (!tenantId) {
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/tenants/${tenantId}`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Tenant not found (${response.status})`);
-      }
-
-      const data = await response.json();
-      setTenant(data);
-      
-    } catch (err: any) {
-      setError(err.message || "An unknown error occurred.");
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId]);
-
-  useEffect(() => {
-    fetchTenant();
-  }, [fetchTenant]);
-
-  return { tenant, loading, error, refresh: fetchTenant };
 }

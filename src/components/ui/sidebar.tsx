@@ -142,7 +142,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper flex min-h-svh w-full",
               className
             )}
             ref={ref}
@@ -169,7 +169,7 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas",
+      collapsible = "icon",
       className,
       children,
       ...props
@@ -199,7 +199,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="w-[--sidebar-width] bg-background/80 backdrop-blur-lg p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -250,7 +250,7 @@ const Sidebar = React.forwardRef<
           <div
             data-sidebar="sidebar"
             className={cn(
-              "flex h-full w-full flex-col bg-sidebar text-sidebar-foreground",
+              "flex h-full w-full flex-col bg-background/80 backdrop-blur-lg text-sidebar-foreground",
               "group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-lg"
             )}
           >
@@ -531,14 +531,14 @@ const sidebarMenuButtonVariants = cva(
     variants: {
       variant: {
         default:
-          "text-sidebar-foreground/70 hover:bg-sidebar-primary/5 hover:text-sidebar-primary data-[active=true]:bg-sidebar-primary/10 data-[active=true]:text-sidebar-primary data-[active=true]:font-medium",
+          "text-sidebar-foreground/70 hover:bg-primary/5 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium",
         primary:
           "text-sidebar-primary-foreground bg-sidebar-primary hover:bg-sidebar-primary/90",
         secondary:
           "text-sidebar-secondary-foreground bg-sidebar-secondary hover:bg-sidebar-secondary/90",
         ghost:
-          "text-sidebar-foreground/70 hover:bg-sidebar-primary/5 hover:text-sidebar-primary",
-        link: "h-auto p-0 text-sidebar-foreground/70 underline-offset-4 hover:text-sidebar-primary hover:underline",
+          "text-sidebar-foreground/70 hover:bg-primary/5 hover:text-primary",
+        link: "h-auto p-0 text-sidebar-foreground/70 underline-offset-4 hover:text-primary hover:underline",
       },
       size: {
         default: "h-9 text-sm",
