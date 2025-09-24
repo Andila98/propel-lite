@@ -1,6 +1,7 @@
 
 "use client"
 import Link from "next/link"
+import React from 'react'
 import { usePathname } from "next/navigation"
 import { 
   Home,
@@ -8,16 +9,14 @@ import {
   Users,
   DollarSign,
   BarChart3,
-  Settings,
   MessageSquare,
   Wrench,
   CalendarCheck,
   FileClock,
   UserCog,
   CalendarClock,
-  LogOut,
-  Bell,
   Search,
+  Bell,
   ChevronDown
 } from "lucide-react"
 
@@ -36,7 +35,6 @@ import {
 import { ThemeToggle } from "../theme-toggle"
 import { LogoutButton } from "./logout-button"
 import { useAuth } from "@/hooks/use-auth"
-import { toJSON } from "@/lib/utils"
 import {
   Accordion,
   AccordionContent,
@@ -47,6 +45,7 @@ import { Input } from "../ui/input"
 import { Button } from "../ui/button"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "../ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+import { SearchDialog } from "../search-dialog"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home, roles: ['landlord', 'manager'] },
@@ -77,18 +76,35 @@ function getInitials(name: string | undefined | null) {
 
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const [openSearch, setOpenSearch] = React.useState(false);
+
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setOpenSearch((open) => !open)
+      }
+    }
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [])
   
   return (
     <>
       <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/60 px-4 backdrop-blur-xl sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
         <SidebarTrigger className="sm:hidden" />
         <div className="relative flex-1 md:grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="w-full rounded-lg bg-background/80 pl-8 md:w-[280px] lg:w-[320px]"
-            />
+          <Button
+            variant="outline"
+            className="group w-full justify-start text-sm text-muted-foreground md:w-[280px] lg:w-[320px]"
+            onClick={() => setOpenSearch(true)}
+          >
+            <Search className="mr-2 h-4 w-4" />
+            <span>Search...</span>
+            <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </Button>
         </div>
         <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
@@ -125,6 +141,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-auto">
         {children}
       </main>
+      <SearchDialog open={openSearch} onOpenChange={setOpenSearch} />
     </>
   );
 }
