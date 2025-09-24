@@ -76,7 +76,6 @@ function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
         }
         setLoading(true);
 
-        // Using FormData to handle both text and file upload
         const formData = new FormData();
         formData.append('description', description);
         if (imageFile) {
@@ -84,33 +83,11 @@ function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
         }
 
         try {
-            // Note: We send to a different endpoint if there's an image
-            const endpoint = imageFile ? '/api/properties/analyze-damage' : '/api/maintenance';
-            let response;
-            if (imageFile) {
-                 const analyzeResponse = await fetch('/api/properties/analyze-damage', {
-                    method: 'POST',
-                    body: formData,
-                 });
-                 if (!analyzeResponse.ok) throw new Error('Failed to analyze damage.');
-                 const analysisResult = await analyzeResponse.json();
-
-                 const requestData = {
-                     description: description,
-                     // You can add analysisResult to the body if the API supports it
-                 };
-                 response = await fetch('/api/maintenance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestData)
-                 });
-            } else {
-                 response = await fetch('/api/maintenance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ description }),
-                 });
-            }
+            const response = await fetch('/api/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description }),
+            });
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -121,7 +98,6 @@ function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
                 title: 'Request Submitted!',
                 description: 'Your maintenance request has been sent.',
             });
-            // Reset form
             setDescription('');
             setImageFile(null);
             setImagePreview(null);
@@ -251,9 +227,9 @@ export default function TenantPortalPage() {
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Skeleton className="h-8 w-64 mb-4" />
-             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-[400px] lg:col-span-3 xl:col-span-1" />
-                <Skeleton className="h-[400px] lg:col-span-3 xl:col-span-2" />
+             <div className="grid gap-6 md:grid-cols-2">
+                <Skeleton className="h-[400px]" />
+                <Skeleton className="h-[400px]" />
             </div>
         </div>
     )
@@ -284,8 +260,8 @@ export default function TenantPortalPage() {
         <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Welcome, {tenant.name}</h2>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-3 xl:col-span-1">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle>Lease Details</CardTitle>
             <CardDescription>{property.address}</CardDescription>
@@ -342,7 +318,7 @@ export default function TenantPortalPage() {
           </CardFooter>
         </Card>
 
-        <Card className="lg:col-span-3 xl:col-span-2">
+        <Card>
           <CardHeader>
             <CardTitle>Payment History</CardTitle>
             <CardDescription>Your recent transaction records.</CardDescription>
@@ -407,3 +383,5 @@ export default function TenantPortalPage() {
     </div>
   );
 }
+
+    
