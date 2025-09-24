@@ -1,8 +1,8 @@
 
 
 import type { Timestamp } from "firebase-admin/firestore";
-import type { GenerateReceiptOutput as GenReceiptOutput } from '@/ai/flows/generate-receipt';
-import type { GenerateInvoiceOutput as GenInvoiceOutput } from '@/ai/flows/generate-invoice-flow';
+import type { GenerateReceiptOutput as GenReceiptOutput } from './schema-types';
+import type { GenerateInvoiceOutput as GenInvoiceOutput } from './schema-types';
 
 type UserRole = 'landlord' | 'tenant' | 'admin' | 'manager';
 
@@ -22,7 +22,7 @@ export interface Property {
     id: string;
     name: string;
     address: string;
-    type: 'Apartment' | 'House' | 'Bedsitter';
+    type: 'Apartment' | 'House' | 'Bedsitter' | 'Commercial' | 'Office';
     landlordId: string;
     managerId?: string;
     imageUrl?: string;
@@ -33,10 +33,6 @@ export interface Property {
     // These are not stored directly in the property document in Firestore
     // but are added on when fetching the data.
     units: Unit[]; 
-    // The fields below are deprecated from the main doc and live in the units subcollection
-    rent?: number; 
-    bedrooms?: number;
-    bathrooms?: number;
 }
 
 export interface Unit {
@@ -119,6 +115,7 @@ export type Permission =
   | 'canEditTenants'
   | 'canDeleteTenants'
   | 'canViewPayments'
+  | 'canViewTenants'
   | 'canManageManagers'
   | 'canManageSettings';
 
@@ -130,6 +127,7 @@ export const permissionLabels: Record<Permission, string> = {
   canEditTenants: 'Edit Tenants',
   canDeleteTenants: 'Delete Tenants',
   canViewPayments: 'View Payments',
+  canViewTenants: 'View Tenants',
   canManageManagers: 'Manage Managers',
   canManageSettings: 'Manage Settings',
 };

@@ -45,7 +45,7 @@ export const PropertyFormSchema = z.object({
     .string()
     .min(3, "Property name must be at least 3 characters")
     .max(100, "Property name too long")
-    .regex(/^[A-Za-z0-9\s\-'.,]+$/, "Property name contains invalid characters"),
+    .regex(/^[A-Za-z0-9\s\-'.]+$/, "Property name contains invalid characters"),
   address: z
     .string()
     .min(10, "Please enter a complete address")
@@ -243,6 +243,7 @@ export const PriceSuggestionSchema = z.object({
   furnished: z.boolean().optional(),
   nearbyAmenities: z.array(z.string()).optional(),
   transportAccess: z.enum(["Excellent", "Good", "Fair", "Poor"]).optional(),
+  currency: z.string().optional(),
 });
 
 export type PriceSuggestionValues = z.infer<typeof PriceSuggestionSchema>;

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from 'next/link';
@@ -30,8 +31,7 @@ interface PropertiesResponse {
 }
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [meta, setMeta] = useState<PropertiesResponse['meta'] | null>(null);
+  const [data, setData] = useState<PropertiesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -52,10 +52,9 @@ export default function PropertiesPage() {
           throw new Error(errorData.error || `Failed to fetch properties (${res.status})`);
         }
         
-        const data: PropertiesResponse = await res.json();
+        const responseData: PropertiesResponse = await res.json();
         
-        setProperties(data.properties || []);
-        setMeta(data.meta || null);
+        setData(responseData);
         
       } catch (err: any) {
         console.error('[Properties] Fetch error:', err);
@@ -138,7 +137,7 @@ export default function PropertiesPage() {
     </Card>
   );
 
-  const renderStats = () => {
+  const renderStats = (meta) => {
     if (!meta) return null;
     
     return (
@@ -181,11 +180,13 @@ export default function PropertiesPage() {
     );
   };
 
+  const hasProperties = data && data.properties && data.properties.length > 0;
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Properties</h2>
-        {canAddProperties && properties.length > 0 && (
+        {canAddProperties && hasProperties && (
           <Link href="/properties/add">
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -199,11 +200,11 @@ export default function PropertiesPage() {
       
       {error && !loading && renderError()}
       
-      {!loading && !error && properties.length === 0 && renderEmptyState()}
+      {!loading && !error && !hasProperties && renderEmptyState()}
       
-      {!loading && !error && properties.length > 0 && (
+      {!loading && !error && hasProperties && (
         <>
-          {renderStats()}
+          {renderStats(data.meta)}
           
           <Card>
             <CardHeader>
@@ -213,7 +214,7 @@ export default function PropertiesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PropertyTable properties={properties} />
+              <PropertyTable properties={data.properties} />
             </CardContent>
           </Card>
         </>
