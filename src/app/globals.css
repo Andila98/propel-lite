@@ -33,25 +33,25 @@
   }
 
   .dark {
-    --background: 220 40% 5%; /* Deep, dark sci-fi blue/black */
-    --foreground: 210 20% 90%; /* Light grey/off-white text */
-    --card: 220 30% 9%; /* Slightly lighter dark blue for cards */
+    --background: 220 40% 5% / 0.9;
+    --foreground: 210 20% 90%;
+    --card: 220 30% 9% / 0.8;
     --card-foreground: 210 20% 90%;
     --popover: 220 30% 9%;
     --popover-foreground: 210 20% 90%;
-    --primary: 25 100% 55%; /* Vibrant, futuristic orange */
+    --primary: 25 100% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 20%; /* Muted dark blue for secondary elements */
+    --secondary: 220 20% 20%;
     --secondary-foreground: 210 20% 90%;
-    --muted: 220 20% 15%; /* Muted dark blue, slightly darker */
-    --muted-foreground: 210 20% 60%; /* Lighter muted text */
-    --accent: 180 90% 50%; /* Glowing cyan for secondary accents */
+    --muted: 220 20% 15%;
+    --muted-foreground: 210 20% 60%;
+    --accent: 180 90% 50%;
     --accent-foreground: 180 100% 5%;
-    --destructive: 0 70% 50%; /* A slightly deeper red for destructive actions */
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 20% 25%; /* Borders with a hint of blue */
-    --input: 220 20% 18%; /* Dark input fields */
-    --ring: 25 100% 55%; /* Ring color matching the glowing primary */
+    --border: 220 20% 25%;
+    --input: 220 20% 18%;
+    --ring: 25 100% 55%;
     --chart-1: 25 90% 60%;
     --chart-2: 170 60% 45%;
     --chart-3: 180 70% 50%;

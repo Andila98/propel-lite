@@ -30,6 +30,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "../theme-toggle"
 import { LogoutButton } from "./logout-button"
@@ -66,7 +67,12 @@ function NavSection({ title, items, pathname, userRole, isCollapsed }: { title: 
 
   return (
     <AccordionItem value={title.toLowerCase()} className="border-b-0">
-      <AccordionTrigger className={cn("px-2 text-xs font-medium text-sidebar-foreground/70 hover:no-underline group-data-[collapsible=icon]:hidden", { 'justify-center': isCollapsed })}>
+      <AccordionTrigger 
+        className={cn(
+          "px-2 text-xs font-medium text-sidebar-foreground/70 hover:no-underline",
+          isCollapsed && "hidden"
+        )}
+      >
         {!isCollapsed && title}
       </AccordionTrigger>
       <AccordionContent className="pb-0">
@@ -87,10 +93,12 @@ function NavSection({ title, items, pathname, userRole, isCollapsed }: { title: 
   )
 }
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const userRole = user?.role;
+  const { state: sidebarState } = useSidebar();
+  const isCollapsed = sidebarState === 'collapsed';
 
   const getInitials = (name: string) => {
     if (!name) return "";
@@ -120,7 +128,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
+    <>
       <Sidebar>
         <SidebarHeader>
            <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -130,8 +138,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
            <Accordion type="multiple" defaultValue={['main', 'ai tools', 'utilities']} className="w-full">
-            <NavSection title="Main" items={navItems} pathname={pathname} userRole={userRole || ''} isCollapsed={false} />
-            <NavSection title="AI Tools" items={aiTools} pathname={pathname} userRole={userRole || ''} isCollapsed={false} />
+            <NavSection title="Main" items={navItems} pathname={pathname} userRole={userRole || ''} isCollapsed={isCollapsed} />
+            <NavSection title="AI Tools" items={aiTools} pathname={pathname} userRole={userRole || ''} isCollapsed={isCollapsed} />
           </Accordion>
         </SidebarContent>
         <SidebarFooter>
@@ -169,6 +177,34 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </SidebarInset>
+    </>
+  )
+}
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  if (user?.role === 'tenant') {
+    return (
+       <div className="flex flex-col min-h-screen">
+        <header className="flex h-14 items-center justify-between border-b px-4 md:px-6">
+           <Link href="/" className="flex items-center gap-2 font-semibold">
+              <PropelLiteLogo className="h-6 w-6" />
+              <span className="group-data-[collapsible=icon]:hidden">RentEase Tenant Portal</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <LogoutButton />
+            </div>
+        </header>
+        <main className="flex-1">{children}</main>
+      </div>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <MainLayoutContent>{children}</MainLayoutContent>
     </SidebarProvider>
   )
 }
