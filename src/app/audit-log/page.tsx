@@ -116,7 +116,7 @@ export default function AuditLogPage() {
                     {logs.map((log) => (
                         <TableRow key={log.id}>
                             <TableCell className="text-sm text-muted-foreground">
-                                {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                                {formatDistanceToNow(new Date(log.timestamp as string), { addSuffix: true })}
                             </TableCell>
                             <TableCell className="font-medium">{log.managerName}</TableCell>
                             <TableCell>{log.action}</TableCell>

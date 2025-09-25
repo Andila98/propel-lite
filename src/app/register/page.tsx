@@ -47,7 +47,7 @@ export default function RegisterPage() {
   
   const { register, handleSubmit, formState: { errors } } = form;
 
-  const handleRegister = async (data: RegisterFormValues) => {
+  const handleRegister = useCallback(async (data: RegisterFormValues) => {
     setIsLoading(true);
     try {
         const response = await fetch('/api/auth/signup', {
@@ -84,7 +84,7 @@ export default function RegisterPage() {
     } finally {
         setIsLoading(false);
     }
-  };
+  }, [login, toast]);
   
   const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);

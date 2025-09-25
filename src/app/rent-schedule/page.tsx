@@ -205,7 +205,7 @@ export default function RentSchedulePage() {
           const paymentsThisMonth = payments
             .filter(p => {
               if (p.tenantId !== tenant.id) return false;
-              const paymentDate = new Date(p.date);
+              const paymentDate = new Date(p.date as string);
               return paymentDate.getMonth() === currentDate.getMonth() && 
                      paymentDate.getFullYear() === currentDate.getFullYear() && 
                      p.type === 'Rent';
