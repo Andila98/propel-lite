@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "postinstall": "patch-package",
-    "seed": "tsx src/lib/seed.ts"
+    "seed": "tsx src/lib/seed.ts",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.0.0",
@@ -73,6 +74,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
+    "@next/bundle-analyzer": "^14.2.5",
     "@testing-library/react": "^16.0.0",
     "@types/cookie": "^0.6.0",
     "@types/html-pdf": "^3.0.3",
