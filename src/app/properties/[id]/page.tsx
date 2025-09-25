@@ -1,10 +1,9 @@
-
-
 "use client";
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   Card,
   CardContent,
@@ -19,13 +18,19 @@ import type { Property, Unit } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Camera, Wand2, CheckCircle, Clock } from 'lucide-react';
-import { DamageAnalysisDialog } from '@/components/damage-analysis-dialog';
 import { DeletePropertyButton } from './delete-property-button';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 
+const DamageAnalysisDialog = dynamic(
+  () => import("@/components/damage-analysis-dialog").then((mod) => mod.DamageAnalysisDialog),
+  {
+    ssr: false,
+    loading: () => <p>Loading...</p>
+  }
+)
 
 const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
     return new Intl.NumberFormat('en-US', {

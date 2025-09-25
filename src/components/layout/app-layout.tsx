@@ -1,8 +1,8 @@
-
 "use client"
 import Link from "next/link"
 import React from 'react'
 import { usePathname } from "next/navigation"
+import dynamic from 'next/dynamic'
 import { 
   Home,
   Building2,
@@ -41,11 +41,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { Input } from "../ui/input"
 import { Button } from "../ui/button"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "../ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
-import { SearchDialog } from "../search-dialog"
+
+const SearchDialog = dynamic(
+  () => import('../search-dialog').then((mod) => mod.SearchDialog),
+  { ssr: false }
+);
+
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home, roles: ['landlord', 'manager'] },

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import dynamic from "next/dynamic"
 import {
   Card,
   CardContent,
@@ -26,18 +27,29 @@ import {
   WifiOff,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart3,
   MapPin,
-  Bell,
-  Zap,
   Eye,
   Star
 } from "lucide-react"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts'
 import type { DashboardData } from "@/lib/types"
-import { LatePaymentsChart } from "@/components/charts/late-payments-chart"
-import { PaymentMethodsChart } from "@/components/charts/payment-methods-chart"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+
+const LatePaymentsChart = dynamic(
+  () => import("@/components/charts/late-payments-chart").then((mod) => mod.LatePaymentsChart),
+  { 
+    ssr: false,
+    loading: () => <Skeleton className="h-[240px]" />
+  }
+)
+
+const PaymentMethodsChart = dynamic(
+  () => import("@/components/charts/payment-methods-chart").then((mod) => mod.PaymentMethodsChart),
+  { 
+    ssr: false,
+    loading: () => <Skeleton className="h-[240px]" />
+  }
+)
 
 const safeToFixed = (value: number | undefined | null, decimals = 1) => {
   if (value === null || value === undefined || isNaN(value)) {
@@ -48,9 +60,9 @@ const safeToFixed = (value: number | undefined | null, decimals = 1) => {
 
 const safeCurrency = (value: number | undefined | null, currency = 'USD') => {
   if (value === null || value === undefined || isNaN(value)) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(0);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(0);
   }
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(value);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
 };
 
 const safePercentage = (value: number | undefined | null) => {
@@ -61,21 +73,21 @@ const safePercentage = (value: number | undefined | null) => {
 };
 
 
-function MetricCard({ title, value, change, icon: Icon, trend, color = "primary", className = "" }: { title: string, value: string, change: number, icon: React.ElementType, trend: string, color?: string, className?: string }) {
+function MetricCard({ title, value, change, icon: Icon }: { title: string, value: string, change: number, icon: React.ElementType }) {
   const isPositive = change > 0
   const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight
   
   return (
-    <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group ${className}`}>
-      <div className={`absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+    <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className={`p-2 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors duration-300`}>
+        <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors duration-300">
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
       <CardContent className="relative z-10">
-        <div className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+        <div className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           {value}
         </div>
         <div className="flex items-center space-x-2">
@@ -83,7 +95,7 @@ function MetricCard({ title, value, change, icon: Icon, trend, color = "primary"
             <TrendIcon className="h-3 w-3" />
             <span className="font-medium">{Math.abs(change)}%</span>
           </div>
-          <span className="text-xs text-muted-foreground">{trend}</span>
+          <span className="text-xs text-muted-foreground">vs last month</span>
         </div>
       </CardContent>
     </Card>
@@ -92,15 +104,15 @@ function MetricCard({ title, value, change, icon: Icon, trend, color = "primary"
 
 function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: any[] }) {
   return (
-    <Card className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-orange-500/10 border-purple-500/20 group hover:shadow-2xl transition-all duration-500">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-transparent to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    <Card className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-primary/10 via-accent/5 to-primary/5 border-primary/20 group hover:shadow-2xl transition-all duration-500">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <CardHeader className="relative z-10">
         <CardTitle className="flex items-center gap-3 text-lg">
-          <div className="p-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+          <div className="p-2 rounded-full bg-gradient-to-r from-primary to-accent text-white">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <span className="bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               AI-Powered Insights
             </span>
             <div className="flex items-center mt-1">
@@ -137,6 +149,12 @@ function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: an
 function PropertyShowcase({ properties }: { properties: any[] }) {
   if (!properties || properties.length === 0) return <Card className="lg:col-span-2 flex items-center justify-center h-full"><p className="text-muted-foreground">No properties to display.</p></Card>;
   
+  const getOccupancy = (property: any) => {
+    if (!property.units || property.units.length === 0) return 0;
+    const occupied = property.units.filter((u: any) => u.isOccupied).length;
+    return (occupied / property.units.length) * 100;
+  }
+
   return (
     <Card className="lg:col-span-2 overflow-hidden hover:shadow-xl transition-all duration-300">
       <CardHeader>
@@ -151,7 +169,7 @@ function PropertyShowcase({ properties }: { properties: any[] }) {
           {properties.map((property) => (
             <div key={property.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors duration-200 group">
               <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
                   {property.name.charAt(0)}
                 </div>
                 <div>
@@ -163,12 +181,12 @@ function PropertyShowcase({ properties }: { properties: any[] }) {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium">{safeToFixed((property.units.filter(u => u.isOccupied).length / property.units.length) * 100)}%</div>
+                <div className="text-sm font-medium">{safeToFixed(getOccupancy(property))}%</div>
                 <div className="flex items-center space-x-1">
                   <div className="h-2 w-12 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-500"
-                      style={{ width: `${(property.units.filter(u => u.isOccupied).length / property.units.length) * 100}%` }}
+                      style={{ width: `${getOccupancy(property)}%` }}
                     />
                   </div>
                 </div>
@@ -237,33 +255,25 @@ export default function DashboardPage() {
             title="Total Properties"
             value={String(data.totalProperties)}
             change={8.2}
-            trend="vs last month"
             icon={Building2}
-            color="purple"
           />
           <MetricCard
             title="Active Tenants"
             value={String(data.totalTenants)}
             change={5.1}
-            trend="vs last month"
             icon={Users}
-            color="pink"
           />
           <MetricCard
             title="Monthly Revenue"
-            value={safeCurrency(data.totalRevenue, 'KES')}
+            value={safeCurrency(data.totalRevenue, data.properties?.[0]?.currency || 'KES')}
             change={parseFloat(safePercentage(data.revenueChange))}
-            trend="vs last month"
             icon={DollarSign}
-            color="green"
           />
           <MetricCard
             title="Occupancy Rate"
             value={`${safeToFixed(data.occupancyRate, 1)}%`}
             change={-2.3}
-            trend="vs last month"
             icon={TrendingUp}
-            color="blue"
           />
         </div>
 
@@ -271,41 +281,7 @@ export default function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <AiInsightsCard summary={data.aiSummary!} anomalies={data.anomalyAlerts} />
           
-          <Card className="hover:shadow-lg transition-all duration-300 group">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-orange-500" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <button className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-200 group/item">
-                  <span className="text-sm font-medium">Add New Property</span>
-                  <ArrowUpRight className="h-4 w-4 opacity-0 group-hover/item:opacity-100 transform translate-x-0 group-hover/item:translate-x-1 transition-all duration-200" />
-                </button>
-                <button className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-200 group/item">
-                  <span className="text-sm font-medium">Generate Reports</span>
-                  <ArrowUpRight className="h-4 w-4 opacity-0 group-hover/item:opacity-100 transform translate-x-0 group-hover/item:translate-x-1 transition-all duration-200" />
-                </button>
-                <button className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-200 group/item">
-                  <span className="text-sm font-medium">Review Maintenance</span>
-                  <ArrowUpRight className="h-4 w-4 opacity-0 group-hover/item:opacity-100 transform translate-x-0 group-hover/item:translate-x-1 transition-all duration-200" />
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <LatePaymentsChart data={data.latePaymentData} />
-          <PaymentMethodsChart data={data.paymentMethodData} />
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <PropertyShowcase properties={data.properties} />
-          
-          <Card className="hover:shadow-lg transition-all duration-300">
+           <Card className="hover:shadow-lg transition-all duration-300 group">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-yellow-500" />
@@ -341,6 +317,15 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <LatePaymentsChart data={data.latePaymentData} />
+          <PaymentMethodsChart data={data.paymentMethodData} />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <PropertyShowcase properties={data.properties} />
+        </div>
       </div>
     )
   }
@@ -350,7 +335,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -386,30 +371,44 @@ function DashboardSkeleton() {
         {[...Array(4)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="pb-2">
-              <div className="h-4 bg-muted rounded w-24"></div>
+              <Skeleton className="h-4 w-24" />
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-muted rounded w-16 mb-2"></div>
-              <div className="h-3 bg-muted rounded w-32"></div>
+              <Skeleton className="h-8 w-16 mb-2" />
+              <Skeleton className="h-3 w-32" />
             </CardContent>
           </Card>
         ))}
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse lg:col-span-1">
+        <Card className="lg:col-span-2 animate-pulse">
             <CardHeader>
-              <div className="h-6 bg-muted rounded w-48"></div>
+              <Skeleton className="h-6 w-48" />
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="h-4 bg-muted rounded w-full"></div>
-                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
               </div>
             </CardContent>
           </Card>
-        ))}
+           <Card className="animate-pulse">
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            </CardContent>
+          </Card>
       </div>
+       <div className="grid gap-6 lg:grid-cols-2">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+       </div>
     </div>
   )
 }

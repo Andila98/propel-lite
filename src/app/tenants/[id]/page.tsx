@@ -1,8 +1,8 @@
-
 "use client";
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,11 +35,18 @@ import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChatThread } from '@/components/chat-thread';
 import { predictPayment } from '@/ai/flows/predict-payment-flow';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useTenants } from '@/hooks/use-tenants';
 import { DeleteTenantButton } from '@/components/delete-tenant-button';
+
+const ChatThread = dynamic(
+  () => import("@/components/chat-thread").then((mod) => mod.ChatThread),
+  {
+    ssr: false,
+    loading: () => <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>
+  }
+);
 
 
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
