@@ -2,7 +2,7 @@
 
 "use client"
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from 'next/image';
@@ -61,7 +61,7 @@ const unitTypes = [
 ];
 
 
-export function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
+export const PropertyForm = React.memo(function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
@@ -550,4 +550,4 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     </form>
     </TooltipProvider>
   );
-}
+});

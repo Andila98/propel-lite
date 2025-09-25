@@ -27,9 +27,14 @@ import { AnimatedEditIcon } from './icons/animated-edit-icon';
 import { useTenants } from '@/hooks/use-tenants';
 import { DeleteTenantButton } from './delete-tenant-button';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
+import React from 'react';
 
+interface TenantTableProps {
+  tenants: Tenant[];
+  properties: Property[];
+}
 
-export function TenantTable({ tenants, properties }: { tenants: Tenant[], properties: Property[] }) {
+export const TenantTable = React.memo(function TenantTable({ tenants, properties }: TenantTableProps) {
   const router = useRouter();
   const { refresh: refreshTenants } = useTenants();
 
@@ -129,4 +134,4 @@ export function TenantTable({ tenants, properties }: { tenants: Tenant[], proper
         </TableBody>
       </Table>
   );
-}
+});

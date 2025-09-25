@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useActionState } from 'react';
@@ -38,7 +38,7 @@ interface ManualPaymentFormProps {
     onPaymentAdded: () => void;
 }
 
-function ManualPaymentForm({ tenants, onPaymentAdded }: ManualPaymentFormProps) {
+const ManualPaymentForm = React.memo(function ManualPaymentForm({ tenants, onPaymentAdded }: ManualPaymentFormProps) {
     const { toast } = useToast();
     const initialState: FormState = { success: false };
     const [state, formAction] = useActionState(recordPaymentAction, initialState);
@@ -142,7 +142,7 @@ function ManualPaymentForm({ tenants, onPaymentAdded }: ManualPaymentFormProps) 
             </div>
         </form>
     );
-}
+});
 
 interface BulkImportFormProps {
     onImportComplete: () => void;
@@ -231,7 +231,7 @@ interface AddPaymentFormProps {
     onPaymentAdded: () => void;
 }
 
-export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps) {
+export const AddPaymentForm = React.memo(function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps) {
     return (
         <Tabs defaultValue="manual" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -252,4 +252,4 @@ export function AddPaymentForm({ tenants, onPaymentAdded }: AddPaymentFormProps)
             </TabsContent>
         </Tabs>
     );
-}
+});
