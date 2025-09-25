@@ -1,9 +1,9 @@
-
 "use client";
 
+import React, { useCallback } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { PlusCircle, Building2, Users, Home, AlertTriangle } from 'lucide-react';
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,9 +15,9 @@ import {
 import { PropertyTable } from '@/components/property-table';
 import type { Property } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { fetcher } from '@/lib/utils';
 
 interface PropertiesResponse {
   properties: Property[];
@@ -30,46 +30,14 @@ interface PropertiesResponse {
 }
 
 export default function PropertiesPage() {
-  const [data, setData] = useState<PropertiesResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error, isLoading, mutate } = useSWR<PropertiesResponse>('/api/properties', fetcher);
   const { user } = useAuth();
-  const { toast } = useToast();
   
   const canAddProperties = user?.role === 'landlord' || (user?.role === 'manager' && user?.permissions?.canAddProperties);
-
-  useEffect(() => {
-    async function fetchProperties() {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const res = await fetch('/api/properties');
-        
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || `Failed to fetch properties (${res.status})`);
-        }
-        
-        const responseData: PropertiesResponse = await res.json();
-        
-        setData(responseData);
-        
-      } catch (err: any) {
-        console.error('[Properties] Fetch error:', err);
-        setError(err.message || 'Failed to load properties');
-        toast({ 
-          title: "Error", 
-          description: "Could not load properties. Please try again.", 
-          variant: "destructive" 
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchProperties();
-  }, [toast]);
+  
+  const refreshData = useCallback(() => {
+    mutate();
+  }, [mutate]);
 
   const renderSkeleton = () => (
     <div className="space-y-4">
@@ -107,10 +75,10 @@ export default function PropertiesPage() {
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          {error}
+          {error?.info?.error || error?.message || 'Failed to load properties'}
         </AlertDescription>
       </Alert>
-      <Button onClick={() => window.location.reload()} variant="outline">
+      <Button onClick={refreshData} variant="outline">
         Retry
       </Button>
     </div>
@@ -136,7 +104,7 @@ export default function PropertiesPage() {
     </Card>
   );
 
-  const renderStats = (meta) => {
+  const renderStats = (meta: PropertiesResponse['meta']) => {
     if (!meta) return null;
     
     return (
@@ -195,13 +163,13 @@ export default function PropertiesPage() {
         )}
       </div>
       
-      {loading && renderSkeleton()}
+      {isLoading && renderSkeleton()}
       
-      {error && !loading && renderError()}
+      {error && !isLoading && renderError()}
       
-      {!loading && !error && !hasProperties && renderEmptyState()}
+      {!isLoading && !error && !hasProperties && renderEmptyState()}
       
-      {!loading && !error && hasProperties && (
+      {!isLoading && !error && hasProperties && (
         <>
           {renderStats(data.meta)}
           

@@ -1,7 +1,7 @@
-
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import useSWR from 'swr';
 import {
   Card,
   CardContent,
@@ -24,6 +24,7 @@ import type { AuditLog } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { fetcher } from '@/lib/utils';
 
 const entityIcons: Record<AuditLog['entityType'], React.ReactNode> = {
     Property: <Building className="h-4 w-4" />,
@@ -33,40 +34,15 @@ const entityIcons: Record<AuditLog['entityType'], React.ReactNode> = {
 };
 
 export default function AuditLogPage() {
-    const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { data: logs, error, isLoading, mutate } = useSWR<AuditLog[]>('/api/audit-logs', fetcher);
     const { toast } = useToast();
 
-    const fetchLogs = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch('/api/audit-logs');
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to fetch audit logs.');
-            }
-            const data = await response.json();
-            setLogs(data);
-        } catch (err: any) {
-            setError(err.message);
-            toast({
-                title: "Error",
-                description: err.message,
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
-    }, [toast]);
-
-    useEffect(() => {
-        fetchLogs();
-    }, [fetchLogs]);
+    const fetchLogs = useCallback(() => {
+        mutate();
+    }, [mutate]);
 
     const renderContent = () => {
-        if (loading) {
+        if (isLoading) {
             return (
                 <Table>
                     <TableHeader>
@@ -92,11 +68,17 @@ export default function AuditLogPage() {
         }
 
         if (error) {
+            const errorMessage = error.info?.error || error.message || 'Failed to fetch audit logs.';
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
             return (
                 <div className="flex flex-col items-center justify-center h-60 text-center text-destructive p-4">
                     <WifiOff className="h-12 w-12 mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Failed to Load Audit Logs</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                    <p className="text-sm text-muted-foreground mb-4">{errorMessage}</p>
                     <Button onClick={fetchLogs} variant="outline">Retry</Button>
                 </div>
             );
@@ -113,7 +95,7 @@ export default function AuditLogPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {logs.map((log) => (
+                    {logs?.map((log) => (
                         <TableRow key={log.id}>
                             <TableCell className="text-sm text-muted-foreground">
                                 {formatDistanceToNow(new Date(log.timestamp as string), { addSuffix: true })}

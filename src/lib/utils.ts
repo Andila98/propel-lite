@@ -1,10 +1,33 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+/**
+ * A simple fetcher function for SWR that handles JSON responses and errors.
+ * @param url The URL to fetch.
+ * @returns The JSON data from the response.
+ */
+export const fetcher = async (url: string) => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    const error: any = new Error('An error occurred while fetching the data.');
+    try {
+      // Try to parse the error message from the response body
+      error.info = await res.json();
+    } catch (e) {
+      // If parsing fails, fall back to the status text
+      error.info = { error: res.statusText };
+    }
+    error.status = res.status;
+    throw error;
+  }
+
+  return res.json();
+};
 
 /**
  * Safely converts a Firestore Timestamp or a string/date representation to an ISO string.

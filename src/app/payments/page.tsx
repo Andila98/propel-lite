@@ -1,7 +1,7 @@
-
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useMemo, useCallback } from 'react';
+import useSWR from 'swr';
 import {
   Card,
   CardContent,
@@ -36,59 +36,27 @@ import { getReceiptAction, emailReceiptAction, type ReceiptState } from './actio
 import ReceiptComponent from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, fetcher } from '@/lib/utils';
 import { AddPaymentForm } from '@/components/add-payment-form';
 
 type PaymentWithDetails = Payment & { tenantName: string; propertyAddress: string; property: Property };
 
 export default function PaymentsPage() {
   const { toast } = useToast();
-  const [receiptState, setReceiptState] = useState<{ loading: boolean; result: ReceiptState | null; currentPaymentId?: string }>({
+  const [receiptState, setReceiptState] = React.useState<{ loading: boolean; result: ReceiptState | null; currentPaymentId?: string }>({
     loading: false,
     result: null,
   });
-  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
+  const [isAddPaymentOpen, setIsAddPaymentOpen] = React.useState(false);
   
-  const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-        setDataLoading(true);
-        try {
-            const [paymentsRes, tenantsRes] = await Promise.all([
-              fetch('/api/payments'),
-              fetch('/api/tenants')
-            ]);
-
-            if (!paymentsRes.ok) {
-              const errorData = await paymentsRes.json();
-              throw new Error(errorData.error || 'Failed to fetch payments');
-            }
-            if (!tenantsRes.ok) {
-              const errorData = await tenantsRes.json();
-              throw new Error(errorData.error || 'Failed to fetch tenants');
-            }
-            
-            const paymentsData: PaymentWithDetails[] = await paymentsRes.json();
-            const tenantsData = await tenantsRes.json();
-            
-            setPayments(paymentsData);
-            setTenants(tenantsData.tenants || []);
-        } catch (error: any) {
-            console.error(error);
-            toast({ title: "Error", description: `Failed to fetch page data: ${error.message}`, variant: "destructive" });
-        } finally {
-            setDataLoading(false);
-        }
-    }
-    fetchData();
-  }, [toast]);
+  const { data: payments, error: paymentsError, isLoading: paymentsLoading } = useSWR<PaymentWithDetails[]>('/api/payments', fetcher);
+  const { data: tenantsData, error: tenantsError, isLoading: tenantsLoading } = useSWR<{tenants: Tenant[]}>('/api/tenants', fetcher);
   
+  const dataLoading = paymentsLoading || tenantsLoading;
+  const error = paymentsError || tenantsError;
 
-  const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
+  const handleGenerateReceipt = useCallback(async (tenantId: string, paymentId: string) => {
     setReceiptState({ loading: true, result: null, currentPaymentId: paymentId });
     setIsReceiptOpen(true);
 
@@ -98,9 +66,9 @@ export default function PaymentsPage() {
     }
     
     setReceiptState({ loading: false, result, currentPaymentId: paymentId });
-  }
+  }, [toast]);
   
-  const handleEmailReceipt = async (tenantId: string, paymentId: string) => {
+  const handleEmailReceipt = useCallback(async (tenantId: string, paymentId: string) => {
     toast({ title: "Sending...", description: "Emailing the receipt to the tenant." });
     const result = await emailReceiptAction({ tenantId, paymentId });
     if (result.error) {
@@ -108,9 +76,9 @@ export default function PaymentsPage() {
     } else {
       toast({ title: "Success!", description: "Receipt has been emailed to the tenant." });
     }
-  };
+  }, [toast]);
   
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = useCallback(() => {
     if (receiptState.result?.pdf && receiptState.result?.receipt) {
       const link = document.createElement("a");
       link.href = `data:application/pdf;base64,${receiptState.result.pdf}`;
@@ -119,7 +87,7 @@ export default function PaymentsPage() {
       link.click();
       document.body.removeChild(link);
     }
-  };
+  }, [receiptState.result]);
 
   const renderSkeleton = () => (
      <Table>
@@ -166,7 +134,7 @@ export default function PaymentsPage() {
                         Manually enter a payment received from a tenant.
                     </DialogDescription>
                 </DialogHeader>
-                <AddPaymentForm tenants={tenants} onPaymentAdded={() => setIsAddPaymentOpen(false)} />
+                <AddPaymentForm tenants={tenantsData?.tenants || []} onPaymentAdded={() => setIsAddPaymentOpen(false)} />
             </DialogContent>
         </Dialog>
       </div>
@@ -191,7 +159,7 @@ export default function PaymentsPage() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {payments.map((payment) => (
+                {payments?.map((payment) => (
                     <TableRow key={payment.id}>
                     <TableCell>{formatDate(payment.date)}</TableCell>
                     <TableCell>
@@ -257,7 +225,7 @@ export default function PaymentsPage() {
                     <Download className="mr-2 h-4 w-4" /> Download PDF
                 </Button>
                 <Button 
-                    onClick={() => handleEmailReceipt(receiptState.result?.receipt!.tenantName, receiptState.currentPaymentId!)}
+                    onClick={() => handleEmailReceipt(receiptState.result!.receipt!.tenantName, receiptState.currentPaymentId!)}
                     disabled={!receiptState.result?.receipt}
                 >
                     <Mail className="mr-2 h-4 w-4" /> Email to Tenant

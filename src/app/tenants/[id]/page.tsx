@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import useSWR from 'swr';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,14 +30,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit, MoreVertical } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import type { Tenant, Property, Payment } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { predictPayment } from '@/ai/flows/predict-payment-flow';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, fetcher } from '@/lib/utils';
 import { useTenants } from '@/hooks/use-tenants';
 import { DeleteTenantButton } from '@/components/delete-tenant-button';
 
@@ -50,32 +51,7 @@ const ChatThread = dynamic(
 
 
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
-    const [sentiment, setSentiment] = useState<{ sentiment: string, summary: string } | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchSentiment = async () => {
-            if (!tenantId) return;
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await fetch(`/api/tenants/${tenantId}/sentiment`);
-                const data = await response.json();
-                if (response.ok) {
-                    setSentiment(data);
-                } else {
-                    throw new Error(data.error || 'Failed to fetch sentiment');
-                }
-            } catch (err: any) {
-                console.error("Failed to fetch sentiment", err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSentiment();
-    }, [tenantId]);
+    const { data: sentiment, error, isLoading } = useSWR(`/api/tenants/${tenantId}/sentiment`, fetcher);
 
     const sentimentIcon = {
         'Positive': <Smile className="h-6 w-6 text-green-500" />,
@@ -90,13 +66,13 @@ function SentimentAnalysis({ tenantId }: { tenantId: string }) {
                 <CardDescription>Based on recent conversations.</CardDescription>
             </CardHeader>
             <CardContent>
-                {loading && (
+                {isLoading && (
                      <div className="flex justify-center items-center h-24">
                         <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
                 )}
-                {error && <p className="text-destructive text-sm text-center">{error}</p>}
-                {sentiment && !loading && !error && (
+                {error && <p className="text-destructive text-sm text-center">{error.info?.error || error.message}</p>}
+                {sentiment && !isLoading && !error && (
                     <div className="flex items-start gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                            {sentimentIcon}
@@ -113,8 +89,8 @@ function SentimentAnalysis({ tenantId }: { tenantId: string }) {
 }
 
 function PaymentPrediction({ tenantId, currentStatus }: { tenantId: string, currentStatus: string }) {
-    const [prediction, setPrediction] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const [prediction, setPrediction] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
 
     useEffect(() => {
         async function getPrediction() {
@@ -166,48 +142,23 @@ export default function TenantDetailPage() {
   const { toast } = useToast();
   const tenantId = id as string;
 
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [property, setProperty] = useState<Property | null>(null);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: tenant, error: tenantError, isLoading: tenantLoading } = useSWR<Tenant>(tenantId ? `/api/tenants/${tenantId}` : null, fetcher);
+  const { data: payments, error: paymentsError, isLoading: paymentsLoading } = useSWR<Payment[]>(tenantId ? `/api/tenants/${tenantId}/payments` : null, fetcher);
+  const { data: property, error: propertyError, isLoading: propertyLoading } = useSWR<Property>(tenant?.propertyId ? `/api/properties/${tenant.propertyId}` : null, fetcher);
+
   const { refresh: refreshTenants } = useTenants();
+  
+  const isLoading = tenantLoading || paymentsLoading || propertyLoading;
+  const error = tenantError || paymentsError || propertyError;
 
   useEffect(() => {
-    async function fetchData() {
-        if (!tenantId) return;
-        setLoading(true);
-        try {
-            const [tenantRes, paymentsRes] = await Promise.all([
-                fetch(`/api/tenants/${tenantId}`),
-                fetch(`/api/tenants/${tenantId}/payments`),
-            ]);
-
-            if (!tenantRes.ok) throw new Error('Failed to fetch tenant details.');
-            const tenantData: Tenant = await tenantRes.json();
-            setTenant(tenantData);
-
-            if (!paymentsRes.ok) throw new Error('Failed to fetch payment history.');
-            const paymentsData: Payment[] = await paymentsRes.json();
-            setPayments(paymentsData);
-            
-            if (tenantData.propertyId) {
-                 const propertyRes = await fetch(`/api/properties/${tenantData.propertyId}`);
-                 if (!propertyRes.ok) throw new Error('Failed to fetch property details.');
-                 const propertyData: Property = await propertyRes.json();
-                 setProperty(propertyData);
-            }
-
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
-        } finally {
-            setLoading(false);
-        }
+    if (error) {
+      toast({ title: "Error", description: error.info?.error || error.message, variant: "destructive" });
     }
-    fetchData();
-  }, [tenantId, toast]);
+  }, [error, toast]);
 
 
-  if (loading) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin" /></div>;
   }
   
@@ -228,7 +179,7 @@ export default function TenantDetailPage() {
   
   const unit = property?.units.find(u => u.id === tenant.currentUnitId);
   const rentAmount = unit?.rent || 0;
-  const rentStatus = getRentStatus(payments, rentAmount);
+  const rentStatus = getRentStatus(payments || [], rentAmount);
 
 
   const renderStatusBadge = (status: string) => {
@@ -241,10 +192,10 @@ export default function TenantDetailPage() {
     return <Badge variant={statusMap[status] || 'default'}>{status}</Badge>;
   }
 
-  const handleTenantDeleted = () => {
+  const handleTenantDeleted = useCallback(() => {
     refreshTenants();
     router.push('/tenants');
-  }
+  }, [refreshTenants, router]);
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -351,7 +302,7 @@ export default function TenantDetailPage() {
                         <CardDescription>Recent payments from {tenant.name}.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                       {loading ? <Loader2 className="h-8 w-8 animate-spin" /> : (
+                       {paymentsLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : (
                          <Table>
                             <TableHeader>
                                 <TableRow>
@@ -362,7 +313,7 @@ export default function TenantDetailPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {payments.map((payment) => (
+                                {payments?.map((payment) => (
                                     <TableRow key={payment.id}>
                                         <TableCell>{formatDate(payment.date)}</TableCell>
                                         <TableCell>

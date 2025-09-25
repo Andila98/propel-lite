@@ -1,9 +1,11 @@
 "use client";
 
+import React, { useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import useSWR from 'swr';
 import {
   Card,
   CardContent,
@@ -19,10 +21,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Camera, Wand2, CheckCircle, Clock } from 'lucide-react';
 import { DeletePropertyButton } from './delete-property-button';
-import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { fetcher } from '@/lib/utils';
 
 const DamageAnalysisDialog = dynamic(
   () => import("@/components/damage-analysis-dialog").then((mod) => mod.DamageAnalysisDialog),
@@ -43,35 +45,20 @@ const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const propertyId = id as string;
-  const [property, setProperty] = useState<Property | null>(null);
-  const [propertyLoading, setPropertyLoading] = useState(true);
-  const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
+  const { data: property, error, isLoading: propertyLoading } = useSWR<Property>(propertyId ? `/api/properties/${propertyId}` : null, fetcher);
+  const [isDamageDialogOpen, setIsDamageDialogOpen] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
   const canEdit = user?.role === 'landlord' || user?.permissions?.canEditProperties;
   const canDelete = user?.role === 'landlord' || user?.permissions?.canDeleteProperties;
   
-  useEffect(() => {
-    async function fetchProperty() {
-        if (!propertyId) {
-            setPropertyLoading(false);
-            return;
-        }
-        setPropertyLoading(true);
-        try {
-            const res = await fetch(`/api/properties/${propertyId}`);
-            if (!res.ok) throw new Error('Failed to fetch property details.');
-            const data = await res.json();
-            setProperty(data);
-        } catch (err: any) {
-            toast({ title: 'Error', description: err.message, variant: 'destructive' });
-        } finally {
-            setPropertyLoading(false);
-        }
+  React.useEffect(() => {
+    if(error) {
+      toast({ title: 'Error', description: error.info?.error || error.message || 'Failed to fetch property details.', variant: 'destructive' });
     }
-    fetchProperty();
-  }, [propertyId, toast]);
+  }, [error, toast]);
+
 
   if (propertyLoading) {
     return (

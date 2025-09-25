@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useCallback } from "react"
 import dynamic from "next/dynamic"
+import useSWR from 'swr';
 import {
   Card,
   CardContent,
@@ -23,7 +24,6 @@ import {
   TrendingUp,
   AlertTriangle,
   Sparkles,
-  Loader2,
   WifiOff,
   ArrowUpRight,
   ArrowDownRight,
@@ -34,6 +34,7 @@ import {
 import type { DashboardData } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { fetcher } from "@/lib/utils";
 
 const LatePaymentsChart = dynamic(
   () => import("@/components/charts/late-payments-chart").then((mod) => mod.LatePaymentsChart),
@@ -201,34 +202,15 @@ function PropertyShowcase({ properties }: { properties: any[] }) {
 
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState("month")
+  const { data, error, isLoading, mutate } = useSWR<DashboardData>('/api/dashboard', fetcher);
+  const [timeframe, setTimeframe] = React.useState("month")
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/dashboard');
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
-      }
-      const fetchedData: DashboardData = await response.json();
-      setData(fetchedData);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const fetchData = useCallback(() => {
+    mutate();
+  }, [mutate]);
 
   const renderContent = () => {
-    if (loading) {
+    if (isLoading) {
       return <DashboardSkeleton />
     }
 
@@ -237,7 +219,7 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center justify-center h-64 text-destructive">
           <WifiOff className="h-12 w-12 mb-4" />
           <h3 className="text-xl font-semibold mb-2">Could Not Load Dashboard</h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <p className="text-sm text-muted-foreground mb-4">{error.info?.error || error.message}</p>
           <Button onClick={fetchData} variant="outline">Retry</Button>
         </div>
       );

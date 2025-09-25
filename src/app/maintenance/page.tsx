@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
 import {
   Card,
   CardContent,
@@ -31,39 +31,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { fetcher } from '@/lib/utils';
 
 export default function MaintenancePage() {
-    const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { data: requests, error, isLoading, mutate } = useSWR<MaintenanceRequest[]>('/api/maintenance', fetcher);
     const { toast } = useToast();
-
-    const fetchRequests = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch('/api/maintenance');
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to fetch maintenance requests.');
-            }
-            const data = await response.json();
-            setRequests(data);
-        } catch (err: any) {
-            setError(err.message);
-            toast({
-                title: "Error",
-                description: err.message,
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchRequests();
-    }, []);
 
     const priorityVariant = (priority?: MaintenanceRequest['priority']): 'destructive-gradient' | 'warning-gradient' | 'info-gradient' | 'default' => {
         switch (priority) {
@@ -75,7 +47,7 @@ export default function MaintenancePage() {
     };
 
     const renderContent = () => {
-        if (loading) {
+        if (isLoading) {
             return (
                 <Table>
                     <TableHeader>
@@ -105,12 +77,18 @@ export default function MaintenancePage() {
         }
 
         if (error) {
+            const errorMessage = error.info?.error || error.message || 'Failed to fetch maintenance requests.';
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
             return (
                  <div className="flex flex-col items-center justify-center h-60 text-center text-destructive p-4">
                     <WifiOff className="h-12 w-12 mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Failed to Load Requests</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{error}</p>
-                    <Button onClick={fetchRequests} variant="outline">Retry</Button>
+                    <p className="text-sm text-muted-foreground mb-4">{errorMessage}</p>
+                    <Button onClick={() => mutate()} variant="outline">Retry</Button>
                 </div>
             );
         }
@@ -128,7 +106,7 @@ export default function MaintenancePage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {requests.map((req) => (
+                    {requests?.map((req) => (
                         <TableRow key={req.id}>
                             <TableCell>
                                 <Badge variant={priorityVariant(req.priority)}>
