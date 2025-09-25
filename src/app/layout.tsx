@@ -2,7 +2,6 @@
 "use client";
 
 import './globals.css';
-import '../i18n'; // Import the i18n configuration
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
