@@ -1,4 +1,5 @@
 
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
@@ -43,8 +44,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const messages = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     return NextResponse.json(toJSON(messages));
-  } catch (error: any) {
-    console.error(`[ERROR: /api/tenants/{id}/messages GET]`, error);
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error(`[ERROR: /api/tenants/{id}/messages GET]`, typedError);
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
@@ -103,8 +105,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         
         return NextResponse.json(toJSON(createdMessage), { status: 201 });
 
-    } catch (error: any) {
-        console.error(`[ERROR: /api/tenants/{id}/messages POST]`, error);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error(`[ERROR: /api/tenants/{id}/messages POST]`, typedError);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

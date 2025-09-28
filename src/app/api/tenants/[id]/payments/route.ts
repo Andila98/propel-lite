@@ -1,4 +1,5 @@
 
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
@@ -37,8 +38,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     return NextResponse.json(toJSON(payments));
-  } catch (error: any) {
-    console.error(`[ERROR: /api/tenants/{id}/payments GET]`, error);
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error(`[ERROR: /api/tenants/{id}/payments GET]`, typedError);
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -24,15 +24,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         'Negative': 'The tenant has expressed frustration regarding maintenance issues and may be a churn risk.',
     };
 
-    const randomSentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
-    const summary = (summaries as any)[randomSentiment];
+    const randomSentiment = sentiments[Math.floor(Math.random() * sentiments.length)] as keyof typeof summaries;
+    const summary = summaries[randomSentiment];
 
     await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate AI processing time
 
     return NextResponse.json({ sentiment: randomSentiment, summary });
 
-  } catch (error: any) {
-    console.error(`[ERROR: /api/tenants/{id}/sentiment GET]`, error);
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error(`[ERROR: /api/tenants/{id}/sentiment GET]`, typedError);
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
