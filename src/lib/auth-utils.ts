@@ -216,7 +216,7 @@ async function getActorFromUid(uid: string): Promise<GetActorResult> {
         }
 
         return { landlordId, actor };
-    } catch (e: unknown) {
+    } catch (_e) {
         return { landlordId: null, actor: null, error: new AuthError('User not found', 'USER_NOT_FOUND', 404) };
     }
 }

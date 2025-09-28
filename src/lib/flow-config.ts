@@ -43,7 +43,7 @@ export interface SystemConfig {
 class ConfigManager {
     private static instance: ConfigManager;
     private config: SystemConfig;
-    private configCache = new Map<string, any>();
+    private configCache = new Map<string, unknown>();
     private lastUpdate = 0;
     private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -104,7 +104,7 @@ class ConfigManager {
      * Get cached value with TTL support
      */
     getCachedValue<T>(key: string): T | null {
-        const cached = this.configCache.get(key);
+        const cached = this.configCache.get(key) as { value: T, timestamp: number } | undefined;
         if (!cached) return null;
         
         if (Date.now() - cached.timestamp > this.CACHE_TTL) {
@@ -177,7 +177,7 @@ class ConfigManager {
                 generateDashboardInsights: this.getDefaultFlowConfig()
             },
             global: {
-                environment: (process.env.NODE_ENV as any) || 'development',
+                environment: (process.env.NODE_ENV as 'development' | 'staging' | 'production') || 'development',
                 enableMetrics: true,
                 enableCaching: true,
                 defaultTimeout: 15000,
@@ -269,7 +269,7 @@ class ConfigManager {
             if (this.config.global.environment !== 'development') {
                 // await firestore.collection('config').doc('system').set(this.config);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to save configuration:', error);
         }
     }

@@ -24,11 +24,11 @@ export async function logActivity(actorName: string, action: string, entity: { t
       entityType: entity.type,
       entityName: entity.name,
       landlordId: landlordId, // Add landlordId for data scoping
-      timestamp: FieldValue.serverTimestamp() as any, // Cast for type compatibility
+      timestamp: FieldValue.serverTimestamp(),
     };
 
     await firestore.collection('auditLogs').add(logEntry);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[AUDIT_LOG_SERVICE_ERROR] Failed to log activity:', error);
     // We don't re-throw the error because logging should not block the primary operation.
   }
