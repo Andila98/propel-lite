@@ -509,13 +509,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                         </div>
                       </Card>
                     )})}
-                     {propertyType === 'Apartment' && (
-                        <Button type="button" variant="outline" onClick={addUnit}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Another Unit
-                        </Button>
-                    )}
-                    {initialState?.errors?.units && typeof initialState.errors.units === 'string' && <p className="text-sm text-destructive mt-1">{initialState.errors.units}</p>}
+                     {initialState?.errors?.units && typeof initialState.errors.units === 'string' && <p className="text-sm text-destructive mt-1">{initialState.errors.units}</p>}
                 </div>
             </div>
             <div className="lg:col-span-2 space-y-6">

@@ -1,3 +1,4 @@
+
 "use server";
 
 import { auth, firestore, isFirebaseAdminInitialized } from "@/lib/firebase-admin";
@@ -15,7 +16,7 @@ export async function completeOnboarding(): Promise<ActionState> {
     return { error: 'Backend services are not configured. Please contact support.' };
   }
   try {
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'You must be logged in to complete onboarding.' };
     }

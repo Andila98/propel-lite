@@ -20,7 +20,7 @@ export async function createPropertyAction(
   if (!isFirebaseAdminInitialized) {
     return { error: 'Backend services are not configured. Please contact support.' };
   }
-  const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+  const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
   if (!sessionCookie) {
     return { error: 'Unauthorized. Please log in.' };
   }

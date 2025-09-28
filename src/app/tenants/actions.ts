@@ -10,7 +10,8 @@ import { logActivity } from '@/lib/audit-log-service';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
 import { getLandlordAndActor } from '@/lib/auth-utils';
-import 'firebase/app'
+import type { DocumentData, DocumentReference } from 'firebase-admin/firestore';
+import 'firebase/app';
 
 
 export interface FormState {
@@ -212,7 +213,7 @@ export async function createTenantsFromCsvAction(
 
     console.log(`[CSV_ACTION] Fetching properties and units for landlord: ${landlordId}`);
     const propertiesSnapshot = await firestore.collection('properties').where('landlordId', '==', landlordId).get();
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), ref: doc.ref }));
+    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), ref: doc.ref } as DocumentData & { id: string, ref: DocumentReference }));
 
     const unitsSnapshots = await Promise.all(properties.map(p => p.ref.collection('units').get()));
     const unitsByProperty = properties.reduce((acc, prop, index) => {

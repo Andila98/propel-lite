@@ -24,7 +24,7 @@ export default function EditPropertyPage() {
   const { toast } = useToast();
   const propertyId = id as string;
 
-  const { data: property, error, isLoading: propertyLoading } = useSWR<Property>(`/api/properties/${propertyId}`, fetcher);
+  const { data: property, error, isLoading: propertyLoading } = useSWR<Property>(propertyId ? `/api/properties/${propertyId}` : null, fetcher);
   
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
   const updateActionWithId = updatePropertyAction.bind(null, propertyId);
@@ -75,6 +75,9 @@ export default function EditPropertyPage() {
       ...property,
       units: property.units || [],
       numberOfUnits: property.units?.length || 0,
+      parking: false, 
+      furnished: false, 
+      petsAllowed: false,
   };
 
   return (

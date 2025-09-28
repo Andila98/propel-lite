@@ -28,7 +28,7 @@ async function searchCollection(
     .get();
 
   const results = snapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .map(doc => ({ id: doc.id, ...doc.data() } as { id: string, [key: string]: unknown }))
     .filter(doc => {
       const fieldValue = doc[searchField] as string;
       return fieldValue && fieldValue.toLowerCase().includes(lowerCaseQuery);

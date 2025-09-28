@@ -1,6 +1,5 @@
 
 
-
 "use client"
 
 import {
@@ -386,7 +385,3 @@ export default function TenantPortalPage() {
     </div>
   );
 }
-
-    
-
-    

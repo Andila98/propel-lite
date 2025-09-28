@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
@@ -54,9 +55,9 @@ export async function GET(req: NextRequest) {
             const tenant = tenantsMap.get(payment.tenantId);
             const property = propertiesMap.get(payment.propertyId);
             
-            return { 
-                id: doc.id,
+            return {
                 ...payment,
+                id: doc.id,
                 tenantName: tenant?.name || 'N/A',
                 propertyAddress: property?.address || 'N/A',
                 property: property || null,

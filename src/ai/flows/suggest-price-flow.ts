@@ -43,7 +43,7 @@ const suggestPriceFlow = ai.defineFlow(
     inputSchema: PriceSuggestionSchema,
     outputSchema: PriceSuggestionOutputSchema,
   },
-  withMonitoring('suggestPriceFlow', withErrorHandling('suggestPriceFlow', async input => {
+  withMonitoring('suggestPriceFlow', withErrorHandling('suggestPriceFlow', async (input: PriceSuggestionInput) => {
     const {output} = await prompt(input);
     return { ...output!, currency: input.currency || 'KES' };
   }))

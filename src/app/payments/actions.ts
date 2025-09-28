@@ -109,7 +109,7 @@ export async function recordPaymentAction(prevState: FormState, formData: FormDa
         return { error: "Backend services are not configured." };
     }
 
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: "Authentication required." };
     }
@@ -187,7 +187,7 @@ export async function createPaymentsFromCsvAction(
         console.error('[CSV_ACTION] Error: Backend services are not configured.');
         return { success: false, error: 'Backend services are not configured.' };
     }
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { success: false, error: 'Unauthorized.' };
     }
@@ -204,7 +204,7 @@ export async function createPaymentsFromCsvAction(
     const tenantsSnapshot = await firestore.collection('tenants').where('landlordId', '==', landlordId).get();
     tenantsSnapshot.docs.forEach(doc => {
         const data = doc.data() as Tenant;
-        tenantCache.set(data.email, { id: doc.id, ...data });
+        tenantCache.set(data.email, { ...data, id: doc.id });
     });
 
     for (let i = 0; i < paymentsData.length; i++) {
@@ -242,9 +242,8 @@ export async function createPaymentsFromCsvAction(
         const paymentRef = firestore.collection('payments').doc();
         
         // Clone the payment object to avoid modifying the original validated data
-        const dbPayment = { ...payment };
-        // We delete tenant_email because it's not part of the Payment schema in Firestore
-        delete (dbPayment as Partial<typeof payment>).tenant_email;
+        const dbPayment: Partial<typeof payment> = { ...payment };
+        delete dbPayment.tenant_email;
 
         batch.set(paymentRef, {
             ...dbPayment,

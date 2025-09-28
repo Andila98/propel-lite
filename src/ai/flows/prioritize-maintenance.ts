@@ -46,7 +46,7 @@ const prioritizeMaintenanceFlow = ai.defineFlow(
     inputSchema: PrioritizeMaintenanceInputSchema,
     outputSchema: PrioritizeMaintenanceOutputSchema,
   },
-  withMonitoring('prioritizeMaintenanceFlow', withErrorHandling('prioritizeMaintenanceFlow', async input => {
+  withMonitoring('prioritizeMaintenanceFlow', withErrorHandling('prioritizeMaintenanceFlow', async (input: PrioritizeMaintenanceInput) => {
     const {output} = await prompt(input);
     return output!;
   }))

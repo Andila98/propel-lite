@@ -266,7 +266,7 @@ async function seedDatabase() {
                 propertyId: tenant.propertyId,
                 unitId: tenant.currentUnitId,
                 amount: unit.rent + faker.number.int({ min: -1000, max: 1000 }),
-                date: sub(now, { months: k }).toISOString(),
+                date: faker.date.past({ months: k+1 }).toISOString(),
                 method: faker.helpers.arrayElement(['Mpesa', 'Stripe', 'Card']),
                 status: 'confirmed',
                 type: 'Rent',
@@ -296,7 +296,7 @@ async function seedDatabase() {
             propertyAddress: property.address,
             description: faker.lorem.sentence(),
             status: faker.helpers.arrayElement(['Pending', 'In Progress', 'Completed']),
-            submittedDate: sub(now, { months: 2 }).toISOString(),
+            submittedDate: faker.date.recent({ days: 30 }).toISOString(),
             priority: faker.helpers.arrayElement(['High', 'Medium', 'Low']),
             reasoning: faker.lorem.sentence(),
         };

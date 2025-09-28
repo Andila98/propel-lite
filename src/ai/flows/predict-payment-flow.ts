@@ -115,7 +115,7 @@ async function buildTransitionMatrix(tenantId: string): Promise<TenantPaymentHis
     const analysisMonths = Math.min(12, 
         earliestPayment ? 
             Math.ceil((new Date().getTime() - earliestPayment.getTime()) / (30 * 24 * 60 * 60 * 1000)) : 
-            12
+            0
     );
     
     const statuses: PaymentStatus[] = [];
@@ -270,7 +270,7 @@ async function predictNextPayment(input: PredictPaymentInput): Promise<PredictPa
     const { tenantId, currentStatus } = input;
     const history = await buildTransitionMatrix(tenantId);
     
-    const lastKnownStatus = (currentStatus as PaymentStatus) || 
+    const lastKnownStatus: PaymentStatus = (currentStatus as PaymentStatus) || 
         history.historicalStatuses[history.historicalStatuses.length - 1] || 
         'New';
     
@@ -282,7 +282,7 @@ async function predictNextPayment(input: PredictPaymentInput): Promise<PredictPa
         const globalPattern = getGlobalPaymentPattern(history.historicalStatuses);
         
         return {
-            predictedStatus: globalPattern.mostLikelyNext,
+            predictedStatus: globalPattern.mostLikelyNext as PredictPaymentOutput['predictedStatus'],
             confidence: Math.max(0.3, globalPattern.confidence * 0.7), // Reduced confidence
             reasoning: `Insufficient transition data for "${lastKnownStatus}" state. ` +
                       `Using historical patterns (${history.totalMonths} months of data, ` +

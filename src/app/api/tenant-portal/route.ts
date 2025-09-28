@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
         if (!propertyDoc.exists) {
             return NextResponse.json({ error: 'Associated property not found.' }, { status: 404 });
         }
-        const property = propertyDoc.data() as Property;
+        const propertyData = propertyDoc.data() as Property;
         const unitsSnapshot = await propertyDoc.ref.collection('units').get();
-        property.units = unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Unit }));
+        const property = { ...propertyData, id: propertyDoc.id, units: unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Unit })) };
         
         const payments = paymentsSnapshot.docs.map(doc => doc.data() as Payment);
         const maintenanceRequests = maintenanceSnapshot.docs.map(doc => doc.data() as MaintenanceRequest);
