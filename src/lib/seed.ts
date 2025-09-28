@@ -12,6 +12,7 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import type { Property, Unit, Tenant, Payment, MaintenanceRequest } from './types';
+import { subMonths, subYears, addYears } from 'date-fns';
 
 // Load service account credentials from environment variables
 const serviceAccountKeyBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
@@ -147,6 +148,7 @@ async function seedDatabase() {
   console.log("Creating properties and units...");
   const propertyTypes: Property['type'][] = ['Apartment', 'Apartment', 'House'];
   const properties: Property[] = [];
+  const now = new Date();
 
   for (const type of propertyTypes) {
     const propertyRef = db.collection('properties').doc();
@@ -169,7 +171,13 @@ async function seedDatabase() {
 
     await propertyRef.set(propertyWithTimestamp);
     
-    const createdProperty = { id: propertyRef.id, ...newPropertyData, units: [] } as Property;
+    const createdProperty = { 
+        id: propertyRef.id, 
+        ...newPropertyData, 
+        units: [],
+        createdAt: now as unknown as FirebaseFirestore.Timestamp, 
+        updatedAt: now as unknown as FirebaseFirestore.Timestamp 
+    } as Property;
 
     // Create Units for the property
     const unitCount = type === 'Apartment' ? faker.number.int({ min: 4, max: 10 }) : 1;
@@ -225,8 +233,8 @@ async function seedDatabase() {
          landlordId,
          currentUnitId: unit.id,
          rentStatus: 'Paid',
-         leaseStart: faker.date.past({ years: 1 }) as unknown as FirebaseFirestore.Timestamp,
-         leaseEnd: faker.date.future({ years: 1 }) as unknown as FirebaseFirestore.Timestamp,
+         leaseStart: subYears(now, 1) as unknown as FirebaseFirestore.Timestamp,
+         leaseEnd: addYears(now, 1) as unknown as FirebaseFirestore.Timestamp,
          paymentHistory: [],
        };
        await tenantRef.set(newTenant);
@@ -257,7 +265,7 @@ async function seedDatabase() {
                 propertyId: tenant.propertyId,
                 unitId: tenant.currentUnitId,
                 amount: unit.rent + faker.number.int({ min: -1000, max: 1000 }),
-                date: faker.date.past({ months: k }).toISOString(),
+                date: subMonths(now, k).toISOString(),
                 method: faker.helpers.arrayElement(['Mpesa', 'Stripe', 'Card']),
                 status: 'confirmed',
                 type: 'Rent',
@@ -287,7 +295,7 @@ async function seedDatabase() {
             propertyAddress: property.address,
             description: faker.lorem.sentence(),
             status: faker.helpers.arrayElement(['Pending', 'In Progress', 'Completed']),
-            submittedDate: faker.date.past({ months: 2 }).toISOString(),
+            submittedDate: subMonths(now, 2).toISOString(),
             priority: faker.helpers.arrayElement(['High', 'Medium', 'Low']),
             reasoning: faker.lorem.sentence(),
         };

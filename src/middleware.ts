@@ -45,7 +45,7 @@ function getClientIP(request: NextRequest): string {
     return forwarded.split(',')[0].trim();
   }
   
-  return realIP || request.ip || 'unknown';
+  return realIP || 'unknown';
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -66,7 +66,7 @@ function isPublicPath(pathname: string): boolean {
   }
 
   // Public pages
-  if (pathConfig.public.includes(pathname)) {
+  if (pathConfig.public.some(path => pathname.startsWith(path))) {
     return true;
   }
 
