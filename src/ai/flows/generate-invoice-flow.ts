@@ -33,8 +33,6 @@ async function getInvoiceData(input: GenerateInvoiceInput) {
     
     const now = new Date();
     const invoiceNumber = `INV-${format(now, 'yyyy')}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const invoiceDate = format(now, 'yyyy-MM-dd');
-    const dueDate = format(add(now, { days: 5 }), 'yyyy-MM-dd'); // Due in 5 days
 
     return {
         invoiceNumber,
