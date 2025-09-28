@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import useSWR from 'swr';
 import {
   Card,
@@ -54,7 +55,7 @@ export default function PaymentsPage() {
   const { data: tenantsData, error: tenantsError, isLoading: tenantsLoading } = useSWR<{tenants: Tenant[]}>('/api/tenants', fetcher);
   
   const dataLoading = paymentsLoading || tenantsLoading;
-  const error = paymentsError || tenantsError;
+  const isError = paymentsError || tenantsError;
 
   const handleGenerateReceipt = useCallback(async (tenantId: string, paymentId: string) => {
     setReceiptState({ loading: true, result: null, currentPaymentId: paymentId });
@@ -146,7 +147,7 @@ export default function PaymentsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {dataLoading ? renderSkeleton() : (
+          {dataLoading ? renderSkeleton() : isError ? <p>Error loading data</p> : (
             <Table>
                 <TableHeader>
                 <TableRow>

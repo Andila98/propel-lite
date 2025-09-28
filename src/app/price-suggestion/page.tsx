@@ -38,11 +38,12 @@ export default function PriceSuggestionPage() {
       } else {
         setResult(res);
       }
-    } catch (e: any) {
-        console.error(`Frontend Error: ${e.message}`, e);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error(`Frontend Error: ${typedError.message}`, typedError);
         toast({
             title: "Error",
-            description: e.message || "An unexpected error occurred.",
+            description: typedError.message || "An unexpected error occurred.",
             variant: "destructive",
         });
     } finally {

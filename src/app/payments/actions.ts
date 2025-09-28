@@ -60,9 +60,10 @@ export async function getReceiptAction(input: GenerateReceiptInput): Promise<Rec
         const pdfBase64 = pdfBuffer.toString('base64');
 
         return { receipt, pdf: pdfBase64 };
-    } catch (error: any) {
-        console.error('[ERROR: getReceiptAction]', error);
-        return { error: error.message || "An unknown error occurred while generating the receipt." };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[ERROR: getReceiptAction]', typedError);
+        return { error: typedError.message || "An unknown error occurred while generating the receipt." };
     }
 }
 
@@ -93,9 +94,10 @@ export async function emailReceiptAction(input: GenerateReceiptInput): Promise<{
         
         return { success: true };
 
-    } catch (error: any) {
-        console.error('[ERROR: emailReceiptAction]', error);
-        return { error: error.message || "Failed to email receipt." };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[ERROR: emailReceiptAction]', typedError);
+        return { error: typedError.message || "Failed to email receipt." };
     }
 }
 
@@ -156,9 +158,10 @@ export async function recordPaymentAction(prevState: FormState, formData: FormDa
 
         return { success: true };
 
-    } catch (error: any) {
-        console.error('[ERROR: recordPaymentAction]', error);
-        return { error: `Failed to record payment: ${error.message}` };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[ERROR: recordPaymentAction]', typedError);
+        return { error: `Failed to record payment: ${typedError.message}` };
     }
 }
 
@@ -175,7 +178,7 @@ const CsvPaymentSchema = z.object({
 
 
 export async function createPaymentsFromCsvAction(
-    paymentsData: any[]
+    paymentsData: unknown[]
 ): Promise<{ success: boolean; error?: string; details?: string; createdCount?: number }> {
     console.log('[CSV_ACTION] Starting CSV payment creation process.');
     if (!isFirebaseAdminInitialized) {
@@ -235,7 +238,7 @@ export async function createPaymentsFromCsvAction(
 
     for (const payment of validatedPayments) {
         const paymentRef = firestore.collection('payments').doc();
-        const { tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
+        const { tenant_email: _tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
 
         batch.set(paymentRef, {
             ...dbPayment,
@@ -256,8 +259,9 @@ export async function createPaymentsFromCsvAction(
         console.log('[CSV_ACTION] Batch commit successful. Process finished.');
         return { success: true, createdCount: validatedPayments.length };
         
-    } catch (error: any) {
-        console.error('[CSV_ACTION] Final batch commit failed:', error);
-        return { success: false, error: `Failed to commit changes to database.`, details: error.message };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[CSV_ACTION] Final batch commit failed:', typedError);
+        return { success: false, error: `Failed to commit changes to database.`, details: typedError.message };
     }
 }
