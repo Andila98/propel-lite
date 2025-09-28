@@ -18,7 +18,7 @@ import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormStatus } from 'react-dom';
 import { createTenantAction, createTenantsFromCsvAction } from '@/app/tenants/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import Papa, { ParseResult } from 'papaparse';
 import type { FormState } from '@/app/tenants/actions';
 
