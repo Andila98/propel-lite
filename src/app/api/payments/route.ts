@@ -5,7 +5,6 @@ import { toJSON } from '@/lib/utils';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { authConfig } from '@/config/server-config';
 import type { Tenant, Property, Payment } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
@@ -68,14 +67,15 @@ export async function GET(req: NextRequest) {
         console.log(`[INFO][${requestId}] Successfully processed ${payments.length} payments. Sending response.`);
         return NextResponse.json(toJSON(payments));
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const typedError = error as { message?: string, stack?: string };
       console.error(`[ERROR][${requestId}] /api/payments GET failed:`, {
-          message: error.message,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          message: typedError.message,
+          stack: process.env.NODE_ENV === 'development' ? typedError.stack : undefined
       });
       return NextResponse.json({ 
           error: 'An internal server error occurred while fetching payments.',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          details: process.env.NODE_ENV === 'development' ? typedError.message : undefined,
           requestId,
       }, { status: 500 });
     }

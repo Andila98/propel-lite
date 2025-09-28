@@ -5,7 +5,7 @@ import { toJSON } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
-export async function GET(_request: Request) {
+export async function GET() {
     console.log('[INFO] /api/test-db endpoint hit');
     
     if (!isFirebaseAdminInitialized) {

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
             
         const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(toJSON(requests));
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[ERROR: /api/maintenance GET]', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         
         return NextResponse.json({ id: docRef.id, ...newRequest }, { status: 201 });
 
-    } catch (error: any)
+    } catch (error: unknown)
         {
         console.error('[ERROR: /api/maintenance POST]', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

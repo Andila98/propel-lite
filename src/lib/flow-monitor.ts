@@ -4,6 +4,7 @@
  */
 
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
+import type { FlowErrorType } from './flow-errors';
 
 export interface FlowMetrics {
     flowName: string;
@@ -14,10 +15,10 @@ export interface FlowMetrics {
     status: 'started' | 'completed' | 'failed';
     inputSize?: number;
     outputSize?: number;
-    errorType?: string;
+    errorType?: FlowErrorType | string;
     errorMessage?: string;
     userId?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 export interface FlowAnalytics {
@@ -47,7 +48,7 @@ export class FlowMonitor {
     /**
      * Start monitoring a flow execution
      */
-    startExecution(flowName: string, userId?: string, metadata?: Record<string, any>): string {
+    startExecution(flowName: string, userId?: string, metadata?: Record<string, unknown>): string {
         const executionId = this.generateExecutionId(flowName);
         const metrics: FlowMetrics = {
             flowName,
@@ -70,8 +71,8 @@ export class FlowMonitor {
      */
     completeExecution(
         executionId: string, 
-        outputData?: any,
-        additionalMetadata?: Record<string, any>
+        outputData?: unknown,
+        additionalMetadata?: Record<string, unknown>
     ): void {
         const metrics = this.metrics.get(executionId);
         if (!metrics) {
@@ -103,8 +104,8 @@ export class FlowMonitor {
     failExecution(
         executionId: string, 
         error: unknown, 
-        errorType?: string,
-        additionalMetadata?: Record<string, any>
+        errorType?: FlowErrorType | string,
+        additionalMetadata?: Record<string, unknown>
     ): void {
         const metrics = this.metrics.get(executionId);
         if (!metrics) {
@@ -229,7 +230,7 @@ export class FlowMonitor {
                     ...metrics,
                     createdAt: new Date()
                 });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to persist flow metrics:', error);
         }
     }
@@ -311,7 +312,7 @@ export class FlowMonitor {
 /**
  * Decorator function to automatically monitor flow executions
  */
-export function withMonitoring<T extends any[], R>(
+export function withMonitoring<T extends unknown[], R>(
     flowName: string,
     fn: (...args: T) => Promise<R>
 ) {
@@ -339,7 +340,7 @@ export function withMonitoring<T extends any[], R>(
  */
 export async function getHealthStatus(): Promise<{
     status: 'healthy' | 'degraded' | 'unhealthy';
-    details: Record<string, any>;
+    details: Record<string, unknown>;
     timestamp: string;
 }> {
     const monitor = FlowMonitor.getInstance();

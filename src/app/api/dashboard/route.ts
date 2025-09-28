@@ -7,6 +7,7 @@ import { generateDashboardInsights } from '@/ai/flows/dashboard-insights';
 import { toJSON } from '@/lib/utils';
 import type { Property, Payment, Unit, ActivityItem } from '@/lib/types';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+import type { Timestamp } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
         const latePaymentsByMonth: Record<string, number> = monthLabels.reduce((acc, month) => ({...acc, [month]: 0}), {});
         allPaymentsSnapshot.forEach(doc => {
             const payment = doc.data() as Payment;
-            const paymentDate = (payment.date as any).toDate(); // Firestore timestamp to Date
+            const paymentDate = (payment.date as unknown as Timestamp).toDate(); // Firestore timestamp to Date
             if (paymentDate.getDate() > 5) { // Assuming rent is due by the 5th
                  const month = format(paymentDate, 'MMM');
                  if (latePaymentsByMonth.hasOwnProperty(month)) {
@@ -144,11 +145,12 @@ export async function GET(request: NextRequest) {
         
         return NextResponse.json(dashboardData);
         
-    } catch (error: any) {
-        console.error('[ERROR: /api/dashboard]', { message: error.message, stack: error.stack });
+    } catch (error: unknown) {
+        const typedError = error as { message?: string, stack?: string };
+        console.error('[ERROR: /api/dashboard]', { message: typedError.message, stack: typedError.stack });
         return NextResponse.json({ 
             error: 'Internal server error',
-            details: error.message 
+            details: typedError.message 
         }, { status: 500 });
     }
 }

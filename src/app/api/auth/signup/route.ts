@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     try {
         await registrationRateLimit.check(req);
-    } catch (error: any) {
+    } catch (error: unknown) {
         return NextResponse.json({ error: 'Too many accounts created from this IP, please try again after an hour' }, { status: 429 });
     }
 
@@ -42,10 +42,11 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ uid: userRecord.uid }, { status: 201 });
 
-    } catch (error: any)
+    } catch (error: unknown)
         {
-        console.error('[ERROR: /api/auth/signup]', { message: error.message, code: error.code });
-        if (error.message.includes('An account with this email already exists.')) {
+        const typedError = error as { code?: string; message: string };
+        console.error('[ERROR: /api/auth/signup]', { message: typedError.message, code: typedError.code });
+        if (typedError.message.includes('An account with this email already exists.')) {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
         }
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });

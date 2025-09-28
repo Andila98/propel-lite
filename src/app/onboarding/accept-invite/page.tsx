@@ -66,8 +66,8 @@ export default function AcceptInvitePage() {
         let errorData = { error: 'Failed to create account due to a server error.' };
         try {
           errorData = await response.json();
-        } catch (e) {
-          console.error("Failed to parse error response as JSON.", e);
+        } catch (parseError) {
+          console.error("Failed to parse error response as JSON.", parseError);
         }
         throw new Error(errorData.error || 'Failed to create account.');
       }

@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Timestamp } from "firebase-admin/firestore";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -14,11 +15,11 @@ export const fetcher = async (url: string) => {
   const res = await fetch(url);
 
   if (!res.ok) {
-    const error: any = new Error('An error occurred while fetching the data.');
+    const error = new Error('An error occurred while fetching the data.') as Error & { info?: unknown; status?: number };
     try {
       // Try to parse the error message from the response body
       error.info = await res.json();
-    } catch (e) {
+    } catch (e: unknown) {
       // If parsing fails, fall back to the status text
       error.info = { error: res.statusText };
     }
@@ -34,7 +35,7 @@ export const fetcher = async (url: string) => {
  * @param dateValue - The date value to convert.
  * @returns An ISO string, or null if the input is invalid.
  */
-export function toISOString(dateValue: any): string | null {
+export function toISOString(dateValue: Date | string | Timestamp | { toDate: () => Date } | { seconds: number, nanoseconds: number } | null | undefined): string | null {
     if (!dateValue) return null;
     
     // Handle client-side date objects or ISO strings
@@ -49,17 +50,19 @@ export function toISOString(dateValue: any): string | null {
     }
 
     // Handle server-side and client-side Firestore Timestamps by checking for the toDate method
-    if (dateValue && typeof dateValue.toDate === 'function') {
-        return dateValue.toDate().toISOString();
+    if (dateValue && typeof (dateValue as { toDate?: () => Date }).toDate === 'function') {
+        return (dateValue as { toDate: () => Date }).toDate().toISOString();
     }
     
     // Handle objects that might be serialized Timestamps
-    if (typeof dateValue === 'object' && 'seconds' in dateValue && 'nanoseconds' in dateValue) {
-        return new Date(dateValue.seconds * 1000).toISOString();
+    const ts = dateValue as { seconds?: number, nanoseconds?: number };
+    if (typeof ts === 'object' && typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
+        return new Date(ts.seconds * 1000).toISOString();
     }
 
     return null;
 }
+
 
 /**
  * Recursively converts Firestore Timestamps within an object to ISO strings.
@@ -67,26 +70,27 @@ export function toISOString(dateValue: any): string | null {
  * @param data - The data object or array to process.
  * @returns A new object or array with Timestamps converted to strings.
  */
-export function toJSON(data: any): any {
+export function toJSON<T>(data: T): T {
   if (!data) return data;
 
   if (Array.isArray(data)) {
-    return data.map(item => toJSON(item));
+    return data.map(item => toJSON(item)) as unknown as T;
+  }
+
+  const anyData = data as { toDate?: () => Date };
+  if (typeof anyData.toDate === 'function') {
+    // It's a Firestore Timestamp
+    return anyData.toDate().toISOString() as unknown as T;
   }
 
   if (typeof data === 'object') {
-    if (typeof data.toDate === 'function') {
-      // It's a Firestore Timestamp
-      return data.toDate().toISOString();
-    }
-    
-    const newObj: { [key: string]: any } = {};
+    const newObj: { [key: string]: unknown } = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
         newObj[key] = toJSON(data[key]);
       }
     }
-    return newObj;
+    return newObj as T;
   }
   
   return data;

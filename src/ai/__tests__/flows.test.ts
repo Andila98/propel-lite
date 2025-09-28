@@ -26,7 +26,7 @@ let mockAIResponse: unknown;
 vi.mock('@/ai/genkit', () => ({
     ai: {
         defineFlow: vi.fn((_config: unknown, handler: (...args: unknown[]) => unknown) => handler), // The handler is the actual function we want to test
-        definePrompt: vi.fn(() => async (_input: unknown) => ({ output: mockAIResponse })),
+        definePrompt: vi.fn(() => async () => ({ output: mockAIResponse })),
     },
 }));
 

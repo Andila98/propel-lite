@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { verifySession, getLandlordId } from '@/lib/auth-utils';
+import { getLandlordId } from '@/lib/auth-utils';
 import { toJSON } from '@/lib/utils';
 import { authConfig } from '@/config/server-config';
 
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         const managersSnapshot = await firestore.collection('managers').where('landlordId', '==', landlordId).get();
         const managers = managersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(toJSON(managers), { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ERROR: /api/managers GET]', error);
       return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }

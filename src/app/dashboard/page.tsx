@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useCallback } from "react"
@@ -36,6 +37,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetcher } from "@/lib/utils";
 import React from "react";
+import type { Timestamp } from 'firebase-admin/firestore';
 
 const LatePaymentsChart = dynamic(
   () => import("@/components/charts/late-payments-chart").then((mod) => mod.LatePaymentsChart),
@@ -216,11 +218,12 @@ export default function DashboardPage() {
     }
 
     if (error) {
+      const typedError = error as { info?: { error: string }, message: string };
       return (
         <div className="flex flex-col items-center justify-center h-64 text-destructive">
           <WifiOff className="h-12 w-12 mb-4" />
           <h3 className="text-xl font-semibold mb-2">Could Not Load Dashboard</h3>
-          <p className="text-sm text-muted-foreground mb-4">{error.info?.error || error.message}</p>
+          <p className="text-sm text-muted-foreground mb-4">{typedError.info?.error || typedError.message}</p>
           <Button onClick={fetchData} variant="outline">Retry</Button>
         </div>
       );

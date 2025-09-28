@@ -27,8 +27,9 @@ try {
   initializeApp({
     credential: cert(serviceAccount),
   });
-} catch(e) {
-  console.error("Failed to parse or initialize Firebase Admin SDK:", e);
+} catch (e: unknown) {
+  const error = e as Error;
+  console.error("Failed to parse or initialize Firebase Admin SDK:", error.message);
   process.exit(1);
 }
 
@@ -120,8 +121,9 @@ async function seedDatabase() {
           displayName: "Demo Landlord"
       });
       
-  } catch (error: any) {
-      if (error.code === 'auth/email-already-exists') {
+  } catch (error: unknown) {
+      const typedError = error as { code?: string };
+      if (typedError.code === 'auth/email-already-exists') {
           console.log("Landlord already exists, fetching...");
           landlord = await auth.getUserByEmail(LANDLORD_EMAIL);
       } else {
@@ -149,7 +151,7 @@ async function seedDatabase() {
 
   for (const type of propertyTypes) {
     const propertyRef = db.collection('properties').doc();
-    const newPropertyData: Omit<Property, 'id' | 'units' | 'createdAt'> = {
+    const newPropertyData: Omit<Property, 'id' | 'units' | 'createdAt' | 'updatedAt'> = {
       name: `${faker.location.street()
         .split(' ').slice(1).join(' ')} Heights`,
       address: faker.location.streetAddress(false),
@@ -158,12 +160,12 @@ async function seedDatabase() {
       imageUrl: faker.image.urlLoremFlickr({ category: 'building', width: 800, height: 500 }),
       description: faker.lorem.paragraph(),
       currency: "KES",
-      updatedAt: FieldValue.serverTimestamp() as any,
     };
     
     const propertyWithTimestamp = {
         ...newPropertyData,
-        createdAt: FieldValue.serverTimestamp()
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
     }
 
     await propertyRef.set(propertyWithTimestamp);
@@ -224,8 +226,8 @@ async function seedDatabase() {
          landlordId,
          currentUnitId: unit.id,
          rentStatus: 'Paid',
-         leaseStart: faker.date.past({ years: 1 }) as any,
-         leaseEnd: faker.date.future({ years: 1 }) as any,
+         leaseStart: faker.date.past({ years: 1 }) as unknown as FirebaseFirestore.Timestamp,
+         leaseEnd: faker.date.future({ years: 1 }) as unknown as FirebaseFirestore.Timestamp,
          paymentHistory: [],
        };
        await tenantRef.set(newTenant);
@@ -256,7 +258,7 @@ async function seedDatabase() {
                 propertyId: tenant.propertyId,
                 unitId: tenant.currentUnitId,
                 amount: unit.rent + faker.number.int({ min: -1000, max: 1000 }),
-                date: faker.date.past({ months: k }) as any,
+                date: faker.date.past({ months: k }).toISOString(),
                 method: faker.helpers.arrayElement(['Mpesa', 'Stripe', 'Card']),
                 status: 'confirmed',
                 type: 'Rent',
@@ -286,7 +288,7 @@ async function seedDatabase() {
             propertyAddress: property.address,
             description: faker.lorem.sentence(),
             status: faker.helpers.arrayElement(['Pending', 'In Progress', 'Completed']),
-            submittedDate: faker.date.past({ months: 2 }) as any,
+            submittedDate: faker.date.past({ months: 2 }).toISOString(),
             priority: faker.helpers.arrayElement(['High', 'Medium', 'Low']),
             reasoning: faker.lorem.sentence(),
         };
