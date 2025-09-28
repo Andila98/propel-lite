@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -77,7 +78,7 @@ export const PropertyForm = React.memo(function PropertyForm({ formAction, initi
     },
   });
   
-  const { register, control, formState, setValue, watch, reset } = form;
+  const { register, control, setValue, watch, reset } = form;
 
   // Handle form state changes from the server action
   useEffect(() => {
@@ -217,10 +218,11 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             });
           }
         },
-        error: (error) => {
+        error: (error: unknown) => {
+            const typedError = error as Error;
             toast({
                 title: "CSV Parsing Error",
-                description: error.message,
+                description: typedError.message,
                 variant: "destructive"
             });
         }

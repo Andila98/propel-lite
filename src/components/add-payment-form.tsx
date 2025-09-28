@@ -19,7 +19,7 @@ import type { Tenant } from '@/lib/types';
 import type { FormState } from '@/app/tenants/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardDescription } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import Papa from 'papaparse';
 
 
@@ -43,7 +43,7 @@ const ManualPaymentForm = React.memo(function ManualPaymentForm({ tenants, onPay
     const initialState: FormState = { success: false };
     const [state, formAction] = useActionState(recordPaymentAction, initialState);
 
-    const { register, control, formState: { errors }, watch, setValue } = useForm<PaymentFormValues>({
+    const { register, control } = useForm<PaymentFormValues>({
         resolver: zodResolver(PaymentFormSchema),
         defaultValues: {
             tenantId: '',
@@ -162,7 +162,7 @@ function BulkImportForm({ onImportComplete }: BulkImportFormProps) {
             header: true,
             skipEmptyLines: true,
             complete: async (result) => {
-                const paymentsData = result.data as any[];
+                const paymentsData = result.data as Record<string, unknown>[];
                 if (!paymentsData || paymentsData.length === 0) {
                     toast({ title: "CSV Error", description: "CSV file is empty or invalid.", variant: "destructive" });
                     setIsBulkLoading(false);
@@ -187,8 +187,9 @@ function BulkImportForm({ onImportComplete }: BulkImportFormProps) {
                 }
                 setIsBulkLoading(false);
             },
-            error: (error) => {
-                toast({ title: "CSV Parsing Error", description: error.message, variant: "destructive" });
+            error: (error: unknown) => {
+                const typedError = error as Error;
+                toast({ title: "CSV Parsing Error", description: typedError.message, variant: "destructive" });
                 setIsBulkLoading(false);
             }
         });

@@ -50,11 +50,12 @@ export function DeleteTenantButton({ tenantId, tenantName, onDeleted, asChild, c
             setIsAlertOpen(false);
             onDeleted();
 
-        } catch (err: any) {
-            console.error("Delete tenant error:", err);
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            console.error("Delete tenant error:", typedError);
             toast({
                 title: "Error Deleting Tenant",
-                description: err.message,
+                description: typedError.message,
                 variant: "destructive",
             });
         } finally {

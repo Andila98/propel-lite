@@ -10,6 +10,7 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
+  CardContent,
 } from '@/components/ui/card';
 import {
   Carousel,

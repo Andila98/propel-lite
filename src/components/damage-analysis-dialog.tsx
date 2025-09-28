@@ -75,10 +75,11 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
       const analysisResult: AnalyzeDamageDetections = await response.json();
       setResult(analysisResult);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const typedError = error as Error;
       toast({
         title: 'Analysis Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: typedError.message || 'An unexpected error occurred.',
         variant: 'destructive',
       });
     } finally {
@@ -88,10 +89,10 @@ export function DamageAnalysisDialog({ open, onOpenChange }: DamageAnalysisDialo
   
   const severityVariant = (severity: 'Low' | 'Medium' | 'High') => {
     switch (severity) {
-        case 'High': return 'destructive' as 'destructive';
-        case 'Medium': return 'secondary' as 'secondary';
-        case 'Low': return 'outline' as 'outline';
-        default: return 'default' as 'default';
+        case 'High': return 'destructive' as const;
+        case 'Medium': return 'secondary' as const;
+        case 'Low': return 'outline' as const;
+        default: return 'default' as const;
     }
   };
 

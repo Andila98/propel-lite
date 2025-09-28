@@ -4,17 +4,18 @@
 import * as React from 'react';
 import { useEffect } from 'react';
 
-// Define the type for the custom element
+type AnimatedIconsElement = React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+  src: string;
+  trigger: string;
+  'icon-attributes': string;
+  height: string;
+  width: string;
+};
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      'animated-icons': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        src: string;
-        trigger: string;
-        'icon-attributes': string;
-        height: string;
-        width: string;
-      };
+      'animated-icons': AnimatedIconsElement;
     }
   }
 }

@@ -17,7 +17,6 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { AnimatedDeleteIcon } from './icons/animated-delete-icon';
-import { Button } from './ui/button';
 
 interface DeleteManagerButtonProps {
     managerId: string;
@@ -47,11 +46,12 @@ export function DeleteManagerButton({ managerId, managerName, onDeleted }: Delet
             });
             onDeleted(); 
 
-        } catch (err: any) {
-            console.error("Delete manager error:", err);
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            console.error("Delete manager error:", typedError);
             toast({
                 title: "Error Deleting Manager",
-                description: err.message,
+                description: typedError.message,
                 variant: "destructive",
             });
         } finally {

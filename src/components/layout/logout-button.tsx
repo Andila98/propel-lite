@@ -3,10 +3,8 @@
 
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { LogOut } from "lucide-react"; 
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "../ui/button";
 import { DropdownMenuItem } from "../ui/dropdown-menu";
 
 
@@ -26,11 +24,12 @@ export function LogoutButton() {
 
       router.push('/login');
 
-    } catch (error: any) {
-      console.error("Logout error:", error);
+    } catch (error: unknown) {
+      const typedError = error as Error;
+      console.error("Logout error:", typedError);
       toast({
         title: "Logout Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: typedError.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     }
