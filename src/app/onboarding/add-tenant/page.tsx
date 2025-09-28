@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Stepper } from '@/components/ui/stepper';
 import type { Unit, Property } from '@/lib/types';
 import { useState, useEffect, useActionState } from 'react';
-import { Loader2, Upload, Info, UserPlus, FileUp } from 'lucide-react';
+import { Loader2, Upload, Info, UserPlus, FileUp, ArrowLeft } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormStatus } from 'react-dom';
@@ -21,6 +21,7 @@ import { createTenantAction, createTenantsFromCsvAction } from '@/app/tenants/ac
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Papa from 'papaparse';
+import type { FormState } from '@/app/tenants/actions';
 
 interface PropertiesResponse {
   properties: Property[];
@@ -42,7 +43,14 @@ function SubmitButton() {
     )
 }
 
-function ManualAddTab({ properties, propertiesLoading, state, formAction }: { properties: Property[], propertiesLoading: boolean, state: FormState, formAction: (payload: FormData) => void }) {
+interface ManualAddTabProps {
+    properties: Property[];
+    propertiesLoading: boolean;
+    state: FormState;
+    formAction: (payload: FormData) => void;
+}
+
+function ManualAddTab({ properties, propertiesLoading, state, formAction }: ManualAddTabProps) {
   const {
     watch,
     control,
@@ -199,6 +207,14 @@ function BulkImportTab({ isBulkLoading, handleCsvUpload }: BulkImportTabProps) {
   )
 }
 
+const onboardingSteps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'add-property', label: 'Add Property' },
+    { id: 'add-manager', label: 'Add Manager' },
+    { id: 'add-tenant', label: 'Add Tenant' },
+    { id: 'complete', label: 'Complete' },
+];
+
 export default function AddTenantPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -214,7 +230,7 @@ export default function AddTenantPage() {
         title: "Tenant Added!",
         description: "The new tenant has been successfully created.",
       });
-      router.push('/tenants');
+      router.push('/onboarding/complete');
     }
     if (state.error) {
        toast({
@@ -234,7 +250,6 @@ export default function AddTenantPage() {
         const data: PropertiesResponse = await res.json();
         setProperties(data.properties || []);
       } catch (err: unknown) {
-        const typedError = err as Error;
         toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
       } finally {
         setPropertiesLoading(false);
@@ -267,7 +282,7 @@ export default function AddTenantPage() {
                     title: "Tenants Created!",
                     description: `${state.createdCount} tenants have been successfully added.`,
                 });
-                router.push('/tenants');
+                router.push('/onboarding/complete');
             } else {
                  toast({
                     title: `Bulk Creation Failed: ${state.error}`,
@@ -289,17 +304,20 @@ export default function AddTenantPage() {
     });
   };
   
+  const handleNextStep = () => {
+    router.push('/onboarding/complete');
+  };
+
   return (
     <TooltipProvider>
     <div className="flex-1 space-y-4 p-4 md:p-6">
-       <div className="flex items-center gap-4">
-            <Link href="/tenants">
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                    <AnimatedBackIcon />
-                    <span className="sr-only">Back to Tenants</span>
-                </Button>
-            </Link>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Add New Tenant</h2>
+        <Stepper steps={onboardingSteps} currentStep={3} />
+        <div className="flex items-center justify-between gap-4">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Step 4: Add Tenants</h2>
+            <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => router.push('/onboarding/complete')}>Skip for now</Button>
+                <Button onClick={handleNextStep}>Next: Complete Setup</Button>
+            </div>
         </div>
         <Tabs defaultValue="manual" className="max-w-4xl mx-auto">
             <TabsList className="grid w-full grid-cols-2">

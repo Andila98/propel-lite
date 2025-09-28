@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { getLandlordId } from '@/lib/auth-utils';

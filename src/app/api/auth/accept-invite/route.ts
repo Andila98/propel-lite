@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import jwt, { type JwtPayload } from 'jsonwebtoken';

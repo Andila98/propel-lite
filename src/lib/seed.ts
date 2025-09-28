@@ -302,7 +302,8 @@ async function seedDatabase() {
 }
 
 
-seedDatabase().catch(e => {
-  console.error("Seeding failed:", e);
+seedDatabase().catch((e: unknown) => {
+  const error = e as Error;
+  console.error("Seeding failed:", error.message);
   process.exit(1);
 });

@@ -21,7 +21,8 @@ import { useFormStatus } from 'react-dom';
 import { createTenantAction, createTenantsFromCsvAction } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import Papa from 'papaparse';
+import Papa, { ParseResult } from 'papaparse';
+import type { FormState } from '../actions';
 
 interface PropertiesResponse {
   properties: Property[];
@@ -43,7 +44,14 @@ function SubmitButton() {
     )
 }
 
-function ManualAddTab({ properties, propertiesLoading, state, formAction }) {
+interface ManualAddTabProps {
+    properties: Property[];
+    propertiesLoading: boolean;
+    state: FormState;
+    formAction: (payload: FormData) => void;
+}
+
+function ManualAddTab({ properties, propertiesLoading, state, formAction }: ManualAddTabProps) {
   const {
     watch,
     control,
@@ -158,7 +166,12 @@ function ManualAddTab({ properties, propertiesLoading, state, formAction }) {
   )
 }
 
-function BulkImportTab({ isBulkLoading, handleCsvUpload }) {
+interface BulkImportTabProps {
+    isBulkLoading: boolean;
+    handleCsvUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+function BulkImportTab({ isBulkLoading, handleCsvUpload }: BulkImportTabProps) {
   return (
     <div className="space-y-4">
         <CardDescription>
@@ -229,8 +242,9 @@ export default function AddTenantPage() {
         if (!res.ok) throw new Error("Failed to fetch properties");
         const data: PropertiesResponse = await res.json();
         setProperties(data.properties || []);
-      } catch (err: any) {
-        toast({ title: "Error", description: "Could not load properties.", variant: "destructive" });
+      } catch (err: unknown) {
+        const typedErr = err as Error;
+        toast({ title: "Error", description: `Could not load properties: ${typedErr.message}`, variant: "destructive" });
       } finally {
         setPropertiesLoading(false);
       }
@@ -247,8 +261,8 @@ export default function AddTenantPage() {
     Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        complete: async (result) => {
-            const tenantsData = result.data as any[];
+        complete: async (result: ParseResult<Record<string, string>>) => {
+            const tenantsData = result.data;
              if (!tenantsData || tenantsData.length === 0) {
                 toast({ title: "CSV Error", description: "CSV file is empty or invalid.", variant: "destructive" });
                 setIsBulkLoading(false);
@@ -273,7 +287,7 @@ export default function AddTenantPage() {
             }
             setIsBulkLoading(false);
         },
-        error: (error) => {
+        error: (error: Error) => {
             toast({
                 title: "CSV Parsing Error",
                 description: error.message,

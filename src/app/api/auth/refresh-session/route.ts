@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';

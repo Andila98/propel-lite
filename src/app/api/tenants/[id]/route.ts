@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         
         return NextResponse.json(toJSON({ id: tenantDoc.id, ...tenantData }), { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`[ERROR: /api/tenants/{id} GET] Failed to fetch tenant ${params.id}:`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
@@ -93,9 +92,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         if (uid) {
             try {
                 await auth.deleteUser(uid);
-            } catch (authError: any) {
+            } catch (authError: unknown) {
+                const typedError = authError as { code?: string };
                 // If user doesn't exist in auth, don't fail the whole operation
-                if (authError.code !== 'auth/user-not-found') {
+                if (typedError.code !== 'auth/user-not-found') {
                     throw authError;
                 }
             }
@@ -104,7 +104,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         await logActivity(actor.displayName || 'Admin', `Deleted tenant "${name}"`, { type: 'Tenant', name: name }, landlordId);
 
         return NextResponse.json({ message: 'Tenant successfully deleted.' }, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`[ERROR: /api/tenants/{id} DELETE]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }

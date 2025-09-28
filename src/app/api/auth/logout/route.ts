@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { authConfig } from '@/config/server-config';
 import { cookies } from 'next/headers';

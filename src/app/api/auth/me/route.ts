@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifySession } from '@/lib/auth-utils';

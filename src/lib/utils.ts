@@ -35,7 +35,7 @@ export const fetcher = async (url: string) => {
  * @param dateValue - The date value to convert.
  * @returns An ISO string, or null if the input is invalid.
  */
-export function toISOString(dateValue: Date | string | Timestamp | { toDate: () => Date } | { seconds: number, nanoseconds: number } | null | undefined): string | null {
+export function toISOString(dateValue: unknown): string | null {
     if (!dateValue) return null;
     
     // Handle client-side date objects or ISO strings
@@ -78,7 +78,7 @@ export function toJSON<T>(data: T): T {
   }
 
   const anyData = data as { toDate?: () => Date };
-  if (typeof anyData.toDate === 'function') {
+  if (anyData && typeof anyData.toDate === 'function') {
     // It's a Firestore Timestamp
     return anyData.toDate().toISOString() as unknown as T;
   }
@@ -87,7 +87,7 @@ export function toJSON<T>(data: T): T {
     const newObj: { [key: string]: unknown } = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        newObj[key] = toJSON(data[key]);
+        newObj[key] = toJSON((data as Record<string, unknown>)[key]);
       }
     }
     return newObj as T;
