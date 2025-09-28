@@ -54,8 +54,9 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(portalData);
 
-    } catch (error: any) {
-        console.error(`[ERROR: /api/tenant-portal GET]`, error);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error(`[ERROR: /api/tenant-portal GET]`, typedError);
         return NextResponse.json({ error: 'Failed to load tenant portal data.' }, { status: 500 });
     }
 }
