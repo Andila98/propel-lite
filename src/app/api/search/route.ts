@@ -65,8 +65,9 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ properties, tenants });
 
-    } catch (error: any) {
-        console.error('[ERROR: /api/search]', { message: error.message, stack: error.stack });
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[ERROR: /api/search]', { message: typedError.message, stack: typedError.stack });
         return NextResponse.json({ error: 'Internal server error during search.' }, { status: 500 });
     }
 }
