@@ -234,6 +234,7 @@ export default function TenantDetailPage() {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                    <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} onDeleted={handleTenantDeleted} asChild>
                        <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
                             <AnimatedDeleteIcon /> Delete
@@ -351,5 +352,3 @@ export default function TenantDetailPage() {
     </div>
   );
 }
-
-    

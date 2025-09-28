@@ -20,7 +20,7 @@ import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormStatus } from 'react-dom';
 import { createTenantAction, createTenantsFromCsvAction } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import Papa, { type ParseResult } from 'papaparse';
 import type { FormState } from '../actions';
 
@@ -166,12 +166,12 @@ function ManualAddTab({ properties, propertiesLoading, state, formAction }: Manu
   )
 }
 
-interface BulkImportTabProps {
+interface BulkImportFormProps {
     isBulkLoading: boolean;
     handleCsvUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-function BulkImportTab({ isBulkLoading, handleCsvUpload }: BulkImportTabProps) {
+function BulkImportForm({ isBulkLoading, handleCsvUpload }: BulkImportFormProps) {
   return (
     <div className="space-y-4">
         <CardDescription>
@@ -347,5 +347,3 @@ export default function AddTenantPage() {
     </TooltipProvider>
   );
 }
-
-    

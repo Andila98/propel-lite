@@ -12,12 +12,12 @@ type AnimatedIconsElement = React.DetailedHTMLProps<React.HTMLAttributes<HTMLEle
   width: string;
 };
 
-declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            'animated-icons': AnimatedIconsElement;
-        }
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      'animated-icons': AnimatedIconsElement;
     }
+  }
 }
 
 

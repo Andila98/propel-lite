@@ -99,7 +99,8 @@ function ProfileSettingsTab() {
         setImagePreview(url);
         toast({ title: 'Success', description: 'Avatar uploaded successfully.'});
       } catch (error: unknown) {
-        toast({ title: 'Upload Error', description: 'Could not upload image.', variant: 'destructive'});
+        const typedError = error as Error;
+        toast({ title: 'Upload Error', description: 'Could not upload image: ' + typedError.message, variant: 'destructive'});
       } finally {
         setIsUploading(false);
       }

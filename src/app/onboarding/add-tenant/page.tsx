@@ -293,9 +293,10 @@ export default function AddTenantPage() {
             setIsBulkLoading(false);
         },
         error: (error) => {
+            const typedError = error as Error;
             toast({
                 title: "CSV Parsing Error",
-                description: error.message,
+                description: typedError.message,
                 variant: "destructive",
             });
             setIsBulkLoading(false);
