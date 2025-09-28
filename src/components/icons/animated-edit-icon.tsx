@@ -13,12 +13,13 @@ type AnimatedIconsElement = React.DetailedHTMLProps<React.HTMLAttributes<HTMLEle
 };
 
 declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'animated-icons': AnimatedIconsElement;
+    namespace JSX {
+        interface IntrinsicElements {
+            'animated-icons': AnimatedIconsElement;
+        }
     }
-  }
 }
+
 
 export function AnimatedEditIcon() {
   // This useEffect is to ensure the custom element is only rendered on the client side
