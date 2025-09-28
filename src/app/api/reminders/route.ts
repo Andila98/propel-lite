@@ -27,8 +27,9 @@ export async function GET(req: NextRequest) {
             
         const reminders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(toJSON(reminders));
-    } catch (error: any) {
-        console.error('[ERROR: /api/reminders GET]', error);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[ERROR: /api/reminders GET]', typedError);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
