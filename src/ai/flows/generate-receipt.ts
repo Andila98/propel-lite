@@ -19,6 +19,7 @@ import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
+import type { Payment, Timestamp } from 'firebase-admin/firestore';
 
 // Extended interface for receipt data
 interface ReceiptData {
@@ -46,7 +47,7 @@ async function getReceiptData(input: GenerateReceiptInput): Promise<ReceiptData>
     if (!paymentSnapshot.exists) throw new Error('Payment not found');
     
     const tenant = tenantSnapshot.data()!;
-    const payment = paymentSnapshot.data()!;
+    const payment = paymentSnapshot.data() as Payment & { date: Timestamp, description?: string };
     
     // Validate tenant-payment relationship
     if (payment.tenantId !== input.tenantId) {
@@ -73,8 +74,8 @@ async function getReceiptData(input: GenerateReceiptInput): Promise<ReceiptData>
     
     let paymentDate: string;
     try {
-        if (payment.date && typeof (payment.date as any).toDate === 'function') {
-            paymentDate = (payment.date as any).toDate().toISOString();
+        if (payment.date && typeof (payment.date).toDate === 'function') {
+            paymentDate = (payment.date).toDate().toISOString();
         } else if (typeof payment.date === 'string') {
             paymentDate = new Date(payment.date).toISOString();
         } else {
@@ -94,7 +95,7 @@ async function getReceiptData(input: GenerateReceiptInput): Promise<ReceiptData>
         amountPaid: payment.amount || 0,
         currency: property.currency || 'KES',
         paymentMethod: payment.method || 'Unknown',
-        paymentDescription: (payment as any).description || 'Monthly Rent Payment',
+        paymentDescription: payment.description || 'Monthly Rent Payment',
     };
 }
 
