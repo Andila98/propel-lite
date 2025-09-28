@@ -5,9 +5,8 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { subMonths, getMonth, getYear, isAfter, isBefore } from 'date-fns';
+import { subMonths, getMonth, getYear, isBefore } from 'date-fns';
 import { 
     PredictPaymentInputSchema, 
     PredictPaymentOutputSchema, 
@@ -16,6 +15,7 @@ import {
 } from '@/lib/schema-types';
 import { withErrorHandling } from '@/lib/flow-errors';
 import { withMonitoring } from '@/lib/flow-monitor';
+import type { DocumentData, Timestamp } from 'firebase-admin/firestore';
 
 type PaymentStatus = 'Paid' | 'Overdue' | 'Partially Paid' | 'New';
 
@@ -53,7 +53,7 @@ async function validateTenantData(tenantId: string) {
 /**
  * Gets property and unit data with validation
  */
-async function getPropertyAndUnitData(tenantData: any) {
+async function getPropertyAndUnitData(tenantData: DocumentData) {
     const [propertyDoc, unitDoc] = await Promise.all([
         firestore.collection('properties').doc(tenantData.propertyId).get(),
         firestore.collection('properties').doc(tenantData.propertyId)
@@ -100,8 +100,8 @@ async function buildTransitionMatrix(tenantId: string): Promise<TenantPaymentHis
     let earliestPayment: Date | null = null;
     
     paymentsSnapshot.forEach(doc => {
-        const payment = doc.data();
-        const date = (payment.date as any).toDate();
+        const payment = doc.data() as { amount: number, date: Timestamp };
+        const date = payment.date.toDate();
         const key = `${getYear(date)}-${String(getMonth(date)).padStart(2, '0')}`;
         
         paymentsByMonth[key] = (paymentsByMonth[key] || 0) + payment.amount;
@@ -330,12 +330,14 @@ const predictPaymentFlow = ai.defineFlow(
         async (input) => {
             try {
                 return await predictNextPayment(input);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // Provide more specific error handling
-                if (error.message.includes('not found')) {
-                    throw new Error('Unable to predict payment: tenant or property data not found.');
-                } else if (error.message.includes('Firebase')) {
-                    throw new Error('Unable to predict payment: database connection error.');
+                if (error instanceof Error) {
+                    if (error.message.includes('not found')) {
+                        throw new Error('Unable to predict payment: tenant or property data not found.');
+                    } else if (error.message.includes('Firebase')) {
+                        throw new Error('Unable to predict payment: database connection error.');
+                    }
                 }
                 
                 throw new Error('Failed to predict payment due to an internal error.');
