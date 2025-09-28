@@ -1,5 +1,15 @@
 import { vi } from 'vitest';
 
+const firestoreDocMock = {
+  get: vi.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+  set: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
+  collection: vi.fn(() => ({
+    doc: vi.fn(() => firestoreDocMock),
+  })),
+};
+
 vi.mock('@/lib/firebase-admin', () => ({
   isFirebaseAdminInitialized: true,
   auth: {
@@ -17,17 +27,7 @@ vi.mock('@/lib/firebase-admin', () => ({
   },
   firestore: {
     collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        get: vi.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
-        set: vi.fn().mockResolvedValue(undefined),
-        update: vi.fn().mockResolvedValue(undefined),
-        delete: vi.fn().mockResolvedValue(undefined),
-        collection: vi.fn(() => ({
-          doc: vi.fn(() => ({
-            get: vi.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
-          })),
-        })),
-      })),
+      doc: vi.fn(() => firestoreDocMock),
       where: vi.fn(() => ({
         get: vi.fn().mockResolvedValue({ docs: [], empty: true, size: 0 }),
         orderBy: vi.fn(() => ({

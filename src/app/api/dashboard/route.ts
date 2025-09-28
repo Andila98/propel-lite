@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         // Late Payment Trends
         const monthLabels = getLastNMonths(6);
         const latePaymentsByMonth: Record<string, number> = monthLabels.reduce((acc, month) => ({...acc, [month]: 0}), {});
-        allPaymentsSnapshot.forEach(doc => {
+        allPaymentsSnapshot.docs.forEach(doc => {
             const payment = doc.data() as Payment;
             const paymentDate = (payment.date as unknown as Timestamp).toDate(); // Firestore timestamp to Date
             if (paymentDate.getDate() > 5) { // Assuming rent is due by the 5th
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
         // Payment Method Preferences
         const paymentMethodsCount: Record<string, number> = {};
-        allPaymentsSnapshot.forEach(doc => {
+        allPaymentsSnapshot.docs.forEach(doc => {
             const payment = doc.data() as Payment;
             paymentMethodsCount[payment.method] = (paymentMethodsCount[payment.method] || 0) + 1;
         });
