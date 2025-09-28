@@ -9,8 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
-import { PriceSuggestionInputSchema, PriceSuggestionOutputSchema, type PriceSuggestionInput, type PriceSuggestionOutput } from '@/lib/schema-types';
+import { PriceSuggestionOutputSchema, type PriceSuggestionInput, type PriceSuggestionOutput } from '@/lib/schema-types';
 import { PriceSuggestionSchema } from '@/lib/schemas';
 import { withErrorHandling } from '@/lib/flow-errors';
 import { withMonitoring } from '@/lib/flow-monitor';
