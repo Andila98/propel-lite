@@ -101,8 +101,9 @@ function PaymentPrediction({ tenantId, currentStatus }: { tenantId: string, curr
             try {
                 const result = await predictPayment({ tenantId, currentStatus });
                 setPrediction(result);
-            } catch (error) {
-                console.error("Prediction Error:", error);
+            } catch (error: unknown) {
+                const typedError = error as Error;
+                console.error("Prediction Error:", typedError.message);
             } finally {
                 setLoading(false);
             }
