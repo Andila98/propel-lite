@@ -128,7 +128,7 @@ const DayCell = ({ day, statuses, reminders }: { day: Date, statuses: TenantWith
 const StatsCard = ({ title, value, icon: Icon, trend, color }: {
   title: string;
   value: string | number;
-  icon: any;
+  icon: React.ElementType;
   trend?: string;
   color?: string;
 }) => (
@@ -178,8 +178,9 @@ export default function RentSchedulePage() {
         setProperties(propertiesData.properties || []);
         setPayments(paymentsData);
         setReminders(remindersData || []);
-      } catch (error) {
-        toast({ title: "Error", description: "Could not load schedule data.", variant: "destructive" });
+      } catch (error: unknown) {
+        const typedError = error as Error;
+        toast({ title: "Error", description: `Could not load schedule data: ${typedError.message}`, variant: "destructive" });
       } finally {
         setDataLoading(false);
       }

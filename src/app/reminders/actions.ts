@@ -97,7 +97,7 @@ export async function getScheduleSuggestionAction(
       return { error: "Backend services are not configured. Please contact support." };
     }
     try {
-        let reminderDate = new Date();
+        const reminderDate = new Date();
         let reasoning = '';
         switch(input.reminderType) {
             case 'rentDue':

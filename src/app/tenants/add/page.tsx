@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import Link from 'next/link';
@@ -21,7 +20,7 @@ import { useFormStatus } from 'react-dom';
 import { createTenantAction, createTenantsFromCsvAction } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import Papa, { ParseResult } from 'papaparse';
+import Papa, { type ParseResult } from 'papaparse';
 import type { FormState } from '../actions';
 
 interface PropertiesResponse {
@@ -318,7 +317,7 @@ export default function AddTenantPage() {
                 </TabsTrigger>
                 <TabsTrigger value="bulk">
                     <FileUp className="mr-2 h-4 w-4"/>
-                    Bulk Import via CSV
+                    Bulk Import (CSV)
                 </TabsTrigger>
             </TabsList>
             <TabsContent value="manual">

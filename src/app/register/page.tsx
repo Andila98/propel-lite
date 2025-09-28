@@ -60,8 +60,8 @@ export default function RegisterPage() {
           let errorData = { error: 'Failed to create account due to a server error.' };
           try {
             errorData = await response.json();
-          } catch (e) {
-            console.error("Failed to parse error response as JSON.", e);
+          } catch {
+            // Ignore if parsing fails
           }
           throw new Error(errorData.error || 'Failed to create account.');
         }
@@ -72,13 +72,13 @@ export default function RegisterPage() {
         });
 
         // After successful signup, immediately log in to start the session.
-        // We pass `isSignUp: true` to enable the retry logic in the login function.
         await login(data.email, data.password, true);
         
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const typedError = error as Error;
         toast({
             title: "Registration Failed",
-            description: error.message,
+            description: typedError.message,
             variant: "destructive",
         });
     } finally {
@@ -95,16 +95,17 @@ export default function RegisterPage() {
             title: "Sign-Up Successful!",
             description: "Let's get you set up.",
         });
-    } catch (error: any) {
-       if (error.code === 'INCOMPLETE_PROFILE') {
+    } catch (error: unknown) {
+       const typedError = error as { code?: string; message: string };
+       if (typedError.code === 'INCOMPLETE_PROFILE') {
             toast({
                 title: "Setup Required",
                 description: "Redirecting you to complete your profile.",
             });
-        } else if (error.code !== 'auth/cancelled-popup-request') {
+        } else if (typedError.code !== 'auth/cancelled-popup-request') {
             toast({
                 title: "Social Sign-Up Failed",
-                description: error.message,
+                description: typedError.message,
                 variant: "destructive",
             });
         }

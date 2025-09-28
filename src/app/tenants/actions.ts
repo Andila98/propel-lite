@@ -1,5 +1,6 @@
 
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -94,12 +95,13 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
 
         return { success: true };
 
-    } catch (error: any) {
-        console.error('[ERROR: createTenantAction]', error);
-        if (error.code === 'auth/email-already-exists') {
+    } catch (error: unknown) {
+        const typedError = error as Error & { code?: string };
+        console.error('[ERROR: createTenantAction]', typedError);
+        if (typedError.code === 'auth/email-already-exists') {
             return { error: 'An account with this email already exists.' };
         }
-        return { error: `Internal ServerError: ${error.message}` };
+        return { error: `Internal ServerError: ${typedError.message}` };
     }
 }
 
@@ -154,7 +156,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         const oldUnitId = oldTenantData?.currentUnitId;
         const oldPropertyId = oldTenantData?.propertyId;
 
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
             ...tenantData,
             propertyId,
             currentUnitId,
@@ -183,15 +185,16 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
         revalidatePath(`/tenants/${tenantId}`);
         
         return { success: true };
-    } catch (error: any) {
-        console.error(`[ERROR: updateTenantAction]`, error);
-        return { error: `Internal Server Error: ${error.message}` };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error(`[ERROR: updateTenantAction]`, typedError);
+        return { error: `Internal Server Error: ${typedError.message}` };
     }
 }
 
 
 export async function createTenantsFromCsvAction(
-    tenantsData: any[]
+    tenantsData: Record<string, unknown>[]
 ): Promise<{ success: boolean; error?: string; details?: string; createdCount?: number }> {
     console.log('[CSV_ACTION] Starting CSV tenant creation process.');
     if (!isFirebaseAdminInitialized) {
@@ -211,7 +214,7 @@ export async function createTenantsFromCsvAction(
 
     console.log(`[CSV_ACTION] Fetching properties and units for landlord: ${landlordId}`);
     const propertiesSnapshot = await firestore.collection('properties').where('landlordId', '==', landlordId).get();
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any, ref: doc.ref }));
+    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), ref: doc.ref }));
 
     const unitsSnapshots = await Promise.all(properties.map(p => p.ref.collection('units').get()));
     const unitsByProperty = properties.reduce((acc, prop, index) => {
@@ -302,9 +305,10 @@ export async function createTenantsFromCsvAction(
             const unitRef = firestore.collection('properties').doc(propertyId).collection('units').doc(unitId);
             batch.update(unitRef, { isOccupied: true, tenantId: userRecord.uid });
 
-        } catch (error: any) {
-            const errorMessage = `Failed to create auth user for ${data.email}. Error: ${error.message}. Halting process.`;
-            console.error('[CSV_ACTION] Firebase Auth user creation failed:', errorMessage, error);
+        } catch (error: unknown) {
+            const typedError = error as Error & { code?: string };
+            const errorMessage = `Failed to create auth user for ${data.email}. Error: ${typedError.message}. Halting process.`;
+            console.error('[CSV_ACTION] Firebase Auth user creation failed:', errorMessage, typedError);
             // Don't proceed with batch commit if any user creation fails
             return { success: false, error: `Failed during user creation.`, details: errorMessage };
         }
@@ -321,8 +325,9 @@ export async function createTenantsFromCsvAction(
         console.log('[CSV_ACTION] Batch commit successful. Process finished.');
         return { success: true, createdCount: validatedTenants.length };
         
-    } catch (error: any) {
-        console.error('[CSV_ACTION] Final batch commit failed:', error);
-        return { success: false, error: `Failed to commit changes to database.`, details: error.message };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[CSV_ACTION] Final batch commit failed:', typedError);
+        return { success: false, error: `Failed to commit changes to database.`, details: typedError.message };
     }
 }

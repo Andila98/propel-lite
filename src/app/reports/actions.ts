@@ -29,8 +29,9 @@ export async function generateReportAction(input: Omit<z.infer<typeof ReportInpu
   try {
     const report = await generateReport(validationResult.data);
     return { report };
-  } catch (error: any) {
-    console.error('[REPORT_ACTION_ERROR]', error);
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[REPORT_ACTION_ERROR]', typedError);
     return { error: 'Failed to generate report due to an internal error.' };
   }
 }
