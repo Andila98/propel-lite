@@ -10,7 +10,7 @@ import { logActivity } from '@/lib/audit-log-service';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
 import { getLandlordAndActor } from '@/lib/auth-utils';
-import type { Property, Tenant } from '@/lib/types';
+import type { Property, Unit } from '@/lib/types';
 
 
 export interface FormState {
@@ -219,7 +219,7 @@ export async function createTenantsFromCsvAction(
 
     const unitsSnapshots = await Promise.all(properties.map(p => firestore.collection('properties').doc(p.id).collection('units').get()));
     properties.forEach((prop, index) => {
-        prop.units = unitsSnapshots[index].docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        prop.units = unitsSnapshots[index].docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit));
     });
     console.log(`[CSV_ACTION] Found ${properties.length} properties and their units.`);
     
