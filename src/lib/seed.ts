@@ -271,7 +271,7 @@ async function seedDatabase() {
                 propertyId: tenant.propertyId,
                 unitId: tenant.currentUnitId,
                 amount: unit.rent + faker.number.int({ min: -1000, max: 1000 }),
-                date: sub(now, { months: k + 1 }).toISOString(),
+                date: sub(new Date(), { months: k + 1 }).toISOString(),
                 method: faker.helpers.arrayElement(['Mpesa', 'Stripe', 'Card']),
                 status: 'confirmed',
                 type: 'Rent',
