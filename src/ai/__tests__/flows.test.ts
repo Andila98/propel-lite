@@ -8,19 +8,6 @@ import { predictPayment } from '@/ai/flows/predict-payment-flow';
 import type { ReportOutput } from '@/lib/schema-types';
 import * as admin from '@/lib/firebase-admin';
 
-// Mock Firebase Admin
-vi.mock('@/lib/firebase-admin', async (importOriginal) => {
-    const original = await importOriginal<typeof import('@/lib/firebase-admin')>();
-    return {
-        ...original,
-        firestore: {
-            collection: vi.fn(),
-            collectionGroup: vi.fn(),
-        },
-        isFirebaseAdminInitialized: true,
-    };
-});
-
 // Mock AI - Genkit
 let mockAIResponse: unknown;
 vi.mock('@/ai/genkit', () => ({
@@ -102,7 +89,7 @@ describe('Property Management AI Flows', () => {
 
             const input = { landlordId: 'test-landlord', month: 0, year: 2024 };
             
-            await expect(generateReport(input)).rejects.toThrow('Failed to generate report');
+            await expect(generateReport(input)).rejects.toThrow('Firebase unavailable');
         });
 
          it('should complete report generation within acceptable time', async () => {
@@ -170,7 +157,7 @@ describe('Property Management AI Flows', () => {
             });
 
             const input = { tenantId: 'nonexistent', currentStatus: 'Paid' };
-            await expect(predictPayment(input)).rejects.toThrow('tenant or property data not found');
+            await expect(predictPayment(input)).rejects.toThrow('Unable to predict payment: tenant or property data not found.');
         });
 
         it('should provide conservative prediction with insufficient data', async () => {

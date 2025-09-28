@@ -91,8 +91,10 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 function createRedirectResponse(request: NextRequest, destination: string, queryParams?: Record<string, string>): NextResponse {
-  const url = new URL(destination, request.url);
-  
+  const url = request.nextUrl.clone();
+  url.pathname = destination;
+  url.search = ''; // Clear existing search params
+
   // Preserve the original path for redirect after login (except for root)
   if (destination === '/login' && request.nextUrl.pathname !== '/') {
     url.searchParams.set('redirect', request.nextUrl.pathname);

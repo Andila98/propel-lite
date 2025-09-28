@@ -8,19 +8,6 @@ import { predictPayment } from '@/ai/flows/predict-payment-flow';
 import type { ReportOutput } from '@/lib/schema-types';
 import * as admin from '@/lib/firebase-admin';
 
-// Mock Firebase Admin
-vi.mock('@/lib/firebase-admin', async (importOriginal) => {
-    const original = await importOriginal<typeof import('@/lib/firebase-admin')>();
-    return {
-        ...original,
-        firestore: {
-            collection: vi.fn(),
-            collectionGroup: vi.fn(),
-        },
-        isFirebaseAdminInitialized: true,
-    };
-});
-
 // Mock AI - Genkit
 let mockAIResponse: unknown;
 vi.mock('@/ai/genkit', () => ({

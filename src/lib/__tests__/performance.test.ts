@@ -8,17 +8,6 @@ import { generateReport } from '@/ai/flows/generate-report-flow';
 import { NextRequest } from 'next/server';
 
 // Mock dependencies
-vi.mock('@/lib/firebase-admin', () => ({
-  firestore: {
-    collection: vi.fn().mockReturnThis(),
-    collectionGroup: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockReturnThis(),
-    get: vi.fn().mockResolvedValue({ size: 0, docs: [] }),
-  },
-  isFirebaseAdminInitialized: true,
-}));
-
 vi.mock('@/lib/auth-utils', () => ({
   getLandlordAndActor: vi.fn().mockResolvedValue({ landlordId: 'test-landlord', error: null }),
 }));
@@ -29,6 +18,10 @@ vi.mock('@/ai/genkit', () => ({
         defineFlow: vi.fn((_config, handler) => handler),
         definePrompt: vi.fn(() => async () => ({ output: mockAIResponse })),
     },
+}));
+
+vi.mock('@/ai/flows/dashboard-insights', () => ({
+    generateDashboardInsights: vi.fn().mockResolvedValue({ summary: 'AI summary', anomalies: [] }),
 }));
 
 
