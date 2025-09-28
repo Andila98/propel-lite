@@ -63,11 +63,12 @@ export async function GET(request: NextRequest) {
         };
 
         return NextResponse.json(response);
-    } catch (error: any) {
-        console.error('[ERROR: /api/properties]', { message: error.message, stack: error.stack });
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[ERROR: /api/properties]', { message: typedError.message, stack: typedError.stack });
         return NextResponse.json({ 
             error: 'Internal server error',
-            details: error.message 
+            details: typedError.message 
         }, { status: 500 });
     }
 }
