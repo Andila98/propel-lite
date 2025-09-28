@@ -27,8 +27,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuLabel,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
@@ -213,7 +213,7 @@ export default function TenantDetailPage() {
           </Link>
           <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12">
-                  <AvatarImage src={(tenant as any).avatarUrl} alt={tenant.name} data-ai-hint="person portrait" />
+                  <AvatarImage src={tenant.avatarUrl} alt={tenant.name} data-ai-hint="person portrait" />
                   <AvatarFallback>{tenant.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
