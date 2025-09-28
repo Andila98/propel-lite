@@ -2,7 +2,6 @@
 "use client"
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,10 +66,11 @@ export default function AddPropertyManagerPage() {
             description: "An invitation link has been generated. Share it with the manager.",
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const typedError = error as Error;
         toast({
             title: "Failed to Send Invite",
-            description: error.message,
+            description: typedError.message,
             variant: "destructive",
         });
     } finally {
@@ -105,12 +105,12 @@ export default function AddPropertyManagerPage() {
                     </TooltipContent>
                   </Tooltip>
               </div>
-              <CardDescription>Enter the manager's email to generate an invitation link.</CardDescription>
+              <CardDescription>Enter the manager&apos;s email to generate an invitation link.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                  <Label htmlFor="email">Manager's Email</Label>
+                  <Label htmlFor="email">Manager&apos;s Email</Label>
                   <Input id="email" type="email" {...register("email")} autoComplete="email" placeholder="manager@example.com"/>
                   {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
                 </div>

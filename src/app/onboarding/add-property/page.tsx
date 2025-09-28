@@ -1,13 +1,10 @@
 
 "use client"
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
-import { PropertyForm } from '@/components/property-form';
 import { useActionState } from 'react';
 import { createPropertyAction } from '@/app/properties/actions';
 import { Stepper } from '@/components/ui/stepper';
+import { PropertyForm } from '@/components/property-form';
 import type { FormState } from '@/app/properties/[id]/edit/actions';
 
 const onboardingSteps = [
@@ -19,9 +16,6 @@ const onboardingSteps = [
 ];
 
 export default function AddPropertyPage() {
-  const router = useRouter();
-  const { toast } = useToast();
-  
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
   const [state, formAction] = useActionState(createPropertyAction, initialState);
 
