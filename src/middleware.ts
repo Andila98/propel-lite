@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { authConfig } from './config/server-config';
-import { loginRateLimit } from './lib/rate-limiter';
+import { authConfig } from '@/config/server-config';
+import { loginRateLimit } from '@/lib/rate-limiter';
 
 // Runtime configuration
 export const runtime = 'edge';
@@ -90,13 +90,20 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-function createRedirectResponse(request: NextRequest, destination: string): NextResponse {
+function createRedirectResponse(request: NextRequest, destination: string, queryParams?: Record<string, string>): NextResponse {
   const url = request.nextUrl.clone();
   url.pathname = destination;
-  
+  url.search = ''; // Clear existing search params
+
   // Preserve the original path for redirect after login (except for root)
-  if (request.nextUrl.pathname !== '/') {
+  if (destination === '/login' && request.nextUrl.pathname !== '/') {
     url.searchParams.set('redirect', request.nextUrl.pathname);
+  }
+
+  if (queryParams) {
+      for (const [key, value] of Object.entries(queryParams)) {
+          url.searchParams.set(key, value);
+      }
   }
   
   const response = NextResponse.redirect(url);
@@ -131,7 +138,7 @@ export async function middleware(request: NextRequest) {
         return createErrorResponse('Too many requests. Please try again later.', 429);
       }
       
-      return createRedirectResponse(request, '/login?error=rate-limit');
+      return createRedirectResponse(request, '/login', { error: 'rate-limit' });
     }
   }
 
