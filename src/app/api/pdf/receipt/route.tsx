@@ -1,5 +1,5 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import ReactDOMServer from 'react-dom/server';
 import ReceiptComponent from '@/components/receipt';
 import { GenerateReceiptOutputSchema } from '@/lib/schema-types';
