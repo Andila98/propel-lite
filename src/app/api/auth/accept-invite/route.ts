@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import jwt from 'jsonwebtoken';
+import jwt, { type JwtPayload } from 'jsonwebtoken';
 import type { PropertyManager } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
 import { z } from 'zod';
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     
     try {
         await registrationRateLimit.check(req);
-    } catch (error: any) {
+    } catch {
         return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
@@ -41,14 +41,14 @@ export async function POST(req: NextRequest) {
         }
         const { token, displayName, password } = validation.data;
 
-        let decodedToken: any;
+        let decodedToken: string | JwtPayload;
         try {
             decodedToken = jwt.verify(token, JWT_SECRET);
-        } catch (err) {
+        } catch {
             return NextResponse.json({ error: 'Invalid or expired invitation token.' }, { status: 401 });
         }
         
-        const { email, role, inviterId } = decodedToken;
+        const { email, role, inviterId } = decodedToken as { email: string; role: string; inviterId: string };
 
         // 1. Create the user in Firebase Auth
         const userRecord = await auth.createUser({
@@ -96,9 +96,10 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ message: 'Account created successfully.' }, { status: 201 });
 
-    } catch (error: any) {
-        console.error('[ERROR: /api/auth/accept-invite]', { message: error.message, code: error.code });
-        if (error.code === 'auth/email-already-exists') {
+    } catch (error: unknown) {
+        const typedError = error as { code?: string; message: string };
+        console.error('[ERROR: /api/auth/accept-invite]', { message: typedError.message, code: typedError.code });
+        if (typedError.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
         }
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
