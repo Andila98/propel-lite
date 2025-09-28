@@ -20,7 +20,7 @@ import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormStatus } from 'react-dom';
 import { createTenantAction, createTenantsFromCsvAction } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import Papa, { type ParseResult } from 'papaparse';
 import type { FormState } from '../actions';
 
@@ -338,7 +338,7 @@ export default function AddTenantPage() {
                         <CardTitle>Bulk Tenant Import</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <BulkImportTab isBulkLoading={isBulkLoading} handleCsvUpload={handleCsvUpload} />
+                        <BulkImportForm isBulkLoading={isBulkLoading} handleCsvUpload={handleCsvUpload} />
                     </CardContent>
                 </Card>
             </TabsContent>
