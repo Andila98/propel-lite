@@ -10,8 +10,6 @@ import { logActivity } from '@/lib/audit-log-service';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
 import { getLandlordAndActor } from '@/lib/auth-utils';
-import type { DocumentData, DocumentReference } from 'firebase-admin/firestore';
-import 'firebase/app';
 
 
 export interface FormState {
@@ -32,8 +30,9 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     }
 
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (!landlordId || !actor) {
-        return { error: authError?.message || 'Unauthorized. Could not identify user.' };
+    if (authError || !landlordId || !actor) {
+        const errorMessage = authError?.message || 'Unauthorized. Could not identify user.';
+        return { error: errorMessage };
     }
     
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddTenants) {
@@ -115,8 +114,9 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     }
 
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (!landlordId || !actor) {
-        return { error: authError?.message || 'Unauthorized. Could not identify user.' };
+    if (authError || !landlordId || !actor) {
+        const errorMessage = authError?.message || 'Unauthorized. Could not identify user.';
+        return { error: errorMessage };
     }
 
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditTenants) {
@@ -207,15 +207,16 @@ export async function createTenantsFromCsvAction(
     }
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
     if (authError || !landlordId || !actor) {
-        console.warn('[CSV_ACTION] Unauthorized:', authError.message);
-        return { success: false, error: authError.message || 'Unauthorized. Could not identify user.' };
+        const errorMessage = authError ? authError.message : 'Unauthorized. Could not identify user.';
+        console.warn('[CSV_ACTION] Unauthorized:', errorMessage);
+        return { success: false, error: errorMessage };
     }
 
     console.log(`[CSV_ACTION] Fetching properties and units for landlord: ${landlordId}`);
     const propertiesSnapshot = await firestore.collection('properties').where('landlordId', '==', landlordId).get();
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), ref: doc.ref } as DocumentData & { id: string, ref: DocumentReference }));
+    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()}));
 
-    const unitsSnapshots = await Promise.all(properties.map(p => p.ref.collection('units').get()));
+    const unitsSnapshots = await Promise.all(properties.map(p => db.collection('properties').doc(p.id).collection('units').get()));
     const unitsByProperty = properties.reduce((acc, prop, index) => {
         acc[prop.id] = unitsSnapshots[index].docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return acc;
@@ -330,3 +331,5 @@ export async function createTenantsFromCsvAction(
         return { success: false, error: `Failed to commit changes to database.`, details: typedError.message };
     }
 }
+
+    
