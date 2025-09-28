@@ -31,7 +31,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     }
 
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (authError || !landlordId || !actor) {
+    if (!landlordId || !actor || authError) {
         const errorMessage = authError ? authError.message : 'Unauthorized. Could not identify user.';
         return { error: errorMessage };
     }
@@ -115,7 +115,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     }
 
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (authError || !landlordId || !actor) {
+    if (!landlordId || !actor || authError) {
         const errorMessage = authError ? authError.message : 'Unauthorized. Could not identify user.';
         return { error: errorMessage };
     }
@@ -215,13 +215,12 @@ export async function createTenantsFromCsvAction(
 
     console.log(`[CSV_ACTION] Fetching properties and units for landlord: ${landlordId}`);
     const propertiesSnapshot = await firestore.collection('properties').where('landlordId', '==', landlordId).get();
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
+    const properties: Property[] = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<Property, 'id'>) } as Property));
 
     const unitsSnapshots = await Promise.all(properties.map(p => firestore.collection('properties').doc(p.id).collection('units').get()));
-    const unitsByProperty = properties.reduce((acc, prop, index) => {
-        acc[prop.id] = unitsSnapshots[index].docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        return acc;
-    }, {} as Record<string, unknown[]>);
+    properties.forEach((prop, index) => {
+        prop.units = unitsSnapshots[index].docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+    });
     console.log(`[CSV_ACTION] Found ${properties.length} properties and their units.`);
     
     // --- Phase 1: Validation ---
@@ -249,13 +248,13 @@ export async function createTenantsFromCsvAction(
             return { success: false, error: `Row ${rowIndex} has invalid data.`, details: errorMessage };
         }
         
-        const property = properties.find(p => p.address === row.property_address) as Property | undefined;
+        const property = properties.find(p => p.address === row.property_address);
         if (!property) {
             const errorMessage = `Row ${rowIndex}: Property not found for address "${row.property_address}".`;
             return { success: false, error: errorMessage };
         }
 
-        const unit = (unitsByProperty[property.id] as {unitNumber: string, isOccupied: boolean, id: string}[])?.find(u => u.unitNumber === row.unit_number);
+        const unit = property.units?.find(u => u.unitNumber === row.unit_number);
         if (!unit) {
             const errorMessage = `Row ${rowIndex}: Unit "${row.unit_number}" not found in property "${property.address}".`;
             return { success: false, error: errorMessage };
