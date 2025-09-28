@@ -28,7 +28,7 @@ const onboardingSteps = [
     { id: 'complete', label: 'Complete' },
 ];
 
-function SubmitButton() {
+function OnboardingSubmitButton() {
     const { pending } = useFormStatus();
     return (
          <Button type="submit" disabled={pending}>
@@ -196,7 +196,7 @@ export default function AddTenantPage() {
                 <Link href="/onboarding/complete">
                   <Button variant="link" type="button">Skip for now</Button>
                 </Link>
-                 <SubmitButton />
+                 <OnboardingSubmitButton />
               </div>
             </form>
           </CardContent>

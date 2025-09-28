@@ -116,14 +116,6 @@ export default function EditTenantPage() {
     }
     fetchInitialData();
   }, [tenantId, reset, toast]);
-
-  const clientAction = (formData: FormData) => {
-    const values = getValues();
-    // Use the value from the form state, not the server data
-    formData.append('propertyId', values.propertyId);
-    formData.append('currentUnitId', values.currentUnitId);
-    formAction(formData);
-  }
   
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied || u.id === tenant?.currentUnitId) || [];
@@ -172,7 +164,7 @@ export default function EditTenantPage() {
                 <CardDescription>Modify the details for {tenant.name}.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={clientAction} className="space-y-4">
+                <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />

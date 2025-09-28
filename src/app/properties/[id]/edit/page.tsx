@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useActionState } from 'react';
@@ -14,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PropertyFormValues } from '@/lib/schemas';
 import type { Property } from '@/lib/types';
 import { fetcher } from '@/lib/utils';
+import { useEffect } from 'react';
 
 
 export default function EditPropertyPage() {
@@ -28,7 +30,7 @@ export default function EditPropertyPage() {
   const updateActionWithId = updatePropertyAction.bind(null, propertyId);
   const [state, formAction] = useActionState(updateActionWithId, initialState);
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (state.success) {
       toast({
         title: "Property Updated!",
