@@ -16,6 +16,7 @@ import type { FormState } from '../tenants/actions';
 import { sendEmail } from '@/lib/email-service';
 import { APP_URL } from '@/config/server-config';
 import pdf from 'html-pdf';
+import type { Tenant } from '@/lib/types';
 
 
 export interface ReceiptState {
@@ -198,11 +199,11 @@ export async function createPaymentsFromCsvAction(
     // --- Phase 1: Validation ---
     console.log('[CSV_ACTION] Starting Phase 1: Payment Validation...');
     const validatedPayments = [];
-    const tenantCache = new Map<string, any>();
+    const tenantCache = new Map<string, Tenant & { id: string }>();
 
     const tenantsSnapshot = await firestore.collection('tenants').where('landlordId', '==', landlordId).get();
     tenantsSnapshot.docs.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as Tenant;
         tenantCache.set(data.email, { id: doc.id, ...data });
     });
 
@@ -239,8 +240,8 @@ export async function createPaymentsFromCsvAction(
 
     for (const payment of validatedPayments) {
         const paymentRef = firestore.collection('payments').doc();
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
+        
+        const { tenant_email: _tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
 
         batch.set(paymentRef, {
             ...dbPayment,
