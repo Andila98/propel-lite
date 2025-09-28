@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useCallback } from "react"
@@ -37,7 +36,6 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetcher } from "@/lib/utils";
 import React from "react";
-import type { Timestamp } from 'firebase-admin/firestore';
 
 const LatePaymentsChart = dynamic(
   () => import("@/components/charts/late-payments-chart").then((mod) => mod.LatePaymentsChart),

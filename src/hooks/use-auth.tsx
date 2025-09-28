@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { 
@@ -67,17 +65,15 @@ class ConnectionRetry {
   private readonly delays = [1000, 3000, 5000];
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
-    let lastError: Error;
-
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
       try {
         const result = await operation();
         return result;
-      } catch (error: any) {
-        lastError = error;
-        console.warn(`[Auth] Attempt ${attempt + 1} failed:`, error.message);
+      } catch (error: unknown) {
+        const typedError = error as { code?: string };
+        console.warn(`[Auth] Attempt ${attempt + 1} failed:`, (error as Error).message);
 
-        if (this.shouldNotRetry(error)) {
+        if (this.shouldNotRetry(typedError)) {
           throw error;
         }
 
@@ -93,7 +89,7 @@ class ConnectionRetry {
     );
   }
 
-  private shouldNotRetry(error: any): boolean {
+  private shouldNotRetry(error: { code?: string }): boolean {
     const nonRetryableCodes = [
       'auth/invalid-email',
       'auth/user-not-found',
@@ -102,7 +98,7 @@ class ConnectionRetry {
       'auth/user-disabled',
       'auth/too-many-requests'
     ];
-    return nonRetryableCodes.includes(error.code);
+    return nonRetryableCodes.includes(error.code || '');
   }
 
   private delay(ms: number): Promise<void> {
@@ -203,13 +199,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isInitialized.current = true;
       }
       handleRedirect(userProfile);
-    } catch (error: any) {
-      console.error("[Auth] Error fetching user profile:", error);
+    } catch (error: unknown) {
+      const typedError = error as { message: string, code?: string };
+      console.error("[Auth] Error fetching user profile:", typedError);
       setError({
-        message: error.code === 'CONNECTION_FAILED' 
+        message: typedError.code === 'CONNECTION_FAILED' 
           ? 'Unable to connect to server. Check connection.' 
           : 'Failed to load user profile.',
-        code: error.code || 'PROFILE_LOAD_FAILED'
+        code: typedError.code || 'PROFILE_LOAD_FAILED'
       });
       await firebaseSignOut(auth);
       setUser(null);
@@ -272,9 +269,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 try {
                     await loginAttempt();
                     return; // Success
-                } catch (error: any) {
+                } catch (error: unknown) {
+                    const typedError = error as { code?: string };
                     attempts++;
-                    if (error.code === 'auth/user-not-found' && attempts < maxAttempts) {
+                    if (typedError.code === 'auth/user-not-found' && attempts < maxAttempts) {
                         console.warn(`Login attempt ${attempts} failed due to replication delay. Retrying...`);
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     } else {
@@ -285,12 +283,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
             await loginAttempt();
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const typedError = error as { code?: string };
         let message = 'Login failed. Please try again.';
         if (error instanceof AuthenticationError) {
             message = error.message;
         } else {
-            switch (error.code) {
+            switch (typedError.code) {
                 case 'auth/invalid-credential':
                 case 'auth/wrong-password':
                 case 'auth/user-not-found':
@@ -306,9 +305,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     message = 'An unexpected error occurred during login.';
             }
         }
-        const authError = { message, code: error.code };
+        const authError = { message, code: typedError.code };
         setError(authError);
-        throw new AuthenticationError(message, error.code);
+        throw new AuthenticationError(message, typedError.code);
     }
 }, [processLogin, clearError, handleRedirect]);
   
@@ -325,12 +324,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userProfile);
       handleRedirect(userProfile);
 
-    } catch (error: any) {
-      let message = 'Google sign-in failed. Please try again.';
-      if (error.code !== 'auth/cancelled-popup-request') {
-        const authError = { message, code: error.code };
+    } catch (error: unknown) {
+      const typedError = error as { code?: string };
+      const message = 'Google sign-in failed. Please try again.';
+      if (typedError.code !== 'auth/cancelled-popup-request') {
+        const authError = { message, code: typedError.code };
         setError(authError);
-        throw new AuthenticationError(message, error.code);
+        throw new AuthenticationError(message, typedError.code);
       }
     }
   }, [processLogin, clearError, handleRedirect]);

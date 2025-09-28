@@ -23,10 +23,10 @@ vi.mock('@/lib/auth-utils', () => ({
   getLandlordAndActor: vi.fn().mockResolvedValue({ landlordId: 'test-landlord', error: null }),
 }));
 
-let mockAIResponse: any;
+let mockAIResponse: unknown;
 vi.mock('@/ai/genkit', () => ({
     ai: {
-        defineFlow: vi.fn((config, handler) => handler),
+        defineFlow: vi.fn((_config, handler) => handler),
         definePrompt: vi.fn(() => async () => ({ output: mockAIResponse })),
     },
 }));

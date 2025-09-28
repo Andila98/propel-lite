@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -78,8 +77,7 @@ export const PropertyForm = React.memo(function PropertyForm({ formAction, initi
     },
   });
   
-  const { register, control, handleSubmit, formState, setValue, watch, getValues, setError, reset } = form;
-  const { errors } = formState;
+  const { register, control, formState, setValue, watch, reset } = form;
 
   // Handle form state changes from the server action
   useEffect(() => {
@@ -268,7 +266,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   const cardHeader = isOnboarding ? (
       <CardHeader>
         <CardTitle>Step 2: Add Your First Property</CardTitle>
-        <CardDescription>Let's start by adding details about one of your properties. You can add more later.</CardDescription>
+        <CardDescription>Let&apos;s start by adding details about one of your properties. You can add more later.</CardDescription>
       </CardHeader>
   ) : (
       <CardHeader>

@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview This script seeds the Firestore database with sample data.
  * It's intended for development and testing purposes.

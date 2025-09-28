@@ -1,4 +1,3 @@
-
 "use client"
 
 import Link from 'next/link';
@@ -13,14 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Stepper } from '@/components/ui/stepper';
 import type { Unit, Property } from '@/lib/types';
 import { useState, useEffect, useActionState } from 'react';
-import { Loader2, Upload, Info, UserPlus, FileUp, ArrowLeft } from 'lucide-react';
+import { Loader2, Upload, Info, UserPlus, FileUp } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TenantFormSchema, type TenantFormValues } from '@/lib/schemas';
 import { useFormStatus } from 'react-dom';
 import { createTenantAction, createTenantsFromCsvAction } from '@/app/tenants/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import Papa from 'papaparse';
+import Papa, { ParseResult } from 'papaparse';
 import type { FormState } from '@/app/tenants/actions';
 
 interface PropertiesResponse {
@@ -267,8 +266,8 @@ export default function AddTenantPage() {
     Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        complete: async (result) => {
-            const tenantsData = result.data as Record<string, string>[];
+        complete: async (result: ParseResult<Record<string, string>>) => {
+            const tenantsData = result.data;
              if (!tenantsData || tenantsData.length === 0) {
                 toast({ title: "CSV Error", description: "CSV file is empty or invalid.", variant: "destructive" });
                 setIsBulkLoading(false);

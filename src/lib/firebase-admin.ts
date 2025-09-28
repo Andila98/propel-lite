@@ -1,4 +1,3 @@
-
 import admin from 'firebase-admin';
 import { firebaseConfig } from '@/config/firebase-config';
 
@@ -22,8 +21,9 @@ if (admin.apps.length > 0) {
       isFirebaseAdminInitialized = true;
       console.log('[FIREBASE_ADMIN] Initialized successfully.');
 
-    } catch (e: any) {
-      console.error('[FIREBASE_ADMIN] CRITICAL: Failed to parse service account credentials. SDK not initialized.', e.message);
+    } catch (e: unknown) {
+      const typedError = e as Error;
+      console.error('[FIREBASE_ADMIN] CRITICAL: Failed to parse service account credentials. SDK not initialized.', typedError.message);
     }
   } else {
     // This case is for local development using `gcloud auth application-default login`

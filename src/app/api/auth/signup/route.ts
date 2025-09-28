@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     try {
         await registrationRateLimit.check(req);
-    } catch (error: unknown) {
+    } catch {
         return NextResponse.json({ error: 'Too many accounts created from this IP, please try again after an hour' }, { status: 429 });
     }
 

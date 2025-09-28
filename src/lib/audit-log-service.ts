@@ -1,11 +1,8 @@
-
 'use server';
 
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { AuditLog } from '@/lib/types';
-
-type LogInput = Omit<AuditLog, 'id' | 'timestamp'>;
 
 /**
  * Logs an important action to the audit log collection in Firestore.

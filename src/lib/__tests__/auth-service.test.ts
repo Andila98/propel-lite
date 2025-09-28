@@ -1,8 +1,6 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
-import { FieldValue } from 'firebase-admin/firestore';
 
 // Mock the entire firebase-admin library
 vi.mock('../firebase-admin', () => ({

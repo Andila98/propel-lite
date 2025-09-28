@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
@@ -111,7 +110,7 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
       // Redirect is handled by the useAuth provider
-    } catch (error: unknown) {
+    } catch (e: unknown) {
       // The authError state in useAuth is already set. We don't need to do anything here.
       // The Alert component will display the error.
     } finally {
@@ -134,7 +133,7 @@ export default function LoginPage() {
     try {
       await loginWithGoogle();
       // Redirect is handled by the useAuth provider
-    } catch (error: unknown) {
+    } catch (e: unknown) {
       // Don't show toast for cancelled popup, as the error is handled in useAuth.
     } finally {
       setIsSocialLoading(false);
@@ -149,7 +148,7 @@ export default function LoginPage() {
         title: "Connection Restored",
         description: "You can now try logging in again.",
       });
-    } catch (error: unknown) {
+    } catch {
       // The error is already set in the useAuth hook, no need to toast again.
     } finally {
       setIsLoading(false);

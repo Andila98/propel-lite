@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Centralized error handling and logging utilities for AI flows
  */
@@ -18,7 +17,7 @@ export interface FlowError {
     message: string;
     flowName: string;
     originalError?: Error;
-    context?: Record<string, any>;
+    context?: Record<string, unknown>;
     timestamp: string;
 }
 
@@ -28,7 +27,7 @@ export class FlowErrorHandler {
         message: string,
         flowName: string,
         originalError?: Error,
-        context?: Record<string, any>
+        context?: Record<string, unknown>
     ): FlowError {
         return {
             type,
@@ -57,7 +56,7 @@ export class FlowErrorHandler {
         // like Cloud Logging, Sentry, or similar
     }
 
-    static handleFirebaseError(error: any, flowName: string, context?: Record<string, any>): never {
+    static handleFirebaseError(error: { code?: string }, flowName: string, context?: Record<string, unknown>): never {
         let message = 'Firebase operation failed';
         let type = FlowErrorType.FIREBASE_ERROR;
 
@@ -72,19 +71,19 @@ export class FlowErrorHandler {
             type = FlowErrorType.NETWORK_ERROR;
         }
 
-        const flowError = this.createError(type, message, flowName, error, context);
+        const flowError = this.createError(type, message, flowName, error instanceof Error ? error : undefined, context);
         this.logError(flowError);
         throw new Error(flowError.message);
     }
 
-    static handleValidationError(error: any, flowName: string, context?: Record<string, any>): never {
+    static handleValidationError(error: { message?: string }, flowName: string, context?: Record<string, unknown>): never {
         const message = `Validation failed: ${error.message || 'Invalid input data'}`;
-        const flowError = this.createError(FlowErrorType.VALIDATION_ERROR, message, flowName, error, context);
+        const flowError = this.createError(FlowErrorType.VALIDATION_ERROR, message, flowName, error instanceof Error ? error : undefined, context);
         this.logError(flowError);
         throw new Error(flowError.message);
     }
 
-    static handleAIModelError(error: any, flowName: string, context?: Record<string, any>): never {
+    static handleAIModelError(error: { message?: string }, flowName: string, context?: Record<string, unknown>): never {
         let message = 'AI model request failed';
         
         if (error.message?.includes('quota')) {
@@ -95,37 +94,38 @@ export class FlowErrorHandler {
             message = 'AI model content policy violation';
         }
 
-        const flowError = this.createError(FlowErrorType.AI_MODEL_ERROR, message, flowName, error, context);
+        const flowError = this.createError(FlowErrorType.AI_MODEL_ERROR, message, flowName, error instanceof Error ? error : undefined, context);
         this.logError(flowError);
         throw new Error(flowError.message);
     }
 
-    static handleGenericError(error: any, flowName: string, context?: Record<string, any>): never {
+    static handleGenericError(error: { message?: string }, flowName: string, context?: Record<string, unknown>): never {
         const message = error.message || 'An unexpected error occurred';
-        const flowError = this.createError(FlowErrorType.UNKNOWN_ERROR, message, flowName, error, context);
+        const flowError = this.createError(FlowErrorType.UNKNOWN_ERROR, message, flowName, error instanceof Error ? error : undefined, context);
         this.logError(flowError);
         throw new Error(flowError.message);
     }
 }
 
 // Usage example for your existing flows:
-export function withErrorHandling<T extends any[], R>(
+export function withErrorHandling<T extends unknown[], R>(
     flowName: string,
     fn: (...args: T) => Promise<R>
 ) {
     return async (...args: T): Promise<R> => {
         try {
             return await fn(...args);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const typedError = error as { code?: string, name?: string, issues?: unknown, message?: string };
             // Determine error type and handle appropriately
-            if (error.code && typeof error.code === 'string' && error.code.startsWith('firestore/')) {
-                FlowErrorHandler.handleFirebaseError(error, flowName, { args });
-            } else if (error.name === 'ValidationError' || error.issues) {
-                FlowErrorHandler.handleValidationError(error, flowName, { args });
-            } else if (error.message?.includes('AI') || error.message?.includes('model')) {
-                FlowErrorHandler.handleAIModelError(error, flowName, { args });
+            if (typedError.code && typeof typedError.code === 'string' && typedError.code.startsWith('firestore/')) {
+                FlowErrorHandler.handleFirebaseError(typedError, flowName, { args });
+            } else if (typedError.name === 'ValidationError' || typedError.issues) {
+                FlowErrorHandler.handleValidationError(typedError, flowName, { args });
+            } else if (typedError.message?.includes('AI') || typedError.message?.includes('model')) {
+                FlowErrorHandler.handleAIModelError(typedError, flowName, { args });
             } else {
-                FlowErrorHandler.handleGenericError(error, flowName, { args });
+                FlowErrorHandler.handleGenericError(typedError, flowName, { args });
             }
         }
     };

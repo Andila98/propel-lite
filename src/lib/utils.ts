@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Timestamp } from "firebase-admin/firestore";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,7 +18,7 @@ export const fetcher = async (url: string) => {
     try {
       // Try to parse the error message from the response body
       error.info = await res.json();
-    } catch (e: unknown) {
+    } catch {
       // If parsing fails, fall back to the status text
       error.info = { error: res.statusText };
     }
