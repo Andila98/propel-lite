@@ -1,13 +1,11 @@
 
 
-
-
-"use server";
+'use server';
 
 import { revalidatePath } from 'next/cache';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { TenantFormSchema, TenantUpdateSchema } from '@/lib/schemas';
-import { FieldValue, type DocumentReference, type DocumentData } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
@@ -33,7 +31,7 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     }
 
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (authError || !landlordId || !actor) {
+    if (!landlordId || !actor) {
         return { error: authError?.message || 'Unauthorized. Could not identify user.' };
     }
     
@@ -116,8 +114,8 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     }
 
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (authError || !landlordId || !actor) {
-        return { error: authError.message || 'Unauthorized. Could not identify user.' };
+    if (!landlordId || !actor) {
+        return { error: authError?.message || 'Unauthorized. Could not identify user.' };
     }
 
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canEditTenants) {
@@ -207,7 +205,7 @@ export async function createTenantsFromCsvAction(
         return { success: false, error: 'Unauthorized. Please log in.' };
     }
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (authError || !landlordId || !actor) {
+    if (!landlordId || !actor) {
         console.warn('[CSV_ACTION] Unauthorized:', authError?.message);
         return { success: false, error: authError.message || 'Unauthorized. Could not identify user.' };
     }
@@ -331,5 +329,3 @@ export async function createTenantsFromCsvAction(
         return { success: false, error: `Failed to commit changes to database.`, details: typedError.message };
     }
 }
-
-    
