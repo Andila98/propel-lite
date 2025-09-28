@@ -237,7 +237,7 @@ export default function RentSchedulePage() {
         });
       }
       
-      events[dayKey].reminders = Array.isArray(reminders) ? reminders.filter(r => isSameDay(new Date(r.scheduledFor), day)) : [];
+      events[dayKey].reminders = (reminders || []).filter(r => isSameDay(new Date(r.scheduledFor), day));
     });
     return events;
   }, [tenants, properties, payments, reminders, currentDate, dataLoading, rentDueDate, filterStatus, searchTerm]);

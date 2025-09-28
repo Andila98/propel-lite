@@ -13,7 +13,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Property } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import React from 'react';
 
 interface PropertyTableProps {
