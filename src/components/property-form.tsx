@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Image as ImageIcon, Upload, Info, Loader2, XCircle } from 'lucide-react';
+import { Image as ImageIcon, Upload, Info, Loader2, XCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertyFormSchema, type PropertyFormValues, UnitSchema } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
@@ -124,7 +124,7 @@ export const PropertyForm = React.memo(function PropertyForm({ formAction, initi
     }
   }, [initialData, reset]);
 
-  const { fields, append, remove, replace } = useFieldArray({
+  const { fields, remove, replace } = useFieldArray({
     control,
     name: "units",
   });
@@ -132,16 +132,6 @@ export const PropertyForm = React.memo(function PropertyForm({ formAction, initi
   const propertyType = watch("type");
   const numberOfUnits = watch("numberOfUnits");
 
-  const addUnit = () => {
-    append({
-        unitNumber: `Unit ${fields.length + 1}`,
-        rent: 1000,
-        size: '1 Bedroom',
-        isOccupied: false
-    });
-    const currentNum = numberOfUnits || 0;
-    setValue("numberOfUnits", currentNum + 1);
-  };
   
 const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
