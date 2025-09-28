@@ -124,7 +124,7 @@ describe('Property Management AI Flows', () => {
             // Mock a rich payment history
             const paymentHistory = Array.from({ length: 12 }, (_, i) => ({
                 data: () => ({
-                    amount: 25000,
+                    amount: 2500,
                     date: { toDate: () => new Date(2024, 11 - i, 5) },
                     tenantId: 'tenant1'
                 })
@@ -132,7 +132,7 @@ describe('Property Management AI Flows', () => {
 
             (mockFirestore.collection as vi.Mock).mockImplementation((collection: string) => {
                 if (collection === 'tenants') return { doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ propertyId: 'prop1', currentUnitId: 'unit1', name: 'John Doe' }) }) }) };
-                if (collection === 'properties') return { doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ currency: 'KES' }), ref: { collection: () => ({ doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ rent: 25000 }) }) }) }) } }) }) };
+                if (collection === 'properties') return { doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ currency: 'KES' }), ref: { collection: () => ({ doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ rent: 2500 }) }) }) }) } }) }) };
                 if (collection === 'payments') return { where: vi.fn().mockReturnThis(), orderBy: vi.fn().mockReturnThis(), get: vi.fn().mockResolvedValue({ docs: paymentHistory }) };
                 return { where: vi.fn().mockReturnThis(), get: vi.fn().mockResolvedValue({ docs: [] }) };
             });
