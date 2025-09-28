@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import {
@@ -21,15 +22,18 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Image from 'next/image';
-import type { Tenant, Property, Payment, MaintenanceRequest } from '@/lib/types';
+import type { Tenant, Property, Payment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download, Mail, Receipt } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { getReceiptAction, emailReceiptAction, type ReceiptState } from '../payments/actions';
+import ReceiptComponent from '@/components/receipt';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MpesaIcon = () => (
     <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,7 +49,7 @@ const StripeIcon = () => (
     </svg>
 )
 
-function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
+function MaintenanceRequestForm() {
     const { toast } = useToast();
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -71,39 +75,39 @@ function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
             toast({ title: 'Error', description: 'Please provide a description of the issue.', variant: 'destructive' });
             return;
         }
-
         setLoading(true);
 
-        const requestData = {
-          description: description,
+        const formData = new FormData();
+        formData.append('description', description);
+        if (imageFile) {
+            formData.append('image', imageFile);
         }
 
         try {
-          const response = await fetch('/api/maintenance', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData)
-          });
+            const response = await fetch('/api/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description }),
+            });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to submit request');
-          }
-           toast({
-              title: 'Request Submitted!',
-              description: 'Your maintenance request has been sent.',
-          });
-           // Reset form
-          setDescription('');
-          setImageFile(null);
-          setImagePreview(null);
-          setIsDialogOpen(false);
-        } catch (err: any) {
-          toast({ title: 'Submission Failed', description: err.message, variant: 'destructive'});
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to submit request');
+            }
+
+            toast({
+                title: 'Request Submitted!',
+                description: 'Your maintenance request has been sent.',
+            });
+            setDescription('');
+            setImageFile(null);
+            setImagePreview(null);
+            setIsDialogOpen(false);
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            toast({ title: 'Submission Failed', description: typedError.message, variant: 'destructive' });
         } finally {
-          setLoading(false);
+            setLoading(false);
         }
     };
 
@@ -155,6 +159,13 @@ export default function TenantPortalPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  const [receiptState, setReceiptState] = useState<{ loading: boolean; result: ReceiptState | null; currentPaymentId?: string }>({
+    loading: false,
+    result: null,
+  });
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
 
   useEffect(() => {
     async function fetchData() {
@@ -162,47 +173,83 @@ export default function TenantPortalPage() {
 
       try {
         setLoading(true);
-        // User object from Auth context has the tenantId (which is the user.uid)
-        const tenantRes = await fetch(`/api/tenants/${user.uid}`);
-        if (!tenantRes.ok) throw new Error('Failed to fetch your details.');
-        const tenantData: Tenant = await tenantRes.json();
-        setTenant(tenantData);
-
-        const [propertyRes, paymentsRes] = await Promise.all([
-          fetch(`/api/properties/${tenantData.propertyId}`),
-          fetch(`/api/tenants/${tenantData.id}/payments`)
-        ]);
-
-        if (!propertyRes.ok) throw new Error('Failed to fetch property details.');
-        if (!paymentsRes.ok) throw new Error('Failed to fetch payments.');
+        const res = await fetch(`/api/tenant-portal`);
+        if (!res.ok) throw new Error('Failed to fetch your portal data.');
+        const portalData = await res.json();
         
-        setProperty(await propertyRes.json());
-        setPayments(await paymentsRes.json());
+        setTenant(portalData.tenant);
+        setProperty(portalData.property);
+        setPayments(portalData.payments);
 
-      } catch (err: any) {
-        toast({ title: "Error", description: err.message, variant: "destructive"});
+      } catch (err: unknown) {
+        const typedError = err as Error;
+        toast({ title: "Error", description: typedError.message, variant: "destructive"});
       } finally {
         setLoading(false);
       }
     }
     fetchData();
   }, [user, toast]);
+  
+  const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
+    setReceiptState({ loading: true, result: null, currentPaymentId: paymentId });
+    setIsReceiptOpen(true);
+
+    const result = await getReceiptAction({ tenantId, paymentId });
+    if (result.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+    }
+    
+    setReceiptState({ loading: false, result, currentPaymentId: paymentId });
+  }
+
+  const handleEmailReceipt = async () => {
+    if (!receiptState.result?.receipt || !receiptState.currentPaymentId || !tenant) return;
+    toast({ title: "Sending...", description: "Emailing your receipt." });
+    const result = await emailReceiptAction({ tenantId: tenant.id, paymentId: receiptState.currentPaymentId });
+    if (result.error) {
+      toast({ title: "Error", description: `Failed to email receipt: ${result.error}`, variant: "destructive" });
+    } else {
+      toast({ title: "Success!", description: "Receipt has been sent to your email." });
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (receiptState.result?.pdf && receiptState.result?.receipt) {
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${receiptState.result.pdf}`;
+      link.download = `Receipt-${receiptState.result.receipt.receiptNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
 
   if (loading) {
-    return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+            <Skeleton className="h-8 w-64 mb-4" />
+             <div className="grid gap-6 md:grid-cols-2">
+                <Skeleton className="h-[400px]" />
+                <Skeleton className="h-[400px]" />
+            </div>
+        </div>
+    )
   }
   
   if (!tenant || !property) {
     return <div className="p-8">Could not load your portal data. Please contact support.</div>;
   }
   
-  const getRentStatus = (payments: Payment[], rent: number) => {
-    if (!payments || !rent) return 'Overdue';
-    const paidThisMonth = payments
-      .filter(p => new Date(p.date as any).getMonth() === new Date().getMonth())
+  const getRentStatus = (paymentsList: Payment[], rent: number) => {
+    if (!paymentsList || !rent) return 'Overdue';
+    const paidThisMonth = paymentsList
+      .filter(p => new Date(p.date as string).getMonth() === new Date().getMonth())
       .reduce((sum, p) => sum + p.amount, 0);
 
     if (paidThisMonth >= rent) return 'Paid';
+    if (paidThisMonth > rent) return 'Advance';
     if (paidThisMonth > 0) return 'Partially Paid';
     return 'Overdue';
   }
@@ -217,8 +264,8 @@ export default function TenantPortalPage() {
         <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Welcome, {tenant.name}</h2>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-3 xl:col-span-1">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle>Lease Details</CardTitle>
             <CardDescription>{property.address}</CardDescription>
@@ -230,20 +277,19 @@ export default function TenantPortalPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease Start</span>
-              <span>{formatDate(tenant.leaseStart as any)}</span>
+              <span>{formatDate(tenant.leaseStart as unknown as string)}</span>
             </div>
              <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease End</span>
-              <span>{formatDate(tenant.leaseEnd as any)}</span>
+              <span>{formatDate(tenant.leaseEnd as unknown as string)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Rent Status</span>
               <span className={cn(
                   "font-semibold",
-                  rentStatus === 'Paid' && 'text-green-600',
+                  (rentStatus === 'Paid' || rentStatus === 'Advance') && 'text-green-600',
                   rentStatus === 'Overdue' && 'text-destructive',
                   rentStatus === 'Partially Paid' && 'text-yellow-600',
-                  rentStatus === 'Advance' && 'text-blue-600',
               )}>{rentStatus}</span>
             </div>
           </CardContent>
@@ -271,11 +317,11 @@ export default function TenantPortalPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-            <MaintenanceRequestForm tenant={tenant} />
+            <MaintenanceRequestForm />
           </CardFooter>
         </Card>
 
-        <Card className="lg:col-span-3 xl:col-span-2">
+        <Card>
           <CardHeader>
             <CardTitle>Payment History</CardTitle>
             <CardDescription>Your recent transaction records.</CardDescription>
@@ -287,6 +333,7 @@ export default function TenantPortalPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,6 +342,19 @@ export default function TenantPortalPage() {
                     <TableCell>{formatDate(payment.date)}</TableCell>
                     <TableCell>{formatCurrency(payment.amount, property.currency)}</TableCell>
                     <TableCell>{payment.method}</TableCell>
+                    <TableCell className="text-right">
+                       <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleGenerateReceipt(payment.tenantId, payment.id)}
+                            disabled={receiptState.loading && receiptState.currentPaymentId === payment.id}
+                        >
+                            {receiptState.loading && receiptState.currentPaymentId === payment.id 
+                                ? <Loader2 className="h-4 w-4 animate-spin" /> 
+                                : <Receipt className="h-4 w-4" />
+                            }
+                        </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -302,6 +362,27 @@ export default function TenantPortalPage() {
           </CardContent>
         </Card>
       </div>
+
+       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Your Receipt</DialogTitle>
+                <DialogDescription>
+                    Here is the receipt for your transaction.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                {receiptState.loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                {receiptState.result?.receipt && <ReceiptComponent receipt={receiptState.result.receipt} />}
+                {receiptState.result?.error && <p className="text-destructive">{receiptState.result.error}</p>}
+            </div>
+             <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="secondary">Close</Button></DialogClose>
+                <Button onClick={handleDownloadPdf} disabled={!receiptState.result?.pdf} variant="outline"><Download className="mr-2 h-4 w-4" /> Download</Button>
+                <Button onClick={handleEmailReceipt} disabled={!receiptState.result?.receipt}><Mail className="mr-2 h-4 w-4" /> Email Me</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

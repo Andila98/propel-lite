@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useCallback } from 'react';
+import useSWR from 'swr';
 import {
   Card,
   CardContent,
@@ -23,67 +24,72 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { Payment, Property } from '@/lib/types';
+import type { Payment, Property, Tenant } from '@/lib/types';
 import Link from 'next/link';
-import { Receipt as ReceiptIcon, Loader2 } from 'lucide-react';
-import { getReceiptAction, type ReceiptState } from './actions';
-import { Receipt } from '@/components/receipt';
+import { Receipt as ReceiptIcon, Loader2, PlusCircle, Download, Mail } from 'lucide-react';
+import { getReceiptAction, emailReceiptAction, type ReceiptState } from './actions';
+import ReceiptComponent from '@/components/receipt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, fetcher } from '@/lib/utils';
+import { AddPaymentForm } from '@/components/add-payment-form';
 
 type PaymentWithDetails = Payment & { tenantName: string; propertyAddress: string; property: Property };
 
 export default function PaymentsPage() {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [receiptResult, setReceiptResult] = useState<ReceiptState | null>(null);
-  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [receiptState, setReceiptState] = React.useState<{ loading: boolean; result: ReceiptState | null; currentPaymentId?: string }>({
+    loading: false,
+    result: null,
+  });
+  const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
+  const [isAddPaymentOpen, setIsAddPaymentOpen] = React.useState(false);
   
-  const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-        setDataLoading(true);
-        try {
-            const paymentsRes = await fetch('/api/payments');
-            if (!paymentsRes.ok) {
-              const errorData = await paymentsRes.json();
-              throw new Error(errorData.error || 'Failed to fetch payments');
-            }
-
-            const paymentsData: PaymentWithDetails[] = await paymentsRes.json();
-            setPayments(paymentsData);
-        } catch (error: any) {
-            console.error(error);
-            toast({ title: "Error", description: `Failed to fetch payment data: ${error.message}`, variant: "destructive" });
-        } finally {
-            setDataLoading(false);
-        }
-    }
-    fetchData();
-  }, [toast]);
+  const { data: payments, error: paymentsError, isLoading: paymentsLoading } = useSWR<PaymentWithDetails[]>('/api/payments', fetcher);
+  const { data: tenantsData, error: tenantsError, isLoading: tenantsLoading } = useSWR<{tenants: Tenant[]}>('/api/tenants', fetcher);
   
+  const dataLoading = paymentsLoading || tenantsLoading;
+  const isError = paymentsError || tenantsError;
 
-  const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
-    setLoading(true);
+  const handleGenerateReceipt = useCallback(async (tenantId: string, paymentId: string) => {
+    setReceiptState({ loading: true, result: null, currentPaymentId: paymentId });
     setIsReceiptOpen(true);
-    setReceiptResult(null);
 
     const result = await getReceiptAction({ tenantId, paymentId });
     if (result.error) {
       toast({ title: "Error", description: result.error, variant: "destructive" });
-    } else {
-      setReceiptResult(result);
     }
-
-    setLoading(false);
-  }
+    
+    setReceiptState({ loading: false, result, currentPaymentId: paymentId });
+  }, [toast]);
   
+  const handleEmailReceipt = useCallback(async (tenantId: string, paymentId: string) => {
+    toast({ title: "Sending...", description: "Emailing the receipt to the tenant." });
+    const result = await emailReceiptAction({ tenantId, paymentId });
+    if (result.error) {
+      toast({ title: "Error", description: `Failed to email receipt: ${result.error}`, variant: "destructive" });
+    } else {
+      toast({ title: "Success!", description: "Receipt has been emailed to the tenant." });
+    }
+  }, [toast]);
+  
+  const handleDownloadPdf = useCallback(() => {
+    if (receiptState.result?.pdf && receiptState.result?.receipt) {
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${receiptState.result.pdf}`;
+      link.download = `Receipt-${receiptState.result.receipt.receiptNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }, [receiptState.result]);
+
   const renderSkeleton = () => (
      <Table>
         <TableHeader>
@@ -115,6 +121,23 @@ export default function PaymentsPage() {
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Payments History</h2>
+        <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Record Payment
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Record a New Payment</DialogTitle>
+                    <DialogDescription>
+                        Manually enter a payment received from a tenant.
+                    </DialogDescription>
+                </DialogHeader>
+                <AddPaymentForm tenants={tenantsData?.tenants || []} onPaymentAdded={() => setIsAddPaymentOpen(false)} />
+            </DialogContent>
+        </Dialog>
       </div>
       <Card>
         <CardHeader>
@@ -124,7 +147,7 @@ export default function PaymentsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {dataLoading ? renderSkeleton() : (
+          {dataLoading ? renderSkeleton() : isError ? <p>Error loading data</p> : (
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -137,7 +160,7 @@ export default function PaymentsPage() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {payments.map((payment) => (
+                {payments?.map((payment) => (
                     <TableRow key={payment.id}>
                     <TableCell>{formatDate(payment.date)}</TableCell>
                     <TableCell>
@@ -161,9 +184,12 @@ export default function PaymentsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleGenerateReceipt(payment.tenantId, payment.id)}
-                            disabled={loading}
+                            disabled={receiptState.loading && receiptState.currentPaymentId === payment.id}
                         >
-                            <ReceiptIcon className="mr-2 h-4 w-4" />
+                            {receiptState.loading && receiptState.currentPaymentId === payment.id 
+                                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                                : <ReceiptIcon className="mr-2 h-4 w-4" />
+                            }
                             Receipt
                         </Button>
                     </TableCell>
@@ -184,10 +210,28 @@ export default function PaymentsPage() {
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                {loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-                {receiptResult?.receipt && <Receipt receipt={receiptResult.receipt} />}
-                {receiptResult?.error && <p className="text-destructive">{receiptResult.error}</p>}
+                {receiptState.loading && <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                {receiptState.result?.receipt && <ReceiptComponent receipt={receiptState.result.receipt} />}
+                {receiptState.result?.error && <p className="text-destructive">{receiptState.result.error}</p>}
             </div>
+             <DialogFooter>
+                 <DialogClose asChild>
+                    <Button type="button" variant="secondary">Close</Button>
+                </DialogClose>
+                <Button 
+                    onClick={handleDownloadPdf}
+                    disabled={!receiptState.result?.pdf}
+                    variant="outline"
+                >
+                    <Download className="mr-2 h-4 w-4" /> Download PDF
+                </Button>
+                <Button 
+                    onClick={() => handleEmailReceipt(receiptState.result!.receipt!.tenantName, receiptState.currentPaymentId!)}
+                    disabled={!receiptState.result?.receipt}
+                >
+                    <Mail className="mr-2 h-4 w-4" /> Email to Tenant
+                </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

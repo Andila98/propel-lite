@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table,
@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, ShieldCheck, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Eye, ShieldCheck } from 'lucide-react';
 import { AnimatedEditIcon } from './icons/animated-edit-icon';
 import { DeleteManagerButton } from './delete-manager-button';
 
@@ -32,7 +32,7 @@ interface PropertyManagerTableProps {
     onManagerDeleted: () => void;
 }
 
-export function PropertyManagerTable({ managers, onManagerDeleted }: PropertyManagerTableProps) {
+export const PropertyManagerTable = React.memo(function PropertyManagerTable({ managers, onManagerDeleted }: PropertyManagerTableProps) {
   const router = useRouter();
   
   const handleViewDetails = (managerId: string) => {
@@ -111,4 +111,4 @@ export function PropertyManagerTable({ managers, onManagerDeleted }: PropertyMan
       </TableBody>
     </Table>
   );
-}
+});

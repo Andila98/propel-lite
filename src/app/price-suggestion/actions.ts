@@ -3,10 +3,11 @@
 
 import { suggestPrice } from "@/ai/flows/suggest-price-flow";
 import { PriceSuggestionSchema, type PriceSuggestionValues } from '@/lib/schemas';
+import type { PriceSuggestionOutput } from '@/lib/schema-types';
 
 export type PriceSuggestionState = {
   error?: string;
-  suggestion?: any;
+  suggestion?: PriceSuggestionOutput;
 };
 
 export async function suggestPriceAction(
@@ -22,8 +23,9 @@ export async function suggestPriceAction(
   try {
     const suggestion = await suggestPrice(validationResult.data);
     return { suggestion };
-  } catch (error: any) {
-    console.error("[ERROR: suggestPriceAction]", error);
-    return { error: error.message || 'An unexpected error occurred.' };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error("[ERROR: suggestPriceAction]", typedError);
+    return { error: typedError.message || 'An unexpected error occurred.' };
   }
 }

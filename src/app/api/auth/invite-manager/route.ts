@@ -37,8 +37,9 @@ export async function POST(req: NextRequest) {
 
     try {
         await inviteManagerRateLimit.check(req);
-    } catch (error: any) {
-        if (error.code === 'RATE_LIMIT_EXCEEDED') {
+    } catch (error: unknown) {
+        const rateLimitError = error as { code?: string };
+        if (rateLimitError.code === 'RATE_LIMIT_EXCEEDED') {
             return NextResponse.json({ error: 'Too many invitation requests. Please try again later.' }, { status: 429 });
         }
         console.error('[ERROR] Rate limiter failed', error);
@@ -56,8 +57,9 @@ export async function POST(req: NextRequest) {
         try {
             await auth.getUserByEmail(email);
             return NextResponse.json({ error: 'A user with this email already exists.' }, { status: 409 });
-        } catch (error: any) {
-            if (error.code !== 'auth/user-not-found') {
+        } catch (error: unknown) {
+            const userNotFoundError = error as { code?: string };
+            if (userNotFoundError.code !== 'auth/user-not-found') {
                 throw error;
             }
         }
@@ -72,8 +74,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ invitationLink }, { status: 200 });
 
-    } catch (error: any) {
-        console.error('[ERROR: /api/auth/invite-manager]', { message: error.message, code: error.code });
+    } catch (error: unknown) {
+        const typedError = error as { message: string, code?: string };
+        console.error('[ERROR: /api/auth/invite-manager]', { message: typedError.message, code: typedError.code });
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

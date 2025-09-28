@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 import { uploadToSupabase } from '@/lib/supabase-storage';
@@ -48,24 +47,26 @@ export async function POST(req: NextRequest) {
             console.log('[DEBUG] Upload successful:', url);
             return NextResponse.json({ url });
             
-        } catch (uploadError: any) {
-            console.error('[ERROR] Supabase upload failed:', uploadError);
+        } catch (uploadError: unknown) {
+            const typedError = uploadError as Error;
+            console.error('[ERROR] Supabase upload failed:', typedError);
             return NextResponse.json({ 
                 error: 'Storage upload failed',
-                details: uploadError.message 
+                details: typedError.message 
             }, { status: 500 });
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const typedError = error as Error;
         console.error('[ERROR] Upload failed:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack
+            name: typedError.name,
+            message: typedError.message,
+            stack: typedError.stack
         });
         
         return NextResponse.json({ 
             error: 'Upload failed',
-            details: error.message 
+            details: typedError.message 
         }, { status: 500 });
     }
 }

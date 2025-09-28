@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -30,7 +31,7 @@ export async function updateUserProfileAction(
     if (!isFirebaseAdminInitialized) {
         return { error: 'Backend services are not configured.' };
     }
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'Unauthorized. Please log in.' };
     }
@@ -82,8 +83,9 @@ export async function updateUserProfileAction(
         revalidatePath('/settings');
         return { success: true };
 
-    } catch (error: any) {
-        console.error('[updateUserProfileAction ERROR]', error);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[updateUserProfileAction ERROR]', typedError);
         return { error: 'Failed to update profile.' };
     }
 }

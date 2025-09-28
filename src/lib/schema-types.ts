@@ -1,3 +1,5 @@
+
+
 /**
  * @fileoverview Centralized Zod schemas and TypeScript types for the application.
  * This helps avoid "use server" directive conflicts by separating data structures
@@ -103,6 +105,7 @@ export type GenerateReceiptOutput = z.infer<typeof GenerateReceiptOutputSchema>;
 export const ReportInputSchema = z.object({
     month: z.number().min(0).max(11),
     year: z.number().min(2020),
+    landlordId: z.string().min(1, "Landlord ID is required."),
 });
 export type ReportInput = z.infer<typeof ReportInputSchema>;
 
@@ -127,7 +130,7 @@ export const PredictPaymentInputSchema = z.object({
 export type PredictPaymentInput = z.infer<typeof PredictPaymentInputSchema>;
 
 export const PredictPaymentOutputSchema = z.object({
-  predictedStatus: z.nativeEnum(['Paid', 'Overdue', 'Partially Paid']).describe("The most likely payment status for the next month."),
+  predictedStatus: z.enum(['Paid', 'Overdue', 'Partially Paid']).describe("The most likely payment status for the next month."),
   confidence: z.number().describe("The probability of the predicted status (0 to 1)."),
   reasoning: z.string().describe("A brief explanation of the prediction."),
 });
@@ -157,3 +160,11 @@ export const PriceSuggestionOutputSchema = z.object({
   overrideConsiderations: z.string().describe("A 1-2 sentence suggestion of factors that could justify a price higher or lower than the suggestion (e.g., premium finishes, recent renovations, or lack thereof)."),
 });
 export type PriceSuggestionOutput = z.infer<typeof PriceSuggestionOutputSchema>;
+
+
+// src/app/reminders/actions.ts
+export const ReminderSuggestionInputSchema = z.object({
+  tenantId: z.string(),
+  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance']),
+});
+export type ReminderSuggestionInput = z.infer<typeof ReminderSuggestionInputSchema>;

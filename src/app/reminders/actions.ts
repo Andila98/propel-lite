@@ -1,17 +1,14 @@
 
+
 "use server";
 
-import { z } from 'zod';
 import { generateMessage } from '@/ai/flows/generate-message-flow';
 import { generateInvoice } from '@/ai/flows/generate-invoice-flow';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
-import type { GenerateInvoiceOutput } from '@/lib/schema-types';
+import type { GenerateInvoiceOutput, ReminderSuggestionInput } from '@/lib/schema-types';
+import { FieldValue } from 'firebase-admin/firestore';
 
-const ReminderSuggestionInputSchema = z.object({
-  tenantId: z.string(),
-  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance']),
-});
 
 export interface ScheduleReminderState {
     error?: string;
@@ -45,19 +42,20 @@ export async function scheduleReminderAction(
         ...validationResult.data,
         scheduledFor: new Date(validationResult.data.scheduledFor),
         status: 'scheduled',
-        createdAt: firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
     });
 
     return { successMessage: `Reminder for tenant has been successfully scheduled for ${validationResult.data.scheduledFor}.` };
 
-  } catch (error: any) {
-    console.error("[ERROR: scheduleReminderAction]", error);
-    return { error: error.message };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error("[ERROR: scheduleReminderAction]", typedError);
+    return { error: typedError.message };
   }
 }
 
 export async function getReminderSuggestionAction(
-    input: z.infer<typeof ReminderSuggestionInputSchema>
+    input: ReminderSuggestionInput
 ): Promise<ScheduleReminderState> {
   if (!isFirebaseAdminInitialized) {
       return { error: "Backend services are not configured. Please contact support." };
@@ -82,20 +80,21 @@ export async function getReminderSuggestionAction(
       invoice: invoiceRes || undefined
     };
 
-  } catch (error: any) {
-    console.error("[ERROR: getReminderSuggestionAction]", error);
-    return { error: error.message };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error("[ERROR: getReminderSuggestionAction]", typedError);
+    return { error: typedError.message };
   }
 }
 
 export async function getScheduleSuggestionAction(
-    input: z.infer<typeof ReminderSuggestionInputSchema>
+    input: ReminderSuggestionInput
 ): Promise<ScheduleReminderState> {
     if (!isFirebaseAdminInitialized) {
       return { error: "Backend services are not configured. Please contact support." };
     }
     try {
-        let reminderDate = new Date();
+        const reminderDate = new Date();
         let reasoning = '';
         switch(input.reminderType) {
             case 'rentDue':
@@ -123,8 +122,9 @@ export async function getScheduleSuggestionAction(
                 reasoning
             }
         };
-    } catch (error: any) {
-        console.error("[ERROR: getScheduleSuggestionAction]", error);
-        return { error: error.message };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error("[ERROR: getScheduleSuggestionAction]", typedError);
+        return { error: typedError.message };
     }
 }

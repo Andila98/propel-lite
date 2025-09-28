@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
+import useSWR from 'swr';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,7 @@ import { cn } from '@/lib/utils';
 import type { Message } from '@/lib/types';
 import { Send, Loader2, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { toISOString } from '@/lib/utils';
+import { toISOString, fetcher } from '@/lib/utils';
 
 interface ChatThreadProps {
   tenantId: string;
@@ -22,41 +23,20 @@ type FormValues = {
 };
 
 export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: messages, error, isLoading, mutate } = useSWR<Message[]>(`/api/tenants/${tenantId}/messages`, fetcher);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<FormValues>();
-
-  const fetchMessages = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/tenants/${tenantId}/messages`);
-      if (!response.ok) throw new Error('Failed to fetch messages.');
-      const data: Message[] = await response.json();
-      setMessages(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMessages();
-  }, [tenantId]);
-
-  useEffect(() => {
-    // Scroll to bottom when new messages arrive
+  
+  React.useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight });
     }
   }, [messages]);
 
 
-  const onSubmit: SubmitHandler<FormValues> = async (data) => {
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
     const newMessageContent = data.content;
     if (!newMessageContent.trim()) return;
 
@@ -69,33 +49,36 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
       if (!response.ok) throw new Error('Failed to send message.');
       
       const sentMessage = await response.json();
-      setMessages(prev => [...prev, sentMessage]);
+      mutate(currentMessages => [...(currentMessages || []), sentMessage], false);
       reset();
 
-    } catch (err: any) {
-      console.error("Failed to send message:", err);
+    } catch (err: unknown) {
+      const typedError = err as Error;
+      console.error("Failed to send message:", typedError);
       toast({
           title: "Send Failed",
           description: "Could not send the message. Please try again.",
           variant: "destructive"
       });
     }
-  };
+  }, [tenantId, mutate, reset, toast]);
 
-  const handleFeatureClick = (featureName: string) => {
+  const handleFeatureClick = useCallback((featureName: string) => {
     toast({
       title: "Coming Soon!",
       description: `${featureName} integration is not yet available.`,
     });
-  };
+  }, [toast]);
 
   const landlordId = "user_12345"; // Mocked landlordId
 
-  if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  if (error) return <p className="text-destructive text-center">{error}</p>;
+  if (isLoading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (error) return <p className="text-destructive text-center">{error.info?.error || error.message}</p>;
 
-  const getMessageTime = (timestamp: any): string => {
-    const date = new Date(toISOString(timestamp) || new Date());
+  const getMessageTime = (timestamp: unknown): string => {
+    const isoString = toISOString(timestamp);
+    if (!isoString) return '';
+    const date = new Date(isoString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -103,7 +86,7 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
     <div className="flex flex-col h-[500px]">
       <ScrollArea className="flex-grow p-4 border rounded-lg" ref={scrollAreaRef}>
         <div className="space-y-4">
-          {messages.map((msg) => (
+          {messages?.map((msg) => (
             <div
               key={msg.id}
               className={cn('flex items-end gap-2', {

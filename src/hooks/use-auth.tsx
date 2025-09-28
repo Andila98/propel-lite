@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -44,7 +43,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: AuthError | null;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string, isSignUp?: boolean) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -66,17 +65,15 @@ class ConnectionRetry {
   private readonly delays = [1000, 3000, 5000];
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
-    let lastError: Error;
-
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
       try {
         const result = await operation();
         return result;
-      } catch (error: any) {
-        lastError = error;
-        console.warn(`[Auth] Attempt ${attempt + 1} failed:`, error.message);
+      } catch (error: unknown) {
+        const typedError = error as { code?: string };
+        console.warn(`[Auth] Attempt ${attempt + 1} failed:`, (error as Error).message);
 
-        if (this.shouldNotRetry(error)) {
+        if (this.shouldNotRetry(typedError)) {
           throw error;
         }
 
@@ -92,7 +89,7 @@ class ConnectionRetry {
     );
   }
 
-  private shouldNotRetry(error: any): boolean {
+  private shouldNotRetry(error: { code?: string }): boolean {
     const nonRetryableCodes = [
       'auth/invalid-email',
       'auth/user-not-found',
@@ -101,7 +98,7 @@ class ConnectionRetry {
       'auth/user-disabled',
       'auth/too-many-requests'
     ];
-    return nonRetryableCodes.includes(error.code);
+    return nonRetryableCodes.includes(error.code || '');
   }
 
   private delay(ms: number): Promise<void> {
@@ -118,7 +115,7 @@ async function fetchUserFromApi(): Promise<User | null> {
   });
 
   if (response.status === 401) {
-    await firebaseSignOut(auth);
+    // The server has confirmed the session is invalid.
     return null;
   }
   
@@ -145,169 +142,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const retryHandler = useRef(new ConnectionRetry());
   const isInitialized = useRef(false);
-  const lastRedirectRef = useRef<string | null>(null);
+  const isRedirecting = useRef(false);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
   
   const handleRedirect = useCallback((currentUser: User | null) => {
-    console.log('[Auth] handleRedirect called', { 
-      user: currentUser ? { uid: currentUser.uid, role: currentUser.role, profileComplete: currentUser.profileComplete } : null,
-      pathname,
-      isInitialized: isInitialized.current,
-      lastRedirect: lastRedirectRef.current
-    });
-
-    if (!isInitialized.current) {
-      console.log('[Auth] Not initialized yet, skipping redirect');
+    if (!isInitialized.current || isRedirecting.current) {
       return;
     }
 
     const isOnboardingPage = pathname.startsWith('/onboarding');
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
-
     let destination: string | null = null;
 
     if (currentUser) {
-      console.log('[Auth] User is logged in, checking redirect conditions');
-      
-      // User needs onboarding
       if (!currentUser.profileComplete && currentUser.role !== 'tenant' && !isOnboardingPage) {
         destination = '/onboarding/landlord-welcome';
-        console.log('[Auth] User needs onboarding, redirecting to:', destination);
-      }
-      // User is complete but on auth pages or wrong onboarding page
-      else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
+      } else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
         destination = currentUser.role === 'tenant' ? '/tenant-portal' : '/dashboard';
-        console.log('[Auth] Complete user on wrong page, redirecting to:', destination);
       }
     } else {
-      console.log('[Auth] User is logged out');
-      // User is logged out but not on auth pages
-      if (!isAuthPage && !isOnboardingPage) {
+      if (!isAuthPage && !pathname.startsWith('/onboarding/accept-invite')) {
         destination = '/login';
-        console.log('[Auth] Logged out user not on auth page, redirecting to login');
       }
     }
     
-    // Only redirect if we have a destination and it's different from current path and last redirect
-    if (destination && destination !== pathname && destination !== lastRedirectRef.current) {
-      console.log('[Auth] Performing redirect from', pathname, 'to', destination);
-      lastRedirectRef.current = destination;
-      
-      // Use replace to avoid back button issues
+    if (destination && destination !== pathname) {
+      isRedirecting.current = true;
       router.replace(destination);
-      
-      // Clear the last redirect after a delay
-      setTimeout(() => {
-        lastRedirectRef.current = null;
-      }, 2000);
-    } else {
-      console.log('[Auth] No redirect needed', { destination, pathname, lastRedirect: lastRedirectRef.current });
+      setTimeout(() => { isRedirecting.current = false; }, 1000);
     }
   }, [pathname, router]);
 
   const updateUserAndRedirect = useCallback(async (firebaseUser: FirebaseUser | null) => {
-    console.log('[Auth] updateUserAndRedirect called', { 
-      hasFirebaseUser: !!firebaseUser,
-      currentUserId: user?.uid,
-      firebaseUserId: firebaseUser?.uid
-    });
-
     if (!firebaseUser) {
-      console.log('[Auth] No Firebase user, clearing state');
-      setUser(null);
-      setLoading(false);
-      isInitialized.current = true;
+      if (user !== null) setUser(null);
+      if (!isInitialized.current) {
+        isInitialized.current = true;
+        setLoading(false);
+      }
       handleRedirect(null);
       return;
     }
-    
-    // Avoid unnecessary refetches if user hasn't changed
-    if (user?.uid === firebaseUser.uid && isInitialized.current) {
-      console.log('[Auth] Same user, just checking redirects');
-      setLoading(false);
-      handleRedirect(user);
-      return;
+
+    if (user?.uid === firebaseUser.uid && isInitialized.current && !loading) {
+      return; // Already logged in and initialized, do nothing.
     }
 
     try {
-      console.log('[Auth] Fetching user profile from API');
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
-      
-      console.log('[Auth] User profile fetched:', { 
-        uid: userProfile?.uid, 
-        role: userProfile?.role, 
-        profileComplete: userProfile?.profileComplete 
-      });
-      
       setUser(userProfile);
       setError(null);
-      isInitialized.current = true;
-      
-      // Small delay to ensure state updates are processed
-      setTimeout(() => {
-        handleRedirect(userProfile);
-      }, 50);
-      
-    } catch (error: any) {
-      console.error("[Auth] Error setting user state:", error);
+      if (!isInitialized.current) {
+          isInitialized.current = true;
+      }
+      handleRedirect(userProfile);
+    } catch (error: unknown) {
+      const typedError = error as { message: string, code?: string };
+      console.error("[Auth] Error fetching user profile:", typedError);
       setError({
-        message: error.code === 'CONNECTION_FAILED' 
-          ? 'Unable to connect to server. Please check your connection.' 
-          : 'Failed to load user profile. Please try refreshing the page.',
-        code: error.code || 'PROFILE_LOAD_FAILED'
+        message: typedError.code === 'CONNECTION_FAILED' 
+          ? 'Unable to connect to server. Check connection.' 
+          : 'Failed to load user profile.',
+        code: typedError.code || 'PROFILE_LOAD_FAILED'
       });
       await firebaseSignOut(auth);
       setUser(null);
-      isInitialized.current = true;
+      handleRedirect(null);
     } finally {
-      setLoading(false);
+      if (loading) {
+        setLoading(false);
+      }
     }
-  }, [handleRedirect, user]);
+  }, [handleRedirect, user, loading]);
 
   useEffect(() => {
-    console.log('[Auth] Setting up onIdTokenChanged listener');
-    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
-      try {
-        await updateUserAndRedirect(firebaseUser);
-      } catch (err: any) {
-        console.error("Critical error in onIdTokenChanged:", err);
-        setError({
-          message: err.message || 'A critical authentication error occurred.',
-          code: err.code || 'AUTH_STATE_CHANGE_FAILED'
-        });
-        await firebaseSignOut(auth);
-        setUser(null);
-        setLoading(false);
-        isInitialized.current = true;
-      }
-    });
-
+    const unsubscribe = onIdTokenChanged(auth, updateUserAndRedirect);
     return () => unsubscribe();
   }, [updateUserAndRedirect]);
   
   const retryConnection = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      await updateUserAndRedirect(auth.currentUser);
-    } catch (err: any) {
-      setError({
-        message: err.message || 'Failed to reconnect. Please try again.',
-        code: err.code
-      });
-    } finally {
-      setLoading(false);
-    }
+    await updateUserAndRedirect(auth.currentUser);
+    setLoading(false);
   }, [updateUserAndRedirect]);
 
   const refreshUser = useCallback(async () => {
     await updateUserAndRedirect(auth.currentUser);
   }, [updateUserAndRedirect]);
 
-  const processLogin = useCallback(async (idToken: string): Promise<void> => {
+  const processLogin = useCallback(async (idToken: string): Promise<User> => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
@@ -317,86 +244,118 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       credentials: 'include'
     });
     
+    const responseBody = await response.json();
     if (!response.ok) {
-      const responseBody = await response.json();
       throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
+    return responseBody as User;
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<void> => {
+  const login = useCallback(async (email: string, password: string, isSignUp: boolean = false): Promise<void> => {
+    clearError();
+    const loginAttempt = async () => {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        const userProfile = await processLogin(idToken);
+        setUser(userProfile);
+        handleRedirect(userProfile);
+    };
+
     try {
-      clearError();
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const idToken = await userCredential.user.getIdToken();
-      await processLogin(idToken);
-    } catch (error: any) {
-      console.error('[Auth] Login failed:', error);
-      let message = 'Login failed. Please try again.';
-      if (error instanceof AuthenticationError) {
-        message = error.message;
-      } else {
-        switch (error.code) {
-          case 'auth/invalid-credential':
-          case 'auth/wrong-password':
-          case 'auth/user-not-found':
-            message = 'Invalid email or password.';
-            break;
-          case 'auth/user-disabled':
-            message = 'Your account has been disabled.';
-            break;
-          case 'auth/too-many-requests':
-            message = 'Too many failed attempts. Please wait before trying again.';
-            break;
-          default:
-            message = 'An unexpected error occurred during login.';
+        if (isSignUp) {
+            let attempts = 0;
+            const maxAttempts = 3;
+            while (attempts < maxAttempts) {
+                try {
+                    await loginAttempt();
+                    return; // Success
+                } catch (error: unknown) {
+                    const typedError = error as { code?: string };
+                    attempts++;
+                    if (typedError.code === 'auth/user-not-found' && attempts < maxAttempts) {
+                        console.warn(`Login attempt ${attempts} failed due to replication delay. Retrying...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        } else {
+            await loginAttempt();
         }
-      }
-      setError({ message, code: error.code });
-      throw new AuthenticationError(message, error.code);
+    } catch (error: unknown) {
+        const typedError = error as { code?: string };
+        let message = 'Login failed. Please try again.';
+        if (error instanceof AuthenticationError) {
+            message = error.message;
+        } else {
+            switch (typedError.code) {
+                case 'auth/invalid-credential':
+                case 'auth/wrong-password':
+                case 'auth/user-not-found':
+                    message = 'Invalid email or password.';
+                    break;
+                case 'auth/user-disabled':
+                    message = 'Your account has been disabled.';
+                    break;
+                case 'auth/too-many-requests':
+                    message = 'Too many failed attempts. Please wait before trying again.';
+                    break;
+                default:
+                    message = 'An unexpected error occurred during login.';
+            }
+        }
+        const authError = { message, code: typedError.code };
+        setError(authError);
+        throw new AuthenticationError(message, typedError.code);
     }
-  }, [processLogin, clearError]);
+}, [processLogin, clearError, handleRedirect]);
   
   const loginWithGoogle = useCallback(async (): Promise<void> => {
+    clearError();
     try {
-      clearError();
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');
       
       const userCredential = await signInWithPopup(auth, provider);
       const idToken = await userCredential.user.getIdToken();
-      await processLogin(idToken);
-    } catch (error: any) {
-      console.error('[Auth] Google login failed:', error);
-      let message = 'Google sign-in failed. Please try again.';
-      if (error.code !== 'auth/cancelled-popup-request') {
-        setError({ message, code: error.code });
-        throw new AuthenticationError(message, error.code);
+      const userProfile = await processLogin(idToken);
+      setUser(userProfile);
+      handleRedirect(userProfile);
+
+    } catch (error: unknown) {
+      const typedError = error as { code?: string };
+      const message = 'Google sign-in failed. Please try again.';
+      if (typedError.code !== 'auth/cancelled-popup-request') {
+        const authError = { message, code: typedError.code };
+        setError(authError);
+        throw new AuthenticationError(message, typedError.code);
       }
     }
-  }, [processLogin, clearError]);
+  }, [processLogin, clearError, handleRedirect]);
 
   const logout = useCallback(async () => {
     try {
-      setUser(null); 
       clearError();
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      setUser(null); 
       await firebaseSignOut(auth);
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      isRedirecting.current = false;
       router.replace('/login');
     } catch (error) {
       console.error("Error during logout:", error);
     }
   }, [clearError, router]);
 
-  // Show loading screen with improved UX
   if (loading && !isInitialized.current) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
           <div className="text-center">
-            <p className="text-lg font-medium">Loading...</p>
-            <p className="text-sm text-muted-foreground">Please wait while we prepare your dashboard</p>
+            <p className="text-lg font-medium">Initializing...</p>
+            <p className="text-sm text-muted-foreground">Securing your session</p>
           </div>
         </div>
       </div>

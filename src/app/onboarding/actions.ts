@@ -16,7 +16,7 @@ export async function completeOnboarding(): Promise<ActionState> {
     return { error: 'Backend services are not configured. Please contact support.' };
   }
   try {
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'You must be logged in to complete onboarding.' };
     }
@@ -44,8 +44,9 @@ export async function completeOnboarding(): Promise<ActionState> {
     });
     
     return { success: true };
-  } catch (error: any) {
-    console.error('[ERROR: completeOnboarding action]', error);
-    return { error: `Internal Server Error: ${error.message}` };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[ERROR: completeOnboarding action]', typedError);
+    return { error: `Internal Server Error: ${typedError.message}` };
   }
 }

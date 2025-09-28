@@ -2,10 +2,8 @@
 'use server';
 
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 import type { AuditLog } from '@/lib/types';
-
-type LogInput = Omit<AuditLog, 'id' | 'timestamp'>;
+import type { Timestamp } from 'firebase-admin/firestore';
 
 /**
  * Logs an important action to the audit log collection in Firestore.
@@ -21,17 +19,17 @@ export async function logActivity(actorName: string, action: string, entity: { t
         return;
     }
 
-    const logEntry: Omit<AuditLog, 'id'> = {
+    const logEntry: Omit<AuditLog, 'id' | 'timestamp'> & { timestamp: Timestamp } = {
       managerName: actorName,
       action: action,
       entityType: entity.type,
       entityName: entity.name,
       landlordId: landlordId, // Add landlordId for data scoping
-      timestamp: FieldValue.serverTimestamp() as any, // Cast for type compatibility
+      timestamp: new Date() as unknown as Timestamp,
     };
 
     await firestore.collection('auditLogs').add(logEntry);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[AUDIT_LOG_SERVICE_ERROR] Failed to log activity:', error);
     // We don't re-throw the error because logging should not block the primary operation.
   }

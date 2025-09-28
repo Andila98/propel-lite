@@ -9,14 +9,15 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
 import { 
     DashboardInsightsInputSchema, 
     DashboardInsightsOutputSchema,
     type DashboardInsightsInput,
     type DashboardInsightsOutput
 } from '@/lib/schema-types';
-
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
+import { BUSINESS_CONFIG } from '@/lib/flow-config';
 
 export async function generateDashboardInsights(input: DashboardInsightsInput): Promise<DashboardInsightsOutput> {
   return dashboardInsightsFlow(input);
@@ -29,7 +30,7 @@ const prompt = ai.definePrompt({
   prompt: `You are a property management expert analyzing a portfolio dashboard.
   
 Given the following key metrics, provide a concise summary (1-2 sentences) and identify any potential anomalies or areas of concern.
-- An occupancy rate below 85% is concerning.
+- An occupancy rate below ${BUSINESS_CONFIG.occupancyRateThreshold}% is concerning.
 - A significant drop in revenue compared to the number of properties/tenants is an anomaly.
 
 Metrics:
@@ -47,13 +48,8 @@ const dashboardInsightsFlow = ai.defineFlow(
     inputSchema: DashboardInsightsInputSchema,
     outputSchema: DashboardInsightsOutputSchema,
   },
-  async input => {
-    try {
-        const {output} = await prompt(input);
-        return output!;
-    } catch (error) {
-        console.error('[ERROR: dashboardInsightsFlow]', error);
-        throw new Error('Failed to generate dashboard insights due to an internal AI error.');
-    }
-  }
+  withMonitoring('dashboardInsightsFlow', withErrorHandling('dashboardInsightsFlow', async (input: DashboardInsightsInput) => {
+    const {output} = await prompt(input);
+    return output!;
+  }))
 );

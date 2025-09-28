@@ -50,10 +50,11 @@ export async function GET(request: NextRequest) {
         
         console.log(`[INFO][${requestId}] Successfully processed audit logs. Sending response.`);
         return NextResponse.json(toJSON(logs));
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         console.error(`[ERROR][${requestId}] /api/audit-logs GET failed:`, {
-            message: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            message: errorMessage,
+            stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
         });
         return NextResponse.json({ error: 'Internal server error while fetching audit logs.' }, { status: 500 });
     }

@@ -1,9 +1,9 @@
 
+
 "use client"
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,19 +13,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, Building, Info } from 'lucide-react';
+import { Loader2, ShieldCheck, Building } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import type { PropertyManager, Property } from '@/lib/types';
 import { permissionLabels, type Permission } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
-    acc[key as Permission] = z.boolean().default(false);
+    acc[key as Permission] = z.boolean();
     return acc;
   }, {} as Record<Permission, z.ZodBoolean>)
 );
@@ -56,7 +55,7 @@ export default function EditPropertyManagerPage() {
       name: '',
       email: '',
       phone: '',
-      permissions: {},
+      permissions: Object.keys(permissionLabels).reduce((acc, key) => ({...acc, [key]:false}), {}),
       propertiesManaged: [],
     }
   });
@@ -76,7 +75,7 @@ export default function EditPropertyManagerPage() {
             setManagerToEdit(managerData);
 
             if (!propertiesRes.ok) throw new Error('Failed to fetch properties.');
-            const propertiesData = await propertiesRes.json();
+            const {properties: propertiesData} = await propertiesRes.json();
             setProperties(propertiesData);
             
             form.reset({
@@ -87,8 +86,9 @@ export default function EditPropertyManagerPage() {
                 propertiesManaged: managerData.propertiesManaged || [],
             });
 
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            toast({ title: "Error", description: typedError.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -135,11 +135,12 @@ export default function EditPropertyManagerPage() {
         });
         router.push(`/property-managers/${managerId}`);
 
-    } catch (err: any) {
-        console.error("Frontend: Error during manager update:", err);
+    } catch (err: unknown) {
+        const typedError = err as Error;
+        console.error("Frontend: Error during manager update:", typedError);
         toast({
             title: "Update Failed",
-            description: `There was an error saving the manager: ${err.message}`,
+            description: `There was an error saving the manager: ${typedError.message}`,
             variant: "destructive"
         });
     } finally {
@@ -150,7 +151,7 @@ export default function EditPropertyManagerPage() {
   const avatarImage = managerToEdit.avatarUrl;
 
   return (
-    <TooltipProvider>
+    
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="flex items-center gap-4">
             <Link href={`/property-managers/${managerId}`}>
@@ -291,6 +292,6 @@ export default function EditPropertyManagerPage() {
               </div>
         </form>
     </div>
-    </TooltipProvider>
+    
   );
 }

@@ -1,9 +1,9 @@
-
 "use client";
 
+import React, { useCallback } from 'react';
 import Link from 'next/link';
-import { PlusCircle, Building2, Users, Home } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { PlusCircle, Building2, Users, Home, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,9 +15,9 @@ import {
 import { PropertyTable } from '@/components/property-table';
 import type { Property } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { fetcher } from '@/lib/utils';
 
 interface PropertiesResponse {
   properties: Property[];
@@ -30,48 +30,14 @@ interface PropertiesResponse {
 }
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [meta, setMeta] = useState<PropertiesResponse['meta'] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error, isLoading, mutate } = useSWR<PropertiesResponse>('/api/properties', fetcher);
   const { user } = useAuth();
-  const { toast } = useToast();
   
   const canAddProperties = user?.role === 'landlord' || (user?.role === 'manager' && user?.permissions?.canAddProperties);
-
-  useEffect(() => {
-    async function fetchProperties() {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const res = await fetch('/api/properties');
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Failed to fetch properties (${res.status}): ${errorText}`);
-        }
-        
-        const data: PropertiesResponse = await res.json();
-        
-        setProperties(data.properties || []);
-        setMeta(data.meta || null);
-        
-      } catch (err: any) {
-        console.error('[Properties] Fetch error:', err);
-        setError(err.message || 'Failed to load properties');
-        toast({ 
-          title: "Error", 
-          description: "Could not load properties. Please try again.", 
-          variant: "destructive" 
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchProperties();
-  }, [toast]);
+  
+  const refreshData = useCallback(() => {
+    mutate();
+  }, [mutate]);
 
   const renderSkeleton = () => (
     <div className="space-y-4">
@@ -107,11 +73,12 @@ export default function PropertiesPage() {
   const renderError = () => (
     <div className="space-y-4">
       <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          {error}
+          {error?.info?.error || error?.message || 'Failed to load properties'}
         </AlertDescription>
       </Alert>
-      <Button onClick={() => window.location.reload()} variant="outline">
+      <Button onClick={refreshData} variant="outline">
         Retry
       </Button>
     </div>
@@ -137,7 +104,7 @@ export default function PropertiesPage() {
     </Card>
   );
 
-  const renderStats = () => {
+  const renderStats = (meta: PropertiesResponse['meta']) => {
     if (!meta) return null;
     
     return (
@@ -180,11 +147,13 @@ export default function PropertiesPage() {
     );
   };
 
+  const hasProperties = data && data.properties && data.properties.length > 0;
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Properties</h2>
-        {canAddProperties && properties.length > 0 && (
+        {canAddProperties && hasProperties && (
           <Link href="/properties/add">
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -194,15 +163,15 @@ export default function PropertiesPage() {
         )}
       </div>
       
-      {loading && renderSkeleton()}
+      {isLoading && renderSkeleton()}
       
-      {error && !loading && renderError()}
+      {error && !isLoading && renderError()}
       
-      {!loading && !error && properties.length === 0 && renderEmptyState()}
+      {!isLoading && !error && !hasProperties && renderEmptyState()}
       
-      {!loading && !error && properties.length > 0 && (
+      {!isLoading && !error && hasProperties && (
         <>
-          {renderStats()}
+          {renderStats(data.meta)}
           
           <Card>
             <CardHeader>
@@ -212,7 +181,7 @@ export default function PropertiesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PropertyTable properties={properties} />
+              <PropertyTable properties={data.properties} />
             </CardContent>
           </Card>
         </>

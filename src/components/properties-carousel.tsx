@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -10,6 +11,7 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
+  CardContent,
 } from '@/components/ui/card';
 import {
   Carousel,
@@ -45,13 +47,17 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
       onMouseLeave={plugin.current.reset}
      >
       <CarouselContent>
-        {properties.map((property) => (
+        {properties.map((property) => {
+           const rent = property.units?.[0]?.rent || 0;
+           const bedrooms = property.units?.reduce((acc, unit) => acc + (parseInt(unit.size) || 0), 0);
+           const bathrooms = property.units?.length || 0; // Simplified
+           return (
           <CarouselItem key={property.id}>
               <Card className="overflow-hidden group">
                 <Link href={`/properties/${property.id}`} className="block">
                   <div className="relative h-64 w-full">
                     <Image
-                      src={property.imageUrl}
+                      src={property.imageUrl || `https://picsum.photos/seed/${property.id}/800/500`}
                       alt={property.address}
                       fill
                       className="object-cover transition-transform group-hover:scale-105"
@@ -67,20 +73,21 @@ export function PropertiesCarousel({ properties }: { properties: Property[] }) {
                 <CardFooter className="bg-muted/50 p-4 flex justify-between text-sm">
                    <div className="flex items-center gap-2">
                         <BedDouble className="h-4 w-4 text-muted-foreground" />
-                        <span>{property.bedrooms} Beds</span>
+                        <span>{bedrooms} Beds</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Bath className="h-4 w-4 text-muted-foreground" />
-                        <span>{property.bathrooms} Baths</span>
+                        <span>{bathrooms} Baths</span>
                     </div>
                     <div className="flex items-center gap-2">
                          <Banknote className="h-4 w-4 text-muted-foreground" />
-                         <span>{formatCurrency(property.rent, property.currency)}/mo</span>
+                         <span>{formatCurrency(rent, property.currency)}/mo</span>
                     </div>
                 </CardFooter>
               </Card>
           </CarouselItem>
-        ))}
+           )
+        })}
       </CarouselContent>
     </Carousel>
   );

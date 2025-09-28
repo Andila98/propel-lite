@@ -1,4 +1,3 @@
-
 'use server';
 
 import { supabase } from '@/lib/supabase-client';
@@ -42,7 +41,7 @@ export async function uploadToSupabase(
       console.log('[DEBUG] Public URL generated:', publicUrl);
       return publicUrl;
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ERROR] Upload function failed:', error);
       throw error;
     }

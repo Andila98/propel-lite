@@ -10,9 +10,11 @@
 
 import {ai} from '@/ai/genkit';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { add, format } from 'date-fns';
 import { GenerateInvoiceInputSchema, GenerateInvoiceOutputSchema, type GenerateInvoiceInput, type GenerateInvoiceOutput } from '@/lib/schema-types';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
 
 
 async function getInvoiceData(input: GenerateInvoiceInput) {
@@ -31,8 +33,6 @@ async function getInvoiceData(input: GenerateInvoiceInput) {
     
     const now = new Date();
     const invoiceNumber = `INV-${format(now, 'yyyy')}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const invoiceDate = format(now, 'yyyy-MM-dd');
-    const dueDate = format(add(now, { days: 5 }), 'yyyy-MM-dd'); // Due in 5 days
 
     return {
         invoiceNumber,
@@ -40,8 +40,6 @@ async function getInvoiceData(input: GenerateInvoiceInput) {
         propertyAddress: `${property.address}, Unit ${unit.unitNumber}`,
         rentAmount: unit.rent,
         currency: property.currency || 'KES',
-        invoiceDate: new Date().toISOString(),
-        dueDate: add(new Date(), { days: 5 }).toISOString(),
     };
 }
 
@@ -55,8 +53,6 @@ const prompt = ai.definePrompt({
         propertyAddress: z.string(),
         rentAmount: z.number(),
         currency: z.string(),
-        invoiceDate: z.string(),
-        dueDate: z.string(),
     })
   },
   output: {schema: GenerateInvoiceOutputSchema},
@@ -73,8 +69,8 @@ Data:
 - Property Address: {{propertyAddress}}
 - Rent Amount: {{rentAmount}}
 - Currency: {{currency}}
-- Invoice Date: {{invoiceDate}}
-- Due Date: {{dueDate}}
+- Invoice Date: ${new Date().toISOString()}
+- Due Date: ${add(new Date(), { days: 5 }).toISOString()}
 `,
 });
 
@@ -85,16 +81,11 @@ export const generateInvoiceFlow = ai.defineFlow(
     inputSchema: GenerateInvoiceInputSchema,
     outputSchema: GenerateInvoiceOutputSchema,
   },
-  async (input) => {
-    try {
-        const invoiceData = await getInvoiceData(input);
-        const { output } = await prompt(invoiceData);
-        return output!;
-    } catch (error) {
-        console.error('[ERROR: generateInvoiceFlow]', error);
-        throw new Error('Failed to generate invoice due to an internal AI error.');
-    }
-  }
+  withMonitoring('generateInvoiceFlow', withErrorHandling('generateInvoiceFlow', async (input: GenerateInvoiceInput) => {
+    const invoiceData = await getInvoiceData(input);
+    const { output } = await prompt(invoiceData);
+    return output!;
+  }))
 );
 
 export async function generateInvoice(input: GenerateInvoiceInput): Promise<GenerateInvoiceOutput> {

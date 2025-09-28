@@ -2,9 +2,10 @@
 
 "use client"
 
-import { useState, useEffect, useActionState } from 'react';
+import { useActionState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,8 @@ import type { FormState } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PropertyFormValues } from '@/lib/schemas';
 import type { Property } from '@/lib/types';
+import { fetcher } from '@/lib/utils';
+import { useEffect } from 'react';
 
 
 export default function EditPropertyPage() {
@@ -21,42 +24,13 @@ export default function EditPropertyPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const propertyId = id as string;
-  const [property, setProperty] = useState<PropertyFormValues | null>(null);
-  const [propertyLoading, setPropertyLoading] = useState(true);
 
+  const { data: property, error, isLoading: propertyLoading } = useSWR<Property>(propertyId ? `/api/properties/${propertyId}` : null, fetcher);
   
   const initialState: FormState = { error: undefined, errors: undefined, success: false };
   const updateActionWithId = updatePropertyAction.bind(null, propertyId);
   const [state, formAction] = useActionState(updateActionWithId, initialState);
   
-  useEffect(() => {
-    async function fetchProperty() {
-        if (!propertyId) {
-            setPropertyLoading(false);
-            return;
-        };
-
-        setPropertyLoading(true);
-        try {
-            const res = await fetch(`/api/properties/${propertyId}`);
-            if (!res.ok) throw new Error("Failed to fetch property");
-            const data: Property = await res.json();
-            
-            const formData: PropertyFormValues = {
-                ...data,
-                units: data.units || [],
-                numberOfUnits: data.units?.length || 0,
-            };
-            setProperty(formData);
-        } catch (err: any) {
-            toast({ title: "Error", description: "Could not load property details.", variant: "destructive" });
-        } finally {
-            setPropertyLoading(false);
-        }
-    }
-    fetchProperty();
-  }, [propertyId, toast]);
-
   useEffect(() => {
     if (state.success) {
       toast({
@@ -94,9 +68,19 @@ export default function EditPropertyPage() {
     )
   }
 
-  if (!property) {
-    return <div>Property not found.</div>;
+  if (error || !property) {
+    return <div>Property not found or failed to load.</div>;
   }
+
+  const initialData: PropertyFormValues = {
+      ...property,
+      currency: property.currency as "KES" | "USD" | "EUR",
+      units: property.units || [],
+      numberOfUnits: property.units?.length || 0,
+      parking: false, 
+      furnished: false, 
+      petsAllowed: false,
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -112,7 +96,7 @@ export default function EditPropertyPage() {
         <PropertyForm 
             formAction={formAction}
             initialState={state}
-            initialData={property}
+            initialData={initialData}
         />
     </div>
   );

@@ -4,21 +4,6 @@
 import * as React from 'react';
 import { useEffect } from 'react';
 
-// Define the type for the custom element
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'animated-icons': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        src: string;
-        trigger: string;
-        'icon-attributes': string;
-        height: string;
-        width: string;
-      };
-    }
-  }
-}
-
 export function AnimatedDeleteIcon() {
   // This useEffect is to ensure the custom element is only rendered on the client side
   const [isClient, setIsClient] = React.useState(false);

@@ -1,8 +1,5 @@
-
-
 import type { NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { authConfig } from '@/config/server-config';
 import type { DecodedIdToken, UserRecord } from 'firebase-admin/auth';
 
 // --- Enhanced Session Cache with Cleanup ---
@@ -147,17 +144,18 @@ export async function verifySession(sessionCookie: string | undefined | null): P
         sessionCache.set(sessionCookie, decodedClaims);
         
         return decodedClaims;
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const typedError = error as { code: string };
         // Remove invalid session from cache
         sessionCache.delete(sessionCookie);
         
         // Log specific error types for monitoring
-        if (error.code === 'auth/session-cookie-expired') {
+        if (typedError.code === 'auth/session-cookie-expired') {
             console.info('[AuthUtils] Session cookie expired');
-        } else if (error.code === 'auth/session-cookie-revoked') {
+        } else if (typedError.code === 'auth/session-cookie-revoked') {
             console.info('[AuthUtils] Session cookie revoked');
         } else {
-            console.warn('[AuthUtils] Session verification failed:', error.code);
+            console.warn('[AuthUtils] Session verification failed:', typedError.code);
         }
         
         return null;
@@ -218,7 +216,7 @@ async function getActorFromUid(uid: string): Promise<GetActorResult> {
         }
 
         return { landlordId, actor };
-    } catch (e) {
+    } catch {
         return { landlordId: null, actor: null, error: new AuthError('User not found', 'USER_NOT_FOUND', 404) };
     }
 }
@@ -228,8 +226,9 @@ async function getActorFromCookie(cookie: string): Promise<GetActorResult> {
     try {
         const claims = await auth.verifySessionCookie(cookie, true);
         return getActorFromUid(claims.uid);
-    } catch (error: any) {
-        if (error.code === 'auth/session-cookie-expired') {
+    } catch (error: unknown) {
+        const typedError = error as { code: string };
+        if (typedError.code === 'auth/session-cookie-expired') {
             return { landlordId: null, actor: null, error: new SessionExpiredError() };
         }
         return { landlordId: null, actor: null, error: new InvalidSessionError() };

@@ -36,8 +36,9 @@ export async function POST(req: NextRequest) {
     const result = await analyzeDamage(validation.data);
     return NextResponse.json(result, { status: 200 });
 
-  } catch (error: any) {
-    console.error('[ERROR: /api/properties/analyze-damage POST]', error);
-    return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[ERROR: /api/properties/analyze-damage POST]', typedError);
+    return NextResponse.json({ error: typedError.message || 'An internal server error occurred.' }, { status: 500 });
   }
 }

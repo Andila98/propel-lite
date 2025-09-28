@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 
 const RegisterSchema = z.object({
     displayName: z.string().min(2, "Full name must be at least 2 characters."),
@@ -46,7 +47,7 @@ export default function RegisterPage() {
   
   const { register, handleSubmit, formState: { errors } } = form;
 
-  const handleRegister = async (data: RegisterFormValues) => {
+  const handleRegister = useCallback(async (data: RegisterFormValues) => {
     setIsLoading(true);
     try {
         const response = await fetch('/api/auth/signup', {
@@ -59,8 +60,8 @@ export default function RegisterPage() {
           let errorData = { error: 'Failed to create account due to a server error.' };
           try {
             errorData = await response.json();
-          } catch (e) {
-            console.error("Failed to parse error response as JSON.", e);
+          } catch {
+            // Ignore if parsing fails
           }
           throw new Error(errorData.error || 'Failed to create account.');
         }
@@ -70,20 +71,20 @@ export default function RegisterPage() {
             description: "Logging you in to begin setup...",
         });
 
-        // After successful signup, immediately log in to start the session
-        // The AuthProvider will then handle the redirect to onboarding.
-        await login(data.email, data.password);
+        // After successful signup, immediately log in to start the session.
+        await login(data.email, data.password, true);
         
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const typedError = error as Error;
         toast({
             title: "Registration Failed",
-            description: error.message,
+            description: typedError.message,
             variant: "destructive",
         });
     } finally {
         setIsLoading(false);
     }
-  };
+  }, [login, toast]);
   
   const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
@@ -94,16 +95,17 @@ export default function RegisterPage() {
             title: "Sign-Up Successful!",
             description: "Let's get you set up.",
         });
-    } catch (error: any) {
-       if (error.code === 'INCOMPLETE_PROFILE') {
+    } catch (error: unknown) {
+       const typedError = error as { code?: string; message: string };
+       if (typedError.code === 'INCOMPLETE_PROFILE') {
             toast({
                 title: "Setup Required",
                 description: "Redirecting you to complete your profile.",
             });
-        } else if (error.code !== 'auth/cancelled-popup-request') {
+        } else if (typedError.code !== 'auth/cancelled-popup-request') {
             toast({
                 title: "Social Sign-Up Failed",
-                description: error.message,
+                description: typedError.message,
                 variant: "destructive",
             });
         }
@@ -114,13 +116,14 @@ export default function RegisterPage() {
 
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
-      <Card className="w-full max-w-sm">
+     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+      <div className="flex items-center justify-center py-12">
+        <Card className="w-full max-w-sm border-none shadow-none">
           <CardHeader className="text-center">
              <div className="mb-4 flex justify-center">
-                <PropelLiteLogo className="h-12 w-12" />
+                <PropelLiteLogo className="h-16 w-16" />
             </div>
-            <CardTitle className="text-2xl">Create an account</CardTitle>
+            <CardTitle className="text-3xl font-bold">Create an account</CardTitle>
             <CardDescription>
               Enter your details below to create your landlord account.
             </CardDescription>
@@ -196,6 +199,17 @@ export default function RegisterPage() {
           </div>
           </CardContent>
       </Card>
+      </div>
+       <div className="hidden bg-muted lg:block">
+        <Image
+          src="https://picsum.photos/seed/register/1080/1920"
+          alt="Abstract pattern"
+          width="1920"
+          height="1080"
+          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          data-ai-hint="serene abstract pattern"
+        />
+      </div>
     </div>
   );
 }

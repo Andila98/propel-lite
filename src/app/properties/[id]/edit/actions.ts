@@ -3,20 +3,19 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { PropertyFormSchema } from '@/lib/schemas';
+import { PropertyFormSchema, PropertyFormValues } from '@/lib/schemas';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
+import { z } from 'zod';
 
 
 export interface FormState {
     error?: string;
-    errors?: {
-        [key: string]: string[];
-    };
+    errors?: z.ZodError<PropertyFormValues>['formErrors']['fieldErrors'];
     success?: boolean;
     propertyId?: string;
 }
@@ -30,7 +29,7 @@ export async function updatePropertyAction(
     return { error: 'Backend services are not configured. Please contact support.' };
   }
 
-  const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+  const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
   if (!sessionCookie) {
     return { error: 'Unauthorized. Please log in.' };
   }
@@ -107,8 +106,9 @@ export async function updatePropertyAction(
     
     return { success: true, propertyId };
 
-  } catch (error: any) {
-    console.error('[ERROR: updatePropertyAction]', error);
-    return { error: `Internal Server Error: ${error.message}` };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[ERROR: updatePropertyAction]', typedError);
+    return { error: `Internal Server Error: ${typedError.message}` };
   }
 }

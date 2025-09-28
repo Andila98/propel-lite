@@ -9,13 +9,14 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
 import { 
     PrioritizeMaintenanceInputSchema,
     PrioritizeMaintenanceOutputSchema,
     type PrioritizeMaintenanceInput,
     type PrioritizeMaintenanceOutput
 } from '@/lib/schema-types';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
 
 
 export async function prioritizeMaintenanceRequest(input: PrioritizeMaintenanceInput): Promise<PrioritizeMaintenanceOutput> {
@@ -45,13 +46,8 @@ const prioritizeMaintenanceFlow = ai.defineFlow(
     inputSchema: PrioritizeMaintenanceInputSchema,
     outputSchema: PrioritizeMaintenanceOutputSchema,
   },
-  async input => {
-    try {
-        const {output} = await prompt(input);
-        return output!;
-    } catch (error) {
-        console.error('[ERROR: prioritizeMaintenanceFlow]', error);
-        throw new Error('Failed to prioritize maintenance request due to an internal AI error.');
-    }
-  }
+  withMonitoring('prioritizeMaintenanceFlow', withErrorHandling('prioritizeMaintenanceFlow', async (input: PrioritizeMaintenanceInput) => {
+    const {output} = await prompt(input);
+    return output!;
+  }))
 );

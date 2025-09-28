@@ -22,19 +22,20 @@ if (admin.apps.length > 0) {
       isFirebaseAdminInitialized = true;
       console.log('[FIREBASE_ADMIN] Initialized successfully.');
 
-    } catch (e: any) {
-      console.error('[FIREBASE_ADMIN] CRITICAL: Failed to parse service account credentials. SDK not initialized.', e.message);
+    } catch (e: unknown) {
+      const typedError = e as Error;
+      console.error('[FIREBASE_ADMIN] CRITICAL: Failed to parse service account credentials. SDK not initialized.', typedError.message);
     }
   } else {
-    // This case is for local development using `gcloud auth application-default login`
+    // This case is for local development or testing using `gcloud auth application-default login`
     // It should NOT be used in production.
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
         admin.initializeApp({
             projectId: firebaseConfig.projectId,
             storageBucket: firebaseConfig.storageBucket,
         });
         isFirebaseAdminInitialized = true;
-        console.log('[FIREBASE_ADMIN] Initialized using Application Default Credentials for local development.');
+        console.log(`[FIREBASE_ADMIN] Initialized using Application Default Credentials for ${process.env.NODE_ENV} environment.`);
     } else {
        console.error('[FIREBASE_ADMIN] CRITICAL: GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable not set. Firebase Admin SDK cannot be initialized.');
     }

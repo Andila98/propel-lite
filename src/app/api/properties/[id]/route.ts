@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import type { Property } from '@/lib/types';
+import type { Property, Unit } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
 import { toJSON } from '@/lib/utils';
 import { getLandlordAndActor } from '@/lib/auth-utils';
@@ -39,12 +39,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
         
         const unitsSnapshot = await propertyDoc.ref.collection('units').get();
-        propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as any));
+        propertyData.units = unitsSnapshot.docs.map(unitDoc => ({ id: unitDoc.id, ...unitDoc.data() } as Unit));
         
         return NextResponse.json(toJSON(propertyData));
 
-    } catch (error: any) {
-        console.error(`[ERROR: /api/properties/{id} GET]`, error);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error(`[ERROR: /api/properties/{id} GET]`, typedError);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
@@ -96,8 +97,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         return NextResponse.json({ message: 'Property and its units deleted successfully.' }, { status: 200 });
 
-    } catch (error: any) {
-        console.error(`[ERROR: /api/properties/{id} DELETE]`, error);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error(`[ERROR: /api/properties/{id} DELETE]`, typedError);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }

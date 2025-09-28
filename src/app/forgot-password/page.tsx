@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -8,13 +7,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropelLiteLogo } from '@/components/icons/logo';
@@ -62,10 +54,11 @@ export default function ForgotPasswordPage() {
 
       setIsSuccess(true);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+       const typedError = error as Error;
        toast({
         title: "Error",
-        description: error.message,
+        description: typedError.message,
         variant: "destructive",
       });
     } finally {
@@ -79,7 +72,7 @@ export default function ForgotPasswordPage() {
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
             <div className="mb-4 flex justify-center">
-              <PropelLiteLogo className="h-12 w-12" />
+              <PropelLiteLogo className="h-16 w-16" />
             </div>
             <h1 className="text-3xl font-bold">Forgot your password?</h1>
             <p className="text-balance text-muted-foreground">
@@ -109,7 +102,7 @@ export default function ForgotPasswordPage() {
           ) : (
              <div className="mt-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                    Didn't receive an email? Check your spam folder or try again.
+                    Didn&apos;t receive an email? Check your spam folder or try again.
                 </p>
             </div>
           )}
@@ -123,8 +116,8 @@ export default function ForgotPasswordPage() {
       </div>
       <div className="hidden bg-muted lg:block">
         <Image
-          src="https://placehold.co/1080x1920.png"
-          alt="Image"
+          src="https://picsum.photos/seed/forgot-password/1080/1920"
+          alt="Abstract pattern"
           width="1920"
           height="1080"
           className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"

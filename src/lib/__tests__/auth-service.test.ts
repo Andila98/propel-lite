@@ -1,35 +1,11 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
-import { FieldValue } from 'firebase-admin/firestore';
-
-// Mock the entire firebase-admin library
-vi.mock('../firebase-admin', () => ({
-  auth: {
-    createUser: vi.fn(),
-    getUserByEmail: vi.fn(),
-    setCustomUserClaims: vi.fn(),
-  },
-  firestore: {
-    collection: vi.fn().mockReturnThis(),
-    doc: vi.fn().mockReturnThis(),
-    set: vi.fn(),
-  },
-  isFirebaseAdminInitialized: true,
-}));
-
-// Mock the FieldValue
-vi.mock('firebase-admin/firestore', () => ({
-  FieldValue: {
-    serverTimestamp: vi.fn(() => new Date()),
-  },
-}));
-
+import type { auth, firestore } from 'firebase-admin';
 
 describe('Auth Service', () => {
-  let mockAuth: any;
-  let mockFirestore: any;
+  let mockAuth: vi.Mocked<typeof auth>;
+  let mockFirestore: vi.Mocked<typeof firestore>;
 
   beforeEach(async () => {
     // Reset modules to ensure mocks are fresh for each test
@@ -37,8 +13,8 @@ describe('Auth Service', () => {
     
     // Dynamically import the mocked modules after resetting
     const admin = await import('../firebase-admin');
-    mockAuth = admin.auth;
-    mockFirestore = admin.firestore;
+    mockAuth = admin.auth as vi.Mocked<typeof auth>;
+    mockFirestore = admin.firestore as vi.Mocked<typeof firestore>;
     
     // Clear mocks before each test
     vi.clearAllMocks();

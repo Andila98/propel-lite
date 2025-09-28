@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { BarChartHorizontal, Calendar as CalendarIcon, Loader2, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -147,7 +146,7 @@ export default function ReportsPage() {
                 {!loading && !result && (
                     <div className="text-center text-muted-foreground pt-16 flex flex-col items-center">
                         <FileText className="h-12 w-12 mb-4" />
-                        <p>Select a month and click "Generate Report" to begin.</p>
+                        <p>Select a month and click &quot;Generate Report&quot; to begin.</p>
                     </div>
                 )}
             </CardContent>

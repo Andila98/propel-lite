@@ -10,11 +10,11 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
     try {
         await logoutRateLimit.check(req);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const cookieName = authConfig.cookieName;
     const sessionCookie = cookieStore.get(cookieName)?.value;
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
                 await auth.revokeRefreshTokens(decodedClaims.uid);
             }
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[ERROR: /api/auth/logout] Failed to revoke refresh tokens:', error);
         // Do not re-throw. The main goal is to log out the user by deleting the cookie.
     } finally {

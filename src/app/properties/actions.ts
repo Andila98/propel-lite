@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -18,7 +19,7 @@ export async function createPropertyAction(
   if (!isFirebaseAdminInitialized) {
     return { error: 'Backend services are not configured. Please contact support.' };
   }
-  const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+  const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
   if (!sessionCookie) {
     return { error: 'Unauthorized. Please log in.' };
   }
@@ -71,6 +72,7 @@ export async function createPropertyAction(
 
         units.forEach(unit => {
             const unitRef = propertyRef.collection('units').doc();
+            // Ensure landlordId is set on units
             transaction.set(unitRef, { ...unit, landlordId: landlordId });
         });
     });
@@ -82,8 +84,9 @@ export async function createPropertyAction(
     
     return { success: true, propertyId: propertyRef.id };
 
-  } catch (error: any) {
-    console.error('[ERROR: createPropertyAction]', error);
-    return { error: `Internal Server Error: ${error.message}` };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[ERROR: createPropertyAction]', typedError);
+    return { error: `Internal Server Error: ${typedError.message}` };
   }
 }

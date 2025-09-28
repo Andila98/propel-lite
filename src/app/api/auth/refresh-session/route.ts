@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
@@ -30,7 +29,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ERROR: /api/auth/refresh-session]', error);
     return NextResponse.json({ error: 'Failed to refresh session.' }, { status: 401 });
   }

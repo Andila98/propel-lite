@@ -9,29 +9,38 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { ReportInputSchema, ReportOutputSchema, type ReportInput, type ReportOutput } from '@/lib/schema-types';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
+import type { Timestamp } from 'firebase-admin/firestore';
 
+interface PaymentData {
+    amount: number;
+    date: Timestamp;
+}
 
 async function getReportData(input: ReportInput) {
     if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");
     const startDate = startOfMonth(new Date(input.year, input.month));
     const endDate = endOfMonth(new Date(input.year, input.month));
 
-    // Fetch all relevant data in parallel
+    // Fetch all relevant data in parallel, scoped to the landlord
     const [
         paymentsSnapshot,
         unitsSnapshot,
         maintenanceSnapshot
     ] = await Promise.all([
         firestore.collection('payments')
+            .where('landlordId', '==', input.landlordId)
             .where('date', '>=', startDate)
             .where('date', '<=', endDate)
             .get(),
-        firestore.collectionGroup('units').get(),
+        firestore.collectionGroup('units').where('landlordId', '==', input.landlordId).get(),
         firestore.collection('maintenanceRequests')
+            .where('landlordId', '==', input.landlordId)
             .where('submittedDate', '>=', startDate.toISOString())
             .where('submittedDate', '<=', endDate.toISOString())
             .get(),
@@ -45,7 +54,7 @@ async function getReportData(input: ReportInput) {
     const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
     
     // This is a simplified calculation for late payments
-    const latePayments = paymentsSnapshot.docs.filter(doc => (doc.data().date as any).toDate().getDate() > 5).length;
+    const latePayments = paymentsSnapshot.docs.filter(doc => (doc.data() as PaymentData).date.toDate().getDate() > 5).length;
     
     const newMaintenanceRequests = maintenanceSnapshot.size;
 
@@ -82,6 +91,10 @@ Data:
 - New Maintenance Requests: {{newMaintenanceRequests}}
 
 Analyze the data to identify positive trends (highlights) and potential issues (areas for improvement). Be specific and provide actionable insights.`,
+    config: {
+        temperature: 0.6,
+        timeout: 20, // 20-second timeout
+    },
 });
 
 
@@ -91,23 +104,18 @@ export const generateReportFlow = ai.defineFlow(
     inputSchema: ReportInputSchema,
     outputSchema: ReportOutputSchema,
   },
-  async (input) => {
-    try {
-        const reportData = await getReportData(input);
-        
-        const llmInput = {
-            ...reportData,
-            month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
-            year: input.year,
-        };
-        
-        const { output } = await prompt(llmInput);
-        return output!;
-    } catch (error) {
-        console.error('[ERROR: generateReportFlow]', error);
-        throw new Error('Failed to generate report due to an internal AI error.');
-    }
-  }
+  withMonitoring('generateReportFlow', withErrorHandling('generateReportFlow', async (input: ReportInput) => {
+    const reportData = await getReportData(input);
+    
+    const llmInput = {
+        ...reportData,
+        month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
+        year: input.year,
+    };
+    
+    const { output } = await prompt(llmInput);
+    return output!;
+  }))
 );
 
 export async function generateReport(input: ReportInput): Promise<ReportOutput> {

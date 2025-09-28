@@ -1,7 +1,8 @@
 
+
 "use client"
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from 'next/image';
@@ -13,15 +14,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Image as ImageIcon, Upload, Info, Loader2, XCircle } from 'lucide-react';
+import { Image as ImageIcon, Upload, Info, Loader2, XCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { PropertyFormSchema, type PropertyFormValues } from '@/lib/schemas';
+import { PropertyFormSchema, type PropertyFormValues, UnitSchema } from '@/lib/schemas';
 import { AnimatedDeleteIcon } from '@/components/icons/animated-delete-icon';
 import Papa from 'papaparse';
 import type { Unit } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFormStatus } from 'react-dom';
 import type { FormState } from '@/app/properties/[id]/edit/actions';
+import { useRouter } from 'next/navigation';
+
 
 interface PropertyFormProps {
     formAction: (payload: FormData) => void;
@@ -57,9 +60,22 @@ const unitTypes = [
     "Garden Apartment"
 ];
 
+// Type for nested unit errors from Zod
+type UnitError = {
+  unitNumber?: string[];
+  rent?: string[];
+  size?: string[];
+  isOccupied?: string[];
+};
 
-export function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
+// Type guard to check if an object is a UnitError
+function isUnitError(obj: unknown): obj is UnitError {
+  return typeof obj === 'object' && obj !== null;
+}
+
+export const PropertyForm = React.memo(function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -75,8 +91,31 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
     },
   });
   
-  const { register, control, handleSubmit, formState, setValue, watch, getValues, setError, reset } = form;
-  const { errors } = formState;
+  const { register, control, setValue, watch, reset } = form;
+
+  // Handle form state changes from the server action
+  useEffect(() => {
+    if (initialState.success && initialState.propertyId) {
+      toast({
+        title: isOnboarding ? "Property Added!" : "Property Updated!",
+        description: "Your property has been successfully saved.",
+      });
+      if (isOnboarding) {
+        router.push(`/onboarding/add-property-manager?propertyId=${initialState.propertyId}`);
+      } else if (initialData) {
+        router.push(`/properties/${initialState.propertyId}`);
+      } else {
+         router.push('/properties');
+      }
+    }
+    if (initialState.error && !initialState.errors) {
+       toast({
+            title: "Operation Failed",
+            description: `There was an error saving your property: ${initialState.error}`,
+            variant: "destructive"
+        });
+    }
+  }, [initialState, router, toast, isOnboarding, initialData]);
 
   useEffect(() => {
     if (initialData) {
@@ -85,7 +124,7 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
     }
   }, [initialData, reset]);
 
-  const { fields, append, remove, replace } = useFieldArray({
+  const { fields, remove, replace } = useFieldArray({
     control,
     name: "units",
   });
@@ -93,16 +132,6 @@ export function PropertyForm({ formAction, initialState, initialData, isOnboardi
   const propertyType = watch("type");
   const numberOfUnits = watch("numberOfUnits");
 
-  const addUnit = () => {
-    append({
-        unitNumber: `Unit ${fields.length + 1}`,
-        rent: 1000,
-        size: '1 Bedroom',
-        isOccupied: false
-    });
-    const currentNum = numberOfUnits || 0;
-    setValue("numberOfUnits", currentNum + 1);
-  };
   
 const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,11 +158,12 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             setImagePreview(url);
             toast({ title: 'Success', description: 'Image uploaded successfully.' });
             
-        } catch (error: any) {
-            console.error('[ERROR] Upload failed:', error);
+        } catch (error: unknown) {
+            const typedError = error as Error;
+            console.error('[ERROR] Upload failed:', typedError);
             toast({ 
                 title: 'Upload Error', 
-                description: error.message, 
+                description: typedError.message, 
                 variant: 'destructive'
             });
         } finally {
@@ -154,31 +184,48 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         header: true,
         skipEmptyLines: true,
         complete: (result) => {
-          try {
-              const units = result.data.map((row: any): Partial<Unit> => ({
-                unitNumber: row.unitNumber || '',
-                size: row.size || '',
-                rent: parseFloat(row.rent) || 0,
-                isOccupied: String(row.isOccupied).toLowerCase() === 'true',
-              }));
-              replace(units as any);
-              setValue("numberOfUnits", units.length);
-              toast({
-                title: "CSV Parsed!",
-                description: `${units.length} units have been loaded from the file.`
-              })
-          } catch (error) {
-              toast({
-                  title: "CSV Parsing Error",
-                  description: "Could not parse CSV. Make sure it has headers: unitNumber, size, rent, isOccupied.",
-                  variant: "destructive"
-              });
+          const validatedUnits: Unit[] = [];
+          let validationError = null;
+
+          for (let i = 0; i < result.data.length; i++) {
+            const row: Record<string, unknown> = result.data[i] as Record<string, unknown>;
+            const parsedRow = {
+              unitNumber: row.unitNumber,
+              size: row.size,
+              rent: parseFloat(row.rent as string),
+              isOccupied: String(row.isOccupied).toLowerCase() === 'true',
+            };
+            
+            const validation = UnitSchema.safeParse(parsedRow);
+            if (validation.success) {
+              validatedUnits.push(validation.data as Unit);
+            } else {
+              const firstError = validation.error.errors[0];
+              validationError = `Row ${i + 2}: ${firstError.path.join('.')} - ${firstError.message}`;
+              break; // Stop on first error
+            }
+          }
+
+          if (validationError) {
+             toast({
+                title: "CSV Validation Error",
+                description: validationError,
+                variant: "destructive",
+            });
+          } else {
+            replace(validatedUnits);
+            setValue("numberOfUnits", validatedUnits.length);
+            toast({
+              title: "CSV Parsed!",
+              description: `${validatedUnits.length} units have been successfully loaded and validated.`,
+            });
           }
         },
-        error: (error) => {
+        error: (error: unknown) => {
+            const typedError = error as Error;
             toast({
-                title: "CSV Error",
-                description: error.message,
+                title: "CSV Parsing Error",
+                description: typedError.message,
                 variant: "destructive"
             });
         }
@@ -221,35 +268,10 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
   
-  const clientAction = (formData: FormData) => {
-    // This is the client-side validation before submitting to the server action.
-    handleSubmit((data) => {
-      // Append all form data to the FormData object to be sent to the server action.
-      Object.keys(data).forEach(key => {
-        const value = (data as any)[key];
-        if (key === 'units') {
-          formData.set(key, JSON.stringify(value));
-        } else if (value !== undefined && value !== null) {
-          formData.set(key, String(value));
-        }
-      });
-      // The `imageUrl` is handled separately because it's part of the React Hook Form state
-      // but not a direct input in the form itself. This ensures the uploaded URL is sent.
-      const imageUrl = getValues('imageUrl');
-      if (imageUrl) {
-        formData.set('imageUrl', imageUrl);
-      } else {
-        formData.delete('imageUrl');
-      }
-      
-      formAction(formData);
-    })();
-  };
-  
   const cardHeader = isOnboarding ? (
       <CardHeader>
         <CardTitle>Step 2: Add Your First Property</CardTitle>
-        <CardDescription>Let's start by adding details about one of your properties. You can add more later.</CardDescription>
+        <CardDescription>Let&apos;s start by adding details about one of your properties. You can add more later.</CardDescription>
       </CardHeader>
   ) : (
       <CardHeader>
@@ -260,7 +282,11 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <TooltipProvider>
-    <form action={clientAction}>
+    <form action={formAction}>
+         {/* Hidden inputs to pass complex data not supported by native FormData */}
+        <input type="hidden" {...register('imageUrl')} />
+        <input type="hidden" value={JSON.stringify(watch('units'))} {...register('units')} />
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-6">
                 <Card>
@@ -318,7 +344,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                   name="type"
                                   control={control}
                                   render={({ field }) => (
-                                      <Select onValueChange={(value) => handlePropertyTypeChange(value as any)} defaultValue={field.value} name={field.name}>
+                                      <Select onValueChange={(value) => handlePropertyTypeChange(value as 'Apartment' | 'House' | 'Bedsitter')} defaultValue={field.value} name={field.name}>
                                       <SelectTrigger id="type">
                                           <SelectValue placeholder="Select a type..." />
                                       </SelectTrigger>
@@ -408,7 +434,11 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 {(propertyType && fields.length > 0) && <Separator />}
 
                 <div className="space-y-6">
-                    {fields.map((field, index) => (
+                    {fields.map((field, index) => {
+                      const unitErrorForIndex = initialState?.errors?.units?.[index];
+                      const unitError = isUnitError(unitErrorForIndex) ? unitErrorForIndex : null;
+                      
+                      return (
                       <Card key={field.id} className="p-4">
                         <div className="flex justify-between items-center mb-4">
                           <h4 className="text-lg font-medium">
@@ -425,7 +455,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                            <div>
                             <Label htmlFor={`units.${index}.unitNumber`}>Unit Number</Label>
                             <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
-                             {initialState?.errors?.units?.[index]?.unitNumber && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].unitNumber[0]}</p>}
+                             {unitError?.unitNumber && <p className="text-sm text-destructive mt-1">{unitError.unitNumber[0]}</p>}
                           </div>
                           <div>
                                 <Label htmlFor={`units.${index}.size`}>Size/Type</Label>
@@ -445,12 +475,12 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                         </Select>
                                     )}
                                 />
-                                {initialState?.errors?.units?.[index]?.size && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].size[0]}</p>}
+                                {unitError?.size && <p className="text-sm text-destructive mt-1">{unitError.size[0]}</p>}
                             </div>
                           <div>
                             <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
                             <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`, { valueAsNumber: true })} />
-                            {initialState?.errors?.units?.[index]?.rent && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].rent[0]}</p>}
+                            {unitError?.rent && <p className="text-sm text-destructive mt-1">{unitError.rent[0]}</p>}
                           </div>
                           <div className="flex items-center space-x-2 pt-6">
                                <Controller
@@ -468,14 +498,8 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                             </div>
                         </div>
                       </Card>
-                    ))}
-                     {propertyType === 'Apartment' && (
-                        <Button type="button" variant="outline" onClick={addUnit}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Another Unit
-                        </Button>
-                    )}
-                    {initialState?.errors?.units && typeof initialState.errors.units === 'string' && <p className="text-sm text-destructive mt-1">{initialState.errors.units}</p>}
+                    )})}
+                     {initialState?.errors?.units && typeof initialState.errors.units === 'string' && <p className="text-sm text-destructive mt-1">{initialState.errors.units}</p>}
                 </div>
             </div>
             <div className="lg:col-span-2 space-y-6">
@@ -527,4 +551,4 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     </form>
     </TooltipProvider>
   );
-}
+});

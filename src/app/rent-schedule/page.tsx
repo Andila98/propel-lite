@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -128,7 +129,7 @@ const DayCell = ({ day, statuses, reminders }: { day: Date, statuses: TenantWith
 const StatsCard = ({ title, value, icon: Icon, trend, color }: {
   title: string;
   value: string | number;
-  icon: any;
+  icon: React.ElementType;
   trend?: string;
   color?: string;
 }) => (
@@ -152,7 +153,7 @@ export default function RentSchedulePage() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -178,8 +179,9 @@ export default function RentSchedulePage() {
         setProperties(propertiesData.properties || []);
         setPayments(paymentsData);
         setReminders(remindersData || []);
-      } catch (error) {
-        toast({ title: "Error", description: "Could not load schedule data.", variant: "destructive" });
+      } catch (error: unknown) {
+        const typedError = error as Error;
+        toast({ title: "Error", description: `Could not load schedule data: ${typedError.message}`, variant: "destructive" });
       } finally {
         setDataLoading(false);
       }
@@ -205,7 +207,7 @@ export default function RentSchedulePage() {
           const paymentsThisMonth = payments
             .filter(p => {
               if (p.tenantId !== tenant.id) return false;
-              const paymentDate = new Date(p.date);
+              const paymentDate = new Date(p.date as string);
               return paymentDate.getMonth() === currentDate.getMonth() && 
                      paymentDate.getFullYear() === currentDate.getFullYear() && 
                      p.type === 'Rent';
@@ -237,7 +239,7 @@ export default function RentSchedulePage() {
         });
       }
       
-      events[dayKey].reminders = Array.isArray(reminders) ? reminders.filter(r => isSameDay(new Date(r.scheduledFor), day)) : [];
+      events[dayKey].reminders = (reminders || []).filter(r => isSameDay(new Date(r.scheduledFor), day));
     });
     return events;
   }, [tenants, properties, payments, reminders, currentDate, dataLoading, rentDueDate, filterStatus, searchTerm]);

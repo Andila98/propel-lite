@@ -10,6 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import { AnalyzeDamageInputSchema, AnalyzeDamageOutputSchema, type AnalyzeDamageInput, type AnalyzeDamageDetections } from '@/lib/schema-types';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
 
 
 export async function analyzeDamage(input: AnalyzeDamageInput): Promise<AnalyzeDamageDetections> {
@@ -33,13 +35,8 @@ const analyzeDamageFlow = ai.defineFlow(
     inputSchema: AnalyzeDamageInputSchema,
     outputSchema: AnalyzeDamageOutputSchema,
   },
-  async input => {
-    try {
-      const {output} = await prompt(input);
-      return output!;
-    } catch (error) {
-        console.error('[ERROR: analyzeDamageFlow]', error);
-        throw new Error('Failed to analyze damage due to an internal AI error.');
-    }
-  }
+  withMonitoring('analyzeDamageFlow', withErrorHandling('analyzeDamageFlow', async (input: AnalyzeDamageInput) => {
+    const {output} = await prompt(input);
+    return output!;
+  }))
 );

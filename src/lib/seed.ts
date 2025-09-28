@@ -1,4 +1,5 @@
 
+
 /**
  * @fileoverview This script seeds the Firestore database with sample data.
  * It's intended for development and testing purposes.
@@ -13,6 +14,7 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import type { Property, Unit, Tenant, Payment, MaintenanceRequest } from './types';
+import { sub, addYears } from 'date-fns';
 
 // Load service account credentials from environment variables
 const serviceAccountKeyBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
@@ -27,8 +29,9 @@ try {
   initializeApp({
     credential: cert(serviceAccount),
   });
-} catch(e) {
-  console.error("Failed to parse or initialize Firebase Admin SDK:", e);
+} catch (e: unknown) {
+  const error = e as Error;
+  console.error("Failed to parse or initialize Firebase Admin SDK:", error.message);
   process.exit(1);
 }
 
@@ -96,8 +99,12 @@ async function clearData() {
       .map(u => u.uid);
       
     if(uidsToDelete.length > 0) {
-      await auth.deleteUsers(uidsToDelete);
-      console.log(`Deleted ${uidsToDelete.length} users.`);
+      try {
+        await auth.deleteUsers(uidsToDelete);
+        console.log(`Deleted ${uidsToDelete.length} users.`);
+      } catch (error) {
+        console.error('Error deleting users:', error);
+      }
     }
     
     console.log("Data deleted.");
@@ -120,8 +127,9 @@ async function seedDatabase() {
           displayName: "Demo Landlord"
       });
       
-  } catch (error: any) {
-      if (error.code === 'auth/email-already-exists') {
+  } catch (error: unknown) {
+      const typedError = error as { code?: string };
+      if (typedError.code === 'auth/email-already-exists') {
           console.log("Landlord already exists, fetching...");
           landlord = await auth.getUserByEmail(LANDLORD_EMAIL);
       } else {
@@ -146,10 +154,11 @@ async function seedDatabase() {
   console.log("Creating properties and units...");
   const propertyTypes: Property['type'][] = ['Apartment', 'Apartment', 'House'];
   const properties: Property[] = [];
+  const now = new Date();
 
   for (const type of propertyTypes) {
     const propertyRef = db.collection('properties').doc();
-    const newPropertyData: Omit<Property, 'id' | 'units' | 'createdAt'> = {
+    const newPropertyData: Omit<Property, 'id' | 'units' | 'createdAt' | 'updatedAt'> = {
       name: `${faker.location.street()
         .split(' ').slice(1).join(' ')} Heights`,
       address: faker.location.streetAddress(false),
@@ -158,17 +167,23 @@ async function seedDatabase() {
       imageUrl: faker.image.urlLoremFlickr({ category: 'building', width: 800, height: 500 }),
       description: faker.lorem.paragraph(),
       currency: "KES",
-      updatedAt: FieldValue.serverTimestamp() as any,
     };
     
     const propertyWithTimestamp = {
         ...newPropertyData,
-        createdAt: FieldValue.serverTimestamp()
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
     }
 
     await propertyRef.set(propertyWithTimestamp);
     
-    const createdProperty = { id: propertyRef.id, ...newPropertyData, units: [] } as Property;
+    const createdProperty: Property = {
+        id: propertyRef.id,
+        units: [],
+        createdAt: now as unknown as FirebaseFirestore.Timestamp,
+        updatedAt: now as unknown as FirebaseFirestore.Timestamp,
+        ...newPropertyData
+    };
 
     // Create Units for the property
     const unitCount = type === 'Apartment' ? faker.number.int({ min: 4, max: 10 }) : 1;
@@ -224,8 +239,8 @@ async function seedDatabase() {
          landlordId,
          currentUnitId: unit.id,
          rentStatus: 'Paid',
-         leaseStart: faker.date.past({ years: 1 }) as any,
-         leaseEnd: faker.date.future({ years: 1 }) as any,
+         leaseStart: sub(now, { years: 1 }) as unknown as FirebaseFirestore.Timestamp,
+         leaseEnd: addYears(now, 1) as unknown as FirebaseFirestore.Timestamp,
          paymentHistory: [],
        };
        await tenantRef.set(newTenant);
@@ -256,7 +271,7 @@ async function seedDatabase() {
                 propertyId: tenant.propertyId,
                 unitId: tenant.currentUnitId,
                 amount: unit.rent + faker.number.int({ min: -1000, max: 1000 }),
-                date: faker.date.past({ months: k }) as any,
+                date: sub(new Date(), { months: k + 1 }).toISOString(),
                 method: faker.helpers.arrayElement(['Mpesa', 'Stripe', 'Card']),
                 status: 'confirmed',
                 type: 'Rent',
@@ -286,7 +301,7 @@ async function seedDatabase() {
             propertyAddress: property.address,
             description: faker.lorem.sentence(),
             status: faker.helpers.arrayElement(['Pending', 'In Progress', 'Completed']),
-            submittedDate: faker.date.past({ months: 2 }) as any,
+            submittedDate: faker.date.recent({ days: 30 }).toISOString(),
             priority: faker.helpers.arrayElement(['High', 'Medium', 'Low']),
             reasoning: faker.lorem.sentence(),
         };
@@ -300,7 +315,8 @@ async function seedDatabase() {
 }
 
 
-seedDatabase().catch(e => {
-  console.error("Seeding failed:", e);
+seedDatabase().catch((e: unknown) => {
+  const error = e as Error;
+  console.error("Seeding failed:", error.message);
   process.exit(1);
 });

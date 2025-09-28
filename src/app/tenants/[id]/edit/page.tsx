@@ -53,7 +53,7 @@ export default function EditTenantPage() {
     resolver: zodResolver(TenantUpdateSchema),
   });
   
-  const { register, control, formState: { errors }, reset, watch, getValues, setValue } = form;
+  const { register, control, reset, watch, setValue } = form;
   
   useEffect(() => {
     if (state.success) {
@@ -91,7 +91,7 @@ export default function EditTenantPage() {
 
             if (!propertiesRes.ok) throw new Error('Failed to fetch properties.');
             const propertiesData = await propertiesRes.json();
-            setProperties(propertiesData || []);
+            setProperties(propertiesData.properties || []);
 
             // Reset form with fetched data
             const leaseStart = tenantData.leaseStart ? new Date(tenantData.leaseStart) : new Date();
@@ -107,8 +107,9 @@ export default function EditTenantPage() {
                 leaseEnd: format(leaseEnd, 'yyyy-MM-dd'),
             });
 
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            toast({ title: "Error", description: typedError.message, variant: "destructive" });
         } finally {
             setTenantLoading(false);
             setPropertiesLoading(false);
@@ -116,14 +117,6 @@ export default function EditTenantPage() {
     }
     fetchInitialData();
   }, [tenantId, reset, toast]);
-
-  const clientAction = (formData: FormData) => {
-    const values = getValues();
-    // Use the value from the form state, not the server data
-    formData.append('propertyId', values.propertyId);
-    formData.append('currentUnitId', values.currentUnitId);
-    formAction(formData);
-  }
   
   const selectedPropertyId = watch('propertyId');
   const availableUnits = properties.find(p => p.id === selectedPropertyId)?.units?.filter((u: Unit) => !u.isOccupied || u.id === tenant?.currentUnitId) || [];
@@ -172,7 +165,7 @@ export default function EditTenantPage() {
                 <CardDescription>Modify the details for {tenant.name}.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={clientAction} className="space-y-4">
+                <form action={formAction} className="space-y-4">
                 <div>
                     <Label htmlFor="name">Tenant Full Name</Label>
                     <Input id="name" {...register("name")} autoComplete="name" />
@@ -260,3 +253,5 @@ export default function EditTenantPage() {
     </div>
   );
 }
+
+    

@@ -1,10 +1,8 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { toJSON } from '@/lib/utils';
-import type { Permission } from '@/lib/types';
 import { authConfig } from '@/config/server-config';
 
 export const runtime = 'nodejs';
@@ -34,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         
         return NextResponse.json(toJSON({ id: managerDoc.id, ...managerDoc.data() }), { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`[ERROR: /api/managers/{id} GET]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
@@ -73,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         await logActivity(actor.displayName || 'Admin', `Updated manager "${body.name}"`, { type: 'Manager', name: body.name }, landlordId);
 
         return NextResponse.json({ message: 'Manager updated successfully.' }, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`[ERROR: /api/managers/{id} PUT]`, error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
@@ -111,7 +109,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         await logActivity(actor.displayName || 'Admin', `Deleted manager "${managerData?.name}"`, { type: 'Manager', name: managerData?.name }, landlordId);
 
         return NextResponse.json({ message: 'Manager successfully deleted.' }, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`[ERROR: /api/managers/{id} DELETE]`, error);
       return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }

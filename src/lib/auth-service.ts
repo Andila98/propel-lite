@@ -1,9 +1,9 @@
-
 'use server';
 
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
+import { FieldValue } from 'firebase-admin/firestore';
 
 if (!isFirebaseAdminInitialized) {
     throw new Error('Firebase Admin SDK is not initialized. Authentication services are unavailable.');
@@ -36,18 +36,19 @@ export async function signUpUser({ email, password, displayName }: { email: stri
             email: userRecord.email,
             name: userRecord.displayName,
             role: 'landlord',
-            createdAt: new Date(),
+            createdAt: FieldValue.serverTimestamp(),
         });
 
         return userRecord;
 
-    } catch (error: any) {
-        console.error('[AUTH_SERVICE_ERROR] Failed to sign up user:', error);
+    } catch (error: unknown) {
+        const typedError = error as { code?: string, message: string };
+        console.error('[AUTH_SERVICE_ERROR] Failed to sign up user:', typedError);
         // Transform the error to a more user-friendly message
-        if (error.code === 'auth/email-already-exists') {
+        if (typedError.code === 'auth/email-already-exists') {
             throw new Error('An account with this email already exists.');
         }
-        throw new Error(`Could not sign up user: ${error.message}`);
+        throw new Error(`Could not sign up user: ${typedError.message}`);
     }
 }
 
@@ -71,14 +72,14 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         landlord: 'landlords'
     };
     const collectionName = collections[userRoleClaim];
-    let firestoreProfile: any = {};
+    let firestoreProfile: Record<string, unknown> = {};
     
     if (collectionName) {
         const docRef = firestore.collection(collectionName).doc(userRecord.uid);
         const doc = await docRef.get();
         
         if (doc.exists) {
-            firestoreProfile = doc.data();
+            firestoreProfile = doc.data() || {};
         } else {
             // If a user exists in Auth but not Firestore (e.g. social sign-in), create a profile.
             console.log(`[AUTH_SERVICE] No Firestore profile found for UID ${uid}. Creating one in '${collectionName}'.`);
@@ -87,7 +88,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
                 email: userRecord.email,
                 name: userRecord.displayName || 'New User',
                 role: userRoleClaim,
-                createdAt: new Date(),
+                createdAt: FieldValue.serverTimestamp(),
                 // For managers, you might want to set default empty permissions
                 ...(userRoleClaim === 'manager' && { permissions: {}, propertiesManaged: [] }),
             };
@@ -103,15 +104,15 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         uid: userRecord.uid,
         email: userRecord.email || '',
         // Prioritize Firestore name, but fall back to Auth display name if Firestore's is missing.
-        name: firestoreProfile.name || userRecord.displayName || 'Unnamed User',
+        name: (firestoreProfile.name as string) || userRecord.displayName || 'Unnamed User',
         // Prioritize Firestore role, but fall back to the auth claim.
-        role: firestoreProfile.role || userRoleClaim,
+        role: (firestoreProfile.role as User['role']) || userRoleClaim,
         profileComplete: userRecord.customClaims?.profileComplete ?? false,
         // Auth is the source of truth for avatar.
         avatarUrl: userRecord.photoURL || undefined,
         // Ensure permissions from Firestore are included.
-        permissions: firestoreProfile.permissions || {},
-    };
+        permissions: (firestoreProfile.permissions as User['permissions']) || {},
+    } as User;
 }
 
 

@@ -10,6 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import { GenerateMessageInputSchema, GenerateMessageOutputSchema, type GenerateMessageInput, type GenerateMessageOutput } from '@/lib/schema-types';
+import { withErrorHandling } from '@/lib/flow-errors';
+import { withMonitoring } from '@/lib/flow-monitor';
 
 
 export async function generateMessage(input: GenerateMessageInput): Promise<GenerateMessageOutput> {
@@ -40,13 +42,8 @@ const generateMessageFlow = ai.defineFlow(
     inputSchema: GenerateMessageInputSchema,
     outputSchema: GenerateMessageOutputSchema,
   },
-  async input => {
-    try {
-        const {output} = await prompt(input);
-        return output!;
-    } catch (error) {
-        console.error('[ERROR: generateMessageFlow]', error);
-        throw new Error('Failed to generate message due to an internal AI error.');
-    }
-  }
+  withMonitoring('generateMessageFlow', withErrorHandling('generateMessageFlow', async (input: GenerateMessageInput) => {
+    const {output} = await prompt(input);
+    return output!;
+  }))
 );

@@ -13,13 +13,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Property } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface PropertyTableProps {
   properties: Property[];
 }
 
-export function PropertyTable({ properties }: PropertyTableProps) {
+export const PropertyTable = React.memo(function PropertyTable({ properties }: PropertyTableProps) {
   const router = useRouter();
 
   const handleRowClick = (propertyId: string) => {
@@ -101,4 +101,4 @@ export function PropertyTable({ properties }: PropertyTableProps) {
       </TableBody>
     </Table>
   );
-}
+});

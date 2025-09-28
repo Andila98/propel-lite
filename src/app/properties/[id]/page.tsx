@@ -1,9 +1,11 @@
-
 "use client";
 
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import useSWR from 'swr';
 import {
   Card,
   CardContent,
@@ -17,14 +19,20 @@ import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
 import type { Property, Unit } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Wand2 } from 'lucide-react';
-import { DamageAnalysisDialog } from '@/components/damage-analysis-dialog';
+import { Camera, Wand2, CheckCircle, Clock } from 'lucide-react';
 import { DeletePropertyButton } from './delete-property-button';
-import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { fetcher } from '@/lib/utils';
 
+const DamageAnalysisDialog = dynamic(
+  () => import("@/components/damage-analysis-dialog").then((mod) => mod.DamageAnalysisDialog),
+  {
+    ssr: false,
+    loading: () => <p>Loading...</p>
+  }
+)
 
 const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
     return new Intl.NumberFormat('en-US', {
@@ -37,35 +45,20 @@ const formatCurrency = (amount: number, currencyCode: string = 'KES') => {
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const propertyId = id as string;
-  const [property, setProperty] = useState<Property | null>(null);
-  const [propertyLoading, setPropertyLoading] = useState(true);
-  const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
+  const { data: property, error, isLoading: propertyLoading } = useSWR<Property>(propertyId ? `/api/properties/${propertyId}` : null, fetcher);
+  const [isDamageDialogOpen, setIsDamageDialogOpen] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
   const canEdit = user?.role === 'landlord' || user?.permissions?.canEditProperties;
   const canDelete = user?.role === 'landlord' || user?.permissions?.canDeleteProperties;
   
-  useEffect(() => {
-    async function fetchProperty() {
-        if (!propertyId) {
-            setPropertyLoading(false);
-            return;
-        }
-        setPropertyLoading(true);
-        try {
-            const res = await fetch(`/api/properties/${propertyId}`);
-            if (!res.ok) throw new Error('Failed to fetch property details.');
-            const data = await res.json();
-            setProperty(data);
-        } catch (err: any) {
-            toast({ title: 'Error', description: err.message, variant: 'destructive' });
-        } finally {
-            setPropertyLoading(false);
-        }
+  React.useEffect(() => {
+    if(error) {
+      toast({ title: 'Error', description: error.info?.error || error.message || 'Failed to fetch property details.', variant: 'destructive' });
     }
-    fetchProperty();
-  }, [propertyId, toast]);
+  }, [error, toast]);
+
 
   if (propertyLoading) {
     return (
@@ -131,7 +124,7 @@ export default function PropertyDetailPage() {
         <div className="lg:col-span-3">
              <Card className="overflow-hidden">
                 <Image
-                    src={property.imageUrl || "https://placehold.co/800x500.png"}
+                    src={property.imageUrl || "https://picsum.photos/seed/prop1/800/500"}
                     alt={property.name || 'Property Image'}
                     width={800}
                     height={500}
@@ -183,18 +176,41 @@ export default function PropertyDetailPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {property.units.map((unit: Unit) => (
+                            {property.units && property.units.map((unit: Unit) => (
                                     <TableRow key={unit.id}>
                                         <TableCell className="font-medium">{unit.unitNumber}</TableCell>
                                         <TableCell>{unit.size}</TableCell>
                                         <TableCell>{formatCurrency(unit.rent, property.currency || 'KES')}</TableCell>
                                         <TableCell>
-                                            <Badge variant={unit.isOccupied ? 'secondary' : 'outline'}>
-                                                {unit.isOccupied ? 'Occupied' : 'Vacant'}
+                                            <Badge 
+                                                variant={unit.isOccupied ? 'default' : 'secondary'}
+                                                className={unit.isOccupied 
+                                                  ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' 
+                                                  : 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200'
+                                                }
+                                            >
+                                                {unit.isOccupied ? (
+                                                  <>
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    Occupied
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Clock className="h-3 w-3 mr-1" />
+                                                    Vacant
+                                                  </>
+                                                )}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>
-                                )
+                                ))
+                            }
+                             {!property.units || property.units.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                        No units found for this property.
+                                    </TableCell>
+                                </TableRow>
                             )}
                         </TableBody>
                     </Table>

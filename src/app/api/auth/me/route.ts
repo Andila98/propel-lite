@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifySession } from '@/lib/auth-utils';
@@ -34,7 +33,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(toJSON(userProfile), { status: 200 });
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ERROR: /api/auth/me]', error);
     // This will catch any unexpected errors during profile fetching or other operations.
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });

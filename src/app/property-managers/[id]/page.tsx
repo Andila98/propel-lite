@@ -59,10 +59,11 @@ export default function PropertyManagerDetailPage() {
 
             if (!propertiesRes.ok) throw new Error("Failed to fetch properties.");
             const propertiesData = await propertiesRes.json();
-            setProperties(propertiesData);
+            setProperties(propertiesData.properties);
 
-        } catch(err: any) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch(err: unknown) {
+            const typedError = err as Error;
+            toast({ title: "Error", description: typedError.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -92,8 +93,9 @@ export default function PropertyManagerDetailPage() {
           description: `${manager.name} has been removed from your records.`,
         });
         router.push('/property-managers');
-    } catch(err: any) {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch(err: unknown) {
+        const typedError = err as Error;
+        toast({ title: "Error", description: typedError.message, variant: "destructive" });
     }
   };
   

@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "postinstall": "patch-package",
-    "seed": "tsx src/lib/seed.ts"
+    "seed": "tsx src/lib/seed.ts",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.0.0",
@@ -40,6 +41,7 @@
     "@supabase/supabase-js": "^2.44.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.0.0",
     "cookie": "^0.6.0",
     "date-fns": "^3.6.0",
     "embla-carousel-autoplay": "^8.6.0",
@@ -48,8 +50,8 @@
     "firebase-admin": "^12.3.0",
     "framer-motion": "^11.5.1",
     "genkit": "^1.0.0",
-    "i18next": "^23.11.5",
-    "i18next-browser-languagedetector": "^8.0.0",
+    "html-pdf": "^3.0.1",
+    "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.475.0",
     "motion": "^10.18.0",
@@ -61,18 +63,21 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
-    "react-i18next": "^14.1.2",
     "recharts": "^2.15.1",
     "sharp": "^0.33.4",
+    "swr": "^2.2.5",
     "tailwind-merge": "^3.0.1",
+    "tailwind-scrollbar": "^3.1.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
+    "@next/bundle-analyzer": "^14.2.5",
     "@testing-library/react": "^16.0.0",
     "@types/cookie": "^0.6.0",
+    "@types/html-pdf": "^3.0.3",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.14",
@@ -80,11 +85,14 @@
     "@types/react-dom": "^18",
     "@types/uuid": "^9.0.8",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "9.36.0",
+    "eslint-config-next": "15.5.4",
     "jsdom": "^24.1.0",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4",
     "vitest": "^2.0.4"
-  }
+  },
+  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
 }

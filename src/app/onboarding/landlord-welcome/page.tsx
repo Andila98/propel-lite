@@ -62,7 +62,7 @@ export default function LandlordWelcomePage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Rocket className="h-8 w-8" />
             </div>
-            <CardTitle className="text-3xl">Welcome to RentEase, {landlordName}!</CardTitle>
+            <CardTitle className="text-3xl">Welcome to Propel Lite, {landlordName}!</CardTitle>
             <CardDescription className="text-lg text-muted-foreground px-6">
               Let’s get your rental business set up. You can add your properties manually or use our Quick Start to explore with sample data.
             </CardDescription>
@@ -70,10 +70,10 @@ export default function LandlordWelcomePage() {
           <CardContent className="space-y-6">
             <div className="aspect-video w-full max-w-xl mx-auto rounded-lg overflow-hidden relative group cursor-pointer bg-muted">
                 <Image 
-                    src="https://placehold.co/1280x720.png"
+                    src="https://picsum.photos/seed/welcome/1280/720"
                     alt="Onboarding video thumbnail"
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    className="object-cover"
                     data-ai-hint="app interface screenshot"
                 />
                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
