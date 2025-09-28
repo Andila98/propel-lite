@@ -15,6 +15,7 @@ vi.mock('@/lib/firebase-admin', () => ({
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
     get: vi.fn().mockResolvedValue({ size: 0, docs: [] }),
+    doc: vi.fn().mockReturnThis(),
   },
   isFirebaseAdminInitialized: true,
 }));

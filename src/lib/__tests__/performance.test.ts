@@ -10,13 +10,12 @@ import { NextRequest } from 'next/server';
 // Mock dependencies
 vi.mock('@/lib/firebase-admin', () => ({
   firestore: {
-    collection: vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({ docs: [] }), // Ensure `docs` property is present
-      doc: vi.fn().mockReturnThis(),
-      collection: vi.fn().mockReturnThis(), // For subcollections
-    }),
+    collection: vi.fn().mockReturnThis(),
     collectionGroup: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    get: vi.fn().mockResolvedValue({ size: 0, docs: [] }), // Ensure `docs` property is present
+    doc: vi.fn().mockReturnThis(),
   },
   isFirebaseAdminInitialized: true,
 }));
