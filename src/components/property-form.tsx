@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -157,11 +156,12 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             setImagePreview(url);
             toast({ title: 'Success', description: 'Image uploaded successfully.' });
             
-        } catch (error: any) {
-            console.error('[ERROR] Upload failed:', error);
+        } catch (error: unknown) {
+            const typedError = error as Error;
+            console.error('[ERROR] Upload failed:', typedError);
             toast({ 
                 title: 'Upload Error', 
-                description: error.message, 
+                description: typedError.message, 
                 variant: 'destructive'
             });
         } finally {
@@ -186,11 +186,11 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
           let validationError = null;
 
           for (let i = 0; i < result.data.length; i++) {
-            const row: any = result.data[i];
+            const row: Record<string, unknown> = result.data[i] as Record<string, unknown>;
             const parsedRow = {
               unitNumber: row.unitNumber,
               size: row.size,
-              rent: parseFloat(row.rent),
+              rent: parseFloat(row.rent as string),
               isOccupied: String(row.isOccupied).toLowerCase() === 'true',
             };
             
@@ -341,7 +341,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                   name="type"
                                   control={control}
                                   render={({ field }) => (
-                                      <Select onValueChange={(value) => handlePropertyTypeChange(value as any)} defaultValue={field.value} name={field.name}>
+                                      <Select onValueChange={(value) => handlePropertyTypeChange(value as 'Apartment' | 'House' | 'Bedsitter')} defaultValue={field.value} name={field.name}>
                                       <SelectTrigger id="type">
                                           <SelectValue placeholder="Select a type..." />
                                       </SelectTrigger>

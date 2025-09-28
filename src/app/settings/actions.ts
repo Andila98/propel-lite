@@ -82,8 +82,9 @@ export async function updateUserProfileAction(
         revalidatePath('/settings');
         return { success: true };
 
-    } catch (error: any) {
-        console.error('[updateUserProfileAction ERROR]', error);
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error('[updateUserProfileAction ERROR]', typedError);
         return { error: 'Failed to update profile.' };
     }
 }

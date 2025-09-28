@@ -50,9 +50,10 @@ export async function scheduleReminderAction(
 
     return { successMessage: `Reminder for tenant has been successfully scheduled for ${validationResult.data.scheduledFor}.` };
 
-  } catch (error: any) {
-    console.error("[ERROR: scheduleReminderAction]", error);
-    return { error: error.message };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error("[ERROR: scheduleReminderAction]", typedError);
+    return { error: typedError.message };
   }
 }
 
@@ -82,9 +83,10 @@ export async function getReminderSuggestionAction(
       invoice: invoiceRes || undefined
     };
 
-  } catch (error: any) {
-    console.error("[ERROR: getReminderSuggestionAction]", error);
-    return { error: error.message };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error("[ERROR: getReminderSuggestionAction]", typedError);
+    return { error: typedError.message };
   }
 }
 
@@ -123,8 +125,9 @@ export async function getScheduleSuggestionAction(
                 reasoning
             }
         };
-    } catch (error: any) {
-        console.error("[ERROR: getScheduleSuggestionAction]", error);
-        return { error: error.message };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error("[ERROR: getScheduleSuggestionAction]", typedError);
+        return { error: typedError.message };
     }
 }

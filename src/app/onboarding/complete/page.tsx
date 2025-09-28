@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Stepper } from '@/components/ui/stepper';
 import { completeOnboarding } from '../actions';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';

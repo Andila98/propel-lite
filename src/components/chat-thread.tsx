@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useRef, useCallback } from 'react';
@@ -51,8 +52,9 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
       mutate(currentMessages => [...(currentMessages || []), sentMessage], false);
       reset();
 
-    } catch (err: any) {
-      console.error("Failed to send message:", err);
+    } catch (err: unknown) {
+      const typedError = err as Error;
+      console.error("Failed to send message:", typedError);
       toast({
           title: "Send Failed",
           description: "Could not send the message. Please try again.",
@@ -73,8 +75,10 @@ export function ChatThread({ tenantId, tenantName }: ChatThreadProps) {
   if (isLoading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (error) return <p className="text-destructive text-center">{error.info?.error || error.message}</p>;
 
-  const getMessageTime = (timestamp: any): string => {
-    const date = new Date(toISOString(timestamp) || new Date());
+  const getMessageTime = (timestamp: unknown): string => {
+    const isoString = toISOString(timestamp);
+    if (!isoString) return '';
+    const date = new Date(isoString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 

@@ -1,5 +1,4 @@
 
-
 import type { Timestamp } from "firebase-admin/firestore";
 import type { GenerateReceiptOutput as GenReceiptOutput } from './schema-types';
 import type { GenerateInvoiceOutput as GenInvoiceOutput } from './schema-types';
@@ -22,7 +21,7 @@ export interface Property {
     id: string;
     name: string;
     address: string;
-    type: 'Apartment' | 'House' | 'Bedsitter' | 'Commercial' | 'Office';
+    type: 'Apartment' | 'House' | 'Bedsitter';
     landlordId: string;
     managerId?: string;
     imageUrl?: string;

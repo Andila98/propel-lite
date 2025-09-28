@@ -98,7 +98,8 @@ function ProfileSettingsTab() {
         setValue('avatarUrl', url);
         setImagePreview(url);
         toast({ title: 'Success', description: 'Avatar uploaded successfully.'});
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const typedError = error as Error;
         toast({ title: 'Upload Error', description: 'Could not upload image.', variant: 'destructive'});
       } finally {
         setIsUploading(false);
@@ -304,7 +305,6 @@ function PaymentSettingsTab() {
                                                   </div>
                                               </div>
                                           )}
-                                      </div>
                                        {errors.profiles?.[index]?.mpesaPaybill && <p className="text-sm text-destructive">{errors.profiles?.[index]?.mpesaPaybill?.message}</p>}
                                   </div>
                               </AccordionContent>

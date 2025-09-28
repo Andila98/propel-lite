@@ -79,10 +79,6 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-function isOnboardingPath(pathname: string): boolean {
-  return pathConfig.onboarding.some(path => pathname.startsWith(path));
-}
-
 function isAdminPath(pathname: string): boolean {
   return pathConfig.admin.some(path => pathname.startsWith(path));
 }
@@ -128,7 +124,7 @@ export async function middleware(request: NextRequest) {
     
     try {
         await loginRateLimit.check(request);
-    } catch(error) {
+    } catch {
       console.warn(`[Middleware] Rate limit exceeded for IP: ${ip}, path: ${pathname}`);
       
       if (pathname.startsWith('/api/')) {
