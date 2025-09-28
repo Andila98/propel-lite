@@ -10,7 +10,7 @@ import { logActivity } from '@/lib/audit-log-service';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
 import { getLandlordAndActor } from '@/lib/auth-utils';
-import type { Tenant } from '@/lib/types';
+import type { Property, Tenant } from '@/lib/types';
 
 
 export interface FormState {
@@ -207,7 +207,7 @@ export async function createTenantsFromCsvAction(
         return { success: false, error: 'Unauthorized. Please log in.' };
     }
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (authError || !landlordId || !actor) {
+    if (!landlordId || !actor || authError) {
         const errorMessage = authError ? authError.message : 'Unauthorized. Could not identify user.';
         console.warn('[CSV_ACTION] Unauthorized:', errorMessage);
         return { success: false, error: errorMessage };
@@ -215,7 +215,7 @@ export async function createTenantsFromCsvAction(
 
     console.log(`[CSV_ACTION] Fetching properties and units for landlord: ${landlordId}`);
     const propertiesSnapshot = await firestore.collection('properties').where('landlordId', '==', landlordId).get();
-    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()}));
+    const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
 
     const unitsSnapshots = await Promise.all(properties.map(p => firestore.collection('properties').doc(p.id).collection('units').get()));
     const unitsByProperty = properties.reduce((acc, prop, index) => {
