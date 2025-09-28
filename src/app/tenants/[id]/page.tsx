@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from 'next/link';
@@ -30,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, CalendarDays, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit, MoreVertical } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Smile, Meh, Frown, Loader2, BrainCircuit, MoreVertical } from 'lucide-react';
 import React, { useCallback, useEffect } from 'react';
 import type { Tenant, Property, Payment } from '@/lib/types';
 import { AnimatedEditIcon } from '@/components/icons/animated-edit-icon';
@@ -90,7 +91,7 @@ function SentimentAnalysis({ tenantId }: { tenantId: string }) {
 }
 
 function PaymentPrediction({ tenantId, currentStatus }: { tenantId: string, currentStatus: string }) {
-    const [prediction, setPrediction] = React.useState<any>(null);
+    const [prediction, setPrediction] = React.useState<{predictedStatus: string, reasoning: string} | null>(null);
     const [loading, setLoading] = React.useState(true);
 
     useEffect(() => {
@@ -152,6 +153,11 @@ export default function TenantDetailPage() {
   const isLoading = tenantLoading || paymentsLoading || propertyLoading;
   const error = tenantError || paymentsError || propertyError;
 
+  const handleTenantDeleted = useCallback(() => {
+    refreshTenants();
+    router.push('/tenants');
+  }, [refreshTenants, router]);
+
   useEffect(() => {
     if (error) {
       toast({ title: "Error", description: error.info?.error || error.message, variant: "destructive" });
@@ -167,9 +173,9 @@ export default function TenantDetailPage() {
     return <div>Tenant or property not found.</div>;
   }
   
-  const getRentStatus = (payments: Payment[], rent: number) => {
-    if (!payments || !rent) return 'Overdue';
-    const paidThisMonth = payments
+  const getRentStatus = (paymentsList: Payment[], rent: number) => {
+    if (!paymentsList || !rent) return 'Overdue';
+    const paidThisMonth = paymentsList
       .filter(p => new Date(p.date as string).getMonth() === new Date().getMonth())
       .reduce((sum, p) => sum + p.amount, 0);
 
@@ -192,11 +198,6 @@ export default function TenantDetailPage() {
     } as const;
     return <Badge variant={statusMap[status] || 'default'}>{status}</Badge>;
   }
-
-  const handleTenantDeleted = useCallback(() => {
-    refreshTenants();
-    router.push('/tenants');
-  }, [refreshTenants, router]);
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -280,7 +281,7 @@ export default function TenantDetailPage() {
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Lease Period</span>
-                        <span className="font-medium">{formatDate(tenant.leaseStart as any)} to {formatDate(tenant.leaseEnd as any)}</span>
+                        <span className="font-medium">{formatDate(tenant.leaseStart as unknown as string)} to {formatDate(tenant.leaseEnd as unknown as string)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Rent</span>
@@ -349,3 +350,5 @@ export default function TenantDetailPage() {
     </div>
   );
 }
+
+    

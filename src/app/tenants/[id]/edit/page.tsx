@@ -53,7 +53,7 @@ export default function EditTenantPage() {
     resolver: zodResolver(TenantUpdateSchema),
   });
   
-  const { register, control, formState: { errors }, reset, watch, getValues, setValue } = form;
+  const { register, control, reset, watch, setValue } = form;
   
   useEffect(() => {
     if (state.success) {
@@ -107,8 +107,9 @@ export default function EditTenantPage() {
                 leaseEnd: format(leaseEnd, 'yyyy-MM-dd'),
             });
 
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            toast({ title: "Error", description: typedError.message, variant: "destructive" });
         } finally {
             setTenantLoading(false);
             setPropertiesLoading(false);
@@ -252,3 +253,5 @@ export default function EditTenantPage() {
     </div>
   );
 }
+
+    

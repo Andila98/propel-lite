@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import {
@@ -23,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Image from 'next/image';
-import type { Tenant, Property, Payment, MaintenanceRequest } from '@/lib/types';
+import type { Tenant, Property, Payment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Loader2, Download, Mail, Receipt } from 'lucide-react';
@@ -48,7 +49,7 @@ const StripeIcon = () => (
     </svg>
 )
 
-function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
+function MaintenanceRequestForm() {
     const { toast } = useToast();
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -102,8 +103,9 @@ function MaintenanceRequestForm({ tenant }: { tenant: Tenant }) {
             setImageFile(null);
             setImagePreview(null);
             setIsDialogOpen(false);
-        } catch (err: any) {
-            toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            toast({ title: 'Submission Failed', description: typedError.message, variant: 'destructive' });
         } finally {
             setLoading(false);
         }
@@ -179,8 +181,9 @@ export default function TenantPortalPage() {
         setProperty(portalData.property);
         setPayments(portalData.payments);
 
-      } catch (err: any) {
-        toast({ title: "Error", description: err.message, variant: "destructive"});
+      } catch (err: unknown) {
+        const typedError = err as Error;
+        toast({ title: "Error", description: typedError.message, variant: "destructive"});
       } finally {
         setLoading(false);
       }
@@ -239,10 +242,10 @@ export default function TenantPortalPage() {
     return <div className="p-8">Could not load your portal data. Please contact support.</div>;
   }
   
-  const getRentStatus = (payments: Payment[], rent: number) => {
-    if (!payments || !rent) return 'Overdue';
-    const paidThisMonth = payments
-      .filter(p => new Date(p.date as any).getMonth() === new Date().getMonth())
+  const getRentStatus = (paymentsList: Payment[], rent: number) => {
+    if (!paymentsList || !rent) return 'Overdue';
+    const paidThisMonth = paymentsList
+      .filter(p => new Date(p.date as string).getMonth() === new Date().getMonth())
       .reduce((sum, p) => sum + p.amount, 0);
 
     if (paidThisMonth >= rent) return 'Paid';
@@ -273,11 +276,11 @@ export default function TenantPortalPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease Start</span>
-              <span>{formatDate(tenant.leaseStart as any)}</span>
+              <span>{formatDate(tenant.leaseStart as unknown as string)}</span>
             </div>
              <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Lease End</span>
-              <span>{formatDate(tenant.leaseEnd as any)}</span>
+              <span>{formatDate(tenant.leaseEnd as unknown as string)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Rent Status</span>
@@ -314,7 +317,7 @@ export default function TenantPortalPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-            <MaintenanceRequestForm tenant={tenant} />
+            <MaintenanceRequestForm />
           </CardFooter>
         </Card>
 
@@ -383,5 +386,7 @@ export default function TenantPortalPage() {
     </div>
   );
 }
+
+    
 
     

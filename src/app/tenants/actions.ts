@@ -4,7 +4,6 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { TenantFormSchema, TenantUpdateSchema } from '@/lib/schemas';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -220,7 +219,7 @@ export async function createTenantsFromCsvAction(
     const unitsByProperty = properties.reduce((acc, prop, index) => {
         acc[prop.id] = unitsSnapshots[index].docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, unknown[]>);
     console.log(`[CSV_ACTION] Found ${properties.length} properties and their units.`);
     
     // --- Phase 1: Validation ---
@@ -254,7 +253,7 @@ export async function createTenantsFromCsvAction(
             return { success: false, error: errorMessage };
         }
 
-        const unit = unitsByProperty[property.id]?.find(u => u.unitNumber === row.unit_number);
+        const unit = (unitsByProperty[property.id] as {unitNumber: string, isOccupied: boolean, id: string}[])?.find(u => u.unitNumber === row.unit_number);
         if (!unit) {
             const errorMessage = `Row ${rowIndex}: Unit "${row.unit_number}" not found in property "${property.address}".`;
             return { success: false, error: errorMessage };
@@ -331,3 +330,5 @@ export async function createTenantsFromCsvAction(
         return { success: false, error: `Failed to commit changes to database.`, details: typedError.message };
     }
 }
+
+    
