@@ -19,7 +19,8 @@ import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
-import type { Payment, Timestamp, DocumentData } from 'firebase-admin/firestore';
+import type { Payment } from '@/lib/types';
+import type { Timestamp, DocumentData } from 'firebase-admin/firestore';
 
 // Extended interface for receipt data
 interface ReceiptData {
@@ -138,7 +139,7 @@ export const generateReceiptFlow = ai.defineFlow(
         inputSchema: GenerateReceiptInputSchema,
         outputSchema: GenerateReceiptOutputSchema,
     },
-    withMonitoring('generateReceiptFlow', withErrorHandling('generateReceiptFlow', async (input) => {
+    withMonitoring('generateReceiptFlow', withErrorHandling('generateReceiptFlow', async (input: GenerateReceiptInput) => {
         
         const receiptData = await getReceiptData(input);
         
@@ -161,7 +162,7 @@ export const generateReceiptFlow = ai.defineFlow(
         };
         
         try {
-            const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+            const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
             const { actor, landlordId } = await getLandlordAndActor(sessionCookie || '');
             if (actor && landlordId) {
                  await logActivity(actor.displayName || 'System', `Generated receipt ${result.receiptNumber} for tenant "${result.tenantName}"`, { type: 'Tenant', name: result.tenantName }, landlordId);

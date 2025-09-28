@@ -327,7 +327,7 @@ const predictPaymentFlow = ai.defineFlow(
         outputSchema: PredictPaymentOutputSchema,
     },
     withMonitoring('predictPaymentFlow', withErrorHandling('predictPaymentFlow', 
-        async (input) => {
+        async (input: PredictPaymentInput) => {
             try {
                 return await predictNextPayment(input);
             } catch (error: unknown) {

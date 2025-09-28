@@ -104,7 +104,7 @@ export const generateReportFlow = ai.defineFlow(
     inputSchema: ReportInputSchema,
     outputSchema: ReportOutputSchema,
   },
-  withMonitoring('generateReportFlow', withErrorHandling('generateReportFlow', async (input) => {
+  withMonitoring('generateReportFlow', withErrorHandling('generateReportFlow', async (input: ReportInput) => {
     const reportData = await getReportData(input);
     
     const llmInput = {

@@ -81,7 +81,7 @@ export const generateInvoiceFlow = ai.defineFlow(
     inputSchema: GenerateInvoiceInputSchema,
     outputSchema: GenerateInvoiceOutputSchema,
   },
-  withMonitoring('generateInvoiceFlow', withErrorHandling('generateInvoiceFlow', async (input) => {
+  withMonitoring('generateInvoiceFlow', withErrorHandling('generateInvoiceFlow', async (input: GenerateInvoiceInput) => {
     const invoiceData = await getInvoiceData(input);
     const { output } = await prompt(invoiceData);
     return output!;

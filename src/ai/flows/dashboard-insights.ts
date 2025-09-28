@@ -48,7 +48,7 @@ const dashboardInsightsFlow = ai.defineFlow(
     inputSchema: DashboardInsightsInputSchema,
     outputSchema: DashboardInsightsOutputSchema,
   },
-  withMonitoring('dashboardInsightsFlow', withErrorHandling('dashboardInsightsFlow', async input => {
+  withMonitoring('dashboardInsightsFlow', withErrorHandling('dashboardInsightsFlow', async (input: DashboardInsightsInput) => {
     const {output} = await prompt(input);
     return output!;
   }))

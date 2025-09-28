@@ -42,7 +42,7 @@ const generateMessageFlow = ai.defineFlow(
     inputSchema: GenerateMessageInputSchema,
     outputSchema: GenerateMessageOutputSchema,
   },
-  withMonitoring('generateMessageFlow', withErrorHandling('generateMessageFlow', async input => {
+  withMonitoring('generateMessageFlow', withErrorHandling('generateMessageFlow', async (input: GenerateMessageInput) => {
     const {output} = await prompt(input);
     return output!;
   }))
