@@ -6,12 +6,8 @@ import { generateMessage } from '@/ai/flows/generate-message-flow';
 import { generateInvoice } from '@/ai/flows/generate-invoice-flow';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
-import type { GenerateInvoiceOutput } from '@/lib/schema-types';
+import type { GenerateInvoiceOutput, ReminderSuggestionInput } from '@/lib/schema-types';
 
-const ReminderSuggestionInputSchema = z.object({
-  tenantId: z.string(),
-  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance']),
-});
 
 export interface ScheduleReminderState {
     error?: string;
@@ -58,7 +54,7 @@ export async function scheduleReminderAction(
 }
 
 export async function getReminderSuggestionAction(
-    input: z.infer<typeof ReminderSuggestionInputSchema>
+    input: ReminderSuggestionInput
 ): Promise<ScheduleReminderState> {
   if (!isFirebaseAdminInitialized) {
       return { error: "Backend services are not configured. Please contact support." };
@@ -91,7 +87,7 @@ export async function getReminderSuggestionAction(
 }
 
 export async function getScheduleSuggestionAction(
-    input: z.infer<typeof ReminderSuggestionInputSchema>
+    input: ReminderSuggestionInput
 ): Promise<ScheduleReminderState> {
     if (!isFirebaseAdminInitialized) {
       return { error: "Backend services are not configured. Please contact support." };

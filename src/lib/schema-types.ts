@@ -159,3 +159,11 @@ export const PriceSuggestionOutputSchema = z.object({
   overrideConsiderations: z.string().describe("A 1-2 sentence suggestion of factors that could justify a price higher or lower than the suggestion (e.g., premium finishes, recent renovations, or lack thereof)."),
 });
 export type PriceSuggestionOutput = z.infer<typeof PriceSuggestionOutputSchema>;
+
+
+// src/app/reminders/actions.ts
+export const ReminderSuggestionInputSchema = z.object({
+  tenantId: z.string(),
+  reminderType: z.enum(['rentDue', 'leaseRenewal', 'maintenance']),
+});
+export type ReminderSuggestionInput = z.infer<typeof ReminderSuggestionInputSchema>;
