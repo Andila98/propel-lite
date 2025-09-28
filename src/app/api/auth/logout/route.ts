@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const cookieName = authConfig.cookieName;
     const sessionCookie = cookieStore.get(cookieName)?.value;
 
