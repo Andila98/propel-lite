@@ -5,23 +5,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateReport } from '@/ai/flows/generate-report-flow';
 import { predictPayment } from '@/ai/flows/predict-payment-flow';
-import type { ReportOutput, PredictPaymentOutput } from '@/lib/schema-types';
+import type { ReportOutput } from '@/lib/schema-types';
+import * as admin from '@/lib/firebase-admin';
 
 // Mock Firebase Admin
-vi.mock('@/lib/firebase-admin', () => ({
-    firestore: {
-        collection: vi.fn(),
-        collectionGroup: vi.fn(),
-    },
-    isFirebaseAdminInitialized: true,
-}));
+vi.mock('@/lib/firebase-admin', async (importOriginal) => {
+    const original = await importOriginal<typeof import('@/lib/firebase-admin')>();
+    return {
+        ...original,
+        firestore: {
+            collection: vi.fn(),
+            collectionGroup: vi.fn(),
+        },
+        isFirebaseAdminInitialized: true,
+    };
+});
 
 // Mock AI - Genkit
-let mockAIResponse: any;
+let mockAIResponse: unknown;
 vi.mock('@/ai/genkit', () => ({
     ai: {
-        defineFlow: vi.fn((config, handler) => handler), // The handler is the actual function we want to test
-        definePrompt: vi.fn(() => async (input: any) => ({ output: mockAIResponse })),
+        defineFlow: vi.fn((_config, handler) => handler), // The handler is the actual function we want to test
+        definePrompt: vi.fn(() => async (_input: unknown) => ({ output: mockAIResponse })),
     },
 }));
 
@@ -41,7 +46,7 @@ describe('Property Management AI Flows', () => {
     });
 
     describe('generateReport', () => {
-        const mockFirestore = require('@/lib/firebase-admin').firestore;
+        const mockFirestore = admin.firestore;
         
         beforeEach(() => {
             mockAIResponse = {
@@ -56,7 +61,7 @@ describe('Property Management AI Flows', () => {
             } as ReportOutput;
 
              // Mock successful Firestore calls by default
-            mockFirestore.collection.mockReturnValue({
+            (mockFirestore.collection as vi.Mock).mockReturnValue({
                 where: vi.fn().mockReturnThis(),
                 get: vi.fn().mockResolvedValue({
                     docs: [
@@ -65,7 +70,7 @@ describe('Property Management AI Flows', () => {
                     ]
                 })
             });
-            mockFirestore.collectionGroup.mockReturnValue({
+            (mockFirestore.collectionGroup as vi.Mock).mockReturnValue({
                  where: vi.fn().mockReturnThis(),
                 get: vi.fn().mockResolvedValue({
                     size: 3,
@@ -90,7 +95,7 @@ describe('Property Management AI Flows', () => {
         });
 
         it('should throw an error on Firebase failure', async () => {
-            mockFirestore.collection.mockReturnValue({
+            (mockFirestore.collection as vi.Mock).mockReturnValue({
                 where: vi.fn().mockReturnThis(),
                 get: vi.fn().mockRejectedValue(new Error('Firebase unavailable'))
             });
@@ -104,11 +109,11 @@ describe('Property Management AI Flows', () => {
             const startTime = Date.now();
             
             // Mock quick responses
-            mockFirestore.collection.mockReturnValue({
+            (mockFirestore.collection as vi.Mock).mockReturnValue({
                 where: vi.fn().mockReturnThis(),
                 get: vi.fn().mockResolvedValue({ docs: [] }) // Empty array is faster
             });
-            mockFirestore.collectionGroup.mockReturnValue({
+            (mockFirestore.collectionGroup as vi.Mock).mockReturnValue({
                 where: vi.fn().mockReturnThis(),
                 get: vi.fn().mockResolvedValue({ size: 0, docs: [] })
             });
@@ -122,11 +127,10 @@ describe('Property Management AI Flows', () => {
     });
 
     describe('predictPayment', () => {
-        const mockFirestore = require('@/lib/firebase-admin').firestore;
+        const mockFirestore = admin.firestore;
 
         beforeEach(() => {
             // Note: The predictPayment flow doesn't use Genkit prompts, so no mockAIResponse is needed.
-            // All logic is in TypeScript.
         });
 
         it('should predict payment status with sufficient data', async () => {
@@ -139,7 +143,7 @@ describe('Property Management AI Flows', () => {
                 })
             }));
 
-            mockFirestore.collection.mockImplementation((collection: string) => {
+            (mockFirestore.collection as vi.Mock).mockImplementation((collection: string) => {
                 if (collection === 'tenants') return { doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ propertyId: 'prop1', currentUnitId: 'unit1', name: 'John Doe' }) }) }) };
                 if (collection === 'properties') return { doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ currency: 'KES' }), ref: { collection: () => ({ doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ rent: 25000 }) }) }) }) } }) }) };
                 if (collection === 'payments') return { where: vi.fn().mockReturnThis(), orderBy: vi.fn().mockReturnThis(), get: vi.fn().mockResolvedValue({ docs: paymentHistory }) };
@@ -159,7 +163,7 @@ describe('Property Management AI Flows', () => {
         });
 
         it('should handle tenant not found gracefully', async () => {
-            mockFirestore.collection.mockReturnValue({
+            (mockFirestore.collection as vi.Mock).mockReturnValue({
                 doc: () => ({
                     get: vi.fn().mockResolvedValue({ exists: false })
                 })
@@ -170,7 +174,7 @@ describe('Property Management AI Flows', () => {
         });
 
         it('should provide conservative prediction with insufficient data', async () => {
-             mockFirestore.collection.mockImplementation((collection: string) => {
+             (mockFirestore.collection as vi.Mock).mockImplementation((collection: string) => {
                 if (collection === 'tenants') return { doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ propertyId: 'prop1', currentUnitId: 'unit1', name: 'Jane Doe' }) }) }) };
                 if (collection === 'properties') return { doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ currency: 'KES' }), ref: { collection: () => ({ doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ rent: 30000 }) }) }) }) } }) }) };
                 if (collection === 'payments') return { where: vi.fn().mockReturnThis(), orderBy: vi.fn().mockReturnThis(), get: vi.fn().mockResolvedValue({ docs: [] }) }; // No payment history
