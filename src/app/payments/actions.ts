@@ -241,7 +241,10 @@ export async function createPaymentsFromCsvAction(
     for (const payment of validatedPayments) {
         const paymentRef = firestore.collection('payments').doc();
         
-        const { tenant_email: _tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
+        // Clone the payment object to avoid modifying the original validated data
+        const dbPayment = { ...payment };
+        // We delete tenant_email because it's not part of the Payment schema in Firestore
+        delete (dbPayment as Partial<typeof payment>).tenant_email;
 
         batch.set(paymentRef, {
             ...dbPayment,
