@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { generateReport } from '@/ai/flows/generate-report-flow';
@@ -14,7 +15,7 @@ export interface ReportState {
 }
 
 export async function generateReportAction(input: Omit<z.infer<typeof ReportInputSchema>, 'landlordId'>): Promise<ReportState> {
-  const landlordId = await getLandlordId(cookies().get(authConfig.cookieName)?.value);
+  const landlordId = await getLandlordId((await cookies()).get(authConfig.cookieName)?.value);
   if (!landlordId) {
       return { error: 'Unauthorized: Could not identify user.' };
   }

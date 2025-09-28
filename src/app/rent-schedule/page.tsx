@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -152,7 +153,7 @@ export default function RentSchedulePage() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 

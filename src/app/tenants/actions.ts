@@ -1,12 +1,13 @@
 
 
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { TenantFormSchema, TenantUpdateSchema } from '@/lib/schemas';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, type DocumentReference, type DocumentData } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
@@ -26,14 +27,14 @@ export async function createTenantAction(prevState: FormState, formData: FormDat
     if (!isFirebaseAdminInitialized) {
         return { error: 'Backend services are not configured. Please contact support.' };
     }
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'Unauthorized. Please log in.' };
     }
 
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
     if (authError || !landlordId || !actor) {
-        return { error: authError.message || 'Unauthorized. Could not identify user.' };
+        return { error: authError?.message || 'Unauthorized. Could not identify user.' };
     }
     
     if (actor.customClaims?.role === 'manager' && !actor.customClaims?.permissions?.canAddTenants) {
@@ -109,7 +110,7 @@ export async function updateTenantAction(tenantId: string, prevState: FormState,
     if (!isFirebaseAdminInitialized) {
         return { error: 'Backend services are not configured. Please contact support.' };
     }
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'Unauthorized. Please log in.' };
     }
@@ -200,7 +201,7 @@ export async function createTenantsFromCsvAction(
         console.error('[CSV_ACTION] Error: Backend services are not configured.');
         return { success: false, error: 'Backend services are not configured. Please contact support.' };
     }
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         console.warn('[CSV_ACTION] Unauthorized: No session cookie.');
         return { success: false, error: 'Unauthorized. Please log in.' };

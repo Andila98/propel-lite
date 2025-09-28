@@ -1,6 +1,7 @@
+
 "use client";
 
-import type { Transition } from "motion";
+import type { AnimationControls, Transition } from "framer-motion";
 import { motion, useAnimationControls } from "framer-motion";
 
 interface ChevronFirstProps extends React.SVGAttributes<SVGSVGElement> {
@@ -21,7 +22,7 @@ const AnimatedBackIcon = ({
   strokeWidth = 1.5,
   ...props
 }: ChevronFirstProps) => {
-  const controls = useAnimationControls();
+  const controls: AnimationControls = useAnimationControls();
 
   return (
     <div

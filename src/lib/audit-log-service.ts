@@ -1,8 +1,9 @@
+
 'use server';
 
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 import type { AuditLog } from '@/lib/types';
+import type { Timestamp } from 'firebase-admin/firestore';
 
 /**
  * Logs an important action to the audit log collection in Firestore.
@@ -18,13 +19,13 @@ export async function logActivity(actorName: string, action: string, entity: { t
         return;
     }
 
-    const logEntry: Omit<AuditLog, 'id'> = {
+    const logEntry: Omit<AuditLog, 'id' | 'timestamp'> & { timestamp: Timestamp } = {
       managerName: actorName,
       action: action,
       entityType: entity.type,
       entityName: entity.name,
       landlordId: landlordId, // Add landlordId for data scoping
-      timestamp: FieldValue.serverTimestamp(),
+      timestamp: new Date() as unknown as Timestamp,
     };
 
     await firestore.collection('auditLogs').add(logEntry);

@@ -1,5 +1,6 @@
 
 
+
 "use client"
 
 import {
@@ -286,10 +287,9 @@ export default function TenantPortalPage() {
               <span className="text-muted-foreground">Rent Status</span>
               <span className={cn(
                   "font-semibold",
-                  rentStatus === 'Paid' && 'text-green-600',
+                  (rentStatus === 'Paid' || rentStatus === 'Advance') && 'text-green-600',
                   rentStatus === 'Overdue' && 'text-destructive',
                   rentStatus === 'Partially Paid' && 'text-yellow-600',
-                  rentStatus === 'Advance' && 'text-blue-600',
               )}>{rentStatus}</span>
             </div>
           </CardContent>

@@ -1,4 +1,5 @@
 
+
 import type { NextRequest } from 'next/server';
 
 interface RateLimitEntry {
@@ -68,7 +69,7 @@ export class RateLimiter {
 }
 
 const getIp = (req: NextRequest) => {
-    return req.ip ?? req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+    return req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
 }
 
 export const loginRateLimit = new RateLimiter({

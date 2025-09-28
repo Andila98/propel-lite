@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import Link from 'next/link';
@@ -43,6 +44,7 @@ import { predictPayment } from '@/ai/flows/predict-payment-flow';
 import { formatCurrency, formatDate, fetcher } from '@/lib/utils';
 import { useTenants } from '@/hooks/use-tenants';
 import { DeleteTenantButton } from '@/components/delete-tenant-button';
+import type { PredictPaymentOutput } from '@/lib/schema-types';
 
 const ChatThread = dynamic(
   () => import("@/components/chat-thread").then((mod) => mod.ChatThread),
@@ -54,7 +56,7 @@ const ChatThread = dynamic(
 
 
 function SentimentAnalysis({ tenantId }: { tenantId: string }) {
-    const { data: sentiment, error, isLoading } = useSWR(`/api/tenants/${tenantId}/sentiment`, fetcher);
+    const { data: sentiment, error, isLoading } = useSWR<{sentiment: 'Positive' | 'Neutral' | 'Negative', summary: string}>(`/api/tenants/${tenantId}/sentiment`, fetcher);
 
     const sentimentIcon = {
         'Positive': <Smile className="h-6 w-6 text-green-500" />,
@@ -92,7 +94,7 @@ function SentimentAnalysis({ tenantId }: { tenantId: string }) {
 }
 
 function PaymentPrediction({ tenantId, currentStatus }: { tenantId: string, currentStatus: string }) {
-    const [prediction, setPrediction] = React.useState<{predictedStatus: string, reasoning: string} | null>(null);
+    const [prediction, setPrediction] = React.useState<PredictPaymentOutput | null>(null);
     const [loading, setLoading] = React.useState(true);
 
     useEffect(() => {

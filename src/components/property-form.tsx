@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -89,8 +90,8 @@ export const PropertyForm = React.memo(function PropertyForm({ formAction, initi
       });
       if (isOnboarding) {
         router.push(`/onboarding/add-property-manager?propertyId=${initialState.propertyId}`);
-      } else if (initialData?.id) {
-        router.push(`/properties/${initialData.id}`);
+      } else if (initialData) {
+        router.push(`/properties/${initialState.propertyId}`);
       } else {
          router.push('/properties');
       }
@@ -448,7 +449,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                            <div>
                             <Label htmlFor={`units.${index}.unitNumber`}>Unit Number</Label>
                             <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
-                             {initialState?.errors?.units?.[index]?.unitNumber && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].unitNumber[0]}</p>}
+                             {initialState?.errors?.units?.[index] && <p className="text-sm text-destructive mt-1">{(initialState.errors.units[index] as any).unitNumber[0]}</p>}
                           </div>
                           <div>
                                 <Label htmlFor={`units.${index}.size`}>Size/Type</Label>
@@ -468,12 +469,12 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                         </Select>
                                     )}
                                 />
-                                {initialState?.errors?.units?.[index]?.size && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].size[0]}</p>}
+                                {initialState?.errors?.units?.[index] && <p className="text-sm text-destructive mt-1">{(initialState.errors.units[index] as any).size[0]}</p>}
                             </div>
                           <div>
                             <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
                             <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`, { valueAsNumber: true })} />
-                            {initialState?.errors?.units?.[index]?.rent && <p className="text-sm text-destructive mt-1">{initialState.errors.units[index].rent[0]}</p>}
+                            {initialState?.errors?.units?.[index] && <p className="text-sm text-destructive mt-1">{(initialState.errors.units[index] as any).rent[0]}</p>}
                           </div>
                           <div className="flex items-center space-x-2 pt-6">
                                <Controller

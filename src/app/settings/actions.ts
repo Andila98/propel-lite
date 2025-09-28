@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -30,7 +31,7 @@ export async function updateUserProfileAction(
     if (!isFirebaseAdminInitialized) {
         return { error: 'Backend services are not configured.' };
     }
-    const sessionCookie = cookies().get(authConfig.cookieName)?.value;
+    const sessionCookie = (await cookies()).get(authConfig.cookieName)?.value;
     if (!sessionCookie) {
         return { error: 'Unauthorized. Please log in.' };
     }

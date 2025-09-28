@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { generateMessage } from '@/ai/flows/generate-message-flow';
@@ -6,6 +7,7 @@ import { generateInvoice } from '@/ai/flows/generate-invoice-flow';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { ScheduleReminderFormSchema, type ScheduleReminderFormValues } from '@/lib/schemas';
 import type { GenerateInvoiceOutput, ReminderSuggestionInput } from '@/lib/schema-types';
+import { FieldValue } from 'firebase-admin/firestore';
 
 
 export interface ScheduleReminderState {
@@ -40,7 +42,7 @@ export async function scheduleReminderAction(
         ...validationResult.data,
         scheduledFor: new Date(validationResult.data.scheduledFor),
         status: 'scheduled',
-        createdAt: firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
     });
 
     return { successMessage: `Reminder for tenant has been successfully scheduled for ${validationResult.data.scheduledFor}.` };

@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -23,7 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
-    acc[key as Permission] = z.boolean().default(false);
+    acc[key as Permission] = z.boolean();
     return acc;
   }, {} as Record<Permission, z.ZodBoolean>)
 );
@@ -54,7 +55,7 @@ export default function EditPropertyManagerPage() {
       name: '',
       email: '',
       phone: '',
-      permissions: {},
+      permissions: Object.keys(permissionLabels).reduce((acc, key) => ({...acc, [key]:false}), {}),
       propertiesManaged: [],
     }
   });

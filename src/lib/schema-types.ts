@@ -1,4 +1,5 @@
 
+
 /**
  * @fileoverview Centralized Zod schemas and TypeScript types for the application.
  * This helps avoid "use server" directive conflicts by separating data structures
@@ -129,7 +130,7 @@ export const PredictPaymentInputSchema = z.object({
 export type PredictPaymentInput = z.infer<typeof PredictPaymentInputSchema>;
 
 export const PredictPaymentOutputSchema = z.object({
-  predictedStatus: z.nativeEnum(['Paid', 'Overdue', 'Partially Paid']).describe("The most likely payment status for the next month."),
+  predictedStatus: z.enum(['Paid', 'Overdue', 'Partially Paid']).describe("The most likely payment status for the next month."),
   confidence: z.number().describe("The probability of the predicted status (0 to 1)."),
   reasoning: z.string().describe("A brief explanation of the prediction."),
 });
