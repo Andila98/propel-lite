@@ -8,6 +8,19 @@ import { generateReport } from '@/ai/flows/generate-report-flow';
 import { NextRequest } from 'next/server';
 
 // Mock dependencies
+vi.mock('@/lib/firebase-admin', () => ({
+  firestore: {
+    collection: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnThis(),
+      get: vi.fn().mockResolvedValue({ docs: [] }), // Ensure `docs` property is present
+      doc: vi.fn().mockReturnThis(),
+      collection: vi.fn().mockReturnThis(), // For subcollections
+    }),
+    collectionGroup: vi.fn().mockReturnThis(),
+  },
+  isFirebaseAdminInitialized: true,
+}));
+
 vi.mock('@/lib/auth-utils', () => ({
   getLandlordAndActor: vi.fn().mockResolvedValue({ landlordId: 'test-landlord', error: null }),
 }));
