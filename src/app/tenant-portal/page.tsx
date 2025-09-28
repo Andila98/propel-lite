@@ -249,6 +249,7 @@ export default function TenantPortalPage() {
       .reduce((sum, p) => sum + p.amount, 0);
 
     if (paidThisMonth >= rent) return 'Paid';
+    if (paidThisMonth > rent) return 'Advance';
     if (paidThisMonth > 0) return 'Partially Paid';
     return 'Overdue';
   }

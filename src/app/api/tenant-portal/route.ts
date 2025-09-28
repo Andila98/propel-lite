@@ -1,4 +1,5 @@
 
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { verifySession } from '@/lib/auth-utils';
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
         }
         const propertyData = propertyDoc.data() as Property;
         const unitsSnapshot = await propertyDoc.ref.collection('units').get();
-        const property = { ...propertyData, id: propertyDoc.id, units: unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Unit })) };
+        const property = { ...propertyData, id: propertyDoc.id, units: unitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit)) };
         
         const payments = paymentsSnapshot.docs.map(doc => doc.data() as Payment);
         const maintenanceRequests = maintenanceSnapshot.docs.map(doc => doc.data() as MaintenanceRequest);

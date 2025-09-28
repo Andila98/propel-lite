@@ -206,8 +206,8 @@ export async function createTenantsFromCsvAction(
         return { success: false, error: 'Unauthorized. Please log in.' };
     }
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
-    if (!landlordId || !actor) {
-        console.warn('[CSV_ACTION] Unauthorized:', authError?.message);
+    if (authError || !landlordId || !actor) {
+        console.warn('[CSV_ACTION] Unauthorized:', authError.message);
         return { success: false, error: authError.message || 'Unauthorized. Could not identify user.' };
     }
 

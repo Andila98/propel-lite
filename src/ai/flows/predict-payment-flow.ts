@@ -1,4 +1,5 @@
 
+
 'use server';
 /**
  * @fileOverview Enhanced flow to predict future tenant payment behavior using a Markov chain.
@@ -114,7 +115,7 @@ async function buildTransitionMatrix(tenantId: string): Promise<TenantPaymentHis
     // Determine analysis period (last 12 months or available data)
     const analysisMonths = Math.min(12, 
         earliestPayment ? 
-            Math.ceil((new Date().getTime() - earliestPayment.getTime()) / (30 * 24 * 60 * 60 * 1000)) : 
+            Math.ceil((new Date().getTime() - (earliestPayment as Date).getTime()) / (30 * 24 * 60 * 60 * 1000)) : 
             0
     );
     

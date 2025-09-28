@@ -102,8 +102,8 @@ export const PropertyForm = React.memo(function PropertyForm({ formAction, initi
       });
       if (isOnboarding) {
         router.push(`/onboarding/add-property-manager?propertyId=${initialState.propertyId}`);
-      } else if (initialData?.id) {
-        router.push(`/properties/${initialData.id}`);
+      } else if (initialData) {
+        router.push(`/properties/${initialState.propertyId}`);
       } else {
          router.push('/properties');
       }

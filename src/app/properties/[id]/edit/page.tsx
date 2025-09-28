@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useActionState } from 'react';
@@ -73,6 +74,7 @@ export default function EditPropertyPage() {
 
   const initialData: PropertyFormValues = {
       ...property,
+      currency: property.currency as "KES" | "USD" | "EUR",
       units: property.units || [],
       numberOfUnits: property.units?.length || 0,
       parking: false, 

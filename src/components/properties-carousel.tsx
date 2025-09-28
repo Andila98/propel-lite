@@ -22,7 +22,6 @@ import Autoplay from "embla-carousel-autoplay";
 import type { Property } from '@/lib/types';
 import { BedDouble, Bath, Banknote } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import type { StaticImport } from 'next/image';
 
 export function PropertiesCarousel({ properties }: { properties: Property[] }) {
   const plugin = React.useRef(
