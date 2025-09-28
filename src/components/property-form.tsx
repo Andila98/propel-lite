@@ -70,7 +70,7 @@ type UnitError = {
 
 // Type guard to check if an object is a UnitError
 function isUnitError(obj: unknown): obj is UnitError {
-  return typeof obj === 'object' && obj !== null && ('unitNumber' in obj || 'rent' in obj || 'size' in obj);
+  return typeof obj === 'object' && obj !== null;
 }
 
 export const PropertyForm = React.memo(function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
@@ -102,8 +102,8 @@ export const PropertyForm = React.memo(function PropertyForm({ formAction, initi
       });
       if (isOnboarding) {
         router.push(`/onboarding/add-property-manager?propertyId=${initialState.propertyId}`);
-      } else if (initialData) {
-        router.push(`/properties/${initialState.propertyId}`);
+      } else if (initialData?.id) {
+        router.push(`/properties/${initialData.id}`);
       } else {
          router.push('/properties');
       }
