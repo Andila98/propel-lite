@@ -13,7 +13,7 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import type { Property, Unit, Tenant, Payment, MaintenanceRequest } from './types';
-import { add, sub, addYears } from 'date-fns';
+import { sub, addYears } from 'date-fns';
 
 // Load service account credentials from environment variables
 const serviceAccountKeyBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
