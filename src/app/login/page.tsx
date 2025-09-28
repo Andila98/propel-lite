@@ -111,7 +111,7 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
       // Redirect is handled by the useAuth provider
-    } catch (e: unknown) {
+    } catch {
       // The authError state in useAuth is already set. We don't need to do anything here.
       // The Alert component will display the error.
     } finally {
@@ -134,7 +134,7 @@ export default function LoginPage() {
     try {
       await loginWithGoogle();
       // Redirect is handled by the useAuth provider
-    } catch (e: unknown) {
+    } catch {
       // Don't show toast for cancelled popup, as the error is handled in useAuth.
     } finally {
       setIsSocialLoading(false);
