@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { toJSON } from '@/lib/utils';
 import { authConfig } from '@/config/server-config';
+import type { Tenant } from '@/lib/types';
+import type { DocumentData } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest) {
         // Process tenants and sort by creation date (client-side)
         const tenants = tenantsSnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
-            .sort((a: any, b: any) => {
+            .sort((a: DocumentData, b: DocumentData) => {
                 // Sort by createdAt in descending order (newest first)
                 const aTime = a.createdAt?.toDate?.().getTime() || 0;
                 const bTime = b.createdAt?.toDate?.().getTime() || 0;
@@ -88,16 +90,17 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(response);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const typedError = error as Error;
         console.error(`[ERROR][${requestId}] Tenants API failed:`, {
-            name: error.name,
-            message: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            name: typedError.name,
+            message: typedError.message,
+            stack: process.env.NODE_ENV === 'development' ? typedError.stack : undefined
         });
         
         return NextResponse.json({ 
             error: 'Failed to fetch tenants. Please try again later.',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            details: process.env.NODE_ENV === 'development' ? typedError.message : undefined
         }, { status: 500 });
     }
 }

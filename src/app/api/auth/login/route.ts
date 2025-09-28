@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   try {
     // The check method in the new rate limiter will throw an error on its own if the limit is exceeded.
     await loginRateLimit.check(req);
-  } catch (error) {
+  } catch (error: unknown) {
      console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded for IP`, { context: requestContext });
      return createErrorResponse(
         'Too many login attempts. Please try again later.',

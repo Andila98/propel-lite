@@ -25,7 +25,7 @@ vi.mock('@/lib/firebase-admin', async (importOriginal) => {
 let mockAIResponse: unknown;
 vi.mock('@/ai/genkit', () => ({
     ai: {
-        defineFlow: vi.fn((_config, handler) => handler), // The handler is the actual function we want to test
+        defineFlow: vi.fn((_config: unknown, handler: (...args: unknown[]) => unknown) => handler), // The handler is the actual function we want to test
         definePrompt: vi.fn(() => async (_input: unknown) => ({ output: mockAIResponse })),
     },
 }));

@@ -19,7 +19,7 @@ import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
-import type { Payment, Timestamp } from 'firebase-admin/firestore';
+import type { Payment, Timestamp, DocumentData } from 'firebase-admin/firestore';
 
 // Extended interface for receipt data
 interface ReceiptData {
@@ -46,7 +46,7 @@ async function getReceiptData(input: GenerateReceiptInput): Promise<ReceiptData>
     if (!tenantSnapshot.exists) throw new Error('Tenant not found');
     if (!paymentSnapshot.exists) throw new Error('Payment not found');
     
-    const tenant = tenantSnapshot.data()!;
+    const tenant = tenantSnapshot.data() as DocumentData;
     const payment = paymentSnapshot.data() as Payment & { date: Timestamp, description?: string };
     
     // Validate tenant-payment relationship
@@ -74,8 +74,8 @@ async function getReceiptData(input: GenerateReceiptInput): Promise<ReceiptData>
     
     let paymentDate: string;
     try {
-        if (payment.date && typeof (payment.date).toDate === 'function') {
-            paymentDate = (payment.date).toDate().toISOString();
+        if (payment.date && typeof (payment.date as Timestamp).toDate === 'function') {
+            paymentDate = (payment.date as Timestamp).toDate().toISOString();
         } else if (typeof payment.date === 'string') {
             paymentDate = new Date(payment.date).toISOString();
         } else {
@@ -166,7 +166,7 @@ export const generateReceiptFlow = ai.defineFlow(
             if (actor && landlordId) {
                  await logActivity(actor.displayName || 'System', `Generated receipt ${result.receiptNumber} for tenant "${result.tenantName}"`, { type: 'Tenant', name: result.tenantName }, landlordId);
             }
-        } catch (auditError) {
+        } catch (auditError: unknown) {
             console.error('Failed to create audit trail:', auditError);
         }
         

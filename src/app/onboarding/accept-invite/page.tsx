@@ -79,11 +79,12 @@ export default function AcceptInvitePage() {
 
       router.push('/login');
 
-    } catch (error: any) {
-      console.error("Accept Invite Error:", error);
+    } catch (error: unknown) {
+      const typedError = error as Error;
+      console.error("Accept Invite Error:", typedError);
       toast({
         title: "Registration Failed",
-        description: error.message,
+        description: typedError.message,
         variant: "destructive",
       });
     } finally {
@@ -99,7 +100,7 @@ export default function AcceptInvitePage() {
             <PropelLiteLogo className="h-12 w-12" />
           </div>
           <CardTitle className="text-2xl">Complete Your Account Setup</CardTitle>
-          <CardDescription>You've been invited to join as a manager. Set your name and password to get started.</CardDescription>
+          <CardDescription>You&apos;ve been invited to join as a manager. Set your name and password to get started.</CardDescription>
         </CardHeader>
         <form onSubmit={handleAcceptInvite}>
           <CardContent className="space-y-4">

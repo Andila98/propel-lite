@@ -5,7 +5,7 @@ import { toJSON } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
     console.log('[INFO] /api/test-db endpoint hit');
     
     if (!isFirebaseAdminInitialized) {
@@ -27,10 +27,11 @@ export async function GET(request: Request) {
         
         return NextResponse.json(toJSON(landlord));
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const typedError = error as Error;
         console.error('[ERROR: /api/test-db]', {
-            message: error.message,
-            stack: error.stack,
+            message: typedError.message,
+            stack: typedError.stack,
         });
         return NextResponse.json({ error: 'Internal server error during Firestore query.' }, { status: 500 });
     }

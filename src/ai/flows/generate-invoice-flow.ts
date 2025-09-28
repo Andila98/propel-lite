@@ -40,8 +40,6 @@ async function getInvoiceData(input: GenerateInvoiceInput) {
         propertyAddress: `${property.address}, Unit ${unit.unitNumber}`,
         rentAmount: unit.rent,
         currency: property.currency || 'KES',
-        invoiceDate: new Date().toISOString(),
-        dueDate: add(new Date(), { days: 5 }).toISOString(),
     };
 }
 
@@ -55,8 +53,6 @@ const prompt = ai.definePrompt({
         propertyAddress: z.string(),
         rentAmount: z.number(),
         currency: z.string(),
-        invoiceDate: z.string(),
-        dueDate: z.string(),
     })
   },
   output: {schema: GenerateInvoiceOutputSchema},
@@ -73,8 +69,8 @@ Data:
 - Property Address: {{propertyAddress}}
 - Rent Amount: {{rentAmount}}
 - Currency: {{currency}}
-- Invoice Date: {{invoiceDate}}
-- Due Date: {{dueDate}}
+- Invoice Date: ${new Date().toISOString()}
+- Due Date: ${add(new Date(), { days: 5 }).toISOString()}
 `,
 });
 

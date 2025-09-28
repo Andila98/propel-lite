@@ -18,6 +18,12 @@ const AcceptInviteSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+interface DecodedInviteToken extends JwtPayload {
+    email: string;
+    role: string;
+    inviterId: string;
+}
+
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 503 });
@@ -48,7 +54,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid or expired invitation token.' }, { status: 401 });
         }
         
-        const { email, role, inviterId } = decodedToken as { email: string; role: string; inviterId: string };
+        const { email, role, inviterId } = decodedToken as DecodedInviteToken;
 
         // 1. Create the user in Firebase Auth
         const userRecord = await auth.createUser({

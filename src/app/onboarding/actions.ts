@@ -44,8 +44,9 @@ export async function completeOnboarding(): Promise<ActionState> {
     });
     
     return { success: true };
-  } catch (error: any) {
-    console.error('[ERROR: completeOnboarding action]', error);
-    return { error: `Internal Server Error: ${error.message}` };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[ERROR: completeOnboarding action]', typedError);
+    return { error: `Internal Server Error: ${typedError.message}` };
   }
 }

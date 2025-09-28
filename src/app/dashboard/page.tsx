@@ -31,10 +31,11 @@ import {
   Eye,
   Star
 } from "lucide-react"
-import type { DashboardData } from "@/lib/types"
+import type { DashboardData, ActivityItem, Property, Unit } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetcher } from "@/lib/utils";
+import React from "react";
 
 const LatePaymentsChart = dynamic(
   () => import("@/components/charts/late-payments-chart").then((mod) => mod.LatePaymentsChart),
@@ -103,7 +104,7 @@ function MetricCard({ title, value, change, icon: Icon }: { title: string, value
   )
 }
 
-function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: any[] }) {
+function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: ActivityItem[] }) {
   return (
     <Card className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-primary/10 via-accent/5 to-primary/5 border-primary/20 group hover:shadow-2xl transition-all duration-500">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -147,12 +148,12 @@ function AiInsightsCard({ summary, anomalies }: { summary: string, anomalies: an
   )
 }
 
-function PropertyShowcase({ properties }: { properties: any[] }) {
+function PropertyShowcase({ properties }: { properties: Property[] }) {
   if (!properties || properties.length === 0) return <Card className="lg:col-span-2 flex items-center justify-center h-full"><p className="text-muted-foreground">No properties to display.</p></Card>;
   
-  const getOccupancy = (property: any) => {
+  const getOccupancy = (property: Property) => {
     if (!property.units || property.units.length === 0) return 0;
-    const occupied = property.units.filter((u: any) => u.isOccupied).length;
+    const occupied = property.units.filter((u: Unit) => u.isOccupied).length;
     return (occupied / property.units.length) * 100;
   }
 
@@ -321,7 +322,7 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Welcome back! Here's what's happening with your properties.
+            Welcome back! Here&apos;s what&apos;s happening with your properties.
           </p>
         </div>
         <div className="flex items-center space-x-4">
