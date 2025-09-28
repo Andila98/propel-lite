@@ -99,8 +99,12 @@ async function clearData() {
       .map(u => u.uid);
       
     if(uidsToDelete.length > 0) {
-      await auth.deleteUsers(uidsToDelete);
-      console.log(`Deleted ${uidsToDelete.length} users.`);
+      try {
+        await auth.deleteUsers(uidsToDelete);
+        console.log(`Deleted ${uidsToDelete.length} users.`);
+      } catch (error) {
+        console.error('Error deleting users:', error);
+      }
     }
     
     console.log("Data deleted.");
@@ -267,7 +271,7 @@ async function seedDatabase() {
                 propertyId: tenant.propertyId,
                 unitId: tenant.currentUnitId,
                 amount: unit.rent + faker.number.int({ min: -1000, max: 1000 }),
-                date: faker.date.past({ months: k+1 }).toISOString(),
+                date: sub(now, { months: k + 1 }).toISOString(),
                 method: faker.helpers.arrayElement(['Mpesa', 'Stripe', 'Card']),
                 status: 'confirmed',
                 type: 'Rent',
