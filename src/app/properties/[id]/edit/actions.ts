@@ -3,20 +3,19 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { PropertyFormSchema } from '@/lib/schemas';
+import { PropertyFormSchema, PropertyFormValues } from '@/lib/schemas';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
+import { z } from 'zod';
 
 
 export interface FormState {
     error?: string;
-    errors?: {
-        [key: string]: string[];
-    };
+    errors?: z.ZodError<PropertyFormValues>['formErrors']['fieldErrors'];
     success?: boolean;
     propertyId?: string;
 }

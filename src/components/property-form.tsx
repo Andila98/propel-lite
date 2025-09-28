@@ -60,6 +60,18 @@ const unitTypes = [
     "Garden Apartment"
 ];
 
+// Type for nested unit errors from Zod
+type UnitError = {
+  unitNumber?: string[];
+  rent?: string[];
+  size?: string[];
+  isOccupied?: string[];
+};
+
+// Type guard to check if an object is a UnitError
+function isUnitError(obj: unknown): obj is UnitError {
+  return typeof obj === 'object' && obj !== null && ('unitNumber' in obj || 'rent' in obj || 'size' in obj);
+}
 
 export const PropertyForm = React.memo(function PropertyForm({ formAction, initialState, initialData, isOnboarding = false }: PropertyFormProps) {
   const { toast } = useToast();
@@ -432,7 +444,11 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 {(propertyType && fields.length > 0) && <Separator />}
 
                 <div className="space-y-6">
-                    {fields.map((field, index) => (
+                    {fields.map((field, index) => {
+                      const unitErrorForIndex = initialState?.errors?.units?.[index];
+                      const unitError = isUnitError(unitErrorForIndex) ? unitErrorForIndex : null;
+                      
+                      return (
                       <Card key={field.id} className="p-4">
                         <div className="flex justify-between items-center mb-4">
                           <h4 className="text-lg font-medium">
@@ -449,7 +465,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                            <div>
                             <Label htmlFor={`units.${index}.unitNumber`}>Unit Number</Label>
                             <Input id={`units.${index}.unitNumber`} {...register(`units.${index}.unitNumber`)} />
-                             {initialState?.errors?.units?.[index] && <p className="text-sm text-destructive mt-1">{(initialState.errors.units[index] as any).unitNumber[0]}</p>}
+                             {unitError?.unitNumber && <p className="text-sm text-destructive mt-1">{unitError.unitNumber[0]}</p>}
                           </div>
                           <div>
                                 <Label htmlFor={`units.${index}.size`}>Size/Type</Label>
@@ -469,12 +485,12 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                         </Select>
                                     )}
                                 />
-                                {initialState?.errors?.units?.[index] && <p className="text-sm text-destructive mt-1">{(initialState.errors.units[index] as any).size[0]}</p>}
+                                {unitError?.size && <p className="text-sm text-destructive mt-1">{unitError.size[0]}</p>}
                             </div>
                           <div>
                             <Label htmlFor={`units.${index}.rent`}>Monthly Rent</Label>
                             <Input id={`units.${index}.rent`} type="number" {...register(`units.${index}.rent`, { valueAsNumber: true })} />
-                            {initialState?.errors?.units?.[index] && <p className="text-sm text-destructive mt-1">{(initialState.errors.units[index] as any).rent[0]}</p>}
+                            {unitError?.rent && <p className="text-sm text-destructive mt-1">{unitError.rent[0]}</p>}
                           </div>
                           <div className="flex items-center space-x-2 pt-6">
                                <Controller
@@ -492,7 +508,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                             </div>
                         </div>
                       </Card>
-                    ))}
+                    )})}
                      {propertyType === 'Apartment' && (
                         <Button type="button" variant="outline" onClick={addUnit}>
                             <PlusCircle className="mr-2 h-4 w-4" />
