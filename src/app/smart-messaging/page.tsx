@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
-import { Loader2, Wand2, ClipboardCopy, MessageSquare } from 'lucide-react';
+import { Loader2, Wand2, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -47,8 +47,9 @@ export default function SmartMessagingPage() {
         setGeneratedMessage(result.messageContent || '');
       }
 
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const typedError = e as Error;
+      toast({ title: "Error", description: typedError.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -74,8 +75,9 @@ export default function SmartMessagingPage() {
           } else {
               toast({ title: "Message Sent (Simulated)", description: result.successMessage });
           }
-      } catch (e: any) {
-          toast({ title: "Error", description: e.message, variant: "destructive" });
+      } catch (e: unknown) {
+          const typedError = e as Error;
+          toast({ title: "Error", description: typedError.message, variant: "destructive" });
       } finally {
           setSending(false);
       }

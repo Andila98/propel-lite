@@ -23,9 +23,10 @@ export async function generateMessageAction(input: { tenantId: string; reminderT
 
     const result = await generateMessage({ tenantName, reminderType: input.reminderType });
     return { messageContent: result.message };
-  } catch (error: any) {
-    console.error("[ERROR: generateMessageAction]", error);
-    return { error: error.message || "Failed to generate message." };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error("[ERROR: generateMessageAction]", typedError);
+    return { error: typedError.message || "Failed to generate message." };
   }
 }
 
@@ -53,8 +54,9 @@ export async function sendWhatsAppMessageAction(input: { tenantId: string; messa
         
         return { successMessage: `WhatsApp message simulation sent to ${tenant.name} (${tenant.phone}).` };
         
-    } catch (error: any) {
-        console.error("[ERROR: sendWhatsAppMessageAction]", error);
-        return { error: error.message || "Failed to send WhatsApp message." };
+    } catch (error: unknown) {
+        const typedError = error as Error;
+        console.error("[ERROR: sendWhatsAppMessageAction]", typedError);
+        return { error: typedError.message || "Failed to send WhatsApp message." };
     }
 }
