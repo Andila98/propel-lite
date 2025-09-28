@@ -4,23 +4,6 @@
 import * as React from 'react';
 import { useEffect } from 'react';
 
-type AnimatedIconsElement = React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-  src: string;
-  trigger: string;
-  'icon-attributes': string;
-  height: string;
-  width: string;
-};
-
-declare module 'react' {
-    namespace JSX {
-        interface IntrinsicElements {
-            'animated-icons': AnimatedIconsElement;
-        }
-    }
-}
-
-
 export function AnimatedEditIcon() {
   // This useEffect is to ensure the custom element is only rendered on the client side
   const [isClient, setIsClient] = React.useState(false);
