@@ -238,7 +238,8 @@ export async function createPaymentsFromCsvAction(
 
     for (const payment of validatedPayments) {
         const paymentRef = firestore.collection('payments').doc();
-        const { tenant_email: _tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tenant_email, ...dbPayment } = payment; // Exclude csv-specific field
 
         batch.set(paymentRef, {
             ...dbPayment,
