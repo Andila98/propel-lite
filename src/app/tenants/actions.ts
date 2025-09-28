@@ -208,7 +208,7 @@ export async function createTenantsFromCsvAction(
     }
     const { landlordId, actor, error: authError } = await getLandlordAndActor(sessionCookie);
     if (!landlordId || !actor || authError) {
-        const errorMessage = authError ? authError.message : 'Unauthorized. Could not identify user.';
+        const errorMessage = authError?.message || 'Unauthorized. Could not identify user.';
         console.warn('[CSV_ACTION] Unauthorized:', errorMessage);
         return { success: false, error: errorMessage };
     }
@@ -249,7 +249,7 @@ export async function createTenantsFromCsvAction(
             return { success: false, error: `Row ${rowIndex} has invalid data.`, details: errorMessage };
         }
         
-        const property = properties.find(p => p.address === row.property_address);
+        const property = properties.find(p => p.address === row.property_address) as Property | undefined;
         if (!property) {
             const errorMessage = `Row ${rowIndex}: Property not found for address "${row.property_address}".`;
             return { success: false, error: errorMessage };
