@@ -15,7 +15,12 @@ import { endOfMonth, startOfMonth } from 'date-fns';
 import { ReportInputSchema, ReportOutputSchema, type ReportInput, type ReportOutput } from '@/lib/schema-types';
 import { withErrorHandling } from '@/lib/flow-errors';
 import { withMonitoring } from '@/lib/flow-monitor';
+import type { Timestamp } from 'firebase-admin/firestore';
 
+interface PaymentData {
+    amount: number;
+    date: Timestamp;
+}
 
 async function getReportData(input: ReportInput) {
     if (!isFirebaseAdminInitialized) throw new Error("Firebase not initialized.");
@@ -49,7 +54,7 @@ async function getReportData(input: ReportInput) {
     const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
     
     // This is a simplified calculation for late payments
-    const latePayments = paymentsSnapshot.docs.filter(doc => (doc.data().date as any).toDate().getDate() > 5).length;
+    const latePayments = paymentsSnapshot.docs.filter(doc => (doc.data() as PaymentData).date.toDate().getDate() > 5).length;
     
     const newMaintenanceRequests = maintenanceSnapshot.size;
 
