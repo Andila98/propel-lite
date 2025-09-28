@@ -65,20 +65,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const rateLimitResult = await loginRateLimit.check(req);
-    if (!rateLimitResult.allowed) {
-      console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded for IP`, { context: requestContext });
-      return createErrorResponse(
+    // The check method in the new rate limiter will throw an error on its own if the limit is exceeded.
+    await loginRateLimit.check(req);
+  } catch (error) {
+     console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded for IP`, { context: requestContext });
+     return createErrorResponse(
         'Too many login attempts. Please try again later.',
         429,
         'RATE_LIMIT_EXCEEDED',
         requestId
       );
-    }
-  } catch (error) {
-    // This catch block is for unexpected errors in the rate limiter itself
-     console.error(`[ERROR: /api/auth/login][${requestId}] Rate limiter check failed`, { context: requestContext, error });
-     return createErrorResponse('Internal server error.', 500, 'INTERNAL_ERROR', requestId);
   }
 
   try {
@@ -118,18 +114,19 @@ export async function POST(req: NextRequest) {
     console.info(`[INFO: /api/auth/login][${requestId}] Login successful for user: ${userProfile.uid}`, { context: requestContext });
     return response;
 
-  } catch (error: any) {
-    console.error(`[ERROR: /api/auth/login][${requestId}]`, { message: error.message, code: error.code, context: requestContext });
+  } catch (error: unknown) {
+    const typedError = error as { message?: string, code?: string };
+    console.error(`[ERROR: /api/auth/login][${requestId}]`, { message: typedError.message, code: typedError.code, context: requestContext });
 
-    if (error.code === 'INCOMPLETE_PROFILE') {
-      return createErrorResponse(error.message, 403, 'INCOMPLETE_PROFILE', requestId);
+    if (typedError.code === 'INCOMPLETE_PROFILE') {
+      return createErrorResponse(typedError.message || 'Profile is incomplete.', 403, 'INCOMPLETE_PROFILE', requestId);
     }
 
-    if (error.code?.startsWith('auth/')) {
+    if (typedError.code?.startsWith('auth/')) {
       let message = 'Invalid credentials. Please try again.';
       let code = 'INVALID_CREDENTIALS';
 
-      switch (error.code) {
+      switch (typedError.code) {
         case 'auth/invalid-id-token':
         case 'auth/id-token-expired':
           message = 'Your session has expired. Please sign in again.';
