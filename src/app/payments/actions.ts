@@ -178,7 +178,7 @@ const CsvPaymentSchema = z.object({
 
 
 export async function createPaymentsFromCsvAction(
-    paymentsData: unknown[]
+    paymentsData: Record<string, unknown>[]
 ): Promise<{ success: boolean; error?: string; details?: string; createdCount?: number }> {
     console.log('[CSV_ACTION] Starting CSV payment creation process.');
     if (!isFirebaseAdminInitialized) {
