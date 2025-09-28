@@ -107,8 +107,9 @@ export async function updatePropertyAction(
     
     return { success: true, propertyId };
 
-  } catch (error: any) {
-    console.error('[ERROR: updatePropertyAction]', error);
-    return { error: `Internal Server Error: ${error.message}` };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[ERROR: updatePropertyAction]', typedError);
+    return { error: `Internal Server Error: ${typedError.message}` };
   }
 }

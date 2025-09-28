@@ -43,8 +43,9 @@ export function DeletePropertyButton({ propertyId, propertyAddress }: DeleteProp
             });
             router.push('/properties');
             router.refresh(); // Refresh the properties list
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const typedError = err as Error;
+            toast({ title: "Error", description: typedError.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }

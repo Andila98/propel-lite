@@ -84,8 +84,9 @@ export async function createPropertyAction(
     
     return { success: true, propertyId: propertyRef.id };
 
-  } catch (error: any) {
-    console.error('[ERROR: createPropertyAction]', error);
-    return { error: `Internal Server Error: ${error.message}` };
+  } catch (error: unknown) {
+    const typedError = error as Error;
+    console.error('[ERROR: createPropertyAction]', typedError);
+    return { error: `Internal Server Error: ${typedError.message}` };
   }
 }
