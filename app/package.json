@@ -86,6 +86,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "eslint": "9.36.0",
     "eslint-config-next": "15.5.4",
+    "firebase-tools": "^13.13.2",
     "jsdom": "^24.1.0",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
