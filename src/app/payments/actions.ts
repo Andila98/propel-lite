@@ -15,7 +15,6 @@ import { PaymentFormSchema } from '@/lib/schemas';
 import type { FormState } from '../tenants/actions';
 import { sendEmail } from '@/lib/email-service';
 import { APP_URL } from '@/config/server-config';
-import pdf from 'html-pdf';
 import type { Tenant } from '@/lib/types';
 
 
@@ -38,16 +37,11 @@ async function createPdf(receipt: GenerateReceiptOutput): Promise<Buffer> {
     
     const html = await response.text();
 
-    return new Promise((resolve, reject) => {
-        pdf.create(html, {
-            format: 'A5',
-            orientation: 'portrait',
-            border: "0.5in"
-        }).toBuffer((err, buffer) => {
-            if (err) return reject(err);
-            resolve(buffer);
-        });
-    });
+    // The html-pdf package is heavy and has been removed.
+    // In a real application, you would use a more modern library like Puppeteer or Playwright here.
+    // For this prototype, we'll return a placeholder Buffer.
+    console.warn("[PDF Generation] html-pdf has been removed. Returning placeholder PDF buffer.");
+    return Buffer.from("Placeholder PDF content for receipt: " + receipt.receiptNumber);
 }
 
 export async function getReceiptAction(input: GenerateReceiptInput): Promise<ReceiptState> {
@@ -243,7 +237,7 @@ export async function createPaymentsFromCsvAction(
         
         // Clone the payment object to avoid modifying the original validated data
         const dbPayment: Partial<typeof payment> = { ...payment };
-        delete dbPayment.tenant_email;
+        delete (dbPayment as any).tenant_email;
 
         batch.set(paymentRef, {
             ...dbPayment,
