@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateReport } from '@/ai/flows/generate-report-flow';
 import { predictPayment } from '@/ai/flows/predict-payment-flow';
 import type { ReportOutput } from '@/lib/schema-types';
-import * as admin from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 
 // Mock AI - Genkit
 let mockAIResponse: unknown;
@@ -27,14 +27,13 @@ vi.mock('@/lib/flow-errors', () => ({
 
 
 describe('Property Management AI Flows', () => {
-
+    const mockFirestore = admin.firestore();
+    
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
     describe('generateReport', () => {
-        const mockFirestore = admin.firestore;
-        
         beforeEach(() => {
             mockAIResponse = {
                 reportTitle: 'Monthly Performance Report - January 2024',
@@ -114,11 +113,6 @@ describe('Property Management AI Flows', () => {
     });
 
     describe('predictPayment', () => {
-        const mockFirestore = admin.firestore;
-
-        beforeEach(() => {
-            // Note: The predictPayment flow doesn't use Genkit prompts, so no mockAIResponse is needed.
-        });
 
         it('should predict payment status with sufficient data', async () => {
             // Mock a rich payment history
@@ -150,11 +144,17 @@ describe('Property Management AI Flows', () => {
         });
 
         it('should handle tenant not found gracefully', async () => {
-            (mockFirestore.collection as vi.Mock).mockReturnValue({
-                doc: () => ({
-                    get: vi.fn().mockResolvedValue({ exists: false })
-                })
+            (mockFirestore.collection as vi.Mock).mockImplementation((collectionName: string) => {
+                if (collectionName === 'tenants') {
+                    return {
+                        doc: vi.fn(() => ({
+                            get: vi.fn().mockResolvedValue({ exists: false })
+                        }))
+                    };
+                }
+                return { doc: vi.fn(() => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({}) }) })) };
             });
+
 
             const input = { tenantId: 'nonexistent', currentStatus: 'Paid' };
             await expect(predictPayment(input)).rejects.toThrow('Unable to predict payment: tenant or property data not found.');

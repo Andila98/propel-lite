@@ -5,7 +5,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "out",
+    "source": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -14,7 +14,10 @@
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "apphosting": {
+          "backendId": "propel-lite",
+          "region": "us-central1"
+        }
       }
     ]
   }

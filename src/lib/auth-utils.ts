@@ -1,98 +1,7 @@
+
 import type { NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import type { DecodedIdToken, UserRecord } from 'firebase-admin/auth';
-
-// --- Enhanced Session Cache with Cleanup ---
-interface CacheEntry {
-    claims: DecodedIdToken;
-    expires: number;
-    lastAccessed: number;
-}
-
-class SessionCache {
-    private cache = new Map<string, CacheEntry>();
-    private readonly TTL_MS = 5 * 60 * 1000; // 5 minutes
-    private readonly CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
-    private cleanupTimer?: NodeJS.Timeout;
-
-    constructor() {
-        this.startCleanup();
-    }
-
-    private startCleanup() {
-        this.cleanupTimer = setInterval(() => {
-            this.cleanup();
-        }, this.CLEANUP_INTERVAL);
-    }
-
-    private cleanup() {
-        const now = Date.now();
-        const keysToDelete: string[] = [];
-
-        for (const [key, entry] of this.cache.entries()) {
-            if (entry.expires < now) {
-                keysToDelete.push(key);
-            }
-        }
-
-        keysToDelete.forEach(key => this.cache.delete(key));
-        
-        if (keysToDelete.length > 0) {
-            console.debug(`[SessionCache] Cleaned up ${keysToDelete.length} expired entries`);
-        }
-    }
-
-    get(sessionCookie: string): CacheEntry | null {
-        const entry = this.cache.get(sessionCookie);
-        if (!entry) return null;
-        
-        if (entry.expires <= Date.now()) {
-            this.cache.delete(sessionCookie);
-            return null;
-        }
-        
-        // Update last accessed time
-        entry.lastAccessed = Date.now();
-        return entry;
-    }
-
-    set(sessionCookie: string, claims: DecodedIdToken): void {
-        const now = Date.now();
-        this.cache.set(sessionCookie, {
-            claims,
-            expires: now + this.TTL_MS,
-            lastAccessed: now
-        });
-    }
-
-    delete(sessionCookie: string): void {
-        this.cache.delete(sessionCookie);
-    }
-
-    clear(): void {
-        this.cache.clear();
-    }
-
-    getStats() {
-        return {
-            size: this.cache.size,
-            entries: Array.from(this.cache.entries()).map(([key, entry]) => ({
-                key: key.substring(0, 10) + '...',
-                expires: new Date(entry.expires).toISOString(),
-                lastAccessed: new Date(entry.lastAccessed).toISOString()
-            }))
-        };
-    }
-
-    destroy() {
-        if (this.cleanupTimer) {
-            clearInterval(this.cleanupTimer);
-        }
-        this.clear();
-    }
-}
-
-const sessionCache = new SessionCache();
 
 // Enhanced error types for better error handling
 export class AuthError extends Error {
@@ -131,24 +40,11 @@ export async function verifySession(sessionCookie: string | undefined | null): P
         return null;
     }
 
-    // Check cache first
-    const cachedEntry = sessionCache.get(sessionCookie);
-    if (cachedEntry) {
-        return cachedEntry.claims;
-    }
-
     try {
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
-        
-        // Cache the verified session
-        sessionCache.set(sessionCookie, decodedClaims);
-        
         return decodedClaims;
     } catch (error: unknown) {
         const typedError = error as { code: string };
-        // Remove invalid session from cache
-        sessionCache.delete(sessionCookie);
-        
         // Log specific error types for monitoring
         if (typedError.code === 'auth/session-cookie-expired') {
             console.info('[AuthUtils] Session cookie expired');

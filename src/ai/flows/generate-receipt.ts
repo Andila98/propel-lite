@@ -13,8 +13,6 @@ import {
     type GenerateReceiptInput, 
     type GenerateReceiptOutput 
 } from '@/lib/schema-types';
-import { withErrorHandling } from '@/lib/flow-errors';
-import { withMonitoring } from '@/lib/flow-monitor';
 import { logActivity } from '@/lib/audit-log-service';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
@@ -133,13 +131,13 @@ function generateFallbackNote(data: ReceiptData): string {
     return `Thank you for your payment of ${data.currency} ${data.amountPaid.toLocaleString()}. We appreciate your promptness and value you as a tenant.`;
 }
 
-export const generateReceiptFlow = ai.defineFlow(
+const generateReceiptFlow = ai.defineFlow(
     {
         name: 'generateReceiptFlow',
         inputSchema: GenerateReceiptInputSchema,
         outputSchema: GenerateReceiptOutputSchema,
     },
-    withMonitoring('generateReceiptFlow', withErrorHandling('generateReceiptFlow', async (input: GenerateReceiptInput) => {
+    async (input: GenerateReceiptInput) => {
         
         const receiptData = await getReceiptData(input);
         
@@ -172,10 +170,9 @@ export const generateReceiptFlow = ai.defineFlow(
         }
         
         return result;
-    }))
+    }
 );
 
-
 export async function generateReceipt(input: GenerateReceiptInput): Promise<GenerateReceiptOutput> {
-    return generateReceiptFlow(input);
+  return generateReceiptFlow(input);
 }

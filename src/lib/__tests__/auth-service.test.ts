@@ -56,7 +56,7 @@ describe('Auth Service', () => {
 
       mockedAuth().getUserByEmail.mockRejectedValue({ code: 'auth/user-not-found' });
       mockedAuth().createUser.mockResolvedValue(mockUserRecord);
-      mockedFirestore().collection.mockReturnValue({ doc: docSpy } as any);
+      (mockedFirestore().collection as vi.Mock).mockReturnValue({ doc: docSpy });
 
 
       // Act

@@ -10,24 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import { AnalyzeDamageInputSchema, AnalyzeDamageOutputSchema, type AnalyzeDamageInput, type AnalyzeDamageDetections } from '@/lib/schema-types';
-import { withErrorHandling } from '@/lib/flow-errors';
-import { withMonitoring } from '@/lib/flow-monitor';
 
-
-export async function analyzeDamage(input: AnalyzeDamageInput): Promise<AnalyzeDamageDetections> {
-  return analyzeDamageFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'analyzeDamagePrompt',
-  input: {schema: AnalyzeDamageInputSchema},
-  output: {schema: AnalyzeDamageOutputSchema},
-  prompt: `You are an expert property inspector. Your task is to analyze the provided image for any signs of damage, such as cracks, stains, holes, mold, or significant wear and tear. 
-
-Based on your analysis, identify each issue, describe it, and assign a severity level. If no damage is found, state that clearly.
-
-Image to analyze: {{media url=photoDataUri}}`,
-});
 
 const analyzeDamageFlow = ai.defineFlow(
   {
@@ -35,8 +18,22 @@ const analyzeDamageFlow = ai.defineFlow(
     inputSchema: AnalyzeDamageInputSchema,
     outputSchema: AnalyzeDamageOutputSchema,
   },
-  withMonitoring('analyzeDamageFlow', withErrorHandling('analyzeDamageFlow', async (input: AnalyzeDamageInput) => {
+  async (input) => {
+    const prompt = ai.definePrompt({
+        name: 'analyzeDamagePrompt',
+        input: {schema: AnalyzeDamageInputSchema},
+        output: {schema: AnalyzeDamageOutputSchema},
+        prompt: `You are an expert property inspector. Your task is to analyze the provided image for any signs of damage, such as cracks, stains, holes, mold, or significant wear and tear. 
+
+Based on your analysis, identify each issue, describe it, and assign a severity level. If no damage is found, state that clearly.
+
+Image to analyze: {{media url=photoDataUri}}`,
+    });
     const {output} = await prompt(input);
     return output!;
-  }))
+  }
 );
+
+export async function analyzeDamage(input: AnalyzeDamageInput): Promise<AnalyzeDamageDetections> {
+  return analyzeDamageFlow(input);
+}

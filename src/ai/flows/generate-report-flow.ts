@@ -93,7 +93,7 @@ Data:
 Analyze the data to identify positive trends (highlights) and potential issues (areas for improvement). Be specific and provide actionable insights.`,
     config: {
         temperature: 0.6,
-        timeout: 20, // 20-second timeout
+        timeout: 20000, // 20-second timeout
     },
 });
 
@@ -105,16 +105,21 @@ export const generateReportFlow = ai.defineFlow(
     outputSchema: ReportOutputSchema,
   },
   withMonitoring('generateReportFlow', withErrorHandling('generateReportFlow', async (input: ReportInput) => {
-    const reportData = await getReportData(input);
-    
-    const llmInput = {
-        ...reportData,
-        month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
-        year: input.year,
-    };
-    
-    const { output } = await prompt(llmInput);
-    return output!;
+    try {
+        const reportData = await getReportData(input);
+        
+        const llmInput = {
+            ...reportData,
+            month: new Date(input.year, input.month).toLocaleString('default', { month: 'long' }),
+            year: input.year,
+        };
+        
+        const { output } = await prompt(llmInput);
+        return output!;
+    } catch (error: unknown) {
+        // Re-throw the original error so the wrapper can handle it
+        throw error;
+    }
   }))
 );
 

@@ -1,44 +1,27 @@
 
 import admin from 'firebase-admin';
 import { firebaseConfig } from '@/config/firebase-config';
+import * as serviceAccount from '../../service-account.json';
 
 let isFirebaseAdminInitialized = false;
 
 if (admin.apps.length > 0) {
   isFirebaseAdminInitialized = true;
 } else {
-  const serviceAccountString = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+  try {
+    // Directly use the imported service account object
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: firebaseConfig.projectId,
+      storageBucket: firebaseConfig.storageBucket,
+    });
 
-  if (serviceAccountString) {
-    try {
-      const serviceAccount = JSON.parse(Buffer.from(serviceAccountString, 'base64').toString('utf-8'));
-      
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: firebaseConfig.projectId,
-        storageBucket: firebaseConfig.storageBucket,
-      });
+    isFirebaseAdminInitialized = true;
+    console.log('[FIREBASE_ADMIN] Initialized successfully from service-account.json.');
 
-      isFirebaseAdminInitialized = true;
-      console.log('[FIREBASE_ADMIN] Initialized successfully.');
-
-    } catch (e: unknown) {
-      const typedError = e as Error;
-      console.error('[FIREBASE_ADMIN] CRITICAL: Failed to parse service account credentials. SDK not initialized.', typedError.message);
-    }
-  } else {
-    // This case is for local development or testing using `gcloud auth application-default login`
-    // It should NOT be used in production.
-    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-        admin.initializeApp({
-            projectId: firebaseConfig.projectId,
-            storageBucket: firebaseConfig.storageBucket,
-        });
-        isFirebaseAdminInitialized = true;
-        console.log(`[FIREBASE_ADMIN] Initialized using Application Default Credentials for ${process.env.NODE_ENV} environment.`);
-    } else {
-       console.error('[FIREBASE_ADMIN] CRITICAL: GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable not set. Firebase Admin SDK cannot be initialized.');
-    }
+  } catch (e: unknown) {
+    const typedError = e as Error;
+    console.error('[FIREBASE_ADMIN] CRITICAL: Failed to initialize from service-account.json. SDK not initialized.', typedError.message);
   }
 }
 

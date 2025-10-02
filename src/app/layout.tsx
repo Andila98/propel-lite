@@ -5,7 +5,6 @@ import './globals.css';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
-import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
 import { Inter } from 'next/font/google';
 
@@ -36,12 +35,6 @@ export default function RootLayout({
         <meta name="description" content="AI-powered tools to streamline your rental business." />
       </head>
       <body className="bg-background font-body">
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-        >
           <AuthProvider>
             {isPublicFlow ? (
               <div className="bg-background">{children}</div>
@@ -52,7 +45,6 @@ export default function RootLayout({
             )}
             <Toaster />
           </AuthProvider>
-        </ThemeProvider>
       </body>
     </html>
   );
