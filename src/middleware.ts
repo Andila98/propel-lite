@@ -4,7 +4,7 @@ import { authConfig } from '@/config/server-config';
 import { loginRateLimit } from '@/lib/rate-limiter';
 
 // Runtime configuration
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 // Security headers to apply to all responses
 const securityHeaders = {
