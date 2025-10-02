@@ -1,40 +1,45 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signUpUser } from '../auth-service';
-import type { UserRecord } from 'firebase-admin/auth';
 import * as admin from 'firebase-admin';
+import type { UserRecord } from 'firebase-admin/auth';
 
-// Mocks for individual functions
-const authCreateUserMock = vi.fn();
-const authGetUserByEmailMock = vi.fn();
-const authSetCustomUserClaimsMock = vi.fn();
-const firestoreSetMock = vi.fn();
-const firestoreDocMock = vi.fn(() => ({ set: firestoreSetMock }));
-const firestoreCollectionMock = vi.fn(() => ({ doc: firestoreDocMock }));
+// Mock the entire firebase-admin module
+vi.mock('firebase-admin', () => {
+  const firestore = {
+    collection: vi.fn().mockReturnThis(),
+    doc: vi.fn().mockReturnThis(),
+    set: vi.fn().mockResolvedValue(undefined),
+  };
+  const auth = {
+    createUser: vi.fn(),
+    getUserByEmail: vi.fn(),
+    setCustomUserClaims: vi.fn(),
+  };
 
-const mockAuth = () => ({
-  createUser: authCreateUserMock,
-  getUserByEmail: authGetUserByEmailMock,
-  setCustomUserClaims: authSetCustomUserClaimsMock,
+  return {
+    ...admin, // Keep other admin exports if any
+    auth: () => auth,
+    firestore: () => firestore,
+    // Mock FieldValue.serverTimestamp as it's used in the service
+    firestore: {
+        ...firestore,
+        FieldValue: {
+            serverTimestamp: vi.fn(() => new Date()),
+        },
+    }
+  };
 });
 
-const mockFirestore = () => ({
-  collection: firestoreCollectionMock,
-});
-
+// Create typed mocks to allow for `.mock...` methods
+const mockedAuth = vi.mocked(admin.auth());
+const mockedFirestore = vi.mocked(admin.firestore());
 
 describe('Auth Service', () => {
-
   beforeEach(() => {
-    // Spy on and mock the implementations of admin.auth() and admin.firestore()
-    vi.spyOn(admin, 'auth').mockImplementation(mockAuth as any);
-    vi.spyOn(admin, 'firestore').mockImplementation(mockFirestore as any);
+    // Reset mocks before each test
+    vi.clearAllMocks();
   });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
 
   describe('signUpUser', () => {
     it('should create a new user and landlord profile successfully', async () => {
@@ -51,58 +56,56 @@ describe('Auth Service', () => {
         displayName: newUser.displayName,
       } as UserRecord;
 
-      authGetUserByEmailMock.mockRejectedValue({ code: 'auth/user-not-found' });
-      authCreateUserMock.mockResolvedValue(mockUserRecord);
-      firestoreSetMock.mockResolvedValue(undefined);
-
+      mockedAuth.getUserByEmail.mockRejectedValue({ code: 'auth/user-not-found' });
+      mockedAuth.createUser.mockResolvedValue(mockUserRecord);
+      
       // Act
       const result = await signUpUser(newUser);
 
       // Assert
       expect(result).toEqual(mockUserRecord);
-      
-      expect(authCreateUserMock).toHaveBeenCalledWith({
+
+      expect(mockedAuth.createUser).toHaveBeenCalledWith({
         email: newUser.email,
         password: newUser.password,
         displayName: newUser.displayName,
       });
 
-      expect(authSetCustomUserClaimsMock).toHaveBeenCalledWith(mockUserRecord.uid, {
+      expect(mockedAuth.setCustomUserClaims).toHaveBeenCalledWith(mockUserRecord.uid, {
         role: 'landlord',
         profileComplete: false,
       });
-      
-      expect(firestoreCollectionMock).toHaveBeenCalledWith('landlords');
-      expect(firestoreDocMock).toHaveBeenCalledWith(mockUserRecord.uid);
-      expect(firestoreSetMock).toHaveBeenCalledWith({
+
+      const firestoreDoc = mockedFirestore.collection('landlords').doc(mockUserRecord.uid);
+      expect(firestoreDoc.set).toHaveBeenCalledWith({
         uid: mockUserRecord.uid,
         email: mockUserRecord.email,
         name: mockUserRecord.displayName,
         role: 'landlord',
-        createdAt: expect.any(Object), // Should be a FieldValue
+        createdAt: expect.any(Date),
       });
     });
 
     it('should throw an error if the user already exists', async () => {
-        // Arrange
-         const existingUser = {
-            email: 'existing@example.com',
-            password: 'password123',
-            displayName: 'Existing User',
-        };
-        const mockUserRecord = {
-            uid: 'existing-uid-456',
-            email: existingUser.email
-        } as UserRecord;
+      // Arrange
+      const existingUser = {
+        email: 'existing@example.com',
+        password: 'password123',
+        displayName: 'Existing User',
+      };
+      const mockUserRecord = {
+        uid: 'existing-uid-456',
+        email: existingUser.email,
+      } as UserRecord;
 
-        authGetUserByEmailMock.mockResolvedValue(mockUserRecord);
+      mockedAuth.getUserByEmail.mockResolvedValue(mockUserRecord);
 
-        // Act & Assert
-        await expect(signUpUser(existingUser)).rejects.toThrow(
-            'An account with this email already exists.'
-        );
-        
-        expect(authCreateUserMock).not.toHaveBeenCalled();
+      // Act & Assert
+      await expect(signUpUser(existingUser)).rejects.toThrow(
+        'An account with this email already exists.'
+      );
+
+      expect(mockedAuth.createUser).not.toHaveBeenCalled();
     });
   });
 });
