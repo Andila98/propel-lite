@@ -1,7 +1,6 @@
 
 import admin from 'firebase-admin';
 import { firebaseConfig } from '@/config/firebase-config';
-import * as serviceAccount from '../../service-account.json';
 
 let isFirebaseAdminInitialized = false;
 
@@ -9,7 +8,12 @@ if (admin.apps.length > 0) {
   isFirebaseAdminInitialized = true;
 } else {
   try {
-    // Directly use the imported service account object
+    const serviceAccountKeyBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+    if (!serviceAccountKeyBase64) {
+      throw new Error("GOOGLE_APPLICATION_CREDENTIALS_BASE64 env var is not set.");
+    }
+    const serviceAccount = JSON.parse(Buffer.from(serviceAccountKeyBase64, 'base64').toString('utf8'));
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: firebaseConfig.projectId,
@@ -17,11 +21,11 @@ if (admin.apps.length > 0) {
     });
 
     isFirebaseAdminInitialized = true;
-    console.log('[FIREBASE_ADMIN] Initialized successfully from service-account.json.');
+    console.log('[FIREBASE_ADMIN] Initialized successfully.');
 
   } catch (e: unknown) {
     const typedError = e as Error;
-    console.error('[FIREBASE_ADMIN] CRITICAL: Failed to initialize from service-account.json. SDK not initialized.', typedError.message);
+    console.error('[FIREBASE_ADMIN] CRITICAL: Failed to initialize. SDK not initialized.', typedError.message);
   }
 }
 

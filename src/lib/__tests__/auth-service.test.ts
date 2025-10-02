@@ -54,8 +54,8 @@ describe('Auth Service', () => {
       const docSetSpy = vi.fn().mockResolvedValue(undefined);
       const docSpy = vi.fn(() => ({ set: docSetSpy }));
 
-      mockedAuth().getUserByEmail.mockRejectedValue({ code: 'auth/user-not-found' });
-      mockedAuth().createUser.mockResolvedValue(mockUserRecord);
+      vi.mocked(mockedAuth().getUserByEmail).mockRejectedValue({ code: 'auth/user-not-found' });
+      vi.mocked(mockedAuth().createUser).mockResolvedValue(mockUserRecord);
       (mockedFirestore().collection as vi.Mock).mockReturnValue({ doc: docSpy });
 
 
@@ -99,7 +99,7 @@ describe('Auth Service', () => {
             email: existingUser.email
         } as UserRecord;
 
-        mockedAuth().getUserByEmail.mockResolvedValue(mockUserRecord);
+        vi.mocked(mockedAuth().getUserByEmail).mockResolvedValue(mockUserRecord);
 
         // Act & Assert
         await expect(signUpUser(existingUser)).rejects.toThrow(
