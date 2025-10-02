@@ -254,3 +254,4 @@ export const AddPaymentForm = React.memo(function AddPaymentForm({ tenants, onPa
         </Tabs>
     );
 });
+AddPaymentForm.displayName = 'AddPaymentForm';

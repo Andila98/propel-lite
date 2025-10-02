@@ -128,11 +128,11 @@ export default function PaymentsPage() {
                     Record Payment
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Record a New Payment</DialogTitle>
                     <DialogDescription>
-                        Manually enter a payment received from a tenant.
+                        Manually enter a payment received from a tenant or bulk upload from a CSV file.
                     </DialogDescription>
                 </DialogHeader>
                 <AddPaymentForm tenants={tenantsData?.tenants || []} onPaymentAdded={() => setIsAddPaymentOpen(false)} />
