@@ -1,20 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Local environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Firebase Service Account
-service-account.json
-
 # dependencies
 /node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+/.pnpm-store
+/pnpm-lock.yaml
 
 # testing
 /coverage
@@ -34,6 +23,14 @@ service-account.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -41,3 +38,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated
+service-account.json
+
+# temp files
+propel-lite-clean/**
