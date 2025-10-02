@@ -23,7 +23,7 @@ vi.mock('@/ai/genkit', () => ({
 }));
 
 describe('generateReportFlow', () => {
-  let mockPrompt: vi.Mock;
+  let mockPrompt: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();

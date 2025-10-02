@@ -13,7 +13,7 @@ vi.mock('@/ai/genkit', () => ({
 }));
 
 describe('prioritizeMaintenanceRequest Flow', () => {
-  let mockPrompt: vi.Mock;
+  let mockPrompt: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     // Reset mocks before each test
