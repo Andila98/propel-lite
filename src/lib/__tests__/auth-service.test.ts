@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
