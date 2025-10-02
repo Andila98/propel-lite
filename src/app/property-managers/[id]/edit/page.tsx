@@ -21,6 +21,7 @@ import { permissionLabels, type Permission } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const permissionsSchema = z.object(
   Object.keys(permissionLabels).reduce((acc, key) => {
@@ -81,7 +82,7 @@ export default function EditPropertyManagerPage() {
             form.reset({
                 name: managerData.name,
                 email: managerData.email,
-                phone: managerData.phone,
+                phone: managerData.phone || '',
                 permissions: managerData.permissions || {},
                 propertiesManaged: managerData.propertiesManaged || [],
             });
@@ -97,16 +98,28 @@ export default function EditPropertyManagerPage() {
   }, [managerId, form, toast]);
 
 
+  const { register, handleSubmit, control, formState: { errors } } = form;
+  
   if (loading) {
-    return <div>Loading...</div>; // TODO: Skeleton
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-8 w-8" />
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
   }
   
   if (!managerToEdit) {
     return <div>Manager not found.</div>;
   }
 
-  const { register, handleSubmit, control, formState: { errors } } = form;
-  
   const getInitials = (name: string) => {
     const names = name.split(' ');
     if (names.length > 1) {

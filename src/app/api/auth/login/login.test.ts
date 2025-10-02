@@ -18,6 +18,7 @@ vi.mock('@/lib/auth-service', () => ({
   createSession: vi.fn(),
 }));
 
+// Mock the rate limiter to prevent 429 errors during tests
 vi.mock('@/lib/rate-limiter', () => ({
   loginRateLimit: {
     check: vi.fn().mockResolvedValue(true),
@@ -93,6 +94,7 @@ describe('POST /api/auth/login', () => {
       body: JSON.stringify({}),
     });
 
+    // We need to re-mock the check for this specific test case
     vi.mocked(rateLimiter.loginRateLimit.check).mockRejectedValue(new Error('Rate limit exceeded'));
 
     const response = await POST(request);

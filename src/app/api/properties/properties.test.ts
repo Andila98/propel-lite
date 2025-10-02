@@ -50,26 +50,18 @@ describe('GET /api/properties', () => {
                     return rest;
                 },
                 ref: {
-                    collection: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue(mockUnits(p.id))
-                    })
+                    collection: vi.fn((subCollectionName) => ({
+                       get: vi.fn().mockResolvedValue(mockUnits(p.id))
+                    }))
                 }
               })),
             }),
           }),
-          doc: (docId: string) => ({
-             collection: (subCollection: string) => {
-                if (subCollection === 'units') {
-                    return {
-                        get: vi.fn().mockResolvedValue(mockUnits(docId))
-                    }
-                }
-                return {};
-             }
-          })
         };
       }
-      return {};
+      return {
+        where: () => ({ get: vi.fn().mockResolvedValue({ docs: [] })})
+      };
     });
 
     vi.mocked(firestore.collection).mockImplementation(collectionMock as any);
