@@ -27,10 +27,7 @@
       ]
     },
     "noEmit": true,
-    "jsx": "preserve",
-    "types": [
-      "vitest/globals"
-    ]
+    "jsx": "preserve"
   },
   "include": [
     "next-env.d.ts",
