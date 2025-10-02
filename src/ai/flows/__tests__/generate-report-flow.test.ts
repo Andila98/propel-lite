@@ -4,6 +4,7 @@ import { generateReportFlow } from '../generate-report-flow';
 import { firestore } from '@/lib/firebase-admin';
 import { ai } from '@/ai/genkit';
 import { ReportOutputSchema } from '@/lib/schema-types';
+import { z } from 'zod';
 
 // Mock dependencies
 vi.mock('@/lib/firebase-admin', () => ({

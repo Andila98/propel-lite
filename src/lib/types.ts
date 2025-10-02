@@ -59,6 +59,7 @@ export interface Tenant {
     leaseStart: Timestamp;
     leaseEnd: Timestamp;
     paymentHistory: Payment[];
+    createdAt?: Timestamp;
 }
 
 export interface Payment {

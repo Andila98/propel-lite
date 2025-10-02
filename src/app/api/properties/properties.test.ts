@@ -45,7 +45,10 @@ describe('GET /api/properties', () => {
             get: vi.fn().mockResolvedValue({
               docs: mockProperties.map(p => ({
                 id: p.id,
-                data: () => ({ ...p, units: undefined }),
+                data: () => {
+                    const { units, ...rest } = p;
+                    return rest;
+                },
                 ref: {
                     collection: vi.fn().mockReturnValue({
                         get: vi.fn().mockResolvedValue(mockUnits(p.id))

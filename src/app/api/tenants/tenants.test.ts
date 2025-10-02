@@ -7,6 +7,7 @@ import * as authUtils from '@/lib/auth-utils';
 import { authConfig } from '@/config/server-config';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import type { Tenant } from '@/lib/types';
+import type { Timestamp } from 'firebase-admin/firestore';
 
 // Mocks
 vi.mock('@/lib/firebase-admin', () => ({
