@@ -2,52 +2,50 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
-import { auth, firestore } from 'firebase-admin';
+import { auth as adminAuth, firestore as adminFirestore } from 'firebase-admin';
 
-// Mock the individual exports from 'firebase-admin'
+// Mock the firebase-admin module
 vi.mock('firebase-admin', () => ({
-  auth: vi.fn(() => ({
-    createUser: vi.fn(),
-    getUserByEmail: vi.fn(),
-    setCustomUserClaims: vi.fn(),
-  })),
-  firestore: vi.fn(() => ({
-    collection: vi.fn(),
-  })),
+  auth: vi.fn(),
+  firestore: vi.fn(),
+  credential: {
+    cert: vi.fn(),
+  },
+  initializeApp: vi.fn(),
 }));
 
 describe('Auth Service', () => {
-  const mockedAuth = auth as unknown as ReturnType<typeof vi.fn>;
-  const mockedFirestore = firestore as unknown as ReturnType<typeof vi.fn>;
-  
-  let authCreateUserMock: ReturnType<typeof vi.fn>;
-  let authGetUserByEmailMock: ReturnType<typeof vi.fn>;
-  let authSetCustomUserClaimsMock: ReturnType<typeof vi.fn>;
-  let firestoreCollectionMock: ReturnType<typeof vi.fn>;
-  let firestoreDocMock: ReturnType<typeof vi.fn>;
-  let firestoreSetMock: ReturnType<typeof vi.fn>;
+  const authCreateUserMock = vi.fn();
+  const authGetUserByEmailMock = vi.fn();
+  const authSetCustomUserClaimsMock = vi.fn();
+
+  const firestoreSetMock = vi.fn();
+  const firestoreDocMock = vi.fn(() => ({ set: firestoreSetMock }));
+  const firestoreCollectionMock = vi.fn(() => ({ doc: firestoreDocMock }));
 
   beforeEach(() => {
-    // Reset and re-assign mocks before each test
-    authCreateUserMock = vi.fn();
-    authGetUserByEmailMock = vi.fn();
-    authSetCustomUserClaimsMock = vi.fn();
-    mockedAuth.mockReturnValue({
+    // Reset mocks before each test
+    authCreateUserMock.mockClear();
+    authGetUserByEmailMock.mockClear();
+    authSetCustomUserClaimsMock.mockClear();
+    firestoreSetMock.mockClear();
+    firestoreDocMock.mockClear();
+    firestoreCollectionMock.mockClear();
+    
+    // Setup mock implementations
+    (adminAuth as unknown as vi.Mock).mockReturnValue({
         createUser: authCreateUserMock,
         getUserByEmail: authGetUserByEmailMock,
-        setCustomUserClaims: authSetCustomUserClaimsMock
+        setCustomUserClaims: authSetCustomUserClaimsMock,
     });
 
-    firestoreSetMock = vi.fn();
-    firestoreDocMock = vi.fn(() => ({ set: firestoreSetMock }));
-    firestoreCollectionMock = vi.fn(() => ({ doc: firestoreDocMock }));
-    mockedFirestore.mockReturnValue({
-        collection: firestoreCollectionMock
+    (adminFirestore as unknown as vi.Mock).mockReturnValue({
+        collection: firestoreCollectionMock,
     });
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
 
