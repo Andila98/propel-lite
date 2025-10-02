@@ -4,51 +4,31 @@ import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
 import * as admin from 'firebase-admin';
 
-// Mock the entire firebase-admin module
-vi.mock('firebase-admin', () => ({
-  auth: () => ({
-    createUser: vi.fn(),
-    getUserByEmail: vi.fn(),
-    setCustomUserClaims: vi.fn(),
-  }),
-  firestore: () => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        set: vi.fn(),
-      })),
-    })),
-  }),
-  credential: {
-    cert: vi.fn(),
-  },
-  initializeApp: vi.fn(),
-}));
+// Mocks for individual functions
+const authCreateUserMock = vi.fn();
+const authGetUserByEmailMock = vi.fn();
+const authSetCustomUserClaimsMock = vi.fn();
+const firestoreSetMock = vi.fn();
+const firestoreDocMock = vi.fn(() => ({ set: firestoreSetMock }));
+const firestoreCollectionMock = vi.fn(() => ({ doc: firestoreDocMock }));
+
+const mockAuth = () => ({
+  createUser: authCreateUserMock,
+  getUserByEmail: authGetUserByEmailMock,
+  setCustomUserClaims: authSetCustomUserClaimsMock,
+});
+
+const mockFirestore = () => ({
+  collection: firestoreCollectionMock,
+});
+
 
 describe('Auth Service', () => {
-  const mockAuth = admin.auth as unknown as () => {
-    createUser: vi.Mock;
-    getUserByEmail: vi.Mock;
-    setCustomUserClaims: vi.Mock;
-  };
-
-  const mockFirestore = admin.firestore as unknown as () => {
-    collection: vi.Mock;
-  };
-  
-  // Mocks for individual functions
-  const authCreateUserMock = vi.fn();
-  const authGetUserByEmailMock = vi.fn();
-  const authSetCustomUserClaimsMock = vi.fn();
-  const firestoreSetMock = vi.fn();
-  const firestoreDocMock = vi.fn(() => ({ set: firestoreSetMock }));
-  const firestoreCollectionMock = vi.fn(() => ({ doc: firestoreDocMock }));
 
   beforeEach(() => {
-     // Assign mocks before each test
-    (mockAuth as any).createUser = authCreateUserMock;
-    (mockAuth as any).getUserByEmail = authGetUserByEmailMock;
-    (mockAuth as any).setCustomUserClaims = authSetCustomUserClaimsMock;
-    (mockFirestore as any).collection = firestoreCollectionMock;
+    // Spy on and mock the implementations of admin.auth() and admin.firestore()
+    vi.spyOn(admin, 'auth').mockImplementation(mockAuth as any);
+    vi.spyOn(admin, 'firestore').mockImplementation(mockFirestore as any);
   });
 
   afterEach(() => {
