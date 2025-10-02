@@ -9,10 +9,11 @@ import { authConfig } from '@/config/server-config';
 export const runtime = 'nodejs';
 
 // GET /api/tenants/{tenantId}/messages
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: any) {
   if (!isFirebaseAdminInitialized) {
     return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
   }
+  const { params } = context;
   const sessionCookie = req.cookies.get(authConfig.cookieName)?.value;
   const claims = await verifySession(sessionCookie);
     if (!claims) {
@@ -51,10 +52,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST /api/tenants/{tenantId}/messages
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: any) {
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
     }
+    const { params } = context;
 
     const { content } = await req.json();
 

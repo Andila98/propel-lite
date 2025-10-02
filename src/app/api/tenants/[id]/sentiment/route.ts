@@ -6,10 +6,11 @@ export const runtime = 'nodejs';
 
 // This is a MOCK route. A real implementation would use a Genkit flow.
 // POST /api/tenants/{tenantId}/sentiment
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: any) {
   if (!isFirebaseAdminInitialized) {
     return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 500 });
   }
+  const { params } = context;
   try {
     const tenantId = params.id;
     if (!tenantId) {
