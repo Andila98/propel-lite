@@ -2,9 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
-import { admin } from 'firebase-admin';
+import admin from 'firebase-admin';
 
-// Correctly mock the firebase-admin module using vi.mock
+// Mock firebase-admin
 const mockAuth = {
   createUser: vi.fn(),
   getUserByEmail: vi.fn(),
@@ -19,13 +19,11 @@ const mockFirestore = {
   })),
 };
 
-// This tells Vitest to replace the actual 'firebase-admin' module with our mock
 vi.mock('firebase-admin', () => ({
   auth: () => mockAuth,
   firestore: () => mockFirestore,
   // Mock other exports if they are used, like FieldValue
   firestore_v1: {
-    // Assuming FieldValue is needed, provide a mock for it
     FieldValue: {
       serverTimestamp: () => new Date(),
     },
