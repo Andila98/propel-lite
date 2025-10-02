@@ -15,7 +15,7 @@ vi.mock('@/lib/firebase-admin', () => ({
 }));
 
 vi.mock('@/lib/auth-utils', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal() as any;
   return {
     ...actual,
     getLandlordAndActor: vi.fn(),
@@ -64,6 +64,7 @@ describe('GET /api/properties', () => {
                         get: vi.fn().mockResolvedValue(mockUnits(docId))
                     }
                 }
+                return {};
              }
           })
         };
@@ -94,7 +95,7 @@ describe('GET /api/properties', () => {
   });
 
   it('should return properties and metadata on successful request', async () => {
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: {} as any });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: {} as any, error: undefined });
 
     const request = new NextRequest('http://localhost/api/properties', {
       headers: {
@@ -116,7 +117,7 @@ describe('GET /api/properties', () => {
   });
   
   it('should handle zero properties correctly', async () => {
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: {} as any });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: {} as any, error: undefined });
     vi.mocked(firestore.collection).mockReturnValue({
       where: () => ({
         get: vi.fn().mockResolvedValue({ docs: [] }),
@@ -140,7 +141,7 @@ describe('GET /api/properties', () => {
   });
   
   it('should return 500 on firestore error', async () => {
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: {} as any });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: {} as any, error: undefined });
     vi.mocked(firestore.collection).mockReturnValue({
         where: () => ({
             get: vi.fn().mockRejectedValue(new Error("Firestore unavailable")),

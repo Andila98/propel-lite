@@ -62,7 +62,7 @@ describe('GET /api/tenants', () => {
   
   it('should return 403 if manager lacks canViewTenants permission', async () => {
     const managerActor = mockActor('manager', { canViewTenants: false });
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: managerActor });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: managerActor, error: undefined });
 
     const request = new NextRequest('http://localhost/api/tenants', {
         headers: { cookie: `${authConfig.cookieName}=test-cookie` }
@@ -76,7 +76,7 @@ describe('GET /api/tenants', () => {
 
   it('should return tenants and metadata for a landlord', async () => {
     const landlordActor = mockActor('landlord', {});
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: landlordActor });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: landlordActor, error: undefined });
 
     const request = new NextRequest('http://localhost/api/tenants', {
         headers: { cookie: `${authConfig.cookieName}=test-cookie` }
@@ -98,7 +98,7 @@ describe('GET /api/tenants', () => {
   
    it('should return tenants and metadata for a manager with permissions', async () => {
     const managerActor = mockActor('manager', { canViewTenants: true });
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: managerActor });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: managerActor, error: undefined });
 
     const request = new NextRequest('http://localhost/api/tenants', {
         headers: { cookie: `${authConfig.cookieName}=test-cookie` }
@@ -119,7 +119,7 @@ describe('GET /api/tenants', () => {
     } as any);
 
     const landlordActor = mockActor('landlord', {});
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: landlordActor });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: landlordActor, error: undefined });
     
     const request = new NextRequest('http://localhost/api/tenants', {
         headers: { cookie: `${authConfig.cookieName}=test-cookie` }
@@ -143,7 +143,7 @@ describe('GET /api/tenants', () => {
     } as any);
     
     const landlordActor = mockActor('landlord', {});
-    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: landlordActor });
+    vi.mocked(authUtils.getLandlordAndActor).mockResolvedValue({ landlordId: 'landlord1', actor: landlordActor, error: undefined });
     
     const request = new NextRequest('http://localhost/api/tenants', {
         headers: { cookie: `${authConfig.cookieName}=test-cookie` }
