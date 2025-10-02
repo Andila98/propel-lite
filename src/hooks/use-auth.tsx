@@ -1,3 +1,4 @@
+
 "use client";
 
 import { 
@@ -141,64 +142,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const retryHandler = useRef(new ConnectionRetry());
-  const isInitialized = useRef(false);
   const isRedirecting = useRef(false);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
-  
-  const handleRedirect = useCallback((currentUser: User | null) => {
-    if (!isInitialized.current || isRedirecting.current) {
-      return;
-    }
 
-    const isOnboardingPage = pathname.startsWith('/onboarding');
+  const handleAuthRedirect = useCallback((currentUser: User | null) => {
+    if (isRedirecting.current) return;
+
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
+    const isOnboardingPage = pathname.startsWith('/onboarding');
+    const isAcceptInvitePage = pathname.startsWith('/onboarding/accept-invite');
+    
     let destination: string | null = null;
 
     if (currentUser) {
-      if (!currentUser.profileComplete && currentUser.role !== 'tenant' && !isOnboardingPage) {
-        destination = '/onboarding/landlord-welcome';
-      } else if (currentUser.profileComplete && (isAuthPage || (isOnboardingPage && pathname !== '/onboarding/complete'))) {
-        destination = currentUser.role === 'tenant' ? '/tenant-portal' : '/dashboard';
-      }
+        // Logged-in user logic
+        if (!currentUser.profileComplete && currentUser.role !== 'tenant' && !isOnboardingPage) {
+            destination = '/onboarding/landlord-welcome';
+        } else if (isAuthPage) {
+            // If user is on an auth page but is logged in, redirect them away.
+            destination = currentUser.role === 'tenant' ? '/tenant-portal' : '/dashboard';
+        }
     } else {
-      if (!isAuthPage && !pathname.startsWith('/onboarding/accept-invite')) {
-        destination = '/login';
-      }
+        // Logged-out user logic
+        if (!isAuthPage && !isAcceptInvitePage) {
+            destination = '/login';
+        }
     }
-    
+
     if (destination && destination !== pathname) {
-      isRedirecting.current = true;
-      router.replace(destination);
-      setTimeout(() => { isRedirecting.current = false; }, 1000);
+        isRedirecting.current = true;
+        router.replace(destination);
+        // Reset redirect lock after a short delay
+        setTimeout(() => { isRedirecting.current = false; }, 1500);
     }
   }, [pathname, router]);
 
-  const updateUserAndRedirect = useCallback(async (firebaseUser: FirebaseUser | null) => {
+  const updateUserState = useCallback(async (firebaseUser: FirebaseUser | null) => {
     if (!firebaseUser) {
-      if (user !== null) setUser(null);
-      if (!isInitialized.current) {
-        isInitialized.current = true;
-        setLoading(false);
-      }
-      handleRedirect(null);
+      if (user !== null) setUser(null); // Clear user state on logout
+      setLoading(false);
+      handleAuthRedirect(null);
       return;
     }
 
-    if (user?.uid === firebaseUser.uid && isInitialized.current && !loading) {
-      return; // Already logged in and initialized, do nothing.
+    // If we already have this user and are not in a loading state, do nothing.
+    if (user?.uid === firebaseUser.uid && !loading) {
+      handleAuthRedirect(user);
+      return;
     }
 
     try {
       const userProfile = await retryHandler.current.execute(fetchUserFromApi);
       setUser(userProfile);
       setError(null);
-      if (!isInitialized.current) {
-          isInitialized.current = true;
-      }
-      handleRedirect(userProfile);
+      handleAuthRedirect(userProfile);
     } catch (error: unknown) {
       const typedError = error as { message: string, code?: string };
       console.error("[Auth] Error fetching user profile:", typedError);
@@ -210,29 +210,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       await firebaseSignOut(auth);
       setUser(null);
-      handleRedirect(null);
+      handleAuthRedirect(null);
     } finally {
-      if (loading) {
         setLoading(false);
-      }
     }
-  }, [handleRedirect, user, loading]);
+  }, [handleAuthRedirect, user, loading]);
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, updateUserAndRedirect);
+    const unsubscribe = onIdTokenChanged(auth, updateUserState);
     return () => unsubscribe();
-  }, [updateUserAndRedirect]);
+  }, [updateUserState]);
   
   const retryConnection = useCallback(async () => {
     setLoading(true);
     setError(null);
-    await updateUserAndRedirect(auth.currentUser);
+    await updateUserState(auth.currentUser);
     setLoading(false);
-  }, [updateUserAndRedirect]);
+  }, [updateUserState]);
 
   const refreshUser = useCallback(async () => {
-    await updateUserAndRedirect(auth.currentUser);
-  }, [updateUserAndRedirect]);
+    await updateUserState(auth.currentUser);
+  }, [updateUserState]);
 
   const processLogin = useCallback(async (idToken: string): Promise<User> => {
     const response = await fetch('/api/auth/login', {
@@ -253,12 +251,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string, isSignUp: boolean = false): Promise<void> => {
     clearError();
+    setLoading(true);
     const loginAttempt = async () => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
         const userProfile = await processLogin(idToken);
-        setUser(userProfile);
-        handleRedirect(userProfile);
+        setUser(userProfile); // Set user immediately
+        handleAuthRedirect(userProfile); // Then redirect
     };
 
     try {
@@ -308,11 +307,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const authError = { message, code: typedError.code };
         setError(authError);
         throw new AuthenticationError(message, typedError.code);
+    } finally {
+        setLoading(false);
     }
-}, [processLogin, clearError, handleRedirect]);
+}, [processLogin, clearError, handleAuthRedirect]);
   
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     clearError();
+    setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
@@ -322,7 +324,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const idToken = await userCredential.user.getIdToken();
       const userProfile = await processLogin(idToken);
       setUser(userProfile);
-      handleRedirect(userProfile);
+      handleAuthRedirect(userProfile);
 
     } catch (error: unknown) {
       const typedError = error as { code?: string };
@@ -332,8 +334,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(authError);
         throw new AuthenticationError(message, typedError.code);
       }
+    } finally {
+      setLoading(false);
     }
-  }, [processLogin, clearError, handleRedirect]);
+  }, [processLogin, clearError, handleAuthRedirect]);
 
   const logout = useCallback(async () => {
     try {
@@ -348,7 +352,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearError, router]);
 
-  if (loading && !isInitialized.current) {
+  // Initial loading screen for the entire app
+  if (loading && user === null) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
