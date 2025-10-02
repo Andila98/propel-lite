@@ -18,7 +18,7 @@ vi.mock('@/lib/firebase-admin', () => ({
 vi.mock('@/ai/genkit', () => ({
   ai: {
     defineFlow: vi.fn((config, fn) => fn),
-    definePrompt: vi.fn().mockReturnValue(vi.fn()),
+    definePrompt: vi.fn(),
   },
 }));
 
@@ -30,7 +30,8 @@ describe('generateReportFlow', () => {
 
     // Setup the mock for the prompt defined inside the flow
     mockPrompt = vi.fn();
-    vi.mocked(ai.definePrompt).mockReturnValue(mockPrompt);
+    (ai.definePrompt as ReturnType<typeof vi.fn>).mockReturnValue(mockPrompt);
+
 
     // Mock Firestore responses
     vi.mocked(firestore.collection).mockReturnValue({

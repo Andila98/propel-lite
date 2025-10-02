@@ -8,7 +8,7 @@ import type { PrioritizeMaintenanceOutput } from '@/lib/schema-types';
 vi.mock('@/ai/genkit', () => ({
   ai: {
     defineFlow: vi.fn((config, fn) => fn),
-    definePrompt: vi.fn().mockReturnValue(vi.fn()),
+    definePrompt: vi.fn(),
   },
 }));
 
@@ -20,7 +20,7 @@ describe('prioritizeMaintenanceRequest Flow', () => {
     vi.clearAllMocks();
     // Re-assign the mock for definePrompt since it's used inside the flow
     mockPrompt = vi.fn();
-    vi.mocked(ai.definePrompt).mockReturnValue(mockPrompt);
+    (ai.definePrompt as ReturnType<typeof vi.fn>).mockReturnValue(mockPrompt);
   });
 
   it('should assign High priority for safety risks like electrical issues', async () => {
