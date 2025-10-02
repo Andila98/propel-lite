@@ -1,38 +1,55 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';
 import { auth, firestore } from 'firebase-admin';
 
-// Mock the entire firebase-admin module
-vi.mock('firebase-admin', async () => {
-  const actual = await vi.importActual('firebase-admin');
-  const firestoreDocMock = {
-    set: vi.fn().mockResolvedValue(undefined),
-  };
-  const firestoreCollectionMock = {
-    doc: vi.fn(() => firestoreDocMock),
-  };
-  return {
-    ...actual,
-    auth: () => ({
-      createUser: vi.fn(),
-      getUserByEmail: vi.fn(),
-      setCustomUserClaims: vi.fn(),
-    }),
-    firestore: () => ({
-      collection: vi.fn(() => firestoreCollectionMock),
-    }),
-  };
-});
-
+// Mock the individual exports from 'firebase-admin'
+vi.mock('firebase-admin', () => ({
+  auth: vi.fn(() => ({
+    createUser: vi.fn(),
+    getUserByEmail: vi.fn(),
+    setCustomUserClaims: vi.fn(),
+  })),
+  firestore: vi.fn(() => ({
+    collection: vi.fn(),
+  })),
+}));
 
 describe('Auth Service', () => {
-  const mockedAuth = auth as unknown as () => ReturnType<typeof auth>;
-  const mockedFirestore = firestore as unknown as () => ReturnType<typeof firestore>;
+  const mockedAuth = auth as unknown as ReturnType<typeof vi.fn>;
+  const mockedFirestore = firestore as unknown as ReturnType<typeof vi.fn>;
+  
+  let authCreateUserMock: ReturnType<typeof vi.fn>;
+  let authGetUserByEmailMock: ReturnType<typeof vi.fn>;
+  let authSetCustomUserClaimsMock: ReturnType<typeof vi.fn>;
+  let firestoreCollectionMock: ReturnType<typeof vi.fn>;
+  let firestoreDocMock: ReturnType<typeof vi.fn>;
+  let firestoreSetMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    // Reset and re-assign mocks before each test
+    authCreateUserMock = vi.fn();
+    authGetUserByEmailMock = vi.fn();
+    authSetCustomUserClaimsMock = vi.fn();
+    mockedAuth.mockReturnValue({
+        createUser: authCreateUserMock,
+        getUserByEmail: authGetUserByEmailMock,
+        setCustomUserClaims: authSetCustomUserClaimsMock
+    });
+
+    firestoreSetMock = vi.fn();
+    firestoreDocMock = vi.fn(() => ({ set: firestoreSetMock }));
+    firestoreCollectionMock = vi.fn(() => ({ doc: firestoreDocMock }));
+    mockedFirestore.mockReturnValue({
+        collection: firestoreCollectionMock
+    });
+  });
+
+  afterEach(() => {
     vi.clearAllMocks();
   });
+
 
   describe('signUpUser', () => {
     it('should create a new user and landlord profile successfully', async () => {
@@ -48,14 +65,10 @@ describe('Auth Service', () => {
         email: newUser.email,
         displayName: newUser.displayName,
       } as UserRecord;
-      
-      const docSetSpy = vi.fn().mockResolvedValue(undefined);
-      const docSpy = vi.fn(() => ({ set: docSetSpy }));
 
-      vi.mocked(mockedAuth().getUserByEmail).mockRejectedValue({ code: 'auth/user-not-found' });
-      vi.mocked(mockedAuth().createUser).mockResolvedValue(mockUserRecord);
-      (mockedFirestore().collection as vi.Mock).mockReturnValue({ doc: docSpy });
-
+      authGetUserByEmailMock.mockRejectedValue({ code: 'auth/user-not-found' });
+      authCreateUserMock.mockResolvedValue(mockUserRecord);
+      firestoreSetMock.mockResolvedValue(undefined);
 
       // Act
       const result = await signUpUser(newUser);
@@ -63,20 +76,20 @@ describe('Auth Service', () => {
       // Assert
       expect(result).toEqual(mockUserRecord);
       
-      expect(mockedAuth().createUser).toHaveBeenCalledWith({
+      expect(authCreateUserMock).toHaveBeenCalledWith({
         email: newUser.email,
         password: newUser.password,
         displayName: newUser.displayName,
       });
 
-      expect(mockedAuth().setCustomUserClaims).toHaveBeenCalledWith(mockUserRecord.uid, {
+      expect(authSetCustomUserClaimsMock).toHaveBeenCalledWith(mockUserRecord.uid, {
         role: 'landlord',
         profileComplete: false,
       });
       
-      expect(mockedFirestore().collection).toHaveBeenCalledWith('landlords');
-      expect(docSpy).toHaveBeenCalledWith(mockUserRecord.uid);
-      expect(docSetSpy).toHaveBeenCalledWith({
+      expect(firestoreCollectionMock).toHaveBeenCalledWith('landlords');
+      expect(firestoreDocMock).toHaveBeenCalledWith(mockUserRecord.uid);
+      expect(firestoreSetMock).toHaveBeenCalledWith({
         uid: mockUserRecord.uid,
         email: mockUserRecord.email,
         name: mockUserRecord.displayName,
@@ -97,14 +110,14 @@ describe('Auth Service', () => {
             email: existingUser.email
         } as UserRecord;
 
-        vi.mocked(mockedAuth().getUserByEmail).mockResolvedValue(mockUserRecord);
+        authGetUserByEmailMock.mockResolvedValue(mockUserRecord);
 
         // Act & Assert
         await expect(signUpUser(existingUser)).rejects.toThrow(
             'An account with this email already exists.'
         );
         
-        expect(mockedAuth().createUser).not.toHaveBeenCalled();
+        expect(authCreateUserMock).not.toHaveBeenCalled();
     });
   });
 });
