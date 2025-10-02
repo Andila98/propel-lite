@@ -7,6 +7,7 @@ import { inviteManagerRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { logActivity } from '@/lib/audit-log-service';
 import { authConfig } from '@/config/server-config';
+import { firebaseConfig } from '@/config/firebase-config';
 
 export const runtime = 'nodejs';
 
@@ -16,6 +17,22 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const InviteManagerSchema = z.object({
   email: z.string().email('Please provide a valid email address.'),
 });
+
+// Helper to construct the dynamic link
+function constructDynamicLink(token: string): string {
+    const { projectId } = firebaseConfig;
+    const FIREBASE_DYNAMIC_LINK_DOMAIN = `${projectId}.page.link`;
+
+    const link = new URL(`${APP_URL}/onboarding/accept-invite`);
+    link.searchParams.set('token', token);
+
+    const dynamicLink = new URL(`https://{FIREBASE_DYNAMIC_LINK_DOMAIN}/`);
+    dynamicLink.searchParams.set('link', link.toString());
+    dynamicLink.searchParams.set('apn', 'com.example.propellite'); // Android package name
+    dynamicLink.searchParams.set('ibi', 'com.example.propellite'); // iOS bundle ID
+    
+    return dynamicLink.toString();
+}
 
 export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
@@ -71,7 +88,7 @@ export async function POST(req: NextRequest) {
             .setExpirationTime('3d')
             .sign(secret);
         
-        const invitationLink = `${APP_URL}/onboarding/accept-invite?token=${token}`;
+        const invitationLink = constructDynamicLink(token);
 
         await logActivity(actor.displayName || 'Landlord', `Sent invitation to manager "${email}"`, { type: 'Manager', name: email }, landlordId);
 
