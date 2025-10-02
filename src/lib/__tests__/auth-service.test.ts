@@ -1,39 +1,35 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signUpUser } from '../auth-service';
-import * as admin from 'firebase-admin';
 import type { UserRecord } from 'firebase-admin/auth';
 
 // Mock the entire firebase-admin module
-vi.mock('firebase-admin', () => {
-  const firestore = {
+vi.mock('firebase-admin', async () => {
+  const originalAdmin = await vi.importActual('firebase-admin');
+  const firestoreMock = {
     collection: vi.fn().mockReturnThis(),
     doc: vi.fn().mockReturnThis(),
     set: vi.fn().mockResolvedValue(undefined),
+    FieldValue: {
+      serverTimestamp: vi.fn(() => new Date()),
+    },
   };
-  const auth = {
+  const authMock = {
     createUser: vi.fn(),
     getUserByEmail: vi.fn(),
     setCustomUserClaims: vi.fn(),
   };
 
   return {
-    ...admin, // Keep other admin exports if any
-    auth: () => auth,
-    firestore: () => firestore,
-    // Mock FieldValue.serverTimestamp as it's used in the service
-    firestore: {
-        ...firestore,
-        FieldValue: {
-            serverTimestamp: vi.fn(() => new Date()),
-        },
-    }
+    ...originalAdmin,
+    auth: () => authMock,
+    firestore: () => firestoreMock,
   };
 });
 
-// Create typed mocks to allow for `.mock...` methods
-const mockedAuth = vi.mocked(admin.auth());
-const mockedFirestore = vi.mocked(admin.firestore());
+// We need to await the mocked module to get the mocked instances
+const mockedAuth = (await vi.importMock('firebase-admin')).auth();
+const mockedFirestore = (await vi.importMock('firebase-admin')).firestore();
+
 
 describe('Auth Service', () => {
   beforeEach(() => {
