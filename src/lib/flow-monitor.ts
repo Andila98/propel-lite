@@ -138,6 +138,10 @@ export class FlowMonitor {
      * Get analytics for a specific flow
      */
     async getFlowAnalytics(flowName: string, days = 30): Promise<FlowAnalytics> {
+        if (!isFirebaseAdminInitialized) {
+            console.warn("[FLOW_MONITOR] Firebase not initialized. Skipping analytics.");
+            return this.calculateAnalytics([], days);
+        }
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(endDate.getDate() - days);
@@ -158,6 +162,10 @@ export class FlowMonitor {
      * Get system-wide analytics
      */
     async getSystemAnalytics(days = 30): Promise<Record<string, FlowAnalytics>> {
+        if (!isFirebaseAdminInitialized) {
+            console.warn("[FLOW_MONITOR] Firebase not initialized. Skipping analytics.");
+            return {};
+        }
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(endDate.getDate() - days);
