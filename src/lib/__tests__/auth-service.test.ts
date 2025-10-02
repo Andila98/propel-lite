@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { signUpUser } from '../auth-service';
 import type { UserRecord } from 'firebase-admin/auth';

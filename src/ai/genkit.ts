@@ -7,7 +7,7 @@
  */
 
 import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import {googleAI} from '@genkit-ai/google-genai';
 
 // Initialize the Genkit AI instance with the Google AI plugin.
 // This allows the application to use Google's generative AI models like Gemini.

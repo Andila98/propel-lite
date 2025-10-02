@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import jwt, { type JwtPayload } from 'jsonwebtoken';
+import * as jose from 'jose';
 import type { PropertyManager } from '@/lib/types';
 import { logActivity } from '@/lib/audit-log-service';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import { registrationRateLimit } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const AcceptInviteSchema = z.object({
   token: z.string().min(1, 'Token is required'),
@@ -18,7 +18,7 @@ const AcceptInviteSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-interface DecodedInviteToken extends JwtPayload {
+interface DecodedInviteToken extends jose.JWTPayload {
     email: string;
     role: string;
     inviterId: string;
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     if (!isFirebaseAdminInitialized) {
         return NextResponse.json({ error: 'Backend services are not configured. Please contact support.' }, { status: 503 });
     }
-    if (!JWT_SECRET) {
+    if (!process.env.JWT_SECRET) {
         console.error("[ERROR] JWT_SECRET environment variable is not set.");
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
@@ -47,14 +47,15 @@ export async function POST(req: NextRequest) {
         }
         const { token, displayName, password } = validation.data;
 
-        let decodedToken: string | JwtPayload;
+        let payload;
         try {
-            decodedToken = jwt.verify(token, JWT_SECRET);
+            const { payload: verifiedPayload } = await jose.jwtVerify(token, JWT_SECRET);
+            payload = verifiedPayload;
         } catch {
             return NextResponse.json({ error: 'Invalid or expired invitation token.' }, { status: 401 });
         }
         
-        const { email, role, inviterId } = decodedToken as DecodedInviteToken;
+        const { email, role, inviterId } = payload as DecodedInviteToken;
 
         // 1. Create the user in Firebase Auth
         const userRecord = await auth.createUser({

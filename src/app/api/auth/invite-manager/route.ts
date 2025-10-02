@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import jwt from 'jsonwebtoken';
+import * as jose from 'jose';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { inviteManagerRateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
@@ -63,10 +63,13 @@ export async function POST(req: NextRequest) {
                 throw error;
             }
         }
-
-        const token = jwt.sign({ email, inviterId: landlordId, role: 'manager' }, JWT_SECRET, {
-            expiresIn: '3d', // Invitation expires in 3 days
-        });
+        
+        const secret = new TextEncoder().encode(JWT_SECRET);
+        const token = await new jose.SignJWT({ email, inviterId: landlordId, role: 'manager' })
+            .setProtectedHeader({ alg: 'HS256' })
+            .setIssuedAt()
+            .setExpirationTime('3d')
+            .sign(secret);
         
         const invitationLink = `${APP_URL}/onboarding/accept-invite?token=${token}`;
 
