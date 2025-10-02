@@ -10,3 +10,4 @@ runConfig:
   timeoutSeconds: 120
 excluded_files:
   - "service-account.json"
+  - "propel-lite-clean/**"
