@@ -40,7 +40,7 @@ async function createPdf(receipt: GenerateReceiptOutput): Promise<Buffer> {
     // The html-pdf package is heavy and has been removed.
     // In a real application, you would use a more modern library like Puppeteer or Playwright here.
     // For this prototype, we'll return a placeholder Buffer.
-    console.warn("[PDF Generation] html-pdf has been removed. Returning placeholder PDF buffer.");
+    console.warn("[PDF Generation] PDF generation library not implemented. Returning placeholder PDF buffer.");
     return Buffer.from("Placeholder PDF content for receipt: " + receipt.receiptNumber);
 }
 
