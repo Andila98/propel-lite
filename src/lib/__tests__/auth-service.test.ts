@@ -21,14 +21,12 @@ vi.mock('firebase-admin', async () => {
     }),
     firestore: () => ({
       collection: vi.fn(() => firestoreCollectionMock),
-      // Add any other firestore top-level methods if needed
     }),
   };
 });
 
 
 describe('Auth Service', () => {
-  // We need to cast the mocked functions to be able to use them
   const mockedAuth = auth as unknown as () => ReturnType<typeof auth>;
   const mockedFirestore = firestore as unknown as () => ReturnType<typeof firestore>;
 

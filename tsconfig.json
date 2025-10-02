@@ -26,9 +26,6 @@
         "./src/*"
       ]
     },
-    "types": [
-      "vitest/globals"
-    ],
     "noEmit": true,
     "jsx": "preserve"
   },
