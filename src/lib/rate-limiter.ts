@@ -1,3 +1,4 @@
+
 import { Ratelimit } from "@upstash/ratelimit";
 import { kv } from "@vercel/kv";
 import { getClientIP } from "./auth-utils";
@@ -11,7 +12,7 @@ function createRateLimiter(
 ) {
     const ratelimit = new Ratelimit({
         redis: kv,
-        limiter: Ratelimit.slidingWindow(requests, `${per}s`), // e.g., '10s'
+        limiter: Ratelimit.slidingWindow(requests, `${requests} ${per}`),
         analytics: true,
         prefix: `ratelimit_${prefix}`,
     });
