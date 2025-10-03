@@ -8,13 +8,10 @@ import {
   useContext, 
   ReactNode, 
   useCallback,
-  useRef
 } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { auth } from '@/lib/firebase-client';
 import { 
-  onIdTokenChanged, 
   signOut as firebaseSignOut, 
   signInWithEmailAndPassword, 
   GoogleAuthProvider, 
@@ -146,53 +143,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
-  const updateUserState = useCallback(async (firebaseUser: FirebaseUser | null) => {
-    if (!firebaseUser) {
-      if (user !== null) setUser(null); // Clear user state on logout
-      setStatus('unauthenticated');
-      return;
-    }
-
-    // If we already have this user and are not in a loading state, do nothing.
-    if (user?.uid === firebaseUser.uid && status === 'authenticated') {
-      return;
-    }
-
-    setStatus('loading');
+  const checkInitialSession = useCallback(async () => {
+    setStatus('initializing');
     try {
-      const retryHandler = new ConnectionRetry();
-      const userProfile = await retryHandler.execute(fetchUserFromApi);
+      const userProfile = await fetchUserFromApi();
       setUser(userProfile);
-      setError(null);
       setStatus(userProfile ? 'authenticated' : 'unauthenticated');
-    } catch (error: unknown) {
-      const typedError = error as { message: string, code?: string };
-      console.error("[Auth] Error fetching user profile:", typedError);
-      setError({
-        message: typedError.code === 'CONNECTION_FAILED' 
-          ? 'Unable to connect to server. Check connection.' 
-          : 'Failed to load user profile.',
-        code: typedError.code || 'PROFILE_LOAD_FAILED'
-      });
-      await firebaseSignOut(auth);
+    } catch (e: unknown) {
+      const err = e as Error;
+      console.error("[Auth] Initial session check failed:", err.message);
       setUser(null);
       setStatus('unauthenticated');
     }
-  }, [user, status]);
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, updateUserState);
-    return () => unsubscribe();
-  }, [updateUserState]);
+    checkInitialSession();
+  }, [checkInitialSession]);
   
   const retryConnection = useCallback(async () => {
-    setStatus('loading');
-    await updateUserState(auth.currentUser);
-  }, [updateUserState]);
+    await checkInitialSession();
+  }, [checkInitialSession]);
 
   const refreshUser = useCallback(async () => {
-    await updateUserState(auth.currentUser);
-  }, [updateUserState]);
+    await checkInitialSession();
+  }, [checkInitialSession]);
 
   const processLogin = useCallback(async (idToken: string): Promise<User> => {
     setStatus('loading');
@@ -291,13 +266,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      clearError();
-      setUser(null); 
-      setStatus('unauthenticated');
       await firebaseSignOut(auth);
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (error) {
       console.error("Error during logout:", error);
+    } finally {
+      clearError();
+      setUser(null); 
+      setStatus('unauthenticated');
     }
   }, [clearError]);
 
@@ -325,3 +301,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    
