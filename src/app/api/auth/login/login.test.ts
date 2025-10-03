@@ -1,10 +1,10 @@
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 import { auth, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import * as authService from '@/lib/auth-service';
 import * as rateLimiter from '@/lib/rate-limiter';
+import { authConfig } from '@/config/server-config';
 
 // Mock dependencies
 vi.mock('@/lib/firebase-admin', () => ({
@@ -32,6 +32,11 @@ vi.mock('@/lib/rate-limiter', async (importOriginal) => {
 describe('POST /api/auth/login', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+  
+  afterEach(() => {
+    // Reset the mock behavior to the default (success)
+    vi.mocked(rateLimiter.loginRateLimit.check).mockResolvedValue(undefined);
   });
 
   const mockUser = {
