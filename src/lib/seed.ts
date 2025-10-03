@@ -14,23 +14,23 @@ import { getFirestore, FieldValue, type Timestamp } from 'firebase-admin/firesto
 import { getAuth } from 'firebase-admin/auth';
 import type { Property, Unit, Tenant, Payment, MaintenanceRequest } from './types';
 import { sub, addYears } from 'date-fns';
+import fs from 'fs';
+import path from 'path';
 
-// Load service account credentials from environment variables
-const serviceAccountKeyBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-if (!serviceAccountKeyBase64) {
-  console.error("CRITICAL: GOOGLE_APPLICATION_CREDENTIALS_BASE64 env var is not set.");
-  process.exit(1);
-}
-
+// Load service account credentials from the local file for the seed script
 try {
-  const serviceAccount = JSON.parse(Buffer.from(serviceAccountKeyBase64, 'base64').toString('utf8'));
+  const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
+  if (!fs.existsSync(serviceAccountPath)) {
+      throw new Error("Seed script requires 'service-account.json' to be present in the project root.");
+  }
+  const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
   initializeApp({
     credential: cert(serviceAccount),
   });
 } catch (e: unknown) {
   const error = e as Error;
-  console.error("Failed to parse or initialize Firebase Admin SDK:", error.message);
+  console.error("CRITICAL: Failed to initialize Firebase Admin SDK for seeding.", error.message);
   process.exit(1);
 }
 
@@ -38,7 +38,7 @@ try {
 const db = getFirestore();
 const auth = getAuth();
 const LANDLORD_EMAIL = 'landlord@example.com';
-const LANDLORD_PW = 'password';
+const LANDLORD_PW = 'P@55wOrd123';
 
 // --- Helper Functions ---
 
@@ -226,7 +226,7 @@ async function seedDatabase() {
        const tenantAuthUser = await auth.createUser({
          email: tenantEmail,
          displayName: tenantName,
-         password: 'password',
+         password: 'P@55wOrd123',
          emailVerified: true
        });
        await auth.setCustomUserClaims(tenantAuthUser.uid, { role: 'tenant', profileComplete: true, landlordId });
