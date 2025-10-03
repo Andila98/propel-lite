@@ -19,6 +19,18 @@ const nextConfig = {
 
     return config;
   },
+  experimental: {
+    // This is required to fix a critical dependency issue with genkit.
+    serverComponentsExternalPackages: [
+      '@google-cloud/firestore',
+      '@opentelemetry/api',
+      '@opentelemetry/sdk-trace-base',
+      '@opentelemetry/sdk-trace-node',
+      'firebase-admin',
+      'long',
+      'protobufjs',
+    ],
+  },
 }
 
 module.exports = nextConfig

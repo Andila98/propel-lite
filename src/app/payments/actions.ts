@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { generateReceipt } from '@/ai/flows/generate-receipt';
 import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
-import type { GenerateReceiptOutput, GenerateReceiptInput } from '@/lib/schema-types';
+import type { GenerateReceiptOutput, GenerateReceiptInput, GenerateInvoiceOutput } from '@/lib/schema-types';
 import { getLandlordAndActor } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { authConfig } from '@/config/server-config';
@@ -16,19 +16,21 @@ import type { FormState } from '../tenants/actions';
 import { sendEmail } from '@/lib/email-service';
 import { APP_URL } from '@/config/server-config';
 import type { Tenant } from '@/lib/types';
+import { generateInvoice } from '@/ai/flows/generate-invoice-flow';
 
 
 export interface ReceiptState {
     error?: string;
     receipt?: GenerateReceiptOutput;
+    invoice?: GenerateInvoiceOutput; // Add invoice to the state
     pdf?: string; // base64 encoded PDF
 }
 
-async function createPdf(receipt: GenerateReceiptOutput): Promise<Buffer> {
+async function createPdf(receipt: GenerateInvoiceOutput): Promise<Buffer> {
     const response = await fetch(`${APP_URL}/api/pdf/receipt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receipt }),
+        body: JSON.stringify({ receipt }), // Pass the invoice object with the key 'receipt'
     });
 
     if (!response.ok) {
@@ -41,7 +43,7 @@ async function createPdf(receipt: GenerateReceiptOutput): Promise<Buffer> {
     // In a real application, you would use a more modern library like Puppeteer or Playwright here.
     // For this prototype, we'll return a placeholder Buffer.
     console.warn("[PDF Generation] PDF generation library not implemented. Returning placeholder PDF buffer.");
-    return Buffer.from("Placeholder PDF content for receipt: " + receipt.receiptNumber);
+    return Buffer.from("Placeholder PDF content for invoice: " + receipt.invoiceNumber);
 }
 
 export async function getReceiptAction(input: GenerateReceiptInput): Promise<ReceiptState> {
@@ -51,11 +53,16 @@ export async function getReceiptAction(input: GenerateReceiptInput): Promise<Rec
     }
     
     try {
-        const receipt = await generateReceipt(input);
-        const pdfBuffer = await createPdf(receipt);
+        // Generate both receipt and invoice in parallel
+        const [receipt, invoice] = await Promise.all([
+            generateReceipt(input),
+            generateInvoice({ tenantId: input.tenantId })
+        ]);
+
+        const pdfBuffer = await createPdf(invoice);
         const pdfBase64 = pdfBuffer.toString('base64');
 
-        return { receipt, pdf: pdfBase64 };
+        return { receipt, invoice, pdf: pdfBase64 };
     } catch (error: unknown) {
         const typedError = error as Error;
         console.error('[ERROR: getReceiptAction]', typedError);
@@ -68,8 +75,8 @@ export async function emailReceiptAction(input: GenerateReceiptInput): Promise<{
     if (!isFirebaseAdminInitialized) return { error: "Backend services not configured." };
 
     try {
-        const { receipt, pdf } = await getReceiptAction(input);
-        if (!receipt || !pdf) throw new Error("Failed to generate receipt data.");
+        const { receipt, invoice, pdf } = await getReceiptAction(input);
+        if (!receipt || !invoice || !pdf) throw new Error("Failed to generate receipt and invoice data.");
 
         const tenantDoc = await firestore.collection('tenants').doc(input.tenantId).get();
         if (!tenantDoc.exists) throw new Error("Tenant not found.");
@@ -78,10 +85,10 @@ export async function emailReceiptAction(input: GenerateReceiptInput): Promise<{
 
         await sendEmail({
             to: tenantEmail,
-            subject: `Your Receipt ${receipt.receiptNumber}`,
-            html: `<p>Dear ${receipt.tenantName},</p><p>Please find your receipt attached to this email. Thank you for your payment.</p><p>Best regards,<br/>Your Property Management</p>`,
+            subject: `Your Invoice ${invoice.invoiceNumber} and Receipt ${receipt.receiptNumber}`,
+            html: `<p>Dear ${receipt.tenantName},</p><p>Please find your invoice and receipt attached to this email. Thank you for your payment.</p><p>Best regards,<br/>Your Property Management</p>`,
             attachments: [{
-                filename: `Receipt-${receipt.receiptNumber}.pdf`,
+                filename: `Invoice-Receipt-${invoice.invoiceNumber}.pdf`,
                 content: pdf,
                 encoding: 'base64',
                 contentType: 'application/pdf'

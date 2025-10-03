@@ -1,9 +1,8 @@
 import { NextRequest } from 'next/server';
-import { GenerateReceiptOutputSchema } from '@/lib/schema-types';
+import { GenerateInvoiceOutputSchema } from '@/lib/schema-types'; // Changed from Receipt to Invoice
 
-// This is a placeholder for a real HTML-to-PDF library
 // We are constructing the HTML string manually to avoid server-side rendering issues in API routes.
-function renderReceiptToHtml(receipt: import('@/lib/schema-types').GenerateReceiptOutput): string {
+function renderReceiptToHtml(receipt: import('@/lib/schema-types').GenerateInvoiceOutput): string {
     const itemsHtml = receipt.items.map(item => `
         <tr>
             <td style="padding: 8px; border-top: 1px solid #eee;">${item.description}</td>
@@ -44,12 +43,14 @@ function renderReceiptToHtml(receipt: import('@/lib/schema-types').GenerateRecei
 
 export async function POST(req: NextRequest) {
     try {
-        const { receipt } = await req.json();
+        // The body now contains an invoice, not a receipt
+        const { receipt: invoice } = await req.json();
 
-        // Validate the receipt data
-        const validation = GenerateReceiptOutputSchema.safeParse(receipt);
+        // Validate the invoice data using the correct schema
+        const validation = GenerateInvoiceOutputSchema.safeParse(invoice);
         if (!validation.success) {
-            return new Response('Invalid receipt data provided.', { status: 400 });
+            console.error('Invalid invoice data provided for PDF generation:', validation.error.flatten());
+            return new Response('Invalid invoice data provided.', { status: 400 });
         }
         
         const receiptHtml = renderReceiptToHtml(validation.data);

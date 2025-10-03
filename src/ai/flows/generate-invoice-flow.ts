@@ -64,8 +64,10 @@ const generateInvoiceFlow = ai.defineFlow(
         prompt: `You are an accounting assistant. Your task is to generate a formal rent invoice.
         
       The current month is ${format(new Date(), 'MMMM yyyy')}.
-      The invoice should include a line item for the monthly rent.
+      The invoice should include a single line item for the monthly rent.
       The total amount is just the rent amount.
+      The currency is {{currency}}.
+      The line item description should be 'Monthly Rent for ${format(new Date(), 'MMMM yyyy')}'.
       Include a polite, standard note for the tenant.
 
       Data:
