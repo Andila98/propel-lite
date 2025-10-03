@@ -40,9 +40,11 @@ interface AuthError {
   code?: string;
 }
 
+type AuthStatus = 'initializing' | 'loading' | 'authenticated' | 'unauthenticated';
+
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
+  status: AuthStatus;
   error: AuthError | null;
   login: (email: string, pass: string, isSignUp?: boolean) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -137,68 +139,32 @@ async function fetchUserFromApi(): Promise<User | null> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<AuthStatus>('initializing');
   const [error, setError] = useState<AuthError | null>(null);
-  const router = useRouter();
-  const pathname = usePathname();
-  const retryHandler = useRef(new ConnectionRetry());
-  const isRedirecting = useRef(false);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const handleAuthRedirect = useCallback((currentUser: User | null) => {
-    if (isRedirecting.current) return;
-
-    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
-    const isOnboardingPage = pathname.startsWith('/onboarding');
-    const isAcceptInvitePage = pathname.startsWith('/onboarding/accept-invite');
-    
-    let destination: string | null = null;
-
-    if (currentUser) {
-        // Logged-in user logic
-        if (!currentUser.profileComplete && currentUser.role !== 'tenant' && !isOnboardingPage) {
-            destination = '/onboarding/landlord-welcome';
-        } else if (isAuthPage) {
-            // If user is on an auth page but is logged in, redirect them away.
-            destination = currentUser.role === 'tenant' ? '/tenant-portal' : '/dashboard';
-        }
-    } else {
-        // Logged-out user logic
-        if (!isAuthPage && !isAcceptInvitePage) {
-            destination = '/login';
-        }
-    }
-
-    if (destination && destination !== pathname) {
-        isRedirecting.current = true;
-        router.replace(destination);
-        // Reset redirect lock after a short delay
-        setTimeout(() => { isRedirecting.current = false; }, 1500);
-    }
-  }, [pathname, router]);
-
   const updateUserState = useCallback(async (firebaseUser: FirebaseUser | null) => {
     if (!firebaseUser) {
       if (user !== null) setUser(null); // Clear user state on logout
-      setLoading(false);
-      handleAuthRedirect(null);
+      setStatus('unauthenticated');
       return;
     }
 
     // If we already have this user and are not in a loading state, do nothing.
-    if (user?.uid === firebaseUser.uid && !loading) {
-      handleAuthRedirect(user);
+    if (user?.uid === firebaseUser.uid && status === 'authenticated') {
       return;
     }
 
+    setStatus('loading');
     try {
-      const userProfile = await retryHandler.current.execute(fetchUserFromApi);
+      const retryHandler = new ConnectionRetry();
+      const userProfile = await retryHandler.execute(fetchUserFromApi);
       setUser(userProfile);
       setError(null);
-      handleAuthRedirect(userProfile);
+      setStatus(userProfile ? 'authenticated' : 'unauthenticated');
     } catch (error: unknown) {
       const typedError = error as { message: string, code?: string };
       console.error("[Auth] Error fetching user profile:", typedError);
@@ -210,11 +176,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       await firebaseSignOut(auth);
       setUser(null);
-      handleAuthRedirect(null);
-    } finally {
-        setLoading(false);
+      setStatus('unauthenticated');
     }
-  }, [handleAuthRedirect, user, loading]);
+  }, [user, status]);
 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, updateUserState);
@@ -222,10 +186,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [updateUserState]);
   
   const retryConnection = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setStatus('loading');
     await updateUserState(auth.currentUser);
-    setLoading(false);
   }, [updateUserState]);
 
   const refreshUser = useCallback(async () => {
@@ -233,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [updateUserState]);
 
   const processLogin = useCallback(async (idToken: string): Promise<User> => {
+    setStatus('loading');
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
@@ -244,20 +207,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const responseBody = await response.json();
     if (!response.ok) {
+      setStatus('unauthenticated');
       throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
     }
-    return responseBody as User;
+    const userProfile = responseBody as User;
+    setUser(userProfile);
+    setStatus('authenticated');
+    return userProfile;
   }, []);
 
   const login = useCallback(async (email: string, password: string, isSignUp: boolean = false): Promise<void> => {
     clearError();
-    setLoading(true);
+    setStatus('loading');
     const loginAttempt = async () => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
-        const userProfile = await processLogin(idToken);
-        setUser(userProfile); // Set user immediately
-        handleAuthRedirect(userProfile); // Then redirect
+        await processLogin(idToken);
     };
 
     try {
@@ -306,15 +271,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         const authError = { message, code: typedError.code };
         setError(authError);
+        setStatus('unauthenticated');
         throw new AuthenticationError(message, typedError.code);
-    } finally {
-        setLoading(false);
     }
-}, [processLogin, clearError, handleAuthRedirect]);
+}, [processLogin, clearError]);
   
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     clearError();
-    setLoading(true);
+    setStatus('loading');
     try {
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
@@ -322,9 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const userCredential = await signInWithPopup(auth, provider);
       const idToken = await userCredential.user.getIdToken();
-      const userProfile = await processLogin(idToken);
-      setUser(userProfile);
-      handleAuthRedirect(userProfile);
+      await processLogin(idToken);
 
     } catch (error: unknown) {
       const typedError = error as { code?: string };
@@ -332,45 +294,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typedError.code !== 'auth/cancelled-popup-request') {
         const authError = { message, code: typedError.code };
         setError(authError);
+        setStatus('unauthenticated');
         throw new AuthenticationError(message, typedError.code);
+      } else {
+        setStatus('unauthenticated');
       }
-    } finally {
-      setLoading(false);
     }
-  }, [processLogin, clearError, handleAuthRedirect]);
+  }, [processLogin, clearError]);
 
   const logout = useCallback(async () => {
     try {
       clearError();
       setUser(null); 
+      setStatus('unauthenticated');
       await firebaseSignOut(auth);
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      isRedirecting.current = false;
-      router.replace('/login');
     } catch (error) {
       console.error("Error during logout:", error);
     }
-  }, [clearError, router]);
-
-  // Initial loading screen for the entire app
-  if (loading && user === null) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-          <div className="text-center">
-            <p className="text-lg font-medium">Initializing...</p>
-            <p className="text-sm text-muted-foreground">Securing your session</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  }, [clearError]);
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      loading, 
+      status, 
       error,
       login, 
       loginWithGoogle, 

@@ -3,20 +3,48 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 /**
  * A client component that handles redirection based on auth status.
  * This is meant to be used on the root page.
- * The logic is now handled inside useAuth, this component primarily shows a loading UI.
  */
 export function AuthRedirector() {
-  const { loading } = useAuth();
+  const { status, user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // The useAuth hook handles all redirect logic.
-  // We just need to show a loading state while it works.
-  if (loading) {
+  useEffect(() => {
+    if (status === 'initializing' || status === 'loading') {
+      return; // Wait until auth state is resolved
+    }
+
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
+    const isOnboardingPage = pathname.startsWith('/onboarding');
+    const isAcceptInvitePage = pathname.startsWith('/onboarding/accept-invite');
+    
+    let destination: string | null = null;
+
+    if (status === 'authenticated' && user) {
+        if (!user.profileComplete && user.role !== 'tenant' && !isOnboardingPage) {
+            destination = '/onboarding/landlord-welcome';
+        } else if (isAuthPage) {
+            destination = user.role === 'tenant' ? '/tenant-portal' : '/dashboard';
+        }
+    } else if (status === 'unauthenticated') {
+        if (!isAuthPage && !isAcceptInvitePage) {
+            destination = '/login';
+        }
+    }
+
+    if (destination && destination !== pathname) {
+        router.replace(destination);
+    }
+  }, [status, user, pathname, router]);
+
+  // Show a loading indicator while initializing or loading user data.
+  if (status === 'initializing' || status === 'loading') {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
@@ -27,11 +55,7 @@ export function AuthRedirector() {
     );
   }
   
-  // Fallback loading state. In a correct flow, the user should always be
-  // redirected by the AuthProvider before this is visible for long.
-   return (
-     <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-  );
+  // Render nothing once authentication is resolved and redirection has been handled.
+  // The correct page content will be rendered by the layout.
+  return null;
 }
