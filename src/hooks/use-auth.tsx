@@ -219,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string, isSignUp: boolean = false): Promise<void> => {
     clearError();
     setStatus('loading');
+    
     const loginAttempt = async () => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
@@ -227,23 +228,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
         if (isSignUp) {
-            let attempts = 0;
-            const maxAttempts = 3;
-            while (attempts < maxAttempts) {
-                try {
-                    await loginAttempt();
-                    return; // Success
-                } catch (error: unknown) {
-                    const typedError = error as { code?: string };
-                    attempts++;
-                    if (typedError.code === 'auth/user-not-found' && attempts < maxAttempts) {
-                        console.warn(`Login attempt ${attempts} failed due to replication delay. Retrying...`);
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    } else {
-                        throw error;
-                    }
-                }
-            }
+            // After signup, there can be a replication delay. We retry a few times.
+            const retryHandler = new ConnectionRetry();
+            await retryHandler.execute(loginAttempt);
         } else {
             await loginAttempt();
         }
