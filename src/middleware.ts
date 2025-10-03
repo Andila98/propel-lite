@@ -1,7 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authConfig } from '@/config/server-config';
-import { loginRateLimit } from '@/lib/rate-limiter';
 
 // Runtime configuration
 export const runtime = 'nodejs';
@@ -124,23 +123,6 @@ function createErrorResponse(message: string, status: number): NextResponse {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = getClientIP(request);
-
-  // Apply rate limiting for non-static requests
-  if (!pathConfig.staticExtensions.test(pathname) && 
-      !pathname.startsWith('/_next')) {
-    
-    try {
-        await loginRateLimit.check(request);
-    } catch {
-      console.warn(`[Middleware] Rate limit exceeded for IP: ${ip}, path: ${pathname}`);
-      
-      if (pathname.startsWith('/api/')) {
-        return createErrorResponse('Too many requests. Please try again later.', 429);
-      }
-      
-      return createRedirectResponse(request, '/login', { error: 'rate-limit' });
-    }
-  }
 
   // Allow public paths
   if (isPublicPath(pathname)) {
