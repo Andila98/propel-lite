@@ -1,6 +1,3 @@
-
-'use server';
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 import { uploadToSupabase } from '@/lib/supabase-storage';

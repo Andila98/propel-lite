@@ -1,8 +1,46 @@
-
 import { NextRequest } from 'next/server';
-import ReactDOMServer from 'react-dom/server';
-import ReceiptComponent from '@/components/receipt';
 import { GenerateReceiptOutputSchema } from '@/lib/schema-types';
+
+// This is a placeholder for a real HTML-to-PDF library
+// We are constructing the HTML string manually to avoid server-side rendering issues in API routes.
+function renderReceiptToHtml(receipt: import('@/lib/schema-types').GenerateReceiptOutput): string {
+    const itemsHtml = receipt.items.map(item => `
+        <tr>
+            <td style="padding: 8px; border-top: 1px solid #eee;">${item.description}</td>
+            <td style="padding: 8px; border-top: 1px solid #eee; text-align: right;">${receipt.currency} ${item.amount.toLocaleString()}</td>
+        </tr>
+    `).join('');
+
+    return `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 24px;">
+            <h1 style="font-size: 1.5rem; margin-bottom: 8px;">Invoice ${receipt.invoiceNumber}</h1>
+            <p style="color: #666; margin-top: 0;">To: ${receipt.tenantName}</p>
+            <div style="margin: 24px 0;">
+                <p><strong>Property:</strong> ${receipt.propertyAddress}</p>
+                <p><strong>Invoice Date:</strong> ${new Date(receipt.invoiceDate).toLocaleDateString()}</p>
+                <p><strong>Due Date:</strong> ${new Date(receipt.dueDate).toLocaleDateString()}</p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 8px; border-bottom: 2px solid #eee;">Description</th>
+                        <th style="text-align: right; padding: 8px; border-bottom: 2px solid #eee;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+            </table>
+            <div style="text-align: right; margin-top: 24px;">
+                <p style="font-size: 1.25rem; font-weight: bold;">Total: ${receipt.currency} ${receipt.totalAmount.toLocaleString()}</p>
+            </div>
+            <div style="margin-top: 24px; font-size: 0.875rem; color: #666; text-align: center;">
+                <p>${receipt.notes}</p>
+            </div>
+        </div>
+    `;
+}
+
 
 export async function POST(req: NextRequest) {
     try {
@@ -14,9 +52,7 @@ export async function POST(req: NextRequest) {
             return new Response('Invalid receipt data provided.', { status: 400 });
         }
         
-        const receiptHtml = ReactDOMServer.renderToStaticMarkup(
-            <ReceiptComponent receipt={validation.data} />
-        );
+        const receiptHtml = renderReceiptToHtml(validation.data);
         
         const fullHtml = `
             <!DOCTYPE html>
@@ -24,10 +60,8 @@ export async function POST(req: NextRequest) {
             <head>
                 <meta charset="utf-8" />
                 <style>
-                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333; }
-                    .container { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, .15); }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333; margin: 0; padding: 20px; background-color: #f9f9f9; }
                 </style>
-                <script src="https://cdn.tailwindcss.com"></script>
             </head>
             <body>
                 ${receiptHtml}

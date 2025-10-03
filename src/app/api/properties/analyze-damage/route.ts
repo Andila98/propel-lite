@@ -1,6 +1,3 @@
-
-'use server';
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { analyzeDamage } from '@/ai/flows/analyze-damage-flow';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
