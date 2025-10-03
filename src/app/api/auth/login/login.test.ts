@@ -18,6 +18,13 @@ vi.mock('@/lib/auth-service', () => ({
   createSession: vi.fn(),
 }));
 
+vi.mock('@/config/server-config', () => ({
+  authConfig: {
+    cookieName: 'session',
+    maxAge: 3600,
+  },
+}));
+
 // Mock the rate limiter to prevent 429 errors during tests
 vi.mock('@/lib/rate-limiter', async (importOriginal) => {
   const actual = await importOriginal() as typeof rateLimiter;
@@ -117,7 +124,7 @@ describe('POST /api/auth/login', () => {
     expect(body.error).toBe('Too many login attempts. Please try again later.');
   });
   
-   it('should return 403 for incomplete profiles', async () => {
+  it('should return 403 for incomplete profiles', async () => {
     const idToken = 'valid-token-incomplete-profile';
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
