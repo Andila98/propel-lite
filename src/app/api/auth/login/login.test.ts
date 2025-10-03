@@ -24,7 +24,11 @@ vi.mock('@/lib/rate-limiter', async (importOriginal) => {
   return {
     ...actual,
     loginRateLimit: {
-      check: vi.fn().mockResolvedValue(undefined), // Default to success
+      check: vi.fn().mockResolvedValue({ 
+        limit: 10, 
+        remaining: 9, 
+        reset: Date.now() + 60000 
+      }),
     },
   };
 });
@@ -36,7 +40,11 @@ describe('POST /api/auth/login', () => {
   
   afterEach(() => {
     // Reset the mock behavior to the default (success)
-    vi.mocked(rateLimiter.loginRateLimit.check).mockResolvedValue(undefined);
+    vi.mocked(rateLimiter.loginRateLimit.check).mockResolvedValue({ 
+      limit: 10, 
+      remaining: 9, 
+      reset: Date.now() + 60000 
+    });
   });
 
   const mockUser = {
@@ -99,7 +107,7 @@ describe('POST /api/auth/login', () => {
       headers: { Authorization: 'Bearer valid-token' },
     });
 
-    // We need to re-mock the check for this specific test case
+    // Mock rate limit exceeded
     vi.mocked(rateLimiter.loginRateLimit.check).mockRejectedValue(new Error('Rate limit exceeded'));
 
     const response = await POST(request);
