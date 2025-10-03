@@ -1,5 +1,4 @@
 
-
 /**
  * @fileoverview This script seeds the Firestore database with sample data.
  * It's intended for development and testing purposes.
@@ -11,7 +10,7 @@
 
 import { faker } from '@faker-js/faker';
 import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, type Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import type { Property, Unit, Tenant, Payment, MaintenanceRequest } from './types';
 import { sub, addYears } from 'date-fns';
@@ -45,7 +44,7 @@ const LANDLORD_PW = 'password';
 
 async function deleteCollection(collectionPath: string, batchSize = 50) {
   const collectionRef = db.collection(collectionPath);
-  const query = collectionRef.limit(batchSize);
+  const query = collectionRef.orderBy('__name__').limit(batchSize);
 
   return new Promise((resolve, reject) => {
     deleteQueryBatch(query, resolve).catch(reject);
@@ -92,10 +91,10 @@ async function clearData() {
         await deleteCollection(collection);
     }
 
-    // Delete all users except a protected account if needed
-    const users = await auth.listUsers();
-    const uidsToDelete = users.users
-      .filter(u => u.email !== LANDLORD_EMAIL) // Don't delete the main landlord if it exists
+    // Delete all users except the main landlord account
+    const { users } = await auth.listUsers();
+    const uidsToDelete = users
+      .filter(u => u.email?.toLowerCase() !== LANDLORD_EMAIL.toLowerCase()) 
       .map(u => u.uid);
       
     if(uidsToDelete.length > 0) {
@@ -107,7 +106,7 @@ async function clearData() {
       }
     }
     
-    console.log("Data deleted.");
+    console.log("Data deleted successfully.");
 }
 
 
@@ -124,18 +123,21 @@ async function seedDatabase() {
       landlord = await auth.createUser({
           email: LANDLORD_EMAIL,
           password: LANDLORD_PW,
-          displayName: "Demo Landlord"
+          displayName: "Demo Landlord",
+          emailVerified: true
       });
-      
+      console.log(`New landlord user created: ${landlord.email}`);
   } catch (error: unknown) {
       const typedError = error as { code?: string };
       if (typedError.code === 'auth/email-already-exists') {
           console.log("Landlord already exists, fetching...");
           landlord = await auth.getUserByEmail(LANDLORD_EMAIL);
       } else {
+          console.error("Error creating landlord:", error);
           throw error;
       }
   }
+  
   // Set role and mark profile as complete since this is a seeded account
   await auth.setCustomUserClaims(landlord.uid, { role: 'landlord', profileComplete: true });
   const landlordId = landlord.uid;
@@ -147,7 +149,7 @@ async function seedDatabase() {
       role: 'landlord',
       createdAt: FieldValue.serverTimestamp(),
   });
-  console.log(`Landlord created with UID: ${landlordId}`);
+  console.log(`Landlord profile configured with UID: ${landlordId}`);
 
 
   // 3. Create Properties and Units
@@ -180,8 +182,8 @@ async function seedDatabase() {
     const createdProperty: Property = {
         id: propertyRef.id,
         units: [],
-        createdAt: now as unknown as FirebaseFirestore.Timestamp,
-        updatedAt: now as unknown as FirebaseFirestore.Timestamp,
+        createdAt: now as unknown as Timestamp,
+        updatedAt: now as unknown as Timestamp,
         ...newPropertyData
     };
 
@@ -224,7 +226,8 @@ async function seedDatabase() {
        const tenantAuthUser = await auth.createUser({
          email: tenantEmail,
          displayName: tenantName,
-         password: 'password'
+         password: 'password',
+         emailVerified: true
        });
        await auth.setCustomUserClaims(tenantAuthUser.uid, { role: 'tenant', profileComplete: true, landlordId });
 
@@ -239,9 +242,10 @@ async function seedDatabase() {
          landlordId,
          currentUnitId: unit.id,
          rentStatus: 'Paid',
-         leaseStart: sub(now, { years: 1 }) as unknown as FirebaseFirestore.Timestamp,
-         leaseEnd: addYears(now, 1) as unknown as FirebaseFirestore.Timestamp,
+         leaseStart: sub(now, { years: 1 }) as unknown as Timestamp,
+         leaseEnd: addYears(now, 1) as unknown as Timestamp,
          paymentHistory: [],
+         createdAt: FieldValue.serverTimestamp() as Timestamp
        };
        await tenantRef.set(newTenant);
        
