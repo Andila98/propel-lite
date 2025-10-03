@@ -19,11 +19,15 @@ vi.mock('@/lib/auth-service', () => ({
 }));
 
 // Mock the rate limiter to prevent 429 errors during tests
-vi.mock('@/lib/rate-limiter', () => ({
-  loginRateLimit: {
-    check: vi.fn().mockResolvedValue(true),
-  },
-}));
+vi.mock('@/lib/rate-limiter', async (importOriginal) => {
+  const actual = await importOriginal() as typeof rateLimiter;
+  return {
+    ...actual,
+    loginRateLimit: {
+      check: vi.fn().mockResolvedValue(undefined), // Default to success
+    },
+  };
+});
 
 describe('POST /api/auth/login', () => {
   beforeEach(() => {
@@ -43,7 +47,6 @@ describe('POST /api/auth/login', () => {
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       headers: { Authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({}),
     });
 
     vi.mocked(authService.createSession).mockResolvedValue({
@@ -57,13 +60,12 @@ describe('POST /api/auth/login', () => {
     expect(response.status).toBe(200);
     expect(body).toEqual(mockUser);
     expect(authService.createSession).toHaveBeenCalledWith(idToken);
-    expect(response.cookies.get('RentEaseAuth')).toBeDefined();
+    expect(response.cookies.get(authConfig.cookieName)).toBeDefined();
   });
 
   it('should return 401 if Authorization header is missing', async () => {
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({}),
     });
 
     const response = await POST(request);
@@ -77,7 +79,6 @@ describe('POST /api/auth/login', () => {
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' },
-      body: JSON.stringify({}),
     });
 
     const response = await POST(request);
@@ -91,7 +92,6 @@ describe('POST /api/auth/login', () => {
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       headers: { Authorization: 'Bearer valid-token' },
-      body: JSON.stringify({}),
     });
 
     // We need to re-mock the check for this specific test case
@@ -109,7 +109,6 @@ describe('POST /api/auth/login', () => {
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       headers: { Authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({}),
     });
 
     vi.mocked(authService.createSession).mockRejectedValue({
@@ -137,7 +136,6 @@ describe('POST /api/auth/login', () => {
       const request = new NextRequest('http://localhost/api/auth/login', {
         method: 'POST',
         headers: { Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({}),
       });
 
       vi.mocked(authService.createSession).mockRejectedValue({ code });
