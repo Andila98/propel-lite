@@ -115,7 +115,11 @@ async function fetchUserFromApi(): Promise<User | null> {
       }
     });
 
+    console.log('[Auth] API response status:', response.status);
+
+    // Handle specific status codes
     if (response.status === 401) {
+      console.log('[Auth] Unauthorized - no valid session');
       return null;
     }
     
@@ -132,16 +136,66 @@ async function fetchUserFromApi(): Promise<User | null> {
         'SERVICE_UNAVAILABLE'
       );
     }
+
+    if (response.status === 404) {
+      console.error('[Auth] User profile not found on server');
+      throw new AuthenticationError(
+        'User profile not found. Please contact support.',
+        'PROFILE_NOT_FOUND'
+      );
+    }
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[Auth] API error:', { status: response.status, error: errorData });
-      throw new Error(`Failed to fetch user profile: ${response.status}`);
+      let errorData: any = {};
+      const contentType = response.headers.get('content-type');
+      
+      // Only try to parse JSON if content-type indicates JSON
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          console.error('[Auth] Failed to parse error response as JSON:', parseError);
+        }
+      } else {
+        // Try to get text for debugging
+        try {
+          const textBody = await response.text();
+          console.error('[Auth] Non-JSON error response:', textBody.substring(0, 200));
+        } catch {
+          console.error('[Auth] Could not read response body');
+        }
+      }
+      
+      console.error('[Auth] API error:', { 
+        status: response.status, 
+        error: errorData,
+        contentType 
+      });
+      
+      throw new Error(
+        errorData.error || `Failed to fetch user profile: ${response.status}`
+      );
     }
 
     const userProfile = await response.json();
+    console.log('[Auth] Successfully fetched user profile');
     return userProfile;
+    
   } catch (error) {
+    // Re-throw AuthenticationError as-is
+    if (error instanceof AuthenticationError) {
+      throw error;
+    }
+    
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('[Auth] Network error during fetch:', error);
+      throw new AuthenticationError(
+        'Network error. Please check your connection.',
+        'NETWORK_ERROR'
+      );
+    }
+    
     console.error('[Auth] fetchUserFromApi failed:', error);
     throw error;
   }
