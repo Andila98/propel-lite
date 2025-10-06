@@ -6,16 +6,16 @@ import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
 import { FieldValue } from 'firebase-admin/firestore';
 
-if (!isFirebaseAdminInitialized) {
-    throw new Error('Firebase Admin SDK is not initialized. Authentication services are unavailable.');
-}
-
 /**
  * Creates a new user in Firebase Auth and a corresponding profile in Firestore.
  * @param params - The user's details.
  * @returns The created user record from Firebase Auth.
  */
 export async function signUpUser({ email, password, displayName }: { email: string; password?: string; displayName: string; }) {
+    if (!isFirebaseAdminInitialized) {
+        throw new Error('Firebase Admin SDK is not initialized. Authentication services are unavailable.');
+    }
+
     // Check if user already exists
     const existingUser = await auth.getUserByEmail(email).catch(err => {
         if (err.code === 'auth/user-not-found') return null;
@@ -62,64 +62,83 @@ export async function signUpUser({ email, password, displayName }: { email: stri
  * @returns A complete user profile object, or null if not found.
  */
 export async function getUserProfile(uid: string): Promise<User | null> {
-    const userRecord = await auth.getUser(uid).catch(() => null);
-    if (!userRecord) return null;
-
-    const userRoleClaim = userRecord.customClaims?.role || 'landlord';
-    
-    const collections: Record<string, string> = {
-        manager: 'managers',
-        tenant: 'tenants',
-        landlord: 'landlords'
-    };
-    const collectionName = collections[userRoleClaim];
-    let firestoreProfile: Record<string, unknown> = {};
-    
-    if (collectionName) {
-        const docRef = firestore.collection(collectionName).doc(userRecord.uid);
-        const doc = await docRef.get();
-        
-        if (doc.exists) {
-            firestoreProfile = doc.data() || {};
-        } else {
-            // If a user exists in Auth but not Firestore (e.g. social sign-in), create a profile.
-            console.log(`[AUTH_SERVICE] No Firestore profile found for UID ${uid}. Creating one in '${collectionName}'.`);
-            const newProfileData: Record<string, unknown> = {
-                uid: userRecord.uid,
-                email: userRecord.email,
-                name: userRecord.displayName || 'New User',
-                role: userRoleClaim,
-                createdAt: FieldValue.serverTimestamp(),
-            };
-            
-            // Add role-specific default fields
-            if (userRoleClaim === 'manager') {
-              newProfileData.permissions = {};
-              newProfileData.propertiesManaged = [];
-            }
-            // For landlords, just having the base data is enough.
-            
-            await docRef.set(newProfileData);
-            firestoreProfile = newProfileData;
-        }
+    if (!isFirebaseAdminInitialized) {
+        console.error('[AUTH_SERVICE_ERROR] Firebase Admin SDK is not initialized');
+        throw new Error('Firebase Admin SDK is not initialized. Authentication services are unavailable.');
     }
 
-    return {
-        // Start with all data from Firestore, making it the base source of truth.
-        ...firestoreProfile,
-        // Explicitly set or override with values from Firebase Auth which are more authoritative or foundational.
-        uid: userRecord.uid,
-        email: userRecord.email || '',
-        // Prioritize Firestore name, but fall back to Auth display name if Firestore's is missing.
-        name: (firestoreProfile.name as string) || userRecord.displayName || 'Unnamed User',
-        // Prioritize Firestore role, but fall back to the auth claim.
-        role: (firestoreProfile.role as User['role']) || userRoleClaim,
-        profileComplete: userRecord.customClaims?.profileComplete ?? false,
-        // Auth is the source of truth for avatar.
-        avatarUrl: userRecord.photoURL || undefined,
-        // Ensure permissions from Firestore are included.
-        permissions: (firestoreProfile.permissions as User['permissions']) || {},
-    } as User;
+    try {
+        const userRecord = await auth.getUser(uid);
+        
+        if (!userRecord) {
+            console.warn(`[AUTH_SERVICE] User not found in Firebase Auth: ${uid}`);
+            return null;
+        }
+
+        const userRoleClaim = userRecord.customClaims?.role || 'landlord';
+        
+        const collections: Record<string, string> = {
+            manager: 'managers',
+            tenant: 'tenants',
+            landlord: 'landlords'
+        };
+        const collectionName = collections[userRoleClaim];
+        let firestoreProfile: Record<string, unknown> = {};
+        
+        if (collectionName) {
+            const docRef = firestore.collection(collectionName).doc(userRecord.uid);
+            const doc = await docRef.get();
+            
+            if (doc.exists) {
+                firestoreProfile = doc.data() || {};
+            } else {
+                // If a user exists in Auth but not Firestore (e.g. social sign-in), create a profile.
+                console.log(`[AUTH_SERVICE] No Firestore profile found for UID ${uid}. Creating one in '${collectionName}'.`);
+                const newProfileData: Record<string, unknown> = {
+                    uid: userRecord.uid,
+                    email: userRecord.email,
+                    name: userRecord.displayName || 'New User',
+                    role: userRoleClaim,
+                    createdAt: FieldValue.serverTimestamp(),
+                };
+                
+                // Add role-specific default fields
+                if (userRoleClaim === 'manager') {
+                  newProfileData.permissions = {};
+                  newProfileData.propertiesManaged = [];
+                }
+                // For landlords, just having the base data is enough.
+                
+                await docRef.set(newProfileData);
+                firestoreProfile = newProfileData;
+            }
+        }
+
+        return {
+            // Start with all data from Firestore, making it the base source of truth.
+            ...firestoreProfile,
+            // Explicitly set or override with values from Firebase Auth which are more authoritative or foundational.
+            uid: userRecord.uid,
+            email: userRecord.email || '',
+            // Prioritize Firestore name, but fall back to Auth display name if Firestore's is missing.
+            name: (firestoreProfile.name as string) || userRecord.displayName || 'Unnamed User',
+            // Prioritize Firestore role, but fall back to the auth claim.
+            role: (firestoreProfile.role as User['role']) || userRoleClaim,
+            profileComplete: userRecord.customClaims?.profileComplete ?? false,
+            // Auth is the source of truth for avatar.
+            avatarUrl: userRecord.photoURL || undefined,
+            // Ensure permissions from Firestore are included.
+            permissions: (firestoreProfile.permissions as User['permissions']) || {},
+        } as User;
+    } catch (error: unknown) {
+        const typedError = error as { code?: string, message: string };
+        console.error('[AUTH_SERVICE_ERROR] Failed to get user profile:', {
+            uid,
+            error: typedError.message,
+            code: typedError.code
+        });
+        throw error; // Re-throw to be caught by the API route
+    }
 }
 
 
@@ -129,6 +148,10 @@ export async function getUserProfile(uid: string): Promise<User | null> {
  * @returns An object containing the session cookie and the user's profile.
  */
 export async function createSession(idToken: string): Promise<{ sessionCookie: string; userProfile: User; }> {
+    if (!isFirebaseAdminInitialized) {
+        throw new Error('Firebase Admin SDK is not initialized. Authentication services are unavailable.');
+    }
+
     const decodedToken = await auth.verifyIdToken(idToken);
     
     const userProfile = await getUserProfile(decodedToken.uid);
