@@ -1,3 +1,4 @@
+
 "use client";
 
 import { 
@@ -162,8 +163,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userProfile);
       setStatus(userProfile ? 'authenticated' : 'unauthenticated');
     } catch (e: unknown) {
-      const err = e as Error;
+      const err = e as Error & { code?: string };
       console.error("[Auth] Initial session check failed:", err.message);
+      
+      // Only set error for user-facing issues
+      if (err instanceof AuthenticationError) {
+        setError({ message: err.message, code: err.code });
+      }
+      
       setUser(null);
       setStatus('unauthenticated');
     }
