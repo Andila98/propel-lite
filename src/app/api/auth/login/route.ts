@@ -95,54 +95,78 @@ export async function POST(req: NextRequest) {
       return createErrorResponse('Invalid token format', 400, 'INVALID_TOKEN_FORMAT', requestId);
     }
 
-    console.info(`[INFO: /api/auth/login][${requestId}] Attempting to create session`, { context: requestContext });
-    const { sessionCookie, userProfile } = await createSession(idToken);
-
-    const response = NextResponse.json(userProfile, { status: 200 });
+    try {
+      console.info(`[INFO: /api/auth/login][${requestId}] Attempting to create session`);
+      const { sessionCookie, userProfile } = await createSession(idToken);
     
-    response.cookies.set(authConfig.cookieName, sessionCookie, {
-      ...authConfig.cookieSerializeOptions,
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production'
-    });
-
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-
-    console.info(`[INFO: /api/auth/login][${requestId}] Login successful for user: ${userProfile.uid}`, { context: requestContext });
-    return response;
+      console.info(`[INFO: /api/auth/login][${requestId}] Session cookie created, length: ${sessionCookie.length}`);
+    
+      const response = NextResponse.json(userProfile, { status: 200 });
+      
+      const cookieOptions = {
+        ...authConfig.cookieSerializeOptions,
+        sameSite: 'strict' as const,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        httpOnly: true
+      };
+      
+      console.info(`[INFO: /api/auth/login][${requestId}] Setting cookie with options:`, {
+        name: authConfig.cookieName,
+        secure: cookieOptions.secure,
+        sameSite: cookieOptions.sameSite,
+        maxAge: cookieOptions.maxAge,
+        path: cookieOptions.path
+      });
+    
+      response.cookies.set(authConfig.cookieName, sessionCookie, cookieOptions);
+    
+      // Verify cookie was set
+      const setCookieHeader = response.headers.get('set-cookie');
+      console.info(`[INFO: /api/auth/login][${requestId}] Set-Cookie header:`, setCookieHeader ? 'present' : 'missing');
+    
+      Object.entries(securityHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+    
+      console.info(`[INFO: /api/auth/login][${requestId}] Login successful for user: ${userProfile.uid}`);
+      return response;
+    } catch (error: unknown) {
+      const typedError = error as { message?: string, code?: string };
+      console.error(`[ERROR: /api/auth/login][${requestId}]`, { message: typedError.message, code: typedError.code, context: requestContext });
+  
+      if (typedError.code === 'INCOMPLETE_PROFILE') {
+        return createErrorResponse(typedError.message || 'Profile is incomplete.', 403, 'INCOMPLETE_PROFILE', requestId);
+      }
+  
+      if (typedError.code?.startsWith('auth/')) {
+        let message = 'Invalid credentials. Please try again.';
+        let code = 'INVALID_CREDENTIALS';
+  
+        switch (typedError.code) {
+          case 'auth/invalid-id-token':
+          case 'auth/id-token-expired':
+            message = 'Your session has expired. Please sign in again.';
+            code = 'TOKEN_EXPIRED';
+            break;
+          case 'auth/id-token-revoked':
+            message = 'Your session has been revoked. Please sign in again.';
+            code = 'TOKEN_REVOKED';
+            break;
+          case 'auth/user-disabled':
+            message = 'This account has been disabled. Please contact support.';
+            code = 'ACCOUNT_DISABLED';
+            break;
+        }
+        return createErrorResponse(message, 401, code, requestId);
+      }
+  
+      return createErrorResponse('An unexpected error occurred during login. Please try again.', 500, 'INTERNAL_ERROR', requestId);
+    }
 
   } catch (error: unknown) {
     const typedError = error as { message?: string, code?: string };
     console.error(`[ERROR: /api/auth/login][${requestId}]`, { message: typedError.message, code: typedError.code, context: requestContext });
-
-    if (typedError.code === 'INCOMPLETE_PROFILE') {
-      return createErrorResponse(typedError.message || 'Profile is incomplete.', 403, 'INCOMPLETE_PROFILE', requestId);
-    }
-
-    if (typedError.code?.startsWith('auth/')) {
-      let message = 'Invalid credentials. Please try again.';
-      let code = 'INVALID_CREDENTIALS';
-
-      switch (typedError.code) {
-        case 'auth/invalid-id-token':
-        case 'auth/id-token-expired':
-          message = 'Your session has expired. Please sign in again.';
-          code = 'TOKEN_EXPIRED';
-          break;
-        case 'auth/id-token-revoked':
-          message = 'Your session has been revoked. Please sign in again.';
-          code = 'TOKEN_REVOKED';
-          break;
-        case 'auth/user-disabled':
-          message = 'This account has been disabled. Please contact support.';
-          code = 'ACCOUNT_DISABLED';
-          break;
-      }
-      return createErrorResponse(message, 401, code, requestId);
-    }
-
     return createErrorResponse('An unexpected error occurred during login. Please try again.', 500, 'INTERNAL_ERROR', requestId);
   }
 }
