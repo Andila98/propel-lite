@@ -15,15 +15,9 @@
 # Production
 /build
 
-# Misc
+# Miscellaneous
 .DS_Store
 *.pem
-
-# Secrets
-*.env
-.env.*
-!.env.example
-service-account.json
 
 # Log files
 npm-debug.log*
@@ -31,11 +25,24 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Editor directories and files
-.vscode
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Local Env Files
+.env
+.env.local
+.env.development
+.env.production
+
+# Firebase Service Account
+service-account.json
+
+# IDE config
+.vscode/
+.idea/
+
+# Vercel
+.vercel
+
+# Turborepo
+.turbo
+
+# patch-package
+/patches
