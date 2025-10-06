@@ -15,34 +15,32 @@
 # Production
 /build
 
-# Miscellaneous
+# Misc
 .DS_Store
 *.pem
 
-# Log files
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+firebase-debug.log*
+*.log
 
-# Local Env Files
+# Environment variables
 .env
-.env.local
-.env.development
-.env.production
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Firebase Service Account
+# Local settings
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Firebase
 service-account.json
-
-# IDE config
-.vscode/
-.idea/
-
-# Vercel
-.vercel
-
-# Turborepo
-.turbo
-
-# patch-package
-/patches
