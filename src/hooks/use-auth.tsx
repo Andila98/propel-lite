@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -107,31 +106,44 @@ class ConnectionRetry {
 }
 
 async function fetchUserFromApi(): Promise<User | null> {
-  const response = await fetch('/api/auth/me', {
-    credentials: 'include',
-    headers: {
-      'Cache-Control': 'no-cache'
-    }
-  });
+  try {
+    const response = await fetch('/api/auth/me', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
 
-  if (response.status === 401) {
-    // The server has confirmed the session is invalid.
-    return null;
-  }
-  
-  if (response.status === 429) {
-    throw new AuthenticationError(
-      'Too many requests. Please try again in a few minutes.',
-      'RATE_LIMIT_EXCEEDED'
-    );
-  }
-  
-  if (response.ok) {
+    if (response.status === 401) {
+      return null;
+    }
+    
+    if (response.status === 429) {
+      throw new AuthenticationError(
+        'Too many requests. Please try again in a few minutes.',
+        'RATE_LIMIT_EXCEEDED'
+      );
+    }
+
+    if (response.status === 503) {
+      throw new AuthenticationError(
+        'Service temporarily unavailable. Please try again later.',
+        'SERVICE_UNAVAILABLE'
+      );
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[Auth] API error:', { status: response.status, error: errorData });
+      throw new Error(`Failed to fetch user profile: ${response.status}`);
+    }
+
     const userProfile = await response.json();
     return userProfile;
+  } catch (error) {
+    console.error('[Auth] fetchUserFromApi failed:', error);
+    throw error;
   }
-
-  throw new Error(`Failed to fetch user profile: ${response.status}`);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -301,5 +313,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    
