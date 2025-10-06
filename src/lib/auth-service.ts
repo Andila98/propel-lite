@@ -1,3 +1,4 @@
+
 'use server';
 
 import { auth, firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
@@ -83,15 +84,21 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         } else {
             // If a user exists in Auth but not Firestore (e.g. social sign-in), create a profile.
             console.log(`[AUTH_SERVICE] No Firestore profile found for UID ${uid}. Creating one in '${collectionName}'.`);
-            const newProfileData = {
+            const newProfileData: Record<string, unknown> = {
                 uid: userRecord.uid,
                 email: userRecord.email,
                 name: userRecord.displayName || 'New User',
                 role: userRoleClaim,
                 createdAt: FieldValue.serverTimestamp(),
-                // For managers, you might want to set default empty permissions
-                ...(userRoleClaim === 'manager' && { permissions: {}, propertiesManaged: [] }),
             };
+            
+            // Add role-specific default fields
+            if (userRoleClaim === 'manager') {
+              newProfileData.permissions = {};
+              newProfileData.propertiesManaged = [];
+            }
+            // For landlords, just having the base data is enough.
+            
             await docRef.set(newProfileData);
             firestoreProfile = newProfileData;
         }
