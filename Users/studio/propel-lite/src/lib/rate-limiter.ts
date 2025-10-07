@@ -1,29 +1,37 @@
 
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
 import type { NextRequest } from 'next/server';
-import { getClientIP } from './auth-utils';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
+const isDisabled = process.env.DISABLE_RATE_LIMITING === 'true';
 
-// Initialize Redis client (only if credentials exist)
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-  : null;
+// Helper to get client IP
+function getClientIP(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const realIP = req.headers.get('x-real-ip');
+  
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  return realIP || 'unknown';
+}
 
-// Fallback in-memory rate limiter for development
+// Simple in-memory rate limiter
 class InMemoryRateLimiter {
   private requests = new Map<string, number[]>();
   
   constructor(
     private maxRequests: number,
-    private windowMs: number
+    private windowMs: number,
+    private name: string
   ) {}
 
-  async limit(identifier: string): Promise<{ success: boolean }> {
+  async check(identifier: string): Promise<{ success: boolean }> {
+    // Skip rate limiting if disabled
+    if (isDisabled || isDevelopment) {
+      return { success: true };
+    }
+
     const now = Date.now();
     const windowStart = now - this.windowMs;
     
@@ -35,6 +43,7 @@ class InMemoryRateLimiter {
     
     // Check if limit exceeded
     if (recentRequests.length >= this.maxRequests) {
+      console.warn(`[RateLimiter:${this.name}] Limit exceeded for ${identifier}: ${recentRequests.length}/${this.maxRequests}`);
       return { success: false };
     }
     
@@ -42,7 +51,7 @@ class InMemoryRateLimiter {
     recentRequests.push(now);
     this.requests.set(identifier, recentRequests);
     
-    // Cleanup old entries periodically
+    // Cleanup old entries periodically (every 1000 requests)
     if (this.requests.size > 1000) {
       this.cleanup(windowStart);
     }
@@ -63,25 +72,19 @@ class InMemoryRateLimiter {
 }
 
 class RateLimiter {
-  private limiter: Ratelimit | InMemoryRateLimiter;
-  private isUpstash: boolean;
+  private limiter: InMemoryRateLimiter;
 
-  constructor(maxRequests: number, windowSeconds: number, prefix: string = 'ratelimit') {
-    if (!redis || isDevelopment) {
-      // Use in-memory limiter for development or when Redis isn't configured
-      console.log(`[RateLimiter:${prefix}] Using in-memory rate limiter (${maxRequests} requests per ${windowSeconds}s)`);
-      this.limiter = new InMemoryRateLimiter(maxRequests, windowSeconds * 1000);
-      this.isUpstash = false;
+  constructor(maxRequests: number, windowSeconds: number, name: string = 'ratelimit') {
+    this.limiter = new InMemoryRateLimiter(
+      maxRequests, 
+      windowSeconds * 1000,
+      name
+    );
+    
+    if (isDisabled || isDevelopment) {
+      console.log(`[RateLimiter:${name}] Rate limiting disabled`);
     } else {
-      // Use Upstash in production
-      console.log(`[RateLimiter:${prefix}] Using Upstash rate limiter`);
-      this.limiter = new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(maxRequests, `${windowSeconds}s`),
-        prefix,
-        analytics: true,
-      });
-      this.isUpstash = true;
+      console.log(`[RateLimiter:${name}] Configured: ${maxRequests} requests per ${windowSeconds}s`);
     }
   }
 
@@ -89,7 +92,7 @@ class RateLimiter {
     const identifier = getClientIP(req);
     
     try {
-      const result = await this.limiter.limit(identifier);
+      const result = await this.limiter.check(identifier);
       
       if (!result.success) {
         const error = new Error('Rate limit exceeded') as Error & { code: string };
@@ -111,25 +114,25 @@ class RateLimiter {
   }
 }
 
-// Configure rate limits based on environment
-const loginLimits = isDevelopment 
-  ? { max: 100, window: 60 }  // 100 requests per minute in dev
-  : { max: 5, window: 300 };  // 5 requests per 5 minutes in prod
+// Configure rate limits (lenient in development, strict in production)
+const loginLimits = isDevelopment || isDisabled
+  ? { max: 1000, window: 60 }    // Effectively unlimited in dev
+  : { max: 5, window: 300 };      // 5 per 5 minutes in prod
 
-const registrationLimits = isDevelopment
-  ? { max: 50, window: 60 }
+const registrationLimits = isDevelopment || isDisabled
+  ? { max: 1000, window: 60 }
   : { max: 3, window: 3600 };
 
-const inviteLimits = isDevelopment
-  ? { max: 50, window: 60 }
+const inviteLimits = isDevelopment || isDisabled
+  ? { max: 1000, window: 60 }
   : { max: 10, window: 3600 };
 
-const passwordResetLimits = isDevelopment
-  ? { max: 50, window: 60 }
+const passwordResetLimits = isDevelopment || isDisabled
+  ? { max: 1000, window: 60 }
   : { max: 3, window: 3600 };
 
-const logoutLimits = isDevelopment
-  ? { max: 100, window: 60 }
+const logoutLimits = isDevelopment || isDisabled
+  ? { max: 1000, window: 60 }
   : { max: 10, window: 60 };
 
 // Export rate limiters
