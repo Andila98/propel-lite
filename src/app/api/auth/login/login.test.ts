@@ -1,3 +1,4 @@
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
@@ -21,7 +22,13 @@ vi.mock('@/lib/auth-service', () => ({
 vi.mock('@/config/server-config', () => ({
   authConfig: {
     cookieName: 'session',
-    maxAge: 3600,
+    cookieSerializeOptions: {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict' as const,
+        maxAge: 3600,
+    }
   },
 }));
 
@@ -94,20 +101,39 @@ describe('POST /api/auth/login', () => {
     expect(response.status).toBe(401);
     expect(body.error).toBe('Invalid authentication format');
   });
-  
-  it('should return 401 if token is empty', async () => {
+
+  it('should return 401 if Authorization header is missing Bearer prefix', async () => {
     const request = new NextRequest('http://localhost/api/auth/login', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' },
+        method: 'POST',
+        headers: {
+            'Authorization': 'invalid-token-format', // Missing "Bearer " prefix
+        },
     });
 
     const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.error).toBe('Invalid authentication token');
+    expect(body.error).toBe('Invalid authentication format');
+    expect(body.code).toBe('INVALID_AUTH_HEADER');
   });
 
+  it('should return 401 if token is empty after Bearer', async () => {
+    const request = new NextRequest('http://localhost/api/auth/login', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ', // Empty token
+        },
+    });
+    
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.error).toBe('Invalid authentication token');
+    expect(body.code).toBe('EMPTY_TOKEN');
+  });
+  
   it('should return 429 if rate limit is exceeded', async () => {
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
