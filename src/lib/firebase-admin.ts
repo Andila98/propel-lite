@@ -15,21 +15,15 @@ function initializeFirebaseAdmin() {
 
   try {
     let credential;
+    const serviceAccountStr = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 
+      ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf8')
+      : null;
 
-    // Method 1: GOOGLE_APPLICATION_CREDENTIALS environment variable (points to a file path)
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      console.log('[FIREBASE_ADMIN] Initializing with GOOGLE_APPLICATION_CREDENTIALS file path.');
-      credential = admin.credential.applicationDefault();
-    } 
-    // Method 2: GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable (for production/deployment)
-    else if (process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64) {
+    if (serviceAccountStr) {
       console.log('[FIREBASE_ADMIN] Initializing with GOOGLE_APPLICATION_CREDENTIALS_BASE64 env var.');
-      const serviceAccountStr = Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf8');
       const serviceAccount = JSON.parse(serviceAccountStr);
       credential = admin.credential.cert(serviceAccount);
-    } 
-    // Method 3: Local service-account.json file (for local development)
-    else {
+    } else {
       const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
       if (fs.existsSync(serviceAccountPath)) {
         console.log('[FIREBASE_ADMIN] Initializing with local service-account.json file.');
@@ -39,11 +33,13 @@ function initializeFirebaseAdmin() {
     }
 
     if (!credential) {
-      throw new Error(
-        "Firebase Admin credentials not found. Please take one of the following actions:\n" +
-        "1. (Recommended for Vercel/production) Set the GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable.\n" +
-        "2. (For local development) Place your service-account.json file in the root of your project."
+      console.warn(
+        "[FIREBASE_ADMIN] Credentials not found. Skipping initialization. " +
+        "Server-side Firebase services will be unavailable. Please set either " +
+        "GOOGLE_APPLICATION_CREDENTIALS_BASE64 or place service-account.json in the root."
       );
+      isFirebaseAdminInitialized = false;
+      return;
     }
 
     admin.initializeApp({
