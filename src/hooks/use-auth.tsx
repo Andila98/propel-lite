@@ -271,24 +271,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('loading');
     
     const loginAttempt = async () => {
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const idToken = await userCredential.user.getIdToken();
-            await processLogin(idToken);
-        } catch (error: unknown) {
-            const typedError = error as { code?: string; message: string };
-            if (typedError.code === 'auth/invalid-credential' || typedError.code === 'auth/wrong-password') {
-                try {
-                    const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-                    if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
-                        throw new AuthenticationError("This account uses Google Sign-In. Please use the 'Continue with Google' button.", 'auth/google-provider');
-                    }
-                } catch (fetchError) {
-                    // Ignore if fetching methods fails, just throw original error
-                }
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        await processLogin(idToken);
+      } catch (error: unknown) {
+        const typedError = error as { code?: string; message: string };
+        if (typedError.code === 'auth/invalid-credential' || typedError.code === 'auth/wrong-password' || typedError.code === 'auth/user-not-found') {
+          try {
+            const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+            if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
+              throw new AuthenticationError("This account uses Google Sign-In. Please use the 'Continue with Google' button.", 'auth/google-provider');
             }
-            throw error; // Re-throw original or new error
+          } catch (fetchError) {
+            // Ignore if fetching methods fails, just throw original error
+          }
         }
+        throw error; // Re-throw original or new error
+      }
     };
 
     try {
@@ -326,7 +326,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus('unauthenticated');
         throw new AuthenticationError(message, typedError.code);
     }
-}, [processLogin, clearError]);
+  }, [processLogin, clearError]);
   
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     clearError();
@@ -391,3 +391,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
