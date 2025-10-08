@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
@@ -64,7 +65,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // The check method in the new rate limiter will throw an error on its own if the limit is exceeded.
     await loginRateLimit.check(req);
   } catch {
      console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded for IP`, { context: requestContext });
@@ -139,12 +139,12 @@ export async function POST(req: NextRequest) {
         return createErrorResponse(typedError.message || 'Profile is incomplete.', 403, 'INCOMPLETE_PROFILE', requestId);
       }
   
+      let message = 'Invalid credentials. Please try again.';
+      let code = 'INVALID_CREDENTIALS';
+      let status = 401;
+
       if (typedError.code?.startsWith('auth/')) {
-        let message = 'Invalid credentials. Please try again.';
-        let code = 'INVALID_CREDENTIALS';
-  
         switch (typedError.code) {
-          case 'auth/invalid-id-token':
           case 'auth/id-token-expired':
             message = 'Your session has expired. Please sign in again.';
             code = 'TOKEN_EXPIRED';
@@ -158,10 +158,12 @@ export async function POST(req: NextRequest) {
             code = 'ACCOUNT_DISABLED';
             break;
         }
-        return createErrorResponse(message, 401, code, requestId);
+      } else if (typedError.message) {
+          message = typedError.message;
+          code = typedError.code || 'INTERNAL_ERROR';
+          status = typedError.code === 'PROFILE_NOT_FOUND' ? 404 : 500;
       }
-  
-      return createErrorResponse('An unexpected error occurred during login. Please try again.', 500, 'INTERNAL_ERROR', requestId);
+      return createErrorResponse(message, status, code, requestId);
     }
 
   } catch (error: unknown) {

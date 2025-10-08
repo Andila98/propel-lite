@@ -36,10 +36,11 @@ type RegisterFormValues = z.infer<typeof RegisterSchema>;
 
 export default function RegisterPage() {
   const { toast } = useToast();
-  const { loginWithGoogle, login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { register: registerUser, loginWithGoogle, status } = useAuth();
   const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const isLoading = status === 'loading';
 
   const form = useForm<RegisterFormValues>({
       resolver: zodResolver(RegisterSchema),
@@ -48,32 +49,9 @@ export default function RegisterPage() {
   const { register, handleSubmit, formState: { errors } } = form;
 
   const handleRegister = useCallback(async (data: RegisterFormValues) => {
-    setIsLoading(true);
     try {
-        const response = await fetch('/api/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-          let errorData = { error: 'Failed to create account due to a server error.' };
-          try {
-            errorData = await response.json();
-          } catch {
-            // Ignore if parsing fails
-          }
-          throw new Error(errorData.error || 'Failed to create account.');
-        }
-        
-        toast({
-            title: "Account Created!",
-            description: "Logging you in to begin setup...",
-        });
-
-        // After successful signup, immediately log in to start the session.
-        await login(data.email, data.password, true);
-        
+      await registerUser(data.displayName, data.email, data.password);
+      // The useAuth hook will handle the toast and the redirector will navigate.
     } catch (error: unknown) {
         const typedError = error as Error;
         toast({
@@ -81,28 +59,17 @@ export default function RegisterPage() {
             description: typedError.message,
             variant: "destructive",
         });
-    } finally {
-        setIsLoading(false);
     }
-  }, [login, toast]);
+  }, [registerUser, toast]);
   
   const handleSocialLogin = useCallback(async () => {
     setIsSocialLoading(true);
     try {
         await loginWithGoogle();
         // AuthProvider will now handle the redirect
-        toast({
-            title: "Sign-Up Successful!",
-            description: "Let's get you set up.",
-        });
     } catch (error: unknown) {
        const typedError = error as { code?: string; message: string };
-       if (typedError.code === 'INCOMPLETE_PROFILE') {
-            toast({
-                title: "Setup Required",
-                description: "Redirecting you to complete your profile.",
-            });
-        } else if (typedError.code !== 'auth/cancelled-popup-request') {
+       if (typedError.code !== 'auth/cancelled-popup-request' && typedError.code !== 'auth/popup-closed-by-user') {
             toast({
                 title: "Social Sign-Up Failed",
                 description: typedError.message,
@@ -185,7 +152,7 @@ export default function RegisterPage() {
                     <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full" type="button" onClick={handleSocialLogin} disabled={isSocialLoading}>
+                <Button variant="outline" className="w-full" type="button" onClick={handleSocialLogin} disabled={isLoading || isSocialLoading}>
                     {isSocialLoading ? <Loader2 className="animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
                     Sign up with Google
                 </Button>

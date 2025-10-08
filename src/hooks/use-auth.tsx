@@ -8,18 +8,22 @@ import {
   useContext, 
   ReactNode, 
   useCallback,
+  useMemo
 } from 'react';
-import { auth } from '@/lib/firebase/client';
 import { 
   onAuthStateChanged,
   signOut as firebaseSignOut, 
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
   GoogleAuthProvider, 
   signInWithPopup,
   fetchSignInMethodsForEmail,
   type User as FirebaseUser
 } from 'firebase/auth';
 import type { Permission } from '@/lib/types';
+import { auth } from '@/lib/firebase/client';
+import { useRouter } from 'next/navigation';
+import { useToast } from './use-toast';
 
 export interface User {
   uid: string;
@@ -45,7 +49,8 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   status: AuthStatus;
   error: AuthError | null;
-  login: (email: string, pass: string, isSignUp?: boolean) => Promise<void>;
+  login: (email: string, pass: string) => Promise<void>;
+  register: (name: string, email: string, pass: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -62,95 +67,16 @@ class AuthenticationError extends Error {
   }
 }
 
-async function fetchUserFromApi(): Promise<User | null> {
-  try {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache'
-      }
+async function fetchWithAuth(url: string, idToken: string, options: RequestInit = {}): Promise<Response> {
+    return fetch(url, {
+        ...options,
+        headers: {
+            ...options.headers,
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include'
     });
-
-    console.log('[Auth] API response status:', response.status);
-
-    // Handle specific status codes
-    if (response.status === 401) {
-      console.log('[Auth] Unauthorized - no valid session');
-      return null;
-    }
-    
-    if (response.status === 429) {
-      throw new AuthenticationError(
-        'Too many requests. Please try again in a few minutes.',
-        'RATE_LIMIT_EXCEEDED'
-      );
-    }
-
-    if (response.status === 503) {
-      throw new AuthenticationError(
-        'Service temporarily unavailable. Please try again later.',
-        'SERVICE_UNAVAILABLE'
-      );
-    }
-
-    if (response.status === 404) {
-      console.error('[Auth] User profile not found on server');
-      throw new AuthenticationError(
-        'User profile not found. Please contact support.',
-        'PROFILE_NOT_FOUND'
-      );
-    }
-    
-    if (!response.ok) {
-      let errorData: any = {};
-      const contentType = response.headers.get('content-type');
-      
-      if (contentType && contentType.includes('application/json')) {
-        try {
-          errorData = await response.json();
-        } catch (parseError) {
-          console.error('[Auth] Failed to parse error response as JSON:', parseError);
-        }
-      } else {
-        try {
-          const textBody = await response.text();
-          console.error('[Auth] Non-JSON error response:', textBody.substring(0, 200));
-        } catch {
-          console.error('[Auth] Could not read response body');
-        }
-      }
-      
-      console.error('[Auth] API error:', { 
-        status: response.status, 
-        error: errorData,
-        contentType 
-      });
-      
-      throw new Error(
-        errorData.error || `Failed to fetch user profile: ${response.status}`
-      );
-    }
-
-    const userProfile = await response.json();
-    console.log('[Auth] Successfully fetched user profile');
-    return userProfile;
-    
-  } catch (error) {
-    if (error instanceof AuthenticationError) {
-      throw error;
-    }
-    
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('[Auth] Network error during fetch:', error);
-      throw new AuthenticationError(
-        'Network error. Please check your connection.',
-        'NETWORK_ERROR'
-      );
-    }
-    
-    console.error('[Auth] fetchUserFromApi failed:', error);
-    throw error;
-  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -158,37 +84,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('initializing');
   const [error, setError] = useState<AuthError | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const clearError = useCallback(() => {
-    setError(null);
+  const clearError = useCallback(() => setError(null), []);
+
+  const handleAuthError = useCallback((err: unknown, defaultMessage: string = 'An unexpected error occurred.') => {
+      let message = defaultMessage;
+      let code: string | undefined;
+
+      if (err instanceof AuthenticationError) {
+          message = err.message;
+          code = err.code;
+      } else if (err instanceof Error && 'code' in err) {
+          const firebaseError = err as { code: string; message: string };
+          code = firebaseError.code;
+          switch (firebaseError.code) {
+              case 'auth/invalid-credential':
+              case 'auth/wrong-password':
+              case 'auth/user-not-found':
+                  message = 'Invalid email or password.';
+                  break;
+              case 'auth/email-already-in-use':
+                  message = 'An account with this email already exists.';
+                  break;
+              case 'auth/user-disabled':
+                  message = 'Your account has been disabled.';
+                  break;
+              case 'auth/too-many-requests':
+                  message = 'Too many failed attempts. Please try again later.';
+                  break;
+              case 'auth/network-request-failed':
+                  message = 'Network error. Please check your connection.';
+                  break;
+              default:
+                  message = firebaseError.message || defaultMessage;
+          }
+      } else if (err instanceof Error) {
+          message = err.message;
+      }
+      
+      const authError = { message, code };
+      console.error("[Auth Error]", authError);
+      setError(authError);
+      setStatus('unauthenticated');
+      throw new AuthenticationError(message, code);
   }, []);
 
-  const fetchAndSetUser = useCallback(async (fbUser: FirebaseUser | null) => {
-    if (fbUser) {
-      try {
-        const userProfile = await fetchUserFromApi();
+  const createServerSession = useCallback(async (fbUser: FirebaseUser) => {
+    const idToken = await fbUser.getIdToken(true);
+    const response = await fetchWithAuth('/api/auth/login', idToken, { method: 'POST' });
+    const responseBody = await response.json();
+    
+    if (!response.ok) {
+      throw new AuthenticationError(responseBody.error || 'Session creation failed.', responseBody.code);
+    }
+    return responseBody as User;
+  }, []);
+
+  const fetchAndSetUser = useCallback(async () => {
+    setStatus('loading');
+    try {
+      const response = await fetch('/api/auth/me', { credentials: 'include' });
+      if (response.ok) {
+        const userProfile = await response.json();
         setUser(userProfile);
         setStatus('authenticated');
-      } catch (e: unknown) {
-        const err = e as Error & { code?: string };
-        console.error("[Auth] Session validation failed:", err.message);
-        if (err instanceof AuthenticationError) {
-          setError({ message: err.message, code: err.code });
-        }
-        await firebaseSignOut(auth); // Sign out if API call fails
+      } else {
         setUser(null);
         setStatus('unauthenticated');
       }
-    } else {
+    } catch (e) {
+      console.error("Failed to fetch user profile:", e);
       setUser(null);
       setStatus('unauthenticated');
+      setError({ message: "Failed to connect to server. Please check your connection." });
     }
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
-      fetchAndSetUser(fbUser);
+      if (fbUser) {
+        await fetchAndSetUser();
+      } else {
+        setUser(null);
+        setStatus('unauthenticated');
+      }
     }, (err) => {
       console.error("[Auth] onAuthStateChanged error:", err);
       setError({ message: 'Failed to get auth state.', code: 'AUTH_STATE_ERROR' });
@@ -200,110 +182,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchAndSetUser]);
   
   const retryConnection = useCallback(async () => {
-    await fetchAndSetUser(auth.currentUser);
+    await fetchAndSetUser();
   }, [fetchAndSetUser]);
-
-  const refreshUser = useCallback(async () => {
-    await fetchAndSetUser(auth.currentUser);
-  }, [fetchAndSetUser]);
-
-  const processLogin = useCallback(async (idToken: string): Promise<User> => {
-    setStatus('loading');
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${idToken}`,
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include'
-    });
-    
-    const responseBody = await response.json();
-    if (!response.ok) {
-      setStatus('unauthenticated');
-      throw new AuthenticationError(responseBody.error || 'Login failed.', responseBody.code);
-    }
-    const userProfile = responseBody as User;
-    setUser(userProfile);
-    setStatus('authenticated');
-    return userProfile;
-  }, []);
-
-  const login = useCallback(async (email: string, password: string, isSignUp: boolean = false): Promise<void> => {
+  
+  const login = useCallback(async (email: string, password: string): Promise<void> => {
     clearError();
     setStatus('loading');
-    
-    const loginAttempt = async () => {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const idToken = await userCredential.user.getIdToken();
-        await processLogin(idToken);
-    };
-
     try {
-        await loginAttempt();
-    } catch (error: unknown) {
-        const typedError = error as { code?: string; message: string };
-        let message = 'Login failed. Please try again.';
-        let code = typedError.code;
-
-        if (error instanceof AuthenticationError) {
-            message = error.message;
-        } else if (typedError.code === 'auth/invalid-credential' || typedError.code === 'auth/wrong-password' || typedError.code === 'auth/user-not-found') {
-            try {
-                const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-                if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
-                    message = "This account uses Google Sign-In. Please use the 'Continue with Google' button.";
-                    code = 'auth/google-provider';
-                } else {
-                    message = 'Invalid email or password.';
-                }
-            } catch (fetchError) {
-                message = 'Invalid email or password.';
-            }
-        } else {
-             switch (typedError.code) {
-                case 'auth/user-disabled':
-                    message = 'Your account has been disabled.';
-                    break;
-                case 'auth/too-many-requests':
-                    message = 'Too many failed attempts. Please try again later.';
-                    break;
-                default:
-                    message = typedError.message || 'An unexpected error occurred during login.';
-            }
-        }
-        const authError = { message, code };
-        setError(authError);
-        setStatus('unauthenticated');
-        throw new AuthenticationError(message, code);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await createServerSession(userCredential.user);
+      await fetchAndSetUser();
+    } catch (error) {
+      handleAuthError(error, 'Login failed.');
     }
-  }, [processLogin, clearError]);
-  
+  }, [clearError, createServerSession, fetchAndSetUser, handleAuthError]);
+
+  const register = useCallback(async (name: string, email: string, password: string): Promise<void> => {
+    clearError();
+    setStatus('loading');
+    try {
+      // 1. Create user on client
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+
+      // 2. Create user profile on server
+      const response = await fetchWithAuth('/api/auth/signup', idToken, {
+        method: 'POST',
+        body: JSON.stringify({ displayName: name, email, password })
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new AuthenticationError(errorData.error || 'Server-side signup failed.', errorData.code);
+      }
+      
+      // 3. Create server session
+      await createServerSession(userCredential.user);
+      
+      // 4. Finalize state
+      await fetchAndSetUser();
+      toast({
+          title: "Account Created!",
+          description: "Logging you in to begin setup...",
+      });
+    } catch (error) {
+      handleAuthError(error, 'Registration failed.');
+    }
+  }, [clearError, createServerSession, fetchAndSetUser, handleAuthError, toast]);
+
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     clearError();
     setStatus('loading');
     try {
       const provider = new GoogleAuthProvider();
-      provider.addScope('email');
-      provider.addScope('profile');
-      
       const userCredential = await signInWithPopup(auth, provider);
-      const idToken = await userCredential.user.getIdToken();
-      await processLogin(idToken);
+      
+      await createServerSession(userCredential.user);
+      await fetchAndSetUser();
+      
+      toast({
+        title: "Sign-In Successful!",
+        description: "Welcome!",
+      });
 
     } catch (error: unknown) {
-      const typedError = error as { code?: string };
-      const message = 'Google sign-in failed. Please try again.';
-      if (typedError.code !== 'auth/cancelled-popup-request') {
-        const authError = { message, code: typedError.code };
-        setError(authError);
-        setStatus('unauthenticated');
-        throw new AuthenticationError(message, typedError.code);
-      } else {
-        setStatus('unauthenticated');
-      }
+       const typedError = error as { code?: string };
+        if (typedError.code === 'auth/popup-closed-by-user' || typedError.code === 'auth/cancelled-popup-request') {
+            setStatus('unauthenticated'); // Reset status without showing error
+        } else {
+            handleAuthError(error, 'Google sign-in failed.');
+        }
     }
-  }, [processLogin, clearError]);
+  }, [clearError, createServerSession, fetchAndSetUser, handleAuthError, toast]);
 
   const logout = useCallback(async () => {
     try {
@@ -316,22 +265,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null); 
       setFirebaseUser(null);
       setStatus('unauthenticated');
+      router.push('/login');
     }
-  }, [clearError]);
+  }, [clearError, router]);
+
+  const contextValue = useMemo(() => ({ 
+    user,
+    firebaseUser,
+    status, 
+    error,
+    login,
+    register,
+    loginWithGoogle, 
+    logout, 
+    refreshUser: fetchAndSetUser,
+    clearError,
+    retryConnection
+  }), [user, firebaseUser, status, error, login, register, loginWithGoogle, logout, fetchAndSetUser, clearError, retryConnection]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user,
-      firebaseUser,
-      status, 
-      error,
-      login, 
-      loginWithGoogle, 
-      logout, 
-      refreshUser,
-      clearError,
-      retryConnection
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

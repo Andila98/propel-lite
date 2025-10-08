@@ -6,28 +6,20 @@ import { authConfig } from '@/config/server-config';
 import type { User } from '@/hooks/use-auth';
 import { FieldValue } from 'firebase-admin/firestore';
 
+
 /**
- * Creates a new user in Firebase Auth and a corresponding profile in Firestore.
+ * Creates a user profile in Firestore and sets custom claims.
+ * Assumes the user has already been created on the client.
  * @param params - The user's details.
- * @returns The created user record from Firebase Auth.
+ * @returns The user record from Firebase Auth.
  */
-export async function signUpUser({ email, password, displayName }: { email: string; password?: string; displayName: string; }) {
+export async function signUpUser({ uid, email, displayName }: { uid: string, email: string; displayName: string; }) {
     if (!isFirebaseAdminInitialized) {
         throw new Error('Firebase Admin SDK is not initialized. Authentication services are unavailable.');
     }
-
-    // Check if user already exists
-    const existingUser = await auth.getUserByEmail(email).catch(err => {
-        if (err.code === 'auth/user-not-found') return null;
-        throw err;
-    });
-
-    if (existingUser) {
-        throw new Error('An account with this email already exists.');
-    }
     
     try {
-        const userRecord = await auth.createUser({ email, password, displayName });
+        const userRecord = await auth.getUser(uid);
         
         await auth.setCustomUserClaims(userRecord.uid, { role: 'landlord', profileComplete: false });
         
@@ -44,12 +36,8 @@ export async function signUpUser({ email, password, displayName }: { email: stri
 
     } catch (error: unknown) {
         const typedError = error as { code?: string, message: string };
-        console.error('[AUTH_SERVICE_ERROR] Failed to sign up user:', typedError);
-        // Transform the error to a more user-friendly message
-        if (typedError.code === 'auth/email-already-exists') {
-            throw new Error('An account with this email already exists.');
-        }
-        throw new Error(`Could not sign up user: ${typedError.message}`);
+        console.error('[AUTH_SERVICE_ERROR] Failed to set up user profile:', typedError);
+        throw new Error(`Could not set up user profile: ${typedError.message}`);
     }
 }
 
@@ -107,12 +95,22 @@ export async function getUserProfile(uid: string): Promise<User | null> {
                   newProfileData.permissions = {};
                   newProfileData.propertiesManaged = [];
                 }
-                // For landlords, just having the base data is enough.
+                 if (userRoleClaim === 'landlord') {
+                  newProfileData.profileComplete = false;
+                }
                 
                 await docRef.set(newProfileData);
                 firestoreProfile = newProfileData;
             }
         }
+        
+        const isProfileComplete = userRecord.customClaims?.profileComplete ?? (firestoreProfile?.profileComplete as boolean) ?? false;
+        
+        // If claims are out of sync with Firestore, update them
+        if (userRecord.customClaims?.profileComplete !== isProfileComplete) {
+            await auth.setCustomUserClaims(userRecord.uid, { ...userRecord.customClaims, profileComplete: isProfileComplete });
+        }
+
 
         return {
             // Start with all data from Firestore, making it the base source of truth.
@@ -124,7 +122,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
             name: (firestoreProfile.name as string) || userRecord.displayName || 'Unnamed User',
             // Prioritize Firestore role, but fall back to the auth claim.
             role: (firestoreProfile.role as User['role']) || userRoleClaim,
-            profileComplete: userRecord.customClaims?.profileComplete ?? false,
+            profileComplete: isProfileComplete,
             // Auth is the source of truth for avatar.
             avatarUrl: userRecord.photoURL || undefined,
             // Ensure permissions from Firestore are included.

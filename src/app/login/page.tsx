@@ -41,8 +41,7 @@ interface ConnectionStatus {
 
 export default function LoginPage() {
   const { toast } = useToast();
-  const { login, loginWithGoogle, error: authError, clearError, retryConnection } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, loginWithGoogle, error: authError, clearError, status } = useAuth();
   const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
@@ -50,6 +49,8 @@ export default function LoginPage() {
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     lastChecked: new Date()
   });
+
+  const isLoading = status === 'loading';
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(LoginSchema),
@@ -102,8 +103,6 @@ export default function LoginPage() {
       });
       return;
     }
-
-    setIsLoading(true);
     
     try {
       await login(data.email, data.password);
@@ -113,7 +112,6 @@ export default function LoginPage() {
       // AuthRedirector will handle the navigation
     } catch {
       // The authError state in useAuth is already set.
-      setIsLoading(false);
     }
   }, [login, toast, connectionStatus.isOnline]);
   
@@ -141,21 +139,6 @@ export default function LoginPage() {
       setIsSocialLoading(false);
     }
   }, [loginWithGoogle, toast, connectionStatus.isOnline]);
-
-  const handleRetryConnection = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await retryConnection();
-      toast({
-        title: "Connection Restored",
-        description: "You can now try logging in again.",
-      });
-    } catch {
-      // Error handled in useAuth.
-    } finally {
-      setIsLoading(false);
-    }
-  }, [retryConnection, toast]);
 
   const isFormDisabled = isLoading || isSocialLoading || !connectionStatus.isOnline || loginSuccess;
 
@@ -193,17 +176,6 @@ export default function LoginPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{authError.message}</span>
-                  {authError.code === 'CONNECTION_FAILED' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRetryConnection}
-                      className="ml-2 h-auto p-0 text-xs underline"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Retry'}
-                    </Button>
-                  )}
                 </AlertDescription>
               </Alert>
             )}
