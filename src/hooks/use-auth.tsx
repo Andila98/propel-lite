@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { 
@@ -10,9 +9,9 @@ import {
   ReactNode, 
   useCallback,
 } from 'react';
-import { Loader2 } from 'lucide-react';
-import { auth } from '@/lib/firebase-client';
+import { auth } from '@/lib/firebase/client';
 import { 
+  onAuthStateChanged,
   signOut as firebaseSignOut, 
   signInWithEmailAndPassword, 
   GoogleAuthProvider, 
@@ -43,6 +42,7 @@ type AuthStatus = 'initializing' | 'loading' | 'authenticated' | 'unauthenticate
 
 interface AuthContextType {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   status: AuthStatus;
   error: AuthError | null;
   login: (email: string, pass: string, isSignUp?: boolean) => Promise<void>;
@@ -59,52 +59,6 @@ class AuthenticationError extends Error {
   constructor(public message: string, public code?: string) {
     super(message);
     this.name = 'AuthenticationError';
-  }
-}
-
-class ConnectionRetry {
-  private readonly maxAttempts = 3;
-  private readonly delays = [1000, 3000, 5000];
-
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
-    for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
-      try {
-        const result = await operation();
-        return result;
-      } catch (error: unknown) {
-        const typedError = error as { code?: string };
-        console.warn(`[Auth] Attempt ${attempt + 1} failed:`, (error as Error).message);
-
-        if (this.shouldNotRetry(typedError)) {
-          throw error;
-        }
-
-        if (attempt < this.maxAttempts - 1) {
-          await this.delay(this.delays[attempt]);
-        }
-      }
-    }
-
-    throw new AuthenticationError(
-      'Connection failed after multiple attempts. Please check your internet connection.',
-      'CONNECTION_FAILED'
-    );
-  }
-
-  private shouldNotRetry(error: { code?: string }): boolean {
-    const nonRetryableCodes = [
-      'auth/invalid-email',
-      'auth/user-not-found',
-      'auth/wrong-password',
-      'auth/invalid-credential',
-      'auth/user-disabled',
-      'auth/too-many-requests'
-    ];
-    return nonRetryableCodes.includes(error.code || '');
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
@@ -151,7 +105,6 @@ async function fetchUserFromApi(): Promise<User | null> {
       let errorData: any = {};
       const contentType = response.headers.get('content-type');
       
-      // Only try to parse JSON if content-type indicates JSON
       if (contentType && contentType.includes('application/json')) {
         try {
           errorData = await response.json();
@@ -159,7 +112,6 @@ async function fetchUserFromApi(): Promise<User | null> {
           console.error('[Auth] Failed to parse error response as JSON:', parseError);
         }
       } else {
-        // Try to get text for debugging
         try {
           const textBody = await response.text();
           console.error('[Auth] Non-JSON error response:', textBody.substring(0, 200));
@@ -184,12 +136,10 @@ async function fetchUserFromApi(): Promise<User | null> {
     return userProfile;
     
   } catch (error) {
-    // Re-throw AuthenticationError as-is
     if (error instanceof AuthenticationError) {
       throw error;
     }
     
-    // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('[Auth] Network error during fetch:', error);
       throw new AuthenticationError(
@@ -205,6 +155,7 @@ async function fetchUserFromApi(): Promise<User | null> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('initializing');
   const [error, setError] = useState<AuthError | null>(null);
 
@@ -212,37 +163,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
-  const checkInitialSession = useCallback(async () => {
-    setStatus('initializing');
-    try {
-      const userProfile = await fetchUserFromApi();
-      setUser(userProfile);
-      setStatus(userProfile ? 'authenticated' : 'unauthenticated');
-    } catch (e: unknown) {
-      const err = e as Error & { code?: string };
-      console.error("[Auth] Initial session check failed:", err.message);
-      
-      // Only set error for user-facing issues
-      if (err instanceof AuthenticationError) {
-        setError({ message: err.message, code: err.code });
+  const fetchAndSetUser = useCallback(async (fbUser: FirebaseUser | null) => {
+    if (fbUser) {
+      try {
+        const userProfile = await fetchUserFromApi();
+        setUser(userProfile);
+        setStatus('authenticated');
+      } catch (e: unknown) {
+        const err = e as Error & { code?: string };
+        console.error("[Auth] Session validation failed:", err.message);
+        if (err instanceof AuthenticationError) {
+          setError({ message: err.message, code: err.code });
+        }
+        await firebaseSignOut(auth); // Sign out if API call fails
+        setUser(null);
+        setStatus('unauthenticated');
       }
-      
+    } else {
       setUser(null);
       setStatus('unauthenticated');
     }
   }, []);
 
   useEffect(() => {
-    checkInitialSession();
-  }, [checkInitialSession]);
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      setFirebaseUser(fbUser);
+      fetchAndSetUser(fbUser);
+    }, (err) => {
+      console.error("[Auth] onAuthStateChanged error:", err);
+      setError({ message: 'Failed to get auth state.', code: 'AUTH_STATE_ERROR' });
+      setUser(null);
+      setStatus('unauthenticated');
+    });
+
+    return () => unsubscribe();
+  }, [fetchAndSetUser]);
   
   const retryConnection = useCallback(async () => {
-    await checkInitialSession();
-  }, [checkInitialSession]);
+    await fetchAndSetUser(auth.currentUser);
+  }, [fetchAndSetUser]);
 
   const refreshUser = useCallback(async () => {
-    await checkInitialSession();
-  }, [checkInitialSession]);
+    await fetchAndSetUser(auth.currentUser);
+  }, [fetchAndSetUser]);
 
   const processLogin = useCallback(async (idToken: string): Promise<User> => {
     setStatus('loading');
@@ -271,46 +234,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('loading');
     
     const loginAttempt = async () => {
-      try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
         await processLogin(idToken);
-      } catch (error: unknown) {
-        const typedError = error as { code?: string; message: string };
-        if (typedError.code === 'auth/invalid-credential' || typedError.code === 'auth/wrong-password' || typedError.code === 'auth/user-not-found') {
-          try {
-            const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-            if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
-              throw new AuthenticationError("This account uses Google Sign-In. Please use the 'Continue with Google' button.", 'auth/google-provider');
-            }
-          } catch (fetchError) {
-            // Ignore if fetching methods fails, just throw original error
-          }
-        }
-        throw error; // Re-throw original or new error
-      }
     };
 
     try {
-        if (isSignUp) {
-            const retryHandler = new ConnectionRetry();
-            await retryHandler.execute(loginAttempt);
-        } else {
-            await loginAttempt();
-        }
+        await loginAttempt();
     } catch (error: unknown) {
         const typedError = error as { code?: string; message: string };
         let message = 'Login failed. Please try again.';
+        let code = typedError.code;
 
         if (error instanceof AuthenticationError) {
             message = error.message;
-        } else {
-            switch (typedError.code) {
-                case 'auth/invalid-credential':
-                case 'auth/wrong-password':
-                case 'auth/user-not-found':
+        } else if (typedError.code === 'auth/invalid-credential' || typedError.code === 'auth/wrong-password' || typedError.code === 'auth/user-not-found') {
+            try {
+                const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+                if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
+                    message = "This account uses Google Sign-In. Please use the 'Continue with Google' button.";
+                    code = 'auth/google-provider';
+                } else {
                     message = 'Invalid email or password.';
-                    break;
+                }
+            } catch (fetchError) {
+                message = 'Invalid email or password.';
+            }
+        } else {
+             switch (typedError.code) {
                 case 'auth/user-disabled':
                     message = 'Your account has been disabled.';
                     break;
@@ -321,10 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     message = typedError.message || 'An unexpected error occurred during login.';
             }
         }
-        const authError = { message, code: typedError.code };
+        const authError = { message, code };
         setError(authError);
         setStatus('unauthenticated');
-        throw new AuthenticationError(message, typedError.code);
+        throw new AuthenticationError(message, code);
     }
   }, [processLogin, clearError]);
   
@@ -363,13 +314,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       clearError();
       setUser(null); 
+      setFirebaseUser(null);
       setStatus('unauthenticated');
     }
   }, [clearError]);
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
+      user,
+      firebaseUser,
       status, 
       error,
       login, 
@@ -391,4 +344,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
