@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { 
@@ -16,6 +17,7 @@ import {
   signInWithEmailAndPassword, 
   GoogleAuthProvider, 
   signInWithPopup,
+  fetchSignInMethodsForEmail,
   type User as FirebaseUser
 } from 'firebase/auth';
 import type { Permission } from '@/lib/types';
@@ -269,22 +271,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('loading');
     
     const loginAttempt = async () => {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const idToken = await userCredential.user.getIdToken();
-        await processLogin(idToken);
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const idToken = await userCredential.user.getIdToken();
+            await processLogin(idToken);
+        } catch (error: unknown) {
+            const typedError = error as { code?: string; message: string };
+            if (typedError.code === 'auth/invalid-credential' || typedError.code === 'auth/wrong-password') {
+                try {
+                    const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+                    if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
+                        throw new AuthenticationError("This account uses Google Sign-In. Please use the 'Continue with Google' button.", 'auth/google-provider');
+                    }
+                } catch (fetchError) {
+                    // Ignore if fetching methods fails, just throw original error
+                }
+            }
+            throw error; // Re-throw original or new error
+        }
     };
 
     try {
         if (isSignUp) {
-            // After signup, there can be a replication delay. We retry a few times.
             const retryHandler = new ConnectionRetry();
             await retryHandler.execute(loginAttempt);
         } else {
             await loginAttempt();
         }
     } catch (error: unknown) {
-        const typedError = error as { code?: string };
+        const typedError = error as { code?: string; message: string };
         let message = 'Login failed. Please try again.';
+
         if (error instanceof AuthenticationError) {
             message = error.message;
         } else {
@@ -298,10 +315,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     message = 'Your account has been disabled.';
                     break;
                 case 'auth/too-many-requests':
-                    message = 'Too many failed attempts. Please wait before trying again.';
+                    message = 'Too many failed attempts. Please try again later.';
                     break;
                 default:
-                    message = 'An unexpected error occurred during login.';
+                    message = typedError.message || 'An unexpected error occurred during login.';
             }
         }
         const authError = { message, code: typedError.code };
