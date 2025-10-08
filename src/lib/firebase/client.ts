@@ -1,13 +1,20 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { firebaseConfig } from '@/config/firebase-config';
+import { getStorage } from 'firebase/storage';
+import { firebaseConfig as publicConfig } from '@/config/firebase-config';
+
+// The public config is just a set of keys, not the full FirebaseOptions
+const firebaseConfig: FirebaseOptions = publicConfig;
 
 // Initialize Firebase for the client
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Explicitly initialize only the services we need.
+// This prevents Firebase Analytics from being automatically initialized
+// and causing console errors due to ad blockers.
+const auth = getAuth(app);
+const firestore = getFirestore(app);
+const storage = getStorage(app);
 
-// DON'T connect to emulators in Cloud Workstations
-// Only use emulators in true local development
+export { auth, firestore, storage, app };
