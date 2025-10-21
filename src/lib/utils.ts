@@ -76,13 +76,12 @@ export function toJSON<T>(data: T): T {
     return data.map(item => toJSON(item)) as unknown as T;
   }
 
-  const anyData = data as { toDate?: () => Date };
-  if (anyData && typeof anyData.toDate === 'function') {
+  if (typeof data === 'object' && 'toDate' in data && typeof (data as any).toDate === 'function') {
     // It's a Firestore Timestamp
-    return anyData.toDate().toISOString() as unknown as T;
+    return (data as any).toDate().toISOString() as unknown as T;
   }
 
-  if (typeof data === 'object') {
+  if (typeof data === 'object' && data !== null) {
     const newObj: { [key: string]: unknown } = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {

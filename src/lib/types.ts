@@ -1,7 +1,5 @@
 
 import type { Timestamp } from "firebase-admin/firestore";
-import type { GenerateReceiptOutput as GenReceiptOutput } from './schema-types';
-import type { GenerateInvoiceOutput as GenInvoiceOutput } from './schema-types';
 
 type UserRole = 'landlord' | 'tenant' | 'admin' | 'manager';
 
@@ -168,6 +166,3 @@ export interface DashboardData {
     latePaymentData: { month: string; latePayments: number }[];
     paymentMethodData: { name: string; value: number; fill: string }[];
 }
-
-export type GenerateReceiptOutput = GenReceiptOutput;
-export type GenerateInvoiceOutput = GenInvoiceOutput;
