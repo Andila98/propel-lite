@@ -2,9 +2,10 @@
 "use client";
 
 import './globals.css';
-import { AppLayout } from '@/components/layout/app-layout';
+import { SidebarLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -22,12 +23,20 @@ export default function RootLayout({
       <head>
         <title>Propel Lite - Smart Property Management</title>
         <meta name="description" content="AI-powered tools to streamline your rental business." />
+        <script src="https://animatedicons.co/i/d53957999.js" async></script>
       </head>
       <body className="bg-background font-body">
-          <AppLayout>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SidebarLayout>
               {children}
-          </AppLayout>
+          </SidebarLayout>
           <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

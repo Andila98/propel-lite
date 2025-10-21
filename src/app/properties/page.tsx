@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/card';
 import { PropertyTable } from '@/components/property-table';
 import type { Property } from '@/lib/types';
-import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fetcher } from '@/lib/utils';
@@ -31,9 +30,8 @@ interface PropertiesResponse {
 
 export default function PropertiesPage() {
   const { data, error, isLoading, mutate } = useSWR<PropertiesResponse>('/api/properties', fetcher);
-  const { user } = useAuth();
   
-  const canAddProperties = user?.role === 'landlord' || (user?.role === 'manager' && user?.permissions?.canAddProperties);
+  const canAddProperties = true; // Mocked
   
   const refreshData = useCallback(() => {
     mutate();

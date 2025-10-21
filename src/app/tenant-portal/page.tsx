@@ -28,7 +28,6 @@ import type { Tenant, Property, Payment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Loader2, Download, Mail, Receipt } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { getReceiptAction, emailReceiptAction, type ReceiptState } from '../payments/actions';
@@ -153,7 +152,6 @@ function MaintenanceRequestForm() {
 
 
 export default function TenantPortalPage() {
-  const { user } = useAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -169,8 +167,6 @@ export default function TenantPortalPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!user) return;
-
       try {
         setLoading(true);
         const res = await fetch(`/api/tenant-portal`);
@@ -189,7 +185,7 @@ export default function TenantPortalPage() {
       }
     }
     fetchData();
-  }, [user, toast]);
+  }, [toast]);
   
   const handleGenerateReceipt = async (tenantId: string, paymentId: string) => {
     setReceiptState({ loading: true, result: null, currentPaymentId: paymentId });

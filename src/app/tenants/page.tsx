@@ -12,16 +12,14 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Users, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { TenantTable } from '@/components/tenant-table';
-import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTenants } from '@/hooks/use-tenants';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function TenantsPage() {
-  const { user } = useAuth();
   const { tenants, properties, tenantsMeta, loading, error, refresh } = useTenants();
   
-  const canAddTenants = user?.role === 'landlord' || (user?.role === 'manager' && user?.permissions?.canAddTenants);
+  const canAddTenants = true; // Mocked
 
   const renderSkeleton = () => (
     <div className="space-y-4">

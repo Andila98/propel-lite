@@ -22,7 +22,6 @@ import { Badge } from '@/components/ui/badge';
 import { Camera, Wand2, CheckCircle, Clock } from 'lucide-react';
 import { DeletePropertyButton } from './delete-property-button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { fetcher } from '@/lib/utils';
 
@@ -47,11 +46,10 @@ export default function PropertyDetailPage() {
   const propertyId = id as string;
   const { data: property, error, isLoading: propertyLoading } = useSWR<Property>(propertyId ? `/api/properties/${propertyId}` : null, fetcher);
   const [isDamageDialogOpen, setIsDamageDialogOpen] = React.useState(false);
-  const { user } = useAuth();
   const { toast } = useToast();
   
-  const canEdit = user?.role === 'landlord' || user?.permissions?.canEditProperties;
-  const canDelete = user?.role === 'landlord' || user?.permissions?.canDeleteProperties;
+  const canEdit = true; // Mocked
+  const canDelete = true; // Mocked
   
   React.useEffect(() => {
     if(error) {
