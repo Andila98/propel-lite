@@ -1,25 +1,14 @@
-// This file is responsible for reading environment variables and creating a configuration object.
-// It uses simple fallbacks to empty strings to prevent build-time errors if variables are not set.
-// The actual logic to handle missing credentials should be in the service that consumes this config (e.g., firebase-admin.ts).
 
 export const authConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    cookieName: 'RentEaseAuth',
+    cookieName: 'PropelLiteAuth',
     cookieSerializeOptions: {
         path: '/',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const, // Changed from 'strict' to 'lax' for better compatibility
+        sameSite: 'lax' as const,
         maxAge: 12 * 60 * 60 * 24, // 12 days
     },
 };
 
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-
-// A simple log during development to confirm which project is being targeted by the Admin SDK.
-if (process.env.NODE_ENV === 'development') {
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-         console.log(`[AUTH_CONFIG] Firebase Admin configured via GOOGLE_APPLICATION_CREDENTIALS.`);
-    }
-}
