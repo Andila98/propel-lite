@@ -3,6 +3,7 @@ import { firestore, isFirebaseAdminInitialized } from '@/lib/firebase-admin';
 import { getLandlordId } from '@/lib/auth-utils';
 import { toJSON } from '@/lib/utils';
 import { authConfig } from '@/config/server-config';
+import type { DocumentData } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     try {
         const managersSnapshot = await firestore.collection('managers').where('landlordId', '==', landlordId).get();
-        const managers = managersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const managers = managersSnapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(toJSON(managers), { status: 200 });
     } catch (error: unknown) {
       console.error('[ERROR: /api/managers GET]', error);

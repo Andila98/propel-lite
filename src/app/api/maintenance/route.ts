@@ -5,6 +5,7 @@ import { prioritizeMaintenanceRequest } from '@/ai/flows/prioritize-maintenance'
 import { verifySession, getLandlordAndActor } from '@/lib/auth-utils';
 import type { Tenant } from '@/lib/types';
 import { authConfig } from '@/config/server-config';
+import type { DocumentData } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
             .orderBy('submittedDate', 'desc')
             .get();
             
-        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const requests = snapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(toJSON(requests));
     } catch (error: unknown) {
         console.error('[ERROR: /api/maintenance GET]', error);

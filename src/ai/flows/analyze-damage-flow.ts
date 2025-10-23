@@ -29,7 +29,7 @@ const analyzeDamageFlow = ai.defineFlow(
     inputSchema: AnalyzeDamageInputSchema,
     outputSchema: AnalyzeDamageOutputSchema,
   },
-  async (input) => {
+  async (input: AnalyzeDamageInput) => {
     const {output} = await prompt(input);
     return output!;
   }

@@ -43,7 +43,7 @@ const dashboardInsightsFlow = ai.defineFlow(
     inputSchema: DashboardInsightsInputSchema,
     outputSchema: DashboardInsightsOutputSchema,
   },
-  async (input) => {
+  async (input: DashboardInsightsInput) => {
     const {output} = await prompt(input);
     return output!;
   }

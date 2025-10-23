@@ -100,7 +100,7 @@ async function buildTransitionMatrix(tenantId: string): Promise<TenantPaymentHis
     const paymentsByMonth: Record<string, number> = {};
     let earliestPayment: Date | null = null;
     
-    paymentsSnapshot.forEach(doc => {
+    paymentsSnapshot.forEach((doc: DocumentData) => {
         const payment = doc.data() as { amount: number, date: Timestamp };
         const date = payment.date.toDate();
         const key = `${getYear(date)}-${String(getMonth(date)).padStart(2, '0')}`;

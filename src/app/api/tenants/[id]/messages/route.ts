@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, context: any) {
       .orderBy('timestamp', 'asc')
       .get();
       
-    const messages = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const messages = messagesSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 
     return NextResponse.json(toJSON(messages));
   } catch (error: unknown) {

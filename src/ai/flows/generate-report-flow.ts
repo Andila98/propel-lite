@@ -15,7 +15,7 @@ import { endOfMonth, startOfMonth } from 'date-fns';
 import { ReportInputSchema, ReportOutputSchema, type ReportInput, type ReportOutput } from '@/lib/schema-types';
 import { withErrorHandling } from '@/lib/flow-errors';
 import { withMonitoring } from '@/lib/flow-monitor';
-import type { Timestamp } from 'firebase-admin/firestore';
+import type { Timestamp, DocumentData } from 'firebase-admin/firestore';
 
 interface PaymentData {
     amount: number;
@@ -47,14 +47,14 @@ async function getReportData(input: ReportInput) {
     ]);
 
     // Process data
-    const totalRevenue = paymentsSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+    const totalRevenue = paymentsSnapshot.docs.reduce((sum: number, doc: DocumentData) => sum + doc.data().amount, 0);
     
     const totalUnits = unitsSnapshot.size;
-    const occupiedUnits = unitsSnapshot.docs.filter(doc => doc.data().isOccupied).length;
+    const occupiedUnits = unitsSnapshot.docs.filter((doc: DocumentData) => doc.data().isOccupied).length;
     const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
     
     // This is a simplified calculation for late payments
-    const latePayments = paymentsSnapshot.docs.filter(doc => (doc.data() as PaymentData).date.toDate().getDate() > 5).length;
+    const latePayments = paymentsSnapshot.docs.filter((doc: DocumentData) => (doc.data() as PaymentData).date.toDate().getDate() > 5).length;
     
     const newMaintenanceRequests = maintenanceSnapshot.size;
 
