@@ -1,83 +1,126 @@
-{
-  "name": "propel-lite",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbo",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "pretypecheck": "npm run lint",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "patch-package",
-    "seed": "tsx src/lib/seed.ts",
-    "analyze": "ANALYZE=true next build",
-    "test": "vitest"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.9.0",
-    "@radix-ui/react-accordion": "^1.2.3",
-    "@radix-ui/react-alert-dialog": "^1.1.6",
-    "@radix-ui/react-avatar": "^1.1.3",
-    "@radix-ui/react-checkbox": "^1.1.4",
-    "@radix-ui/react-collapsible": "^1.1.11",
-    "@radix-ui/react-dialog": "^1.1.6",
-    "@radix-ui/react-dropdown-menu": "^2.1.6",
-    "@radix-ui/react-label": "^2.1.2",
-    "@radix-ui/react-menubar": "^1.1.6",
-    "@radix-ui/react-popover": "^1.1.6",
-    "@radix-ui/react-progress": "^1.1.2",
-    "@radix-ui/react-radio-group": "^1.2.3",
-    "@radix-ui/react-scroll-area": "^1.2.3",
-    "@radix-ui/react-select": "^2.1.6",
-    "@radix-ui/react-separator": "^1.1.2",
-    "@radix-ui/react-slider": "^1.2.3",
-    "@radix-ui/react-slot": "^1.2.3",
-    "@radix-ui/react-switch": "^1.1.3",
-    "@radix-ui/react-tabs": "^1.1.3",
-    "@radix-ui/react-toast": "^1.2.6",
-    "@radix-ui/react-tooltip": "^1.1.8",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.0.0",
-    "date-fns": "^3.6.0",
-    "embla-carousel-autoplay": "^8.6.0",
-    "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^11.5.1",
-    "lucide-react": "^0.475.0",
-    "next": "15.5.4",
-    "next-themes": "^0.3.0",
-    "papaparse": "^5.3.14",
-    "patch-package": "^8.0.0",
-    "react": "^18.3.1",
-    "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.2",
-    "recharts": "^2.15.1",
-    "sharp": "^0.33.5",
-    "swr": "^2.2.5",
-    "tailwind-merge": "^3.0.1",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^9.0.1",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@faker-js/faker": "^8.4.1",
-    "@next/bundle-analyzer": "^15.5.4",
-    "@types/node": "^20",
-    "@types/papaparse": "^5.3.14",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18",
-    "@types/uuid": "^9.0.8",
-    "eslint": "8.57.0",
-    "eslint-config-next": "15.5.4",
-    "jsdom": "^24.1.0",
-    "postcss": "^8.4.40",
-    "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.4.7",
-    "tsx": "^4.16.2",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.1"
-  },
-  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
+
+"use client";
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { PropelLiteLogo } from '@/components/icons/logo';
+import { useAuth } from '@/hooks/use-auth';
+import { Loader2 } from 'lucide-react';
+import { AnimatedBackIcon } from '@/components/icons/animated-back-icon';
+
+const ForgotPasswordSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+});
+
+type ForgotPasswordFormValues = z.infer<typeof ForgotPasswordSchema>;
+
+export default function ForgotPasswordPage() {
+  const { forgotPassword } = useAuth();
+  const { toast } = useToast();
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(ForgotPasswordSchema),
+  });
+
+  const onSubmit: SubmitHandler<ForgotPasswordFormValues> = async (data) => {
+    setIsLoading(true);
+    try {
+      await forgotPassword(data.email);
+      setIsSubmitted(true);
+    } catch (error: unknown) {
+      const typedError = error as Error & { code?: string };
+      console.error('Forgot Password Error:', typedError);
+      
+      let description = 'An unexpected error occurred. Please try again.';
+      if (typedError.code === 'auth/user-not-found') {
+        // To prevent user enumeration, we show a generic message even if user doesn't exist
+        setIsSubmitted(true);
+        return;
+      } else if (typedError.message) {
+        description = typedError.message;
+      }
+
+      toast({
+        title: 'Request Failed',
+        description,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <div className="mb-4 flex justify-center">
+            <PropelLiteLogo className="h-12 w-12" />
+          </div>
+          <CardTitle className="text-2xl">Forgot Password</CardTitle>
+          <CardDescription>
+            {isSubmitted 
+              ? 'Check your inbox for a password reset link.'
+              : "Enter your email to receive a password reset link."
+            }
+          </CardDescription>
+        </CardHeader>
+        
+        {isSubmitted ? (
+             <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                    If an account with this email exists, a link to reset your password has been sent.
+                </p>
+            </CardContent>
+        ) : (
+            <form onSubmit={handleSubmit(onSubmit)}>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    autoComplete="email"
+                    {...register('email')}
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="animate-spin" /> : 'Send Reset Link'}
+                </Button>
+            </CardContent>
+            </form>
+        )}
+        
+        <CardFooter className="flex-col items-center gap-2 border-t pt-6">
+          <Link href="/login" className="flex items-center text-sm text-muted-foreground hover:text-primary">
+            <AnimatedBackIcon className="h-4 w-4 mr-1" />
+            Back to Login
+          </Link>
+        </CardFooter>
+      </Card>
+    </div>
+  );
 }

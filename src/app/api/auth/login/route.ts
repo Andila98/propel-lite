@@ -1,6 +1,4 @@
 
-// Enhanced /api/auth/login/route.ts with detailed logging
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { isFirebaseAdminInitialized, auth as adminAuth } from '@/lib/firebase-admin';
 import { authConfig } from '@/config/server-config';
@@ -68,22 +66,16 @@ export async function POST(req: NextRequest) {
 
   console.log(`[INFO: /api/auth/login][${requestId}] Firebase Admin is initialized ✓`);
 
-  // Skip rate limiting in development
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  if (!isDevelopment) {
-    try {
-      await loginRateLimit.check(req);
-    } catch {
-      console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded`);
-      return createErrorResponse(
-        'Too many login attempts. Please try again later.',
-        429,
-        'RATE_LIMIT_EXCEEDED',
-        requestId
-      );
-    }
-  } else {
-    console.log(`[INFO: /api/auth/login][${requestId}] Rate limiting disabled in development`);
+  try {
+    await loginRateLimit.check(req);
+  } catch {
+    console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded`);
+    return createErrorResponse(
+      'Too many login attempts. Please try again later.',
+      429,
+      'RATE_LIMIT_EXCEEDED',
+      requestId
+    );
   }
 
   try {
@@ -111,20 +103,11 @@ export async function POST(req: NextRequest) {
 
     console.log(`[INFO: /api/auth/login][${requestId}] Token validation passed ✓`);
 
-    // DETAILED TOKEN VERIFICATION
     console.log(`[INFO: /api/auth/login][${requestId}] Verifying ID token with Firebase Admin...`);
     let decodedToken;
     try {
       decodedToken = await adminAuth.verifyIdToken(idToken);
       console.log(`[INFO: /api/auth/login][${requestId}] Token verified ✓ UID: ${decodedToken.uid}`);
-      console.log(`[INFO: /api/auth/login][${requestId}] Token claims:`, {
-        uid: decodedToken.uid,
-        email: decodedToken.email,
-        email_verified: decodedToken.email_verified,
-        auth_time: decodedToken.auth_time,
-        iat: decodedToken.iat,
-        exp: decodedToken.exp
-      });
     } catch (verifyError: unknown) {
       const err = verifyError as { code?: string; message: string };
       console.error(`[ERROR: /api/auth/login][${requestId}] Token verification failed:`, {
@@ -132,7 +115,7 @@ export async function POST(req: NextRequest) {
         message: err.message
       });
       return createErrorResponse(
-        'Invalid or expired token',
+        'Invalid or expired token. Please sign in again.',
         401,
         err.code || 'TOKEN_VERIFICATION_FAILED',
         requestId
@@ -144,30 +127,10 @@ export async function POST(req: NextRequest) {
     const { sessionCookie, userProfile } = await createSession(idToken);
 
     console.log(`[INFO: /api/auth/login][${requestId}] Session created successfully ✓`);
-    console.log(`[INFO: /api/auth/login][${requestId}] Session cookie length: ${sessionCookie.length}`);
-    console.log(`[INFO: /api/auth/login][${requestId}] User profile:`, {
-      uid: userProfile.uid,
-      email: userProfile.email,
-      role: userProfile.role,
-      profileComplete: userProfile.profileComplete
-    });
-
+    
     const response = NextResponse.json(userProfile, { status: 200 });
     
-    const cookieOptions = {
-      ...authConfig.cookieSerializeOptions,
-      sameSite: 'strict' as const,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      httpOnly: true
-    };
-
-    console.log(`[INFO: /api/auth/login][${requestId}] Setting cookie:`, {
-      name: authConfig.cookieName,
-      options: cookieOptions
-    });
-    
-    response.cookies.set(authConfig.cookieName, sessionCookie, cookieOptions);
+    response.cookies.set(authConfig.cookieName, sessionCookie, authConfig.cookieSerializeOptions);
 
     Object.entries(securityHeaders).forEach(([key, value]) => {
       response.headers.set(key, value);
@@ -183,32 +146,6 @@ export async function POST(req: NextRequest) {
       code: typedError.code,
       stack: (error as Error).stack
     });
-
-    if (typedError.code === 'INCOMPLETE_PROFILE') {
-      return createErrorResponse(typedError.message || 'Profile is incomplete.', 403, 'INCOMPLETE_PROFILE', requestId);
-    }
-
-    if (typedError.code?.startsWith('auth/')) {
-      let message = 'Invalid credentials. Please try again.';
-      let code = 'INVALID_CREDENTIALS';
-
-      switch (typedError.code) {
-        case 'auth/invalid-id-token':
-        case 'auth/id-token-expired':
-          message = 'Your session has expired. Please sign in again.';
-          code = 'TOKEN_EXPIRED';
-          break;
-        case 'auth/id-token-revoked':
-          message = 'Your session has been revoked. Please sign in again.';
-          code = 'TOKEN_REVOKED';
-          break;
-        case 'auth/user-disabled':
-          message = 'This account has been disabled. Please contact support.';
-          code = 'ACCOUNT_DISABLED';
-          break;
-      }
-      return createErrorResponse(message, 401, code, requestId);
-    }
 
     return createErrorResponse('An unexpected error occurred during login. Please try again.', 500, 'INTERNAL_ERROR', requestId);
   }
