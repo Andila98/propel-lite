@@ -1,6 +1,6 @@
 
 
-"use server";
+'use server';
 
 import { generateReport } from '@/ai/flows/generate-report-flow';
 import { ReportInputSchema, type ReportOutput } from '@/lib/schema-types';

@@ -1,5 +1,5 @@
 
-"use server";
+'use server';
 
 import { generateMessage } from "@/ai/flows/generate-message-flow";
 import { firestore, isFirebaseAdminInitialized } from "@/lib/firebase-admin";

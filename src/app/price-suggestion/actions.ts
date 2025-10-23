@@ -1,5 +1,5 @@
 
-"use server";
+'use server';
 
 import { suggestPrice } from "@/ai/flows/suggest-price-flow";
 import { PriceSuggestionSchema, type PriceSuggestionValues } from '@/lib/schemas';

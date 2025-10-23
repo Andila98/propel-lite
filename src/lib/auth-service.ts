@@ -1,3 +1,4 @@
+
 import { auth } from "./firebase-admin";
 
 export async function authenticateUser(email: string, password: string) {

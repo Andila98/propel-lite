@@ -1,5 +1,5 @@
 
-"use server";
+'use server';
 
 import { auth, firestore, isFirebaseAdminInitialized } from "@/lib/firebase-admin";
 import { cookies } from "next/headers";

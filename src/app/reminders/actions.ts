@@ -1,6 +1,6 @@
 
 
-"use server";
+'use server';
 
 import { generateMessage } from '@/ai/flows/generate-message-flow';
 import { generateInvoice } from '@/ai/flows/generate-invoice-flow';

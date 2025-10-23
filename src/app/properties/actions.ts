@@ -1,6 +1,6 @@
 
 
-"use server";
+'use server';
 
 import { revalidatePath } from 'next/cache';
 import { PropertyFormSchema } from '@/lib/schemas';

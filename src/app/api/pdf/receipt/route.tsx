@@ -1,3 +1,4 @@
+
 import { NextRequest } from 'next/server';
 import { GenerateInvoiceOutputSchema } from '@/lib/schema-types'; // Changed from Receipt to Invoice
 
