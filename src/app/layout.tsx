@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import React, { useEffect } from 'react';
 import { SidebarLayout } from '@/components/layout/app-layout';
+import { Loader2 } from 'lucide-react';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -24,34 +25,46 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   const publicRoutes = ['/login', '/signup', '/forgot-password', '/onboarding/accept-invite'];
   const isOnboarding = pathname.startsWith('/onboarding');
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
   useEffect(() => {
     if (status === 'unauthenticated' && !isPublicRoute) {
-      router.push('/login');
+      router.replace('/login');
     }
     if (status === 'authenticated') {
-        if (user?.profileComplete === false && !isOnboarding) {
-            router.push('/onboarding/landlord-welcome');
-        } else if (user?.profileComplete === true && (isPublicRoute || isOnboarding)) {
-            router.push('/dashboard');
-        }
+      if (user?.profileComplete === false && !isOnboarding) {
+        router.replace('/onboarding/landlord-welcome');
+      } else if (user?.profileComplete === true && (isPublicRoute || isOnboarding)) {
+        router.replace('/dashboard');
+      }
     }
   }, [status, pathname, router, user, isPublicRoute, isOnboarding]);
 
   if (status === 'loading') {
-    return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
-  if (isPublicRoute || (status === 'authenticated' && user?.profileComplete === false)) {
+  // Render children within a layout if authenticated and profile is complete
+  if (status === 'authenticated' && user?.profileComplete) {
+    if (isPublicRoute) return null; // Avoid flash of public content
+    return <SidebarLayout>{children}</SidebarLayout>;
+  }
+
+  // Render onboarding or public pages without the main app layout
+  if ((status === 'authenticated' && !user?.profileComplete) || isPublicRoute) {
     return <>{children}</>;
   }
-  
-  if (status === 'authenticated' && user?.profileComplete === true) {
-     return <SidebarLayout>{children}</SidebarLayout>;
-  }
 
-  return null;
+  // Fallback for unauthenticated users on non-public routes (will be redirected by useEffect)
+  return (
+    <div className="flex h-screen w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>
+  );
 }
 
 export default function RootLayout({
