@@ -13,7 +13,7 @@ function getClientIP(req: NextRequest): string {
     return forwarded.split(',')[0].trim();
   }
   
-  return realIP || 'unknown';
+  return realIP || req.ip || 'unknown';
 }
 
 // Simple in-memory rate limiter
@@ -61,7 +61,7 @@ class InMemoryRateLimiter {
 
   private cleanup(windowStart: number) {
     for (const [key, timestamps] of this.requests.entries()) {
-      const recentRequests = timestamps.filter(time => time > windowStart);
+      const recentRequests = timestamps.filter((time: number) => time > windowStart);
       if (recentRequests.length === 0) {
         this.requests.delete(key);
       } else {
