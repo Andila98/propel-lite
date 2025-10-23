@@ -18,7 +18,6 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   fetchSignInMethodsForEmail,
-  type User as FirebaseUser,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import type { User } from '@/lib/types';
