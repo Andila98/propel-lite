@@ -6,7 +6,7 @@ export const authConfig = {
         path: '/',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
+        sameSite: 'lax' as const, // Use 'lax' for better compatibility with social logins
         maxAge: 12 * 60 * 60 * 24, // 12 days
     },
 };

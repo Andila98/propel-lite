@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -17,10 +16,12 @@ import {
   sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
+  fetchSignInMethodsForEmail,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { auth as firebaseAuth } from '@/lib/firebase/client';
+import { auth } from '@/lib/firebase/client';
 import type { User } from '@/lib/types';
+import { useToast } from './use-toast';
 
 // Custom Error for Authentication
 class AuthenticationError extends Error {
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
+  const { toast } = useToast();
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -84,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return profile;
     } catch (e) {
       console.error("Failed to fetch user profile, logging out.", e);
-      await signOut(firebaseAuth); // Firebase sign out
+      await signOut(auth); // Firebase sign out
       setUser(null);
       setStatus('unauthenticated');
       return null;
@@ -92,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const firebaseUser = firebaseAuth.currentUser;
+    const firebaseUser = auth.currentUser;
     if (firebaseUser) {
       const token = await firebaseUser.getIdToken(true);
       await fetchUserProfile(token);
@@ -100,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserProfile]);
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setStatus('loading');
         const token = await firebaseUser.getIdToken();
@@ -138,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('loading');
 
     try {
-        const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
         const userProfile = await createSessionCookie(idToken);
         setUser(userProfile);
@@ -152,18 +154,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let message = 'Login failed. Please try again.';
         let code = 'UNKNOWN_ERROR';
         
+        const typedError = error as { code?: string };
         if (error instanceof AuthenticationError) {
-            message = error.message;
-            code = error.code;
-        } else {
-            const typedError = error as { code?: string };
-            code = typedError.code || 'UNKNOWN_ERROR';
+          message = error.message;
+          code = error.code;
+        } else if (typedError.code) {
+            code = typedError.code;
             switch (code) {
                 case 'auth/invalid-credential':
                 case 'auth/wrong-password':
                 case 'auth/user-not-found':
                     try {
-                        const providers = await fetchSignInMethodsForEmail(firebaseAuth, email);
+                        const providers = await fetchSignInMethodsForEmail(auth, email);
                         if (providers.includes(GoogleAuthProvider.PROVIDER_ID)) {
                             message = "This email is registered with Google. Please use 'Sign in with Google'.";
                             code = 'auth/google-account-exists';
@@ -178,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     message = 'Your account has been disabled.';
                     break;
                 case 'auth/too-many-requests':
-                    message = 'Too many failed attempts. Please wait before trying again.';
+                    message = 'Too many failed attempts. Please try again.';
                     break;
                 default:
                     message = 'An unexpected error occurred during login.';
@@ -188,9 +190,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const authError = { message, code };
         setError(authError);
         setStatus('unauthenticated');
+        toast({ title: 'Login Failed', description: message, variant: 'destructive' });
         throw new AuthenticationError(message, code);
     }
-}, [clearError, createSessionCookie]);
+}, [clearError, createSessionCookie, toast]);
 
 
   const googleLogin = useCallback(async (): Promise<void> => {
@@ -198,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('loading');
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(firebaseAuth, provider);
+      const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
       const userProfile = await createSessionCookie(idToken);
 
@@ -220,10 +223,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearError();
     setStatus('loading');
     try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // This automatically signs the user in, so the onAuthStateChanged listener will fire.
+      // We'll create the user profile on the backend via a separate API call if needed,
+      // or rely on the auth trigger. For simplicity, we can call a signup endpoint.
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await userCredential.user.getIdToken()}` },
+        body: JSON.stringify({ name, email }),
       });
 
       if (!response.ok) {
@@ -231,22 +238,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new AuthenticationError(errorBody.error || 'Registration failed', errorBody.code);
       }
       
-      // After successful registration, log the user in to create the session
-      await login(email, password);
+      await createSessionCookie(await userCredential.user.getIdToken());
+      // The onAuthStateChanged listener will handle the rest.
 
     } catch (error: unknown) {
       console.error('[Auth] Registration failed:', error);
       const typedError = error as { message: string, code?: string };
-      const authError = { message: typedError.message, code: typedError.code };
+      const authError = { message: typedError.message, code: typedError.code || 'SIGNUP_FAILED' };
       setError(authError);
       setStatus('unauthenticated');
-      throw new AuthenticationError(typedError.message, typedError.code);
+      toast({ title: 'Registration Failed', description: authError.message, variant: 'destructive' });
+      throw new AuthenticationError(authError.message, authError.code);
     }
-  }, [clearError, login]);
+  }, [clearError, createSessionCookie, toast]);
 
   const logout = useCallback(async () => {
     try {
-      await signOut(firebaseAuth); // Sign out from Firebase client
+      await signOut(auth); // Sign out from Firebase client
       await fetch('/api/auth/logout', { method: 'POST' }); // Invalidate server session
       setUser(null);
       setStatus('unauthenticated');
@@ -261,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const forgotPassword = useCallback(async (email: string): Promise<void> => {
     clearError();
     try {
-      await sendPasswordResetEmail(firebaseAuth, email);
+      await sendPasswordResetEmail(auth, email);
     } catch (error) {
       const typedError = error as { code: string; message: string };
       setError({ message: typedError.message, code: typedError.code });
