@@ -1,83 +1,215 @@
-{
-  "name": "propel-lite",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbo",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "pretypecheck": "npm run lint",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "patch-package",
-    "seed": "tsx src/lib/seed.ts",
-    "analyze": "ANALYZE=true next build",
-    "test": "vitest"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.9.0",
-    "@radix-ui/react-accordion": "^1.2.3",
-    "@radix-ui/react-alert-dialog": "^1.1.6",
-    "@radix-ui/react-avatar": "^1.1.3",
-    "@radix-ui/react-checkbox": "^1.1.4",
-    "@radix-ui/react-collapsible": "^1.1.11",
-    "@radix-ui/react-dialog": "^1.1.6",
-    "@radix-ui/react-dropdown-menu": "^2.1.6",
-    "@radix-ui/react-label": "^2.1.2",
-    "@radix-ui/react-menubar": "^1.1.6",
-    "@radix-ui/react-popover": "^1.1.6",
-    "@radix-ui/react-progress": "^1.1.2",
-    "@radix-ui/react-radio-group": "^1.2.3",
-    "@radix-ui/react-scroll-area": "^1.2.3",
-    "@radix-ui/react-select": "^2.1.6",
-    "@radix-ui/react-separator": "^1.1.2",
-    "@radix-ui/react-slider": "^1.2.3",
-    "@radix-ui/react-slot": "^1.2.3",
-    "@radix-ui/react-switch": "^1.1.3",
-    "@radix-ui/react-tabs": "^1.1.3",
-    "@radix-ui/react-toast": "^1.2.6",
-    "@radix-ui/react-tooltip": "^1.1.8",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.0.0",
-    "date-fns": "^3.6.0",
-    "embla-carousel-autoplay": "^8.6.0",
-    "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^11.5.1",
-    "lucide-react": "^0.475.0",
-    "next": "15.5.4",
-    "next-themes": "^0.3.0",
-    "papaparse": "^5.3.14",
-    "patch-package": "^8.0.0",
-    "react": "^18.3.1",
-    "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.2",
-    "recharts": "^2.15.1",
-    "sharp": "^0.33.5",
-    "swr": "^2.2.5",
-    "tailwind-merge": "^3.0.1",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^9.0.1",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@faker-js/faker": "^8.4.1",
-    "@next/bundle-analyzer": "^15.5.4",
-    "@types/node": "^20",
-    "@types/papaparse": "^5.3.14",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18",
-    "@types/uuid": "^9.0.8",
-    "eslint": "8.57.0",
-    "eslint-config-next": "15.5.4",
-    "jsdom": "^24.1.0",
-    "postcss": "^8.4.40",
-    "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.4.7",
-    "tsx": "^4.16.2",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.1"
-  },
-  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
+
+// Enhanced /api/auth/login/route.ts with detailed logging
+
+import { NextResponse, type NextRequest } from 'next/server';
+import { isFirebaseAdminInitialized, auth as adminAuth } from '@/lib/firebase-admin';
+import { authConfig } from '@/config/server-config';
+import { createSession } from '@/lib/auth-service';
+import { z } from 'zod';
+import { loginRateLimit } from '@/lib/rate-limiter';
+import { createRequestContext } from '@/lib/auth-utils';
+
+export const runtime = 'nodejs';
+
+const loginRequestSchema = z.object({
+  idToken: z.string().min(1, 'ID token is required')
+});
+
+interface ApiError {
+  error: string;
+  code?: string;
+  timestamp: string;
+  requestId?: string;
+}
+
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
+
+function createErrorResponse(
+  error: string, 
+  status: number, 
+  code?: string, 
+  requestId?: string
+): NextResponse<ApiError> {
+  const response = NextResponse.json({
+    error,
+    code,
+    timestamp: new Date().toISOString(),
+    requestId
+  }, { status });
+
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+
+  return response;
+}
+
+export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const requestContext = createRequestContext(req);
+  
+  console.log(`[INFO: /api/auth/login][${requestId}] ========== LOGIN REQUEST START ==========`);
+  console.log(`[INFO: /api/auth/login][${requestId}] Context:`, requestContext);
+  
+  if (!isFirebaseAdminInitialized) {
+    console.error(`[ERROR: /api/auth/login][${requestId}] Firebase Admin not initialized`);
+    return createErrorResponse(
+      'Authentication service temporarily unavailable. Please try again later.',
+      503,
+      'SERVICE_UNAVAILABLE',
+      requestId
+    );
+  }
+
+  console.log(`[INFO: /api/auth/login][${requestId}] Firebase Admin is initialized ✓`);
+
+  // Skip rate limiting in development
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (!isDevelopment) {
+    try {
+      await loginRateLimit.check(req);
+    } catch {
+      console.warn(`[SECURITY: /api/auth/login][${requestId}] Rate limit exceeded`);
+      return createErrorResponse(
+        'Too many login attempts. Please try again later.',
+        429,
+        'RATE_LIMIT_EXCEEDED',
+        requestId
+      );
+    }
+  } else {
+    console.log(`[INFO: /api/auth/login][${requestId}] Rate limiting disabled in development`);
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    console.log(`[INFO: /api/auth/login][${requestId}] Authorization header present:`, !!authHeader);
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.warn(`[WARN: /api/auth/login][${requestId}] Missing or invalid Authorization header`);
+      return createErrorResponse('Invalid authentication format', 401, 'INVALID_AUTH_HEADER', requestId);
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    if (!idToken) {
+      console.warn(`[WARN: /api/auth/login][${requestId}] Empty ID token`);
+      return createErrorResponse('Invalid authentication token', 401, 'EMPTY_TOKEN', requestId);
+    }
+
+    console.log(`[INFO: /api/auth/login][${requestId}] ID token received, length: ${idToken.length}`);
+
+    const validation = loginRequestSchema.safeParse({ idToken });
+    if (!validation.success) {
+      console.warn(`[WARN: /api/auth/login][${requestId}] Token validation failed`, validation.error.issues);
+      return createErrorResponse('Invalid token format', 400, 'INVALID_TOKEN_FORMAT', requestId);
+    }
+
+    console.log(`[INFO: /api/auth/login][${requestId}] Token validation passed ✓`);
+
+    // DETAILED TOKEN VERIFICATION
+    console.log(`[INFO: /api/auth/login][${requestId}] Verifying ID token with Firebase Admin...`);
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+      console.log(`[INFO: /api/auth/login][${requestId}] Token verified ✓ UID: ${decodedToken.uid}`);
+      console.log(`[INFO: /api/auth/login][${requestId}] Token claims:`, {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        email_verified: decodedToken.email_verified,
+        auth_time: decodedToken.auth_time,
+        iat: decodedToken.iat,
+        exp: decodedToken.exp
+      });
+    } catch (verifyError: unknown) {
+      const err = verifyError as { code?: string; message: string };
+      console.error(`[ERROR: /api/auth/login][${requestId}] Token verification failed:`, {
+        code: err.code,
+        message: err.message
+      });
+      return createErrorResponse(
+        'Invalid or expired token',
+        401,
+        err.code || 'TOKEN_VERIFICATION_FAILED',
+        requestId
+      );
+    }
+
+    console.log(`[INFO: /api/auth/login][${requestId}] Creating session for UID: ${decodedToken.uid}`);
+    
+    const { sessionCookie, userProfile } = await createSession(idToken);
+
+    console.log(`[INFO: /api/auth/login][${requestId}] Session created successfully ✓`);
+    console.log(`[INFO: /api/auth/login][${requestId}] Session cookie length: ${sessionCookie.length}`);
+    console.log(`[INFO: /api/auth/login][${requestId}] User profile:`, {
+      uid: userProfile.uid,
+      email: userProfile.email,
+      role: userProfile.role,
+      profileComplete: userProfile.profileComplete
+    });
+
+    const response = NextResponse.json(userProfile, { status: 200 });
+    
+    const cookieOptions = {
+      ...authConfig.cookieSerializeOptions,
+      sameSite: 'strict' as const,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      httpOnly: true
+    };
+
+    console.log(`[INFO: /api/auth/login][${requestId}] Setting cookie:`, {
+      name: authConfig.cookieName,
+      options: cookieOptions
+    });
+    
+    response.cookies.set(authConfig.cookieName, sessionCookie, cookieOptions);
+
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+
+    console.log(`[INFO: /api/auth/login][${requestId}] ========== LOGIN SUCCESS ==========`);
+    return response;
+
+  } catch (error: unknown) {
+    const typedError = error as { message?: string, code?: string };
+    console.error(`[ERROR: /api/auth/login][${requestId}] Unexpected error:`, {
+      message: typedError.message,
+      code: typedError.code,
+      stack: (error as Error).stack
+    });
+
+    if (typedError.code === 'INCOMPLETE_PROFILE') {
+      return createErrorResponse(typedError.message || 'Profile is incomplete.', 403, 'INCOMPLETE_PROFILE', requestId);
+    }
+
+    if (typedError.code?.startsWith('auth/')) {
+      let message = 'Invalid credentials. Please try again.';
+      let code = 'INVALID_CREDENTIALS';
+
+      switch (typedError.code) {
+        case 'auth/invalid-id-token':
+        case 'auth/id-token-expired':
+          message = 'Your session has expired. Please sign in again.';
+          code = 'TOKEN_EXPIRED';
+          break;
+        case 'auth/id-token-revoked':
+          message = 'Your session has been revoked. Please sign in again.';
+          code = 'TOKEN_REVOKED';
+          break;
+        case 'auth/user-disabled':
+          message = 'This account has been disabled. Please contact support.';
+          code = 'ACCOUNT_DISABLED';
+          break;
+      }
+      return createErrorResponse(message, 401, code, requestId);
+    }
+
+    return createErrorResponse('An unexpected error occurred during login. Please try again.', 500, 'INTERNAL_ERROR', requestId);
+  }
 }

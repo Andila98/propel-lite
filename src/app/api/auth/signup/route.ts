@@ -1,83 +1,103 @@
-{
-  "name": "propel-lite",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbo",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "pretypecheck": "npm run lint",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "patch-package",
-    "seed": "tsx src/lib/seed.ts",
-    "analyze": "ANALYZE=true next build",
-    "test": "vitest"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.9.0",
-    "@radix-ui/react-accordion": "^1.2.3",
-    "@radix-ui/react-alert-dialog": "^1.1.6",
-    "@radix-ui/react-avatar": "^1.1.3",
-    "@radix-ui/react-checkbox": "^1.1.4",
-    "@radix-ui/react-collapsible": "^1.1.11",
-    "@radix-ui/react-dialog": "^1.1.6",
-    "@radix-ui/react-dropdown-menu": "^2.1.6",
-    "@radix-ui/react-label": "^2.1.2",
-    "@radix-ui/react-menubar": "^1.1.6",
-    "@radix-ui/react-popover": "^1.1.6",
-    "@radix-ui/react-progress": "^1.1.2",
-    "@radix-ui/react-radio-group": "^1.2.3",
-    "@radix-ui/react-scroll-area": "^1.2.3",
-    "@radix-ui/react-select": "^2.1.6",
-    "@radix-ui/react-separator": "^1.1.2",
-    "@radix-ui/react-slider": "^1.2.3",
-    "@radix-ui/react-slot": "^1.2.3",
-    "@radix-ui/react-switch": "^1.1.3",
-    "@radix-ui/react-tabs": "^1.1.3",
-    "@radix-ui/react-toast": "^1.2.6",
-    "@radix-ui/react-tooltip": "^1.1.8",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.0.0",
-    "date-fns": "^3.6.0",
-    "embla-carousel-autoplay": "^8.6.0",
-    "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^11.5.1",
-    "lucide-react": "^0.475.0",
-    "next": "15.5.4",
-    "next-themes": "^0.3.0",
-    "papaparse": "^5.3.14",
-    "patch-package": "^8.0.0",
-    "react": "^18.3.1",
-    "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.2",
-    "recharts": "^2.15.1",
-    "sharp": "^0.33.5",
-    "swr": "^2.2.5",
-    "tailwind-merge": "^3.0.1",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^9.0.1",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@faker-js/faker": "^8.4.1",
-    "@next/bundle-analyzer": "^15.5.4",
-    "@types/node": "^20",
-    "@types/papaparse": "^5.3.14",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18",
-    "@types/uuid": "^9.0.8",
-    "eslint": "8.57.0",
-    "eslint-config-next": "15.5.4",
-    "jsdom": "^24.1.0",
-    "postcss": "^8.4.40",
-    "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.4.7",
-    "tsx": "^4.16.2",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.1"
-  },
-  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
+
+import { NextResponse, type NextRequest } from 'next/server';
+import { isFirebaseAdminInitialized, auth as adminAuth, firestore } from '@/lib/firebase-admin';
+import { registrationRateLimit } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { createRequestContext } from '@/lib/auth-utils';
+import type { User } from '@/lib/types';
+
+export const runtime = 'nodejs';
+
+const signupRequestSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+});
+
+function createErrorResponse(error: string, status: number, code?: string, requestId?: string) {
+  return NextResponse.json({ error, code, timestamp: new Date().toISOString(), requestId }, { status });
+}
+
+export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const requestContext = createRequestContext(req);
+  
+  console.log(`[INFO: /api/auth/signup][${requestId}] ========== SIGNUP REQUEST START ==========`, requestContext);
+  
+  if (!isFirebaseAdminInitialized) {
+    console.error(`[ERROR: /api/auth/signup][${requestId}] Firebase Admin not initialized`);
+    return createErrorResponse('Service not configured', 503, 'SERVICE_UNAVAILABLE', requestId);
+  }
+
+  try {
+    await registrationRateLimit.check(req);
+  } catch {
+    console.warn(`[SECURITY: /api/auth/signup][${requestId}] Rate limit exceeded`);
+    return createErrorResponse('Too many accounts created from this IP', 429, 'RATE_LIMIT_EXCEEDED', requestId);
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return createErrorResponse('Unauthorized: Invalid token format', 401, 'INVALID_AUTH_HEADER', requestId);
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+
+    console.log(`[INFO: /api/auth/signup][${requestId}] Verifying ID token...`);
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    console.log(`[INFO: /api/auth/signup][${requestId}] Token verified for UID: ${decodedToken.uid}`);
+
+    const body = await req.json();
+    const validation = signupRequestSchema.safeParse(body);
+
+    if (!validation.success) {
+      console.warn(`[WARN: /api/auth/signup][${requestId}] Invalid request body`, validation.error.issues);
+      return createErrorResponse('Invalid signup data', 400, 'INVALID_INPUT', requestId);
+    }
+
+    const { name, email } = validation.data;
+    const { uid } = decodedToken;
+
+    // Check for existing landlord record
+    const landlordRef = firestore.collection('landlords').doc(uid);
+    const landlordSnap = await landlordRef.get();
+
+    if (landlordSnap.exists) {
+      console.warn(`[WARN: /api/auth/signup][${requestId}] Landlord already exists: ${uid}`);
+      return createErrorResponse('Account already exists.', 409, 'ACCOUNT_EXISTS', requestId);
+    }
+
+    // Update Firebase Auth user profile
+    await adminAuth.updateUser(uid, {
+      displayName: name,
+      emailVerified: true // Or based on your flow
+    });
+
+    // Create landlord document in Firestore
+    const landlordData: Partial<User> = {
+      uid,
+      name,
+      email,
+      role: 'landlord',
+      profileComplete: false, // Onboarding starts now
+      createdAt: new Date() as any, // Will be converted by Firestore
+    };
+    await landlordRef.set(landlordData);
+
+    await adminAuth.setCustomUserClaims(uid, { role: 'landlord', profileComplete: false });
+
+    console.log(`[INFO: /api/auth/signup][${requestId}] Landlord profile created for UID: ${uid}`);
+    console.log(`[INFO: /api/auth/signup][${requestId}] ========== SIGNUP SUCCESS ==========`);
+
+    return NextResponse.json({ uid, name, email, role: 'landlord' }, { status: 201 });
+
+  } catch (error: unknown) {
+    const typedError = error as { code?: string, message: string };
+    console.error(`[ERROR: /api/auth/signup][${requestId}]`, typedError);
+    
+    if (typedError.code === 'auth/id-token-expired') {
+        return createErrorResponse('Your session has expired. Please try signing up again.', 401, 'TOKEN_EXPIRED', requestId);
+    }
+
+    return createErrorResponse('An unexpected error occurred during signup.', 500, 'INTERNAL_ERROR', requestId);
+  }
 }
