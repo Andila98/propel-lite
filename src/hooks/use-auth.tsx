@@ -34,24 +34,6 @@ class AuthenticationError extends Error {
   }
 }
 
-// Simple in-memory retry handler for sign-ups
-class ConnectionRetry {
-  private attempts = 0;
-  async execute(fn: () => Promise<void>) {
-    try {
-      await fn();
-    } catch (error) {
-      if (this.attempts < 2) {
-        this.attempts++;
-        await new Promise(resolve => setTimeout(resolve, 1000 * this.attempts));
-        await this.execute(fn);
-      } else {
-        throw error;
-      }
-    }
-  }
-}
-
 interface AuthContextType {
   user: User | null;
   status: 'loading' | 'authenticated' | 'unauthenticated';
@@ -107,10 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (firebaseUser) {
         setStatus('loading');
         const token = await firebaseUser.getIdToken();
-        const userProfile = await fetchUserProfile(token);
-        if(userProfile && userProfile.profileComplete === false){
-          window.location.href = '/onboarding/landlord-welcome';
-        }
+        await fetchUserProfile(token);
       } else {
         setUser(null);
         setStatus('unauthenticated');
@@ -146,9 +125,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userProfile = await createSessionCookie(idToken);
         setUser(userProfile);
         setStatus('authenticated');
-        if (userProfile.profileComplete === false) {
-          window.location.href = '/onboarding/landlord-welcome';
-        }
     } catch (error: unknown) {
         console.error('[Auth] Login failed:', error);
         
@@ -208,9 +184,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(userProfile);
       setStatus('authenticated');
-      if (userProfile.profileComplete === false) {
-        window.location.href = '/onboarding/landlord-welcome';
-      }
     } catch (error) {
       const typedError = error as { code: string; message: string };
       setError({ message: typedError.message, code: typedError.code });
